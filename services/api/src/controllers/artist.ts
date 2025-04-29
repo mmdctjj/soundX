@@ -7,10 +7,10 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ArtistService } from '../services/artist';
 import { Artist } from '@prisma/client';
 import { IErrorResponse, ISuccessResponse } from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
+import { ArtistService } from '../services/artist';
 
 @Controller()
 export class ArtistController {
@@ -87,6 +87,58 @@ export class ArtistController {
         message: 'success',
         data: isSuccess,
       };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Post('/artist/batch-create')
+  async createArtists(
+    @Body() artists: Omit<Artist, 'id'>[],
+  ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
+    try {
+      const artistInfo = await this.artistService.createArtists(artists);
+      if (artistInfo) {
+        return {
+          code: 200,
+          message: 'success',
+          data: artistInfo,
+        };
+      } else {
+        return {
+          code: 500,
+          message: '批量新增失败',
+        };
+      }
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Delete('/artist/batch-delete')
+  async deleteArtists(
+    @Body() ids: number[],
+  ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
+    try {
+      const result = await this.artistService.deleteArtists(ids);
+      if (result) {
+        return {
+          code: 200,
+          message: 'success',
+          data: result,
+        };
+      } else {
+        return {
+          code: 500,
+          message: '批量删除失败',
+        };
+      }
     } catch (error) {
       return {
         code: 500,

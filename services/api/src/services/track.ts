@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Track } from '@prisma/client';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Track } from '@prisma/client';
 
 @Injectable()
 export class TrackService {
@@ -14,7 +13,7 @@ export class TrackService {
     return await this.prisma.track.findMany();
   }
 
-  async createTrack(track: Omit<Track, 'id' | 'createdAt'>): Promise<Track> {
+  async createTrack(track: Omit<Track, 'id'>): Promise<Track> {
     return await this.prisma.track.create({
       data: track,
     });
@@ -30,6 +29,25 @@ export class TrackService {
   async deleteTrack(id: number): Promise<boolean> {
     await this.prisma.track.delete({
       where: { id },
+    });
+    return true;
+  }
+
+  // 批量新增
+  async createTracks(tracks: Omit<Track, 'id'>[]): Promise<boolean> {
+    const trackList = await this.prisma.track.createMany({
+      data: tracks,
+    });
+    if (trackList.count !== tracks.length) {
+      throw new Error('批量新增失败');
+    }
+    return trackList.count === tracks.length;
+  }
+
+  // 批量删除
+  async deleteTracks(ids: number[]): Promise<boolean> {
+    await this.prisma.track.deleteMany({
+      where: { id: { in: ids } },
     });
     return true;
   }

@@ -12,7 +12,9 @@
     "build:app": "cd apps/app && npm run build",
     "dev:mini": "cd apps/mini && npm run dev",
     "build:mini": "cd apps/mini && npm run build",
-    "dev:api": "cd services/api && pnpm run start && pnpm run studio"
+    "dev:api": "cd services/api && pnpm run start",
+    "dev:studio": "cd services/api && pnpm run studio",
+    "prisma": "cd services/api && pnpm prisma generate"
   },
   "keywords": [],
   "author": "",

@@ -7,10 +7,10 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { TrackService } from '../services/track';
 import { Track } from '@prisma/client';
 import { IErrorResponse, ISuccessResponse } from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
+import { TrackService } from '../services/track';
 
 @Controller()
 export class TrackController {
@@ -36,7 +36,7 @@ export class TrackController {
   @Public()
   @Post('/track')
   async createTrack(
-    @Body() track: Omit<Track, 'id' | 'createdAt'>,
+    @Body() track: Omit<Track, 'id'>,
   ): Promise<ISuccessResponse<Track> | IErrorResponse> {
     try {
       const trackInfo = await this.trackService.createTrack(track);
@@ -87,6 +87,58 @@ export class TrackController {
         message: 'success',
         data: isSuccess,
       };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Post('/track/batch-create')
+  async createTracks(
+    @Body() tracks: Omit<Track, 'id'>[],
+  ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
+    try {
+      const trackInfo = await this.trackService.createTracks(tracks);
+      if (trackInfo) {
+        return {
+          code: 200,
+          message: 'success',
+          data: trackInfo,
+        };
+      } else {
+        return {
+          code: 500,
+          message: '批量新增失败',
+        };
+      }
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Delete('/track/batch-delete')
+  async deleteTracks(
+    @Body() ids: number[],
+  ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
+    try {
+      const result = await this.trackService.deleteTracks(ids);
+      if (result) {
+        return {
+          code: 200,
+          message: 'success',
+          data: result,
+        };
+      } else {
+        return {
+          code: 500,
+          message: '批量删除失败',
+        };
+      }
     } catch (error) {
       return {
         code: 500,

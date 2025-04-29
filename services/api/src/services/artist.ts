@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Artist } from '@prisma/client';
-import { PrismaClient } from '@prisma/client';
+import { Artist, PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class ArtistService {
@@ -30,6 +29,25 @@ export class ArtistService {
   async deleteArtist(id: number): Promise<boolean> {
     await this.prisma.artist.delete({
       where: { id },
+    });
+    return true;
+  }
+
+  // 批量新增
+  async createArtists(artists: Omit<Artist, 'id'>[]): Promise<boolean> {
+    const artistList = await this.prisma.artist.createMany({
+      data: artists,
+    });
+    if (artistList.count !== artists.length) {
+      throw new Error('批量新增失败');
+    }
+    return artistList.count === artists.length;
+  }
+
+  // 批量删除
+  async deleteArtists(ids: number[]): Promise<boolean> {
+    await this.prisma.artist.deleteMany({
+      where: { id: { in: ids } },
     });
     return true;
   }
