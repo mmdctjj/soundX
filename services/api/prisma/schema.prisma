@@ -1,0 +1,22 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  /// 用户ID，自增主键
+  id        Int     @id @default(autoincrement())
+  /// 用户名，唯一标识
+  username  String  @unique
+  /// 用户密码，存储加密后的密码
+  password  String
+  /// 是否为管理员，默认false
+  is_admin  Boolean @default(false)
+}

@@ -11,7 +11,8 @@
     "dev:app": "cd apps/app && npm run dev",
     "build:app": "cd apps/app && npm run build",
     "dev:mini": "cd apps/mini && npm run dev",
-    "build:mini": "cd apps/mini && npm run build"
+    "build:mini": "cd apps/mini && npm run build",
+    "dev:api": "cd services/api && pnpm run start && pnpm run studio"
   },
   "keywords": [],
   "author": "",
