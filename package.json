@@ -1,0 +1,24 @@
+{
+  "name": "soundX",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:web": "cd apps/web && npm run dev",
+    "build:web": "cd apps/web && npm run build",
+    "preview:web": "cd apps/web && npm run preview",
+    "dev:app": "cd apps/app && npm run dev",
+    "build:app": "cd apps/app && npm run build",
+    "dev:mini": "cd apps/mini && npm run dev",
+    "build:mini": "cd apps/mini && npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@soundx/core": "workspace:^",
+    "@soundx/ui": "workspace:^",
+    "@soundx/utils": "workspace:^"
+  }
+}
