@@ -9,6 +9,12 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
+import { AlbumService } from './services/album';
+import { ArtistService } from './services/artist';
+import { TrackService } from './services/track';
+import { AlbumController } from './controllers/album';
+import { ArtistController } from './controllers/artist';
+import { TrackController } from './controllers/track';
 
 @Module({
   imports: [
@@ -19,10 +25,19 @@ import { AuthService } from './auth/auth.service';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  controllers: [UserController, AuthController],
+  controllers: [
+    UserController,
+    AuthController,
+    AlbumController,
+    ArtistController,
+    TrackController,
+  ],
   providers: [
     UserService,
     AuthService,
+    AlbumService,
+    ArtistService,
+    TrackService,
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,

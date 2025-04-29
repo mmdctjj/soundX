@@ -1,0 +1,332 @@
+{
+    "openapi": "3.0.0",
+    "paths": {
+        "/": {
+            "get": {
+                "operationId": "UserController_getHello",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "User"
+                ]
+            }
+        },
+        "/user/list": {
+            "get": {
+                "operationId": "UserController_getUserList",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "User"
+                ]
+            }
+        },
+        "/user": {
+            "post": {
+                "operationId": "UserController_createUser",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "User"
+                ]
+            }
+        },
+        "/user/{id}": {
+            "put": {
+                "operationId": "UserController_updateUser",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "User"
+                ]
+            },
+            "delete": {
+                "operationId": "UserController_deleteUser",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "User"
+                ]
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "operationId": "AuthController_login",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Auth"
+                ]
+            }
+        },
+        "/album/list": {
+            "get": {
+                "operationId": "AlbumController_getAlbumList",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Album"
+                ]
+            }
+        },
+        "/album": {
+            "post": {
+                "operationId": "AlbumController_createAlbum",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Album"
+                ]
+            }
+        },
+        "/album/{id}": {
+            "put": {
+                "operationId": "AlbumController_updateAlbum",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Album"
+                ]
+            },
+            "delete": {
+                "operationId": "AlbumController_deleteAlbum",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Album"
+                ]
+            }
+        },
+        "/artist/list": {
+            "get": {
+                "operationId": "ArtistController_getArtistList",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Artist"
+                ]
+            }
+        },
+        "/artist": {
+            "post": {
+                "operationId": "ArtistController_createArtist",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Artist"
+                ]
+            }
+        },
+        "/artist/{id}": {
+            "put": {
+                "operationId": "ArtistController_updateArtist",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Artist"
+                ]
+            },
+            "delete": {
+                "operationId": "ArtistController_deleteArtist",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Artist"
+                ]
+            }
+        },
+        "/track/list": {
+            "get": {
+                "operationId": "TrackController_getTrackList",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Track"
+                ]
+            }
+        },
+        "/track": {
+            "post": {
+                "operationId": "TrackController_createTrack",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Track"
+                ]
+            }
+        },
+        "/track/{id}": {
+            "put": {
+                "operationId": "TrackController_updateTrack",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Track"
+                ]
+            },
+            "delete": {
+                "operationId": "TrackController_deleteTrack",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Track"
+                ]
+            }
+        }
+    },
+    "info": {
+        "title": "SoundX API",
+        "description": "SoundX API documentation",
+        "version": "1.0",
+        "contact": {}
+    },
+    "tags": [],
+    "servers": [],
+    "components": {
+        "schemas": {}
+    }
+}

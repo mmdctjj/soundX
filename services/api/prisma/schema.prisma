@@ -20,3 +20,28 @@ model User {
   /// 是否为管理员，默认false
   is_admin  Boolean @default(false)
 }
+
+model Track {
+  id        Int  @id @default(autoincrement())
+  name      String
+  path      String
+  artist    String
+  album     String
+  cover     String?
+  duration  Int?
+  createdAt DateTime @default(now())
+}
+
+model Album {
+  id     Int @id @default(autoincrement())
+  name   String
+  artist String
+  cover  String?
+  year   String?
+}
+
+model Artist {
+  id     Int @id @default(autoincrement())
+  name   String
+  avatar String?
+}
