@@ -16,11 +16,6 @@ import { Public } from 'src/common/public.decorator';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get()
-  getHello(): string {
-    return this.userService.getHello();
-  }
-
   @Get('/user/list')
   async getUserList(): Promise<ISuccessResponse<User[]> | IErrorResponse> {
     try {

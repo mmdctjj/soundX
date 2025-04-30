@@ -10,26 +10,26 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-model User {
-  /// 用户ID，自增主键
-  id        Int     @id @default(autoincrement())
-  /// 用户名，唯一标识
-  username  String  @unique
-  /// 用户密码，存储加密后的密码
-  password  String
-  /// 是否为管理员，默认false
-  is_admin  Boolean @default(false)
+enum TrackType {
+  MUSIC
+  AUDIOBOOK
 }
 
 model Track {
-  id        Int  @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   name      String
   path      String
   artist    String
   album     String
   cover     String?
   duration  Int?
+  type      TrackType @default(MUSIC)
   createdAt DateTime @default(now())
+  // 🔁 反向关系
+  likedByUsers    UserTrackLike[]
+  listenedByUsers UserTrackHistory[]
+  likedAsAudiobookByUsers UserAudiobookLike[]
+  listenedAsAudiobookByUsers UserAudiobookHistory[]
 }
 
 model Album {
@@ -38,10 +38,107 @@ model Album {
   artist String
   cover  String?
   year   String?
+  // 🔁 反向关系
+  likedByUsers    UserAlbumLike[]
+  listenedByUsers UserAlbumHistory[]
 }
 
 model Artist {
   id     Int @id @default(autoincrement())
   name   String
   avatar String?
+}
+
+model UserTrackLike {
+  id      Int    @id @default(autoincrement())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  Int
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId Int
+  createdAt DateTime @default(now())
+}
+
+model UserTrackHistory {
+  id      Int    @id @default(autoincrement())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  Int
+  track   Track  @relation(fields: [trackId], references: [id])
+  trackId Int
+  listenedAt DateTime @default(now())
+}
+
+
+model UserAlbumLike {
+  /// 主键 ID，自增
+  id       Int    @id @default(autoincrement())
+  /// 外键：关联用户
+  user     User   @relation(fields: [userId], references: [id])
+  userId   Int
+  /// 外键：关联专辑
+  album    Album  @relation(fields: [albumId], references: [id])
+  albumId  Int
+  /// 用户点赞该专辑的时间
+  createdAt DateTime @default(now())
+}
+
+model UserAlbumHistory {
+  /// 主键 ID，自增
+  id       Int    @id @default(autoincrement())
+  /// 外键：关联用户
+  user     User   @relation(fields: [userId], references: [id])
+  userId   Int
+  /// 外键：关联专辑
+  album    Album  @relation(fields: [albumId], references: [id])
+  albumId  Int
+  /// 用户收听该专辑的时间
+  listenedAt DateTime @default(now())
+}
+
+model UserAudiobookLike {
+  /// 主键 ID，自增
+  id        Int    @id @default(autoincrement())
+  /// 外键：关联用户
+  user      User   @relation(fields: [userId], references: [id])
+  userId    Int
+  /// 外键：关联有声书 Track
+  track     Track  @relation(fields: [trackId], references: [id])
+  trackId   Int
+  /// 用户点赞该有声书的时间
+  createdAt DateTime @default(now())
+}
+
+model UserAudiobookHistory {
+  /// 主键 ID，自增
+  id        Int    @id @default(autoincrement())
+  /// 外键：关联用户
+  user      User   @relation(fields: [userId], references: [id])
+  userId    Int
+  /// 外键：关联有声书 Track
+  track     Track  @relation(fields: [trackId], references: [id])
+  trackId   Int
+  /// 用户收听该有声书的时间
+  listenedAt DateTime @default(now())
+}
+
+model User {
+  /// 用户 ID，自增主键
+  id         Int      @id @default(autoincrement())
+  /// 用户名，唯一标识，用于登录
+  username   String   @unique
+  /// 加密后的用户密码
+  password   String
+  /// 是否为管理员用户，默认 false
+  is_admin   Boolean  @default(false)
+  /// 用户喜欢的音乐单曲列表
+  likedTracks      UserTrackLike[]
+  /// 用户听过的音乐单曲历史记录
+  listenedTracks   UserTrackHistory[]
+  /// 用户喜欢的专辑列表
+  likedAlbums      UserAlbumLike[]
+  /// 用户听过的专辑历史记录
+  listenedAlbums   UserAlbumHistory[]
+  /// 用户喜欢的有声书列表
+  likedAudiobooks  UserAudiobookLike[]
+  /// 用户听过的有声书历史记录
+  listenedAudiobooks UserAudiobookHistory[]
 }
