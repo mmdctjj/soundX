@@ -30,6 +30,10 @@ export class ArtistService {
     });
   }
 
+  async artistCount(): Promise<number> {
+    return await this.prisma.artist.count();
+  }
+
   async createArtist(artist: Omit<Artist, 'id'>): Promise<Artist> {
     return await this.prisma.artist.create({
       data: artist,
