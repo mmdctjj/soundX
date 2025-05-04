@@ -13,6 +13,23 @@ export class ArtistService {
     return await this.prisma.artist.findMany();
   }
 
+  async getArtistTableList(
+    pageSize: number,
+    current: number,
+  ): Promise<Artist[]> {
+    return await this.prisma.artist.findMany({
+      skip: (current - 1) * pageSize, // 计算要跳过多少条
+      take: pageSize,
+    });
+  }
+
+  async loadMoreArtist(pageSize: number, loadCount: number): Promise<Artist[]> {
+    return await this.prisma.artist.findMany({
+      skip: loadCount * pageSize,
+      take: pageSize,
+    });
+  }
+
   async createArtist(artist: Omit<Artist, 'id'>): Promise<Artist> {
     return await this.prisma.artist.create({
       data: artist,

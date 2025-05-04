@@ -8,7 +8,12 @@ import {
   Put,
 } from '@nestjs/common';
 import { Track } from '@prisma/client';
-import { IErrorResponse, ISuccessResponse } from 'src/common/const';
+import {
+  IErrorResponse,
+  ILoadMoreData,
+  ISuccessResponse,
+  ITableData,
+} from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
 import { TrackService } from '../services/track';
 
@@ -24,6 +29,64 @@ export class TrackController {
         code: 200,
         message: 'success',
         data: trackList,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/table-list')
+  async getTrackTableList(
+    @Param('pageSize') pageSize: number,
+    @Param('current') current: number,
+  ): Promise<ISuccessResponse<ITableData<Track[]>> | IErrorResponse> {
+    try {
+      const trackList = await this.trackService.getTrackTableList(
+        pageSize,
+        current,
+      );
+      const total = await this.trackService.trackCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          current,
+          list: trackList,
+          total,
+        },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/load-more')
+  async loadMoreTrack(
+    @Param('pageSize') pageSize: number,
+    @Param('loadCount') loadCount: number,
+  ): Promise<ISuccessResponse<ILoadMoreData<Track[]>> | IErrorResponse> {
+    try {
+      const trackList = await this.trackService.loadMoreTrack(
+        pageSize,
+        loadCount,
+      );
+      const total = await this.trackService.trackCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          loadCount,
+          list: trackList,
+          total,
+        },
       };
     } catch (error) {
       return {

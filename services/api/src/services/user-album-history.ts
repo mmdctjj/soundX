@@ -30,4 +30,22 @@ export class UserAlbumHistoryService {
       where: { id },
     });
   }
+
+  async getUserAlbumHistoryTableList(pageSize: number, current: number) {
+    return await this.prisma.userAlbumHistory.findMany({
+      skip: (current - 1) * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async loadMoreUserAlbumHistory(pageSize: number, loadCount: number) {
+    return await this.prisma.userAlbumHistory.findMany({
+      skip: loadCount * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async userAlbumHistoryCount() {
+    return await this.prisma.userAlbumHistory.count();
+  }
 }

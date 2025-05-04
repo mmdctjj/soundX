@@ -13,6 +13,24 @@ export class AlbumService {
     return await this.prisma.album.findMany();
   }
 
+  async getAlbumTableList(pageSize: number, current: number): Promise<Album[]> {
+    return await this.prisma.album.findMany({
+      skip: (current - 1) * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async loadMoreAlbum(pageSize: number, loadCount: number): Promise<Album[]> {
+    return await this.prisma.album.findMany({
+      skip: loadCount * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async albumCount(): Promise<number> {
+    return await this.prisma.album.count();
+  }
+
   async createAlbum(album: Omit<Album, 'id'>): Promise<Album> {
     return await this.prisma.album.create({
       data: album,

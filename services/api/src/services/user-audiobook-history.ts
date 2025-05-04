@@ -30,4 +30,22 @@ export class UserAudiobookHistoryService {
       where: { id },
     });
   }
+
+  async getUserAudiobookHistoryTableList(pageSize: number, current: number) {
+    return await this.prisma.userAudiobookHistory.findMany({
+      skip: (current - 1) * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async loadMoreUserAudiobookHistory(pageSize: number, loadCount: number) {
+    return await this.prisma.userAudiobookHistory.findMany({
+      skip: loadCount * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async userAudiobookHistoryCount() {
+    return await this.prisma.userAudiobookHistory.count();
+  }
 }

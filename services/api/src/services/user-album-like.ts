@@ -30,4 +30,22 @@ export class UserAlbumLikeService {
       where: { id },
     });
   }
+
+  async getUserAlbumLikeTableList(pageSize: number, current: number) {
+    return await this.prisma.userAlbumLike.findMany({
+      skip: (current - 1) * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async loadMoreUserAlbumLike(pageSize: number, loadCount: number) {
+    return await this.prisma.userAlbumLike.findMany({
+      skip: loadCount * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async userAlbumLikeCount() {
+    return await this.prisma.userAlbumLike.count();
+  }
 }

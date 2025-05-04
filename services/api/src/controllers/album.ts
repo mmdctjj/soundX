@@ -8,15 +8,19 @@ import {
   Put,
 } from '@nestjs/common';
 import { Album } from '@prisma/client';
-import { IErrorResponse, ISuccessResponse } from 'src/common/const';
-import { Public } from 'src/common/public.decorator';
+import {
+  IErrorResponse,
+  ILoadMoreData,
+  ISuccessResponse,
+  ITableData,
+} from 'src/common/const';
 import { AlbumService } from '../services/album';
 
-@Controller()
+@Controller('/album')
 export class AlbumController {
   constructor(private readonly albumService: AlbumService) {}
 
-  @Get('/album/list')
+  @Get('/list')
   async getAlbumList(): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
     try {
       const albumList = await this.albumService.getAlbumList();
@@ -33,7 +37,64 @@ export class AlbumController {
     }
   }
 
-  @Public()
+  @Get('/table-list')
+  async getAlbumTableList(
+    @Param('pageSize') pageSize: number,
+    @Param('current') current: number,
+  ): Promise<ISuccessResponse<ITableData<Album[]>> | IErrorResponse> {
+    try {
+      const albumList = await this.albumService.getAlbumTableList(
+        pageSize,
+        current,
+      );
+      const total = await this.albumService.albumCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          current,
+          list: albumList,
+          total,
+        },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/load-more')
+  async loadMoreAlbum(
+    @Param('pageSize') pageSize: number,
+    @Param('loadCount') loadCount: number,
+  ): Promise<ISuccessResponse<ILoadMoreData<Album[]>> | IErrorResponse> {
+    try {
+      const albumList = await this.albumService.loadMoreAlbum(
+        pageSize,
+        loadCount,
+      );
+      const total = await this.albumService.albumCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          loadCount,
+          list: albumList,
+          total,
+        },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
   @Post('/album')
   async createAlbum(
     @Body() album: Omit<Album, 'id'>,
@@ -53,7 +114,7 @@ export class AlbumController {
     }
   }
 
-  @Put('/album/:id')
+  @Put('/:id')
   async updateAlbum(
     @Param('id') id: string,
     @Body() album: Partial<Album>,
@@ -76,7 +137,7 @@ export class AlbumController {
     }
   }
 
-  @Delete('/album/:id')
+  @Delete('/:id')
   async deleteAlbum(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -95,7 +156,7 @@ export class AlbumController {
     }
   }
 
-  @Post('/album/batch-create')
+  @Post('/batch-create')
   async createAlbums(
     @Body() albums: Omit<Album, 'id'>[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -121,7 +182,7 @@ export class AlbumController {
     }
   }
 
-  @Delete('/album/batch-delete')
+  @Delete('/batch-delete')
   async deleteAlbums(
     @Body() ids: number[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {

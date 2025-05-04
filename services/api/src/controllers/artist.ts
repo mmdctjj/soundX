@@ -8,15 +8,20 @@ import {
   Put,
 } from '@nestjs/common';
 import { Artist } from '@prisma/client';
-import { IErrorResponse, ISuccessResponse } from 'src/common/const';
+import {
+  IErrorResponse,
+  ILoadMoreData,
+  ISuccessResponse,
+  ITableData,
+} from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
 import { ArtistService } from '../services/artist';
 
-@Controller()
+@Controller('/artist')
 export class ArtistController {
   constructor(private readonly artistService: ArtistService) {}
 
-  @Get('/artist/list')
+  @Get('/list')
   async getArtistList(): Promise<ISuccessResponse<Artist[]> | IErrorResponse> {
     try {
       const artistList = await this.artistService.getArtistList();
@@ -33,8 +38,66 @@ export class ArtistController {
     }
   }
 
+  @Get('/table-list')
+  async getArtistTableList(
+    @Param('pageSize') pageSize: number,
+    @Param('current') current: number,
+  ): Promise<ISuccessResponse<ITableData<Artist[]>> | IErrorResponse> {
+    try {
+      const artistList = await this.artistService.getArtistTableList(
+        pageSize,
+        current,
+      );
+      const total = await this.artistService.artistCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          current,
+          list: artistList,
+          total,
+        },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/load-more')
+  async loadMoreArtist(
+    @Param('pageSize') pageSize: number,
+    @Param('loadCount') loadCount: number,
+  ): Promise<ISuccessResponse<ILoadMoreData<Artist[]>> | IErrorResponse> {
+    try {
+      const artistList = await this.artistService.loadMoreArtist(
+        pageSize,
+        loadCount,
+      );
+      const total = await this.artistService.artistCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          loadCount,
+          list: artistList,
+          total,
+        },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
   @Public()
-  @Post('/artist')
+  @Post()
   async createArtist(
     @Body() artist: Omit<Artist, 'id'>,
   ): Promise<ISuccessResponse<Artist> | IErrorResponse> {
@@ -53,7 +116,7 @@ export class ArtistController {
     }
   }
 
-  @Put('/artist/:id')
+  @Put('/:id')
   async updateArtist(
     @Param('id') id: string,
     @Body() artist: Partial<Artist>,
@@ -76,7 +139,7 @@ export class ArtistController {
     }
   }
 
-  @Delete('/artist/:id')
+  @Delete('/:id')
   async deleteArtist(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -95,7 +158,7 @@ export class ArtistController {
     }
   }
 
-  @Post('/artist/batch-create')
+  @Post('/batch-create')
   async createArtists(
     @Body() artists: Omit<Artist, 'id'>[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -121,7 +184,7 @@ export class ArtistController {
     }
   }
 
-  @Delete('/artist/batch-delete')
+  @Delete('/batch-delete')
   async deleteArtists(
     @Body() ids: number[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {

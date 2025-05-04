@@ -1,6 +1,11 @@
 import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { UserTrackHistoryService } from '../services/user-track-history';
-import { IErrorResponse, ISuccessResponse } from 'src/common/const';
+import {
+  IErrorResponse,
+  ILoadMoreData,
+  ISuccessResponse,
+  ITableData,
+} from 'src/common/const';
 import { UserTrackHistory } from '@prisma/client';
 
 @Controller('user-track-histories')
@@ -76,6 +81,69 @@ export class UserTrackHistoryController {
         code: 200,
         message: 'success',
         data,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/table-list')
+  async getUserTrackHistoryTableList(
+    @Param('pageSize') pageSize: number,
+    @Param('current') current: number,
+  ): Promise<
+    ISuccessResponse<ITableData<UserTrackHistory[]>> | IErrorResponse
+  > {
+    try {
+      const list =
+        await this.userTrackHistoryService.getUserTrackHistoryTableList(
+          pageSize,
+          current,
+        );
+      const total = await this.userTrackHistoryService.userTrackHistoryCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          current,
+          list,
+          total,
+        },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/load-more')
+  async loadMoreUserTrackHistory(
+    @Param('pageSize') pageSize: number,
+    @Param('loadCount') loadCount: number,
+  ): Promise<
+    ISuccessResponse<ILoadMoreData<UserTrackHistory[]>> | IErrorResponse
+  > {
+    try {
+      const list = await this.userTrackHistoryService.loadMoreUserTrackHistory(
+        pageSize,
+        loadCount,
+      );
+      const total = await this.userTrackHistoryService.userTrackHistoryCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          loadCount,
+          list,
+          total,
+        },
       };
     } catch (error) {
       return {

@@ -23,24 +23,16 @@ export interface INotFoundResponse extends IResponse {
   code: 404;
 }
 
-export class BaseResponse<T> {
-  message: string;
-  code: number;
-  data: T;
-  constructor(message: string, code: number, data: T) {
-    this.message = message;
-    this.code = code;
-    this.data = data;
-  }
+export interface ITableData<T> {
+  pageSize: number;
+  current: number;
+  total: number;
+  list: T;
 }
 
-export class ErrorResponse extends BaseResponse<null> {
-  constructor(message: string) {
-    super(message, 500, null);
-  }
-}
-export class SuccessResponse<T> extends BaseResponse<T> {
-  constructor(message: string, data: T) {
-    super(message, 200, data);
-  }
+export interface ILoadMoreData<T> {
+  loadCount: number;
+  pageSize: number;
+  total: number;
+  list: T;
 }

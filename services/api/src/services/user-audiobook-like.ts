@@ -25,6 +25,24 @@ export class UserAudiobookLikeService {
     });
   }
 
+  async loadMoreUserAudiobookLike(pageSize: number, loadCount: number) {
+    return await this.prisma.userAudiobookLike.findMany({
+      skip: loadCount * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async userAudiobookLikeCount() {
+    return await this.prisma.userAudiobookLike.count();
+  }
+
+  async getUserAudiobookLikeTableList(pageSize: number, current: number) {
+    return await this.prisma.userAudiobookLike.findMany({
+      skip: (current - 1) * pageSize,
+      take: pageSize,
+    });
+  }
+
   async remove(id: number) {
     return await this.prisma.userAudiobookLike.delete({
       where: { id },

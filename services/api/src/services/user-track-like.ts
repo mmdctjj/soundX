@@ -30,4 +30,23 @@ export class UserTrackLikeService {
       where: { id },
     });
   }
+
+  async getUserTrackLikeTableList(page: number, pageSize: number) {
+    return await this.prisma.userTrackLike.findMany({
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async loadMoreUserTrackLike(lastId: number, pageSize: number) {
+    return await this.prisma.userTrackLike.findMany({
+      where: { id: { gt: lastId } },
+      take: pageSize,
+      orderBy: { id: 'asc' },
+    });
+  }
+
+  async userTrackLikeCount(): Promise<number> {
+    return await this.prisma.userTrackLike.count();
+  }
 }

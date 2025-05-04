@@ -13,6 +13,24 @@ export class TrackService {
     return await this.prisma.track.findMany();
   }
 
+  async getTrackTableList(pageSize: number, current: number): Promise<Track[]> {
+    return await this.prisma.track.findMany({
+      skip: (current - 1) * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async loadMoreTrack(pageSize: number, loadCount: number): Promise<Track[]> {
+    return await this.prisma.track.findMany({
+      skip: loadCount * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async trackCount(): Promise<number> {
+    return await this.prisma.track.count();
+  }
+
   async createTrack(track: Omit<Track, 'id'>): Promise<Track> {
     return await this.prisma.track.create({
       data: track,

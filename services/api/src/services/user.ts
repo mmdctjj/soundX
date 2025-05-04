@@ -16,6 +16,24 @@ export class UserService {
     return await this.prisma.user.findMany();
   }
 
+  async getUserTableList(page: number, pageSize: number) {
+    return await this.prisma.user.findMany({
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+  }
+
+  async loadMoreUser(lastId: number, pageSize: number) {
+    return await this.prisma.user.findMany({
+      where: { id: { gt: lastId } },
+      take: pageSize,
+      orderBy: { id: 'asc' },
+    });
+  }
+
+  async userCount(): Promise<number> {
+    return await this.prisma.user.count();
+  }
   async createUser(user: Omit<User, 'id'>): Promise<User> {
     return await this.prisma.user.create({
       data: user,

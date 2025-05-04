@@ -1,6 +1,11 @@
 import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { UserAudiobookLikeService } from '../services/user-audiobook-like';
-import { IErrorResponse, ISuccessResponse } from 'src/common/const';
+import {
+  IErrorResponse,
+  ILoadMoreData,
+  ISuccessResponse,
+  ITableData,
+} from 'src/common/const';
 import { UserAudiobookLike } from '@prisma/client';
 
 @Controller('user-audiobook-likes')
@@ -76,6 +81,72 @@ export class UserAudiobookLikeController {
         code: 200,
         message: 'success',
         data,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/table-list')
+  async getUserAudiobookLikeTableList(
+    @Param('pageSize') pageSize: number,
+    @Param('current') current: number,
+  ): Promise<
+    ISuccessResponse<ITableData<UserAudiobookLike[]>> | IErrorResponse
+  > {
+    try {
+      const list =
+        await this.userAudiobookLikeService.getUserAudiobookLikeTableList(
+          pageSize,
+          current,
+        );
+      const total =
+        await this.userAudiobookLikeService.userAudiobookLikeCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          current,
+          list,
+          total,
+        },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/load-more')
+  async loadMoreUserAudiobookLike(
+    @Param('pageSize') pageSize: number,
+    @Param('loadCount') loadCount: number,
+  ): Promise<
+    ISuccessResponse<ILoadMoreData<UserAudiobookLike[]>> | IErrorResponse
+  > {
+    try {
+      const list =
+        await this.userAudiobookLikeService.loadMoreUserAudiobookLike(
+          pageSize,
+          loadCount,
+        );
+      const total =
+        await this.userAudiobookLikeService.userAudiobookLikeCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          loadCount,
+          list,
+          total,
+        },
       };
     } catch (error) {
       return {

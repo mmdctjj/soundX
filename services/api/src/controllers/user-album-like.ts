@@ -1,6 +1,11 @@
 import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { UserAlbumLikeService } from '../services/user-album-like';
-import { IErrorResponse, ISuccessResponse } from 'src/common/const';
+import {
+  IErrorResponse,
+  ILoadMoreData,
+  ISuccessResponse,
+  ITableData,
+} from 'src/common/const';
 import { UserAlbumLike } from '@prisma/client';
 @Controller('user-album-likes')
 export class UserAlbumLikeController {
@@ -73,6 +78,66 @@ export class UserAlbumLikeController {
         code: 200,
         message: 'success',
         data,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/table-list')
+  async getUserAlbumLikeTableList(
+    @Param('pageSize') pageSize: number,
+    @Param('current') current: number,
+  ): Promise<ISuccessResponse<ITableData<UserAlbumLike[]>> | IErrorResponse> {
+    try {
+      const list = await this.userAlbumLikeService.getUserAlbumLikeTableList(
+        pageSize,
+        current,
+      );
+      const total = await this.userAlbumLikeService.userAlbumLikeCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          current,
+          list,
+          total,
+        },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/load-more')
+  async loadMoreUserAlbumLike(
+    @Param('pageSize') pageSize: number,
+    @Param('loadCount') loadCount: number,
+  ): Promise<
+    ISuccessResponse<ILoadMoreData<UserAlbumLike[]>> | IErrorResponse
+  > {
+    try {
+      const list = await this.userAlbumLikeService.loadMoreUserAlbumLike(
+        pageSize,
+        loadCount,
+      );
+      const total = await this.userAlbumLikeService.userAlbumLikeCount();
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          pageSize,
+          loadCount,
+          list,
+          total,
+        },
       };
     } catch (error) {
       return {
