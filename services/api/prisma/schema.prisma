@@ -25,7 +25,7 @@ model Track {
   duration  Int?
   type      TrackType @default(MUSIC)
   createdAt DateTime @default(now())
-  // 🔁 反向关系
+  /// 🔁 反向关系
   likedByUsers    UserTrackLike[]
   listenedByUsers UserTrackHistory[]
   likedAsAudiobookByUsers UserAudiobookLike[]
@@ -38,7 +38,7 @@ model Album {
   artist String
   cover  String?
   year   String?
-  // 🔁 反向关系
+  /// 🔁 反向关系
   likedByUsers    UserAlbumLike[]
   listenedByUsers UserAlbumHistory[]
 }

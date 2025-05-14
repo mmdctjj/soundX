@@ -8,6 +8,15 @@ import vueDevTools from "vite-plugin-vue-devtools";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    proxy: {
+      "/music": {
+        target: "http://localhost:1900", // 后端服务地址
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/music/, ""),
+      },
+    },
+  },
   plugins: [
     vue(),
     VueMcp({

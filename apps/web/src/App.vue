@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import HelloWorld from './components/HelloWorld.vue'
+import { WebDavMusicScanner } from "@soundx/core"
+
+const scanner = new WebDavMusicScanner('/music', 'admin', '123456')
+scanner.scanAllMusic()
 </script>
 
 <template>

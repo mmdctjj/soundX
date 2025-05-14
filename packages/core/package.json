@@ -1,6 +1,31 @@
 {
   "name": "@soundx/core",
   "version": "0.0.1",
-  "main": "index.ts",
-  "type": "module"
+  "description": "",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "scripts": {
+    "dev": "father dev",
+    "build": "father build",
+    "build:deps": "father prebundle",
+    "prepublishOnly": "father doctor && npm run build"
+  },
+  "types": "dist/esm/index.d.ts",
+  "keywords": [],
+  "authors": [],
+  "license": "MIT",
+  "files": [
+    "dist",
+    "compiled"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "music-metadata": "^11.2.1",
+    "webdav": "^5.8.0"
+  },
+  "devDependencies": {
+    "father": "^4.5.3"
+  }
 }
