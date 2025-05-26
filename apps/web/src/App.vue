@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
 import { WebDavMusicScanner } from "@soundx/core"
+import { http } from "./services"
 
-const scanner = new WebDavMusicScanner('/music', 'admin', '123456')
-scanner.scanAllMusic()
+const scanner = new WebDavMusicScanner('music', '', 'admin', '123456')
+
+const init = async () => {
+  console.log('scanner')
+  const res = await scanner.scanAllMusic()
+  console.log(res)
+  http('/v1/user/list')
+}
 </script>
 
 <template>
   <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+    <button @click="init">开始刮削</button>
   </div>
-  <HelloWorld msg="Vite + Vue" />
 </template>
 
 <style scoped>
@@ -25,9 +25,11 @@ scanner.scanAllMusic()
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
 }

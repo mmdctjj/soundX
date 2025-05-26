@@ -14,7 +14,8 @@
     "build:mini": "cd apps/mini && npm run build",
     "dev:api": "cd services/api && pnpm run start",
     "dev:studio": "cd services/api && pnpm run studio",
-    "prisma": "cd services/api && pnpm prisma generate"
+    "prisma": "cd services/api && pnpm prisma generate",
+    "core:dev": "cd packages/core && pnpm run dev"
   },
   "keywords": [],
   "author": "",

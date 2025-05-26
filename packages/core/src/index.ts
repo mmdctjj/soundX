@@ -1,11 +1,20 @@
 import { createClient } from "webdav";
-import { parseBuffer } from "music-metadata";
+import * as music from "music-metadata";
 
 export class WebDavMusicScanner {
   private client;
+  private musicMetadata;
+  private baseUrl;
 
-  constructor(url: string, username: string, password: string) {
-    this.client = createClient(url, { username, password });
+  constructor(
+    baseUrl: string,
+    url: string,
+    username: string,
+    password: string
+  ) {
+    this.client = createClient(`${baseUrl}/${url}`, { username, password });
+    this.baseUrl = baseUrl;
+    this.musicMetadata = music;
   }
 
   async scanAllMusic(directory = "/"): Promise<any[]> {
@@ -19,23 +28,34 @@ export class WebDavMusicScanner {
 
     for (const file of musicFiles) {
       try {
-        // 从 WebDAV 获取文件内容
-        const fileContent = await this.client.getFileContents(file.filename, {
-          format: "binary",
-        });
+        // 获取文件内容
+        const fileContent = await this.client.getFileContents(
+          `${this.baseUrl}${file.filename}`,
+          {
+            format: "binary",
+          }
+        );
 
-        // 将文件内容转换为 Uint8Array
-        const arrayBuffer = this.toArrayBuffer(fileContent);
-        const uint8Array = new Uint8Array(arrayBuffer);
+        // 调试：验证 fileContent 类型和大小
+        console.log(`File: ${file.filename}`);
 
-        // 使用 parseBuffer 解析元数据
-        const metadata = await parseBuffer(uint8Array, {
+        // 检查是否为空
+        if (
+          !(fileContent instanceof ArrayBuffer) ||
+          fileContent.byteLength === 0
+        ) {
+          throw new Error(`Empty or invalid file content for ${file.filename}`);
+        }
+
+        // 转换为 Uint8Array
+        const uint8Array = new Uint8Array(fileContent);
+
+        // 解析元数据
+        const metadata = await this.musicMetadata.parseBuffer(uint8Array, {
           mimeType: this.getMimeType(file.basename),
         });
-        
-        console.log("metadata", metadata);  
 
-        // 将解析结果添加到结果数组
+        // 添加结果
         results.push({
           path: file.filename,
           size: file.size,
@@ -45,23 +65,8 @@ export class WebDavMusicScanner {
         console.error(`❌ Failed to parse ${file.filename}:`, err);
       }
     }
-    console.log("results", results);  
 
     return results;
-  }
-
-  private toArrayBuffer(result: any): ArrayBuffer {
-    if (result instanceof ArrayBuffer) return result;
-    if (typeof result === "string") {
-      return new TextEncoder().encode(result).buffer;
-    }
-    if (result?.data instanceof ArrayBuffer) {
-      return result.data;
-    }
-    if (typeof result?.data === "string") {
-      return new TextEncoder().encode(result.data).buffer;
-    }
-    throw new Error("Unsupported format returned from getFileContents");
   }
 
   private getMimeType(filename: string): string {
@@ -80,3 +85,5 @@ export class WebDavMusicScanner {
     }
   }
 }
+
+export default music;
