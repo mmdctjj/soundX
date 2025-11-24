@@ -1,14 +1,17 @@
 import { app, BrowserWindow } from "electron";
 import path from "path";
-process.env.DIST = path.join(__dirname, "../dist");
+import { fileURLToPath } from "node:url";
+const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
+process.env.DIST = path.join(__dirname$1, "../dist");
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
 let win;
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC || "", "electron-vite.svg"),
+    titleBarStyle: "hidden",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js")
+      preload: path.join(__dirname$1, "preload.js")
     }
   });
   win.webContents.on("did-finish-load", () => {
