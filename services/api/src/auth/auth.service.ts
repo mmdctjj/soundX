@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { UserService } from 'src/services/user';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '@prisma/client';
+import { User } from '@soundx/db';
 
 @Injectable()
 export class AuthService {

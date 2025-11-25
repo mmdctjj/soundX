@@ -1,57 +1,183 @@
-import { Typography } from 'antd'
-import React from 'react'
+import { SyncOutlined } from "@ant-design/icons";
+import { Button, Typography } from "antd";
+import React from "react";
+import Cover from "../components/Cover";
+import type { RecommendedItem } from "../models";
 
-const { Title, Text } = Typography
+const { Title } = Typography;
 
-const playlists = [
-  { title: 'Woh Pehli Dafa', artist: 'DZ Messili', image: 'https://picsum.photos/seed/1/300/300' },
-  { title: 'Hollywood', artist: 'Babbu Maan', image: 'https://picsum.photos/seed/2/300/300' },
-  { title: 'The Egyptian', artist: 'Apple Music Dance', image: 'https://picsum.photos/seed/3/300/300' },
-  { title: 'Lucky You', artist: 'Chance Music', image: 'https://picsum.photos/seed/4/300/300' },
-  { title: 'No Love', artist: 'Mark Dohnewr', image: 'https://picsum.photos/seed/5/300/300' },
-  { title: 'If You', artist: 'Mayorkun', image: 'https://picsum.photos/seed/6/300/300' },
-  { title: 'Elevated', artist: 'Shubh', image: 'https://picsum.photos/seed/7/300/300' },
-  { title: 'Brown Munde', artist: 'Ap Dhillon', image: 'https://picsum.photos/seed/8/300/300' },
-]
-
-import { useNavigate } from 'react-router-dom'
+const recommendedData: RecommendedItem[] = [
+  {
+    id: "1",
+    title: "New Releases",
+    items: [
+      {
+        id: 1,
+        name: "Woh Pehli Dafa",
+        artist: "DZ Messili",
+        cover: "https://picsum.photos/seed/1/300/300",
+        year: "2023",
+      },
+      {
+        id: 2,
+        name: "Hollywood",
+        artist: "Babbu Maan",
+        cover: "https://picsum.photos/seed/2/300/300",
+        year: "2023",
+      },
+      {
+        id: 3,
+        name: "The Egyptian",
+        artist: "Apple Music Dance",
+        cover: "https://picsum.photos/seed/3/300/300",
+        year: "2023",
+      },
+      {
+        id: 4,
+        name: "Lucky You",
+        artist: "Chance Music",
+        cover: "https://picsum.photos/seed/4/300/300",
+        year: "2023",
+      },
+      {
+        id: 5,
+        name: "No Love",
+        artist: "Mark Dohnewr",
+        cover: "https://picsum.photos/seed/5/300/300",
+        year: "2023",
+      },
+      {
+        id: 11,
+        name: "Starlight",
+        artist: "Luna Ray",
+        cover: "https://picsum.photos/seed/11/300/300",
+        year: "2023",
+      },
+      {
+        id: 12,
+        name: "Midnight Dreams",
+        artist: "Echo Valley",
+        cover: "https://picsum.photos/seed/12/300/300",
+        year: "2023",
+      },
+      {
+        id: 13,
+        name: "Summer Vibes",
+        artist: "The Waves",
+        cover: "https://picsum.photos/seed/13/300/300",
+        year: "2023",
+      },
+    ],
+  },
+  {
+    id: "2",
+    title: "Top Charts",
+    items: [
+      {
+        id: 6,
+        name: "If You",
+        artist: "Mayorkun",
+        cover: "https://picsum.photos/seed/6/300/300",
+        year: "2023",
+      },
+      {
+        id: 7,
+        name: "Elevated",
+        artist: "Shubh",
+        cover: "https://picsum.photos/seed/7/300/300",
+        year: "2023",
+      },
+      {
+        id: 8,
+        name: "Brown Munde",
+        artist: "Ap Dhillon",
+        cover: "https://picsum.photos/seed/8/300/300",
+        year: "2023",
+      },
+      {
+        id: 9,
+        name: "Excuses",
+        artist: "Ap Dhillon",
+        cover: "https://picsum.photos/seed/9/300/300",
+        year: "2023",
+      },
+      {
+        id: 10,
+        name: "Insane",
+        artist: "Ap Dhillon",
+        cover: "https://picsum.photos/seed/10/300/300",
+        year: "2023",
+      },
+      {
+        id: 14,
+        name: "Golden Hour",
+        artist: "Sunset Boulevard",
+        cover: "https://picsum.photos/seed/14/300/300",
+        year: "2023",
+      },
+      {
+        id: 15,
+        name: "Neon Lights",
+        artist: "City Nights",
+        cover: "https://picsum.photos/seed/15/300/300",
+        year: "2023",
+      },
+      {
+        id: 16,
+        name: "Ocean Drive",
+        artist: "Coastal Dreams",
+        cover: "https://picsum.photos/seed/16/300/300",
+        year: "2023",
+      },
+    ],
+  },
+];
 
 const Recommended: React.FC = () => {
-  const navigate = useNavigate()
   return (
-    <div style={{
-      flex: 1,
-      padding: '30px',
-      overflowY: 'auto',
-      backgroundColor: 'var(--glass-bg)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-    }}>
-      {/* Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '30px'
-      }}>
-        {playlists.map((item, index) => (
-          <div key={index} style={{ cursor: 'pointer' }} onClick={() => navigate('/detail')}>
-            <div style={{
-              width: '100%',
-              aspectRatio: '1/1',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              marginBottom: '12px',
-              boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
-            }}>
-              <img src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-            <Title level={5} style={{ color: 'white', margin: '0 0 4px 0' }}>{item.title}</Title>
-            <Text style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{item.artist}</Text>
+    <div
+      style={{
+        flex: 1,
+        padding: "30px",
+        overflowY: "auto",
+        backgroundColor: "var(--glass-bg)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+      }}
+    >
+      {recommendedData.map((section) => (
+        <div key={section.id} style={{ marginBottom: "40px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "20px",
+            }}
+          >
+            <Title level={3} style={{ color: "white", margin: 0 }}>
+              {section.title}
+            </Title>
+            <Button type="text" style={{ color: "var(--text-secondary)" }}>
+              换一批 <SyncOutlined />
+            </Button>
           </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
-export default Recommended
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+              gap: "30px",
+            }}
+          >
+            {section.items.map((item) => (
+              <Cover key={item.id} item={item} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default Recommended;

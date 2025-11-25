@@ -6,7 +6,7 @@ import {
   ITableData,
 } from 'src/common/const';
 import { UserAlbumHistoryService } from '../services/user-album-history';
-import { UserAlbumHistory } from '@prisma/client';
+import { UserAlbumHistory } from '@soundx/db';
 
 @Controller('user-album-histories')
 export class UserAlbumHistoryController {

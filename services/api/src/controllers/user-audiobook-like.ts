@@ -6,7 +6,7 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { UserAudiobookLike } from '@prisma/client';
+import { UserAudiobookLike } from '@soundx/db';
 
 @Controller('user-audiobook-likes')
 export class UserAudiobookLikeController {

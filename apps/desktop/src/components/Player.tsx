@@ -1,4 +1,4 @@
-import { DeliveredProcedureOutlined, OrderedListOutlined, PlayCircleFilled, SoundOutlined, StepBackwardOutlined, StepForwardOutlined, SwapOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, DeliveredProcedureOutlined, OrderedListOutlined, PlayCircleFilled, SoundOutlined, StepBackwardOutlined, StepForwardOutlined, SwapOutlined } from '@ant-design/icons';
 import { Drawer, Flex, List, Popover, Slider, Tooltip, Typography } from 'antd';
 import React from 'react';
 
@@ -115,6 +115,22 @@ const Player: React.FC = () => {
           </Tooltip>
         </Popover>
 
+        {/* Volume */}
+        <Popover
+          content={
+            <Flex vertical justify='center'>
+              <Text style={{ fontSize: '12px' }}>{volume} 分钟后自动关闭</Text>
+              <Slider style={{ width: '200px' }} value={volume} max={100} step={5} onChange={setVolume} />
+            </Flex>
+          }
+          trigger="click"
+          placement="top"
+        >
+          <Tooltip title="定时关闭">
+            <ClockCircleOutlined style={{ color: 'var(--text-primary)', fontSize: '18px', cursor: 'pointer' }} />
+          </Tooltip>
+        </Popover>
+
         {/* Skip Intro */}
         <Popover
           content={
@@ -141,7 +157,6 @@ const Player: React.FC = () => {
           </Tooltip>
         </Popover>
 
-        {/* Volume */}
         <Popover
           content={
             <Flex vertical justify='center' style={{ height: '150px', padding: '10px 0' }}>

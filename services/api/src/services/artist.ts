@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Artist, PrismaClient } from '@prisma/client';
+import { Artist, PrismaClient } from '@soundx/db';
 
 @Injectable()
 export class ArtistService {

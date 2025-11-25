@@ -6,7 +6,7 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { UserAlbumLike } from '@prisma/client';
+import { UserAlbumLike } from '@soundx/db';
 @Controller('user-album-likes')
 export class UserAlbumLikeController {
   constructor(private readonly userAlbumLikeService: UserAlbumLikeService) {}

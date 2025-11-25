@@ -7,7 +7,7 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { Album } from '@prisma/client';
+import { Album } from '@soundx/db';
 import {
   IErrorResponse,
   ILoadMoreData,

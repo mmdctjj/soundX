@@ -2,7 +2,7 @@ import { Controller, Request, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from '../common/public.decorator';
 import { IErrorResponse, ISuccessResponse } from 'src/common/const';
-import { User } from '@prisma/client';
+import { User } from '@soundx/db';
 
 @Controller()
 export class AuthController {

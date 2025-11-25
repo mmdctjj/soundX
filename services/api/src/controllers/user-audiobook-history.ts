@@ -6,7 +6,7 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { UserAudiobookHistory } from '@prisma/client';
+import { UserAudiobookHistory } from '@soundx/db';
 
 @Controller('user-audiobook-histories')
 export class UserAudiobookHistoryController {

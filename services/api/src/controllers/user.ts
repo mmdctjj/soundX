@@ -8,7 +8,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { UserService } from '../services/user';
-import { User } from '@prisma/client';
+import { User } from '@soundx/db';
 import {
   IErrorResponse,
   ISuccessResponse,

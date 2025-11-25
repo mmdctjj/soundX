@@ -6,7 +6,7 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { UserTrackHistory } from '@prisma/client';
+import { UserTrackHistory } from '@soundx/db';
 
 @Controller('user-track-histories')
 export class UserTrackHistoryController {

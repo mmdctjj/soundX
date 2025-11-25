@@ -1,4 +1,4 @@
-import { UserTrackLike } from '@prisma/client';
+import { UserTrackLike } from '@soundx/db';
 import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { UserTrackLikeService } from '../services/user-track-like';
 import {

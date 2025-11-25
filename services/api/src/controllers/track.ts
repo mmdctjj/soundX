@@ -7,7 +7,7 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { Track } from '@prisma/client';
+import { Track } from '@soundx/db';
 import {
   IErrorResponse,
   ILoadMoreData,

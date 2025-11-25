@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient, UserAudiobookHistory } from '@prisma/client';
+import { PrismaClient, UserAudiobookHistory } from '@soundx/db';
 
 @Injectable()
 export class UserAudiobookHistoryService {
