@@ -1,10 +1,11 @@
-import type { Album } from '@soundx/db';
-import { useInfiniteScroll } from 'ahooks';
-import { Skeleton, Timeline, Typography } from 'antd';
-import React, { useRef } from 'react';
-import Cover from '../components/Cover';
-import type { TimelineItem } from '../models';
-import { formatTimeLabel } from '../utils/timeFormat';
+import type { Album } from "@soundx/db";
+import { useInfiniteScroll } from "ahooks";
+import { Skeleton, Timeline, Typography } from "antd";
+import React, { useRef } from "react";
+import Cover from "../../components/Cover/index";
+import type { TimelineItem } from "../../models";
+import { formatTimeLabel } from "../../utils/timeFormat";
+import styles from "./index.module.less";
 
 const { Title } = Typography;
 
@@ -20,7 +21,7 @@ const generateMockTimelineItem = (page: number): TimelineItem => {
       name: `Favorite Album ${id}`,
       artist: `Artist ${id}`,
       cover: `https://picsum.photos/seed/fav${id}/300/300`,
-      year: '2023',
+      year: "2023",
     });
   }
 
@@ -54,76 +55,44 @@ const Favorites: React.FC = () => {
     };
   };
 
-  const { data, loading, loadingMore } = useInfiniteScroll(
-    loadMoreFavorites,
-    {
-      target: scrollRef,
-      isNoMore: (d) => !d?.hasMore,
-    }
-  );
+  const { data, loading, loadingMore } = useInfiniteScroll(loadMoreFavorites, {
+    target: scrollRef,
+    isNoMore: (d) => !d?.hasMore,
+  });
 
-  const timelineItems = data?.list.map((item) => ({
-    children: (
-      <div>
-        <Title level={4} style={{ color: 'white', marginBottom: '20px' }}>
-          {formatTimeLabel(item.time)}
-        </Title>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: '30px',
-            marginBottom: '40px',
-          }}
-        >
-          {item.items.map((album) => (
-            <Cover key={album.id} item={album} />
-          ))}
+  const timelineItems =
+    data?.list.map((item) => ({
+      children: (
+        <div>
+          <Title level={4} className={styles.timelineTitle}>
+            {formatTimeLabel(item.time)}
+          </Title>
+          <div className={styles.grid}>
+            {item.items.map((album) => (
+              <Cover key={album.id} item={album} />
+            ))}
+          </div>
         </div>
-      </div>
-    ),
-  })) || [];
+      ),
+    })) || [];
 
   return (
-    <div
-      ref={scrollRef}
-      style={{
-        flex: 1,
-        overflowY: 'auto',
-        backgroundColor: 'var(--glass-bg)',
-        backdropFilter: 'blur(100px)',
-        WebkitBackdropFilter: 'blur(100px)',
-        padding: '30px',
-      }}
-    >
-      <Title level={2} style={{ color: 'white', marginBottom: '30px' }}>
+    <div ref={scrollRef} className={styles.container}>
+      <Title level={2} className={styles.title}>
         收藏
       </Title>
 
-      <Timeline
-        mode="left"
-        items={timelineItems}
-        style={{
-          marginTop: '20px',
-        }}
-      />
+      <Timeline mode="left" items={timelineItems} className={styles.timeline} />
 
       {(loading || loadingMore) && (
-        <div style={{ marginLeft: '30px', marginTop: '20px' }}>
+        <div className={styles.loadingContainer}>
           <Skeleton
             active
-            title={{ width: '100px' }}
+            title={{ width: "100px" }}
             paragraph={false}
-            style={{ marginBottom: '20px' }}
+            className={styles.skeletonTitle}
           />
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-              gap: '30px',
-              marginBottom: '40px',
-            }}
-          >
+          <div className={styles.grid}>
             {Array.from({ length: 4 }).map((_, index) => (
               <Cover.Skeleton key={`skeleton-${index}`} />
             ))}
@@ -132,27 +101,8 @@ const Favorites: React.FC = () => {
       )}
 
       {data && !data.hasMore && data.list.length > 0 && (
-        <div style={{
-          textAlign: 'center',
-          padding: '20px',
-          color: 'var(--text-secondary)',
-        }}>
-          没有更多了
-        </div>
+        <div className={styles.noMore}>没有更多了</div>
       )}
-
-      <style>{`
-        .ant-timeline-item-head {
-          background-color: var(--accent-color) !important;
-          border-color: var(--accent-color) !important;
-        }
-        .ant-timeline-item-tail {
-          border-left: 2px solid rgba(255, 255, 255, 0.2) !important;
-        }
-        .ant-timeline-item-content {
-          margin-left: 30px;
-        }
-      `}</style>
     </div>
   );
 };

@@ -1,0 +1,58 @@
+.container {
+  flex: 1;
+  overflow-y: auto;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(100px);
+  -webkit-backdrop-filter: blur(100px);
+  padding: 30px;
+}
+
+.title {
+  margin-bottom: 30px !important;
+}
+
+.timeline {
+  margin-top: 20px;
+}
+
+.timelineTitle {
+  margin-bottom: 20px !important;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.loadingContainer {
+  margin-left: 30px;
+  margin-top: 20px;
+}
+
+.skeletonTitle {
+  margin-bottom: 20px;
+}
+
+.noMore {
+  text-align: center;
+  padding: 20px;
+  opacity: 0.7;
+}
+
+// Ant Design Timeline Overrides
+:global {
+  .ant-timeline-item-head {
+    background-color: var(--accent-color, #5c5cff) !important;
+    border-color: var(--accent-color, #5c5cff) !important;
+  }
+
+  .ant-timeline-item-tail {
+    border-left: 2px solid rgba(255, 255, 255, 0.2) !important;
+  }
+
+  .ant-timeline-item-content {
+    margin-left: 30px;
+  }
+}
