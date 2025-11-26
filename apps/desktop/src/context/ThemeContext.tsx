@@ -12,10 +12,20 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [mode, setMode] = useState<ThemeMode>("dark");
+  // Load theme from localStorage or default to 'dark'
+  const [mode, setMode] = useState<ThemeMode>(() => {
+    const savedTheme = localStorage.getItem("theme");
+    return savedTheme === "light" || savedTheme === "dark"
+      ? savedTheme
+      : "dark";
+  });
 
   const toggleTheme = () => {
-    setMode((prev) => (prev === "light" ? "dark" : "light"));
+    setMode((prev) => {
+      const newMode = prev === "light" ? "dark" : "light";
+      localStorage.setItem("theme", newMode); // Save to localStorage
+      return newMode;
+    });
   };
 
   return (

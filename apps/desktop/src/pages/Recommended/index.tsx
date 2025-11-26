@@ -1,150 +1,88 @@
 import { SyncOutlined } from "@ant-design/icons";
-import { Button, Typography } from "antd";
-import React from "react";
+import { Button, Skeleton, Typography } from "antd";
+import React, { useEffect, useState } from "react";
 import Cover from "../../components/Cover/index";
-import type { RecommendedItem } from "../../models";
+import { getRecommendedSections } from "../../services/recommended";
 import styles from "./index.module.less";
 
 const { Title } = Typography;
 
-const recommendedData: RecommendedItem[] = [
-  {
-    id: "1",
-    title: "New Releases",
-    items: [
-      {
-        id: 1,
-        name: "Woh Pehli Dafa",
-        artist: "DZ Messili",
-        cover: "https://picsum.photos/seed/1/300/300",
-        year: "2023",
-      },
-      {
-        id: 2,
-        name: "Hollywood",
-        artist: "Babbu Maan",
-        cover: "https://picsum.photos/seed/2/300/300",
-        year: "2023",
-      },
-      {
-        id: 3,
-        name: "The Egyptian",
-        artist: "Apple Music Dance",
-        cover: "https://picsum.photos/seed/3/300/300",
-        year: "2023",
-      },
-      {
-        id: 4,
-        name: "Lucky You",
-        artist: "Chance Music",
-        cover: "https://picsum.photos/seed/4/300/300",
-        year: "2023",
-      },
-      {
-        id: 5,
-        name: "No Love",
-        artist: "Mark Dohnewr",
-        cover: "https://picsum.photos/seed/5/300/300",
-        year: "2023",
-      },
-      {
-        id: 11,
-        name: "Starlight",
-        artist: "Luna Ray",
-        cover: "https://picsum.photos/seed/11/300/300",
-        year: "2023",
-      },
-      {
-        id: 12,
-        name: "Midnight Dreams",
-        artist: "Echo Valley",
-        cover: "https://picsum.photos/seed/12/300/300",
-        year: "2023",
-      },
-      {
-        id: 13,
-        name: "Summer Vibes",
-        artist: "The Waves",
-        cover: "https://picsum.photos/seed/13/300/300",
-        year: "2023",
-      },
-    ],
-  },
-  {
-    id: "2",
-    title: "Top Charts",
-    items: [
-      {
-        id: 6,
-        name: "If You",
-        artist: "Mayorkun",
-        cover: "https://picsum.photos/seed/6/300/300",
-        year: "2023",
-      },
-      {
-        id: 7,
-        name: "Elevated",
-        artist: "Shubh",
-        cover: "https://picsum.photos/seed/7/300/300",
-        year: "2023",
-      },
-      {
-        id: 8,
-        name: "Brown Munde",
-        artist: "Ap Dhillon",
-        cover: "https://picsum.photos/seed/8/300/300",
-        year: "2023",
-      },
-      {
-        id: 9,
-        name: "Excuses",
-        artist: "Ap Dhillon",
-        cover: "https://picsum.photos/seed/9/300/300",
-        year: "2023",
-      },
-      {
-        id: 10,
-        name: "Insane",
-        artist: "Ap Dhillon",
-        cover: "https://picsum.photos/seed/10/300/300",
-        year: "2023",
-      },
-      {
-        id: 14,
-        name: "Golden Hour",
-        artist: "Sunset Boulevard",
-        cover: "https://picsum.photos/seed/14/300/300",
-        year: "2023",
-      },
-      {
-        id: 15,
-        name: "Neon Lights",
-        artist: "City Nights",
-        cover: "https://picsum.photos/seed/15/300/300",
-        year: "2023",
-      },
-      {
-        id: 16,
-        name: "Ocean Drive",
-        artist: "Coastal Dreams",
-        cover: "https://picsum.photos/seed/16/300/300",
-        year: "2023",
-      },
-    ],
-  },
-];
+interface RecommendedSection {
+  id: string;
+  title: string;
+  items: any[];
+}
 
 const Recommended: React.FC = () => {
+  const [sections, setSections] = useState<RecommendedSection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState<string | null>(null);
+
+  // Load initial data
+  useEffect(() => {
+    loadSections();
+  }, []);
+
+  const loadSections = async () => {
+    try {
+      setLoading(true);
+      const data = await getRecommendedSections();
+      setSections(data);
+    } catch (error) {
+      console.error("Failed to load recommended sections:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshSection = async (sectionId: string) => {
+    try {
+      setRefreshing(sectionId);
+      // Reload all sections (in real app, you might refresh just one section)
+      const data = await getRecommendedSections();
+      setSections(data);
+    } catch (error) {
+      console.error("Failed to refresh section:", error);
+    } finally {
+      setRefreshing(null);
+    }
+  };
+
+  // Show skeleton loading on initial load
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        {[1, 2].map((sectionIndex) => (
+          <div key={sectionIndex} className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <Skeleton.Input />
+            </div>
+            <div className={styles.grid}>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Cover.Skeleton key={`skeleton-${sectionIndex}-${index}`} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
-      {recommendedData.map((section) => (
+      {sections.map((section) => (
         <div key={section.id} className={styles.section}>
           <div className={styles.sectionHeader}>
             <Title level={3} className={styles.sectionTitle}>
               {section.title}
             </Title>
-            <Button type="text" className={styles.refreshButton}>
-              换一批 <SyncOutlined />
+            <Button
+              type="text"
+              className={styles.refreshButton}
+              onClick={() => refreshSection(section.id)}
+              loading={refreshing === section.id}
+            >
+              换一批 <SyncOutlined spin={refreshing === section.id} />
             </Button>
           </div>
 

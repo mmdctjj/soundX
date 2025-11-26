@@ -10,6 +10,14 @@ function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC || "", "electron-vite.svg"),
     titleBarStyle: "hidden",
+    transparent: true,
+    // Enable window transparency
+    opacity: 0.95,
+    // Window opacity (0.0 - 1.0), adjust as needed
+    vibrancy: "popover",
+    // macOS vibrancy effect
+    visualEffectState: "active",
+    // Keep vibrancy always active
     webPreferences: {
       preload: path.join(__dirname$1, "preload.js")
     }

@@ -21,8 +21,9 @@ export interface ITableData<T> {
 export interface ILoadMoreData<T> {
   pageSize: number;
   loadCount: number;
-  list: T;
+  list: T[]; // Changed from T to T[] for array type
   total: number;
+  hasMore: boolean; // Added for pagination
 }
 
 export interface RecommendedItem {

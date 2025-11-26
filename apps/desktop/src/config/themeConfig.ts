@@ -22,6 +22,13 @@ export const getThemeConfig = (mode: 'light' | 'dark'): ThemeConfig => {
       },
       Drawer: {
         colorBgElevated: isDark ? 'rgba(24, 24, 36, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+      },
+      Popover: {
+        colorBgElevated: isDark ? 'rgba(30, 30, 40, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+        colorBorder: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)',
+      },
+      Tooltip: {
+        colorBgSpotlight: isDark ? 'rgba(30, 30, 40, 0.9)' : 'rgba(50, 50, 50, 0.9)',
       }
     },
   };

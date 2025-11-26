@@ -72,14 +72,51 @@ const Player: React.FC = () => {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [duration] = React.useState(221); // 03:41
-  const [volume, setVolume] = React.useState(70);
+
+  // Load settings from localStorage
+  const [volume, setVolume] = React.useState(() => {
+    const saved = localStorage.getItem("playerVolume");
+    return saved ? Number(saved) : 70;
+  });
+
   const [playOrder, setPlayOrder] = React.useState<
     "sequential" | "random" | "loop"
-  >("sequential");
-  const [skipStart, setSkipStart] = React.useState(0);
-  const [skipEnd, setSkipEnd] = React.useState(0);
+  >(() => {
+    const saved = localStorage.getItem("playOrder");
+    return saved === "sequential" || saved === "random" || saved === "loop"
+      ? saved
+      : "sequential";
+  });
+
+  const [skipStart, setSkipStart] = React.useState(() => {
+    const saved = localStorage.getItem("skipStart");
+    return saved ? Number(saved) : 0;
+  });
+
+  const [skipEnd, setSkipEnd] = React.useState(() => {
+    const saved = localStorage.getItem("skipEnd");
+    return saved ? Number(saved) : 0;
+  });
+
   const [isPlaylistOpen, setIsPlaylistOpen] = React.useState(false);
   const [isFullPlayerVisible, setIsFullPlayerVisible] = React.useState(false);
+
+  // Save settings to localStorage when they change
+  React.useEffect(() => {
+    localStorage.setItem("playerVolume", String(volume));
+  }, [volume]);
+
+  React.useEffect(() => {
+    localStorage.setItem("playOrder", playOrder);
+  }, [playOrder]);
+
+  React.useEffect(() => {
+    localStorage.setItem("skipStart", String(skipStart));
+  }, [skipStart]);
+
+  React.useEffect(() => {
+    localStorage.setItem("skipEnd", String(skipEnd));
+  }, [skipEnd]);
 
   const { token } = theme.useToken();
   const { mode } = useTheme();

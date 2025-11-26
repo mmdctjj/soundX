@@ -15,23 +15,6 @@ const AppContent = () => {
   const { mode } = useTheme();
   const themeConfig = getThemeConfig(mode);
 
-  const backgroundStyle =
-    mode === "dark"
-      ? {
-          background: "linear-gradient(45deg, #4a4a5e, #2b2b3a)",
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }
-      : {
-          background: "#f0f2f5",
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2564&auto=format&fit=crop')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        };
-
   return (
     <ConfigProvider theme={themeConfig}>
       <div
@@ -40,9 +23,8 @@ const AppContent = () => {
           flexDirection: "column",
           height: "100vh",
           width: "100vw",
-          ...backgroundStyle,
+          backgroundColor: "transparent", // Transparent background
           color: themeConfig.token?.colorText,
-          transition: "background 0.3s ease",
         }}
       >
         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>

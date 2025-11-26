@@ -26,10 +26,7 @@ const Header: React.FC = () => {
     <div className={styles.header}>
       {/* Navigation Controls */}
       <div className={styles.navControls}>
-        <div
-          className={styles.navGroup}
-          style={{ backgroundColor: token.colorFillTertiary }}
-        >
+        <div className={styles.navGroup}>
           <LeftOutlined
             onClick={() => navigate(-1)}
             className={styles.navIcon}
@@ -49,10 +46,7 @@ const Header: React.FC = () => {
       </div>
 
       {/* Search Bar */}
-      <div
-        className={styles.searchBar}
-        style={{ backgroundColor: token.colorFillTertiary }}
-      >
+      <div className={styles.searchBar}>
         <Input
           prefix={
             <SearchOutlined style={{ color: token.colorTextSecondary }} />
