@@ -1,13 +1,17 @@
+import { SyncOutlined } from "@ant-design/icons";
 import type { Album } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
-import { Skeleton, Timeline, Typography } from "antd";
-import React, { useRef } from "react";
+import { Button, Skeleton, Timeline, Typography } from "antd";
+import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
+import { cacheUtils } from "../../utils/cache";
 import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
 
 const { Title } = Typography;
+
+const CACHE_KEY = "listened_timeline";
 
 // Function to generate mock timeline items
 const generateMockTimelineItem = (page: number): TimelineItem => {
@@ -40,9 +44,21 @@ interface Result {
 
 const Listened: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadMoreListened = async (d: Result | undefined): Promise<Result> => {
     const currentPage = d ? d.list.length : 0;
+
+    // Try cache first for initial load
+    if (currentPage === 0) {
+      const cached = cacheUtils.get<TimelineItem[]>(CACHE_KEY);
+      if (cached && cached.length > 0) {
+        return {
+          list: cached,
+          hasMore: cached.length < 12,
+        };
+      }
+    }
 
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -50,16 +66,29 @@ const Listened: React.FC = () => {
     const newItem = generateMockTimelineItem(currentPage);
     const newList = d ? [...d.list, newItem] : [newItem];
 
+    // Cache the data
+    cacheUtils.set(CACHE_KEY, newList);
+
     return {
       list: newList,
       hasMore: newList.length < 12, // Limit to 12 timeline items
     };
   };
 
-  const { data, loading, loadingMore } = useInfiniteScroll(loadMoreListened, {
-    target: scrollRef,
-    isNoMore: (d) => !d?.hasMore,
-  });
+  const { data, loading, loadingMore, reload } = useInfiniteScroll(
+    loadMoreListened,
+    {
+      target: scrollRef,
+      isNoMore: (d) => !d?.hasMore,
+    }
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    cacheUtils.clear(CACHE_KEY);
+    await reload();
+    setRefreshing(false);
+  };
 
   const timelineItems =
     data?.list.map((item) => ({
@@ -79,9 +108,20 @@ const Listened: React.FC = () => {
 
   return (
     <div ref={scrollRef} className={styles.container}>
-      <Title level={2} className={styles.title}>
-        听过
-      </Title>
+      <div className={styles.pageHeader}>
+        <Title level={2} className={styles.title}>
+          听过
+        </Title>
+        <Button
+          type="text"
+          icon={<SyncOutlined spin={refreshing} />}
+          onClick={handleRefresh}
+          loading={refreshing}
+          className={styles.refreshButton}
+        >
+          刷新
+        </Button>
+      </div>
 
       <Timeline mode="left" items={timelineItems} className={styles.timeline} />
 

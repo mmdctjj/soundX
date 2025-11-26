@@ -1,11 +1,14 @@
 import { SyncOutlined } from "@ant-design/icons";
-import { Button, Skeleton, Typography } from "antd";
+import { Button, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import Cover from "../../components/Cover/index";
 import { getRecommendedSections } from "../../services/recommended";
+import { cacheUtils } from "../../utils/cache";
 import styles from "./index.module.less";
 
 const { Title } = Typography;
+
+const CACHE_KEY = "recommended_sections";
 
 interface RecommendedSection {
   id: string;
@@ -23,11 +26,26 @@ const Recommended: React.FC = () => {
     loadSections();
   }, []);
 
-  const loadSections = async () => {
+  const loadSections = async (forceRefresh = false) => {
     try {
       setLoading(true);
+
+      // Try to get from cache first
+      if (!forceRefresh) {
+        const cached = cacheUtils.get<RecommendedSection[]>(CACHE_KEY);
+        if (cached) {
+          setSections(cached);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fetch from API
       const data = await getRecommendedSections();
       setSections(data);
+
+      // Save to cache
+      cacheUtils.set(CACHE_KEY, data);
     } catch (error) {
       console.error("Failed to load recommended sections:", error);
     } finally {
@@ -38,9 +56,8 @@ const Recommended: React.FC = () => {
   const refreshSection = async (sectionId: string) => {
     try {
       setRefreshing(sectionId);
-      // Reload all sections (in real app, you might refresh just one section)
-      const data = await getRecommendedSections();
-      setSections(data);
+      // Force refresh from API
+      await loadSections(true);
     } catch (error) {
       console.error("Failed to refresh section:", error);
     } finally {
@@ -55,7 +72,9 @@ const Recommended: React.FC = () => {
         {[1, 2].map((sectionIndex) => (
           <div key={sectionIndex} className={styles.section}>
             <div className={styles.sectionHeader}>
-              <Skeleton.Input />
+              <Title level={3} className={styles.sectionTitle}>
+                {sectionIndex === 1 ? "New Releases" : "Top Charts"}
+              </Title>
             </div>
             <div className={styles.grid}>
               {Array.from({ length: 8 }).map((_, index) => (
