@@ -20,8 +20,8 @@ import {
   theme,
 } from "antd";
 import React from "react";
-import { useTheme } from "../context/ThemeContext";
-import styles from "./Player.module.less";
+import { useTheme } from "../../context/ThemeContext";
+import styles from "./index.module.less";
 
 const { Text, Title } = Typography;
 

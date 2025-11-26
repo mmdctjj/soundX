@@ -2,7 +2,7 @@ import type { Album } from "@soundx/db";
 import { Skeleton, Typography } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import styles from "./Cover.module.less";
+import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
 

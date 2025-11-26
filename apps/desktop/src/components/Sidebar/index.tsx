@@ -9,7 +9,7 @@ import {
 import { Typography, theme } from "antd";
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import styles from "./Sidebar.module.less";
+import styles from "./index.module.less";
 
 const { Text, Title } = Typography;
 

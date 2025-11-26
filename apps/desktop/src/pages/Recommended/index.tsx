@@ -1,9 +1,9 @@
 import { SyncOutlined } from "@ant-design/icons";
 import { Button, Typography } from "antd";
 import React from "react";
-import Cover from "../components/Cover";
-import type { RecommendedItem } from "../models";
-import styles from "./Recommended.module.less";
+import Cover from "../../components/Cover/index";
+import type { RecommendedItem } from "../../models";
+import styles from "./index.module.less";
 
 const { Title } = Typography;
 

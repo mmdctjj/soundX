@@ -11,8 +11,8 @@ import {
 import { Input, theme } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "../context/ThemeContext";
-import styles from "./Header.module.less";
+import { useTheme } from "../../context/ThemeContext";
+import styles from "./index.module.less";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();

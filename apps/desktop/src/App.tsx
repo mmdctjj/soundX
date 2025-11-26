@@ -1,15 +1,15 @@
 import { ConfigProvider } from "antd";
 import { Navigate, Route, Routes } from "react-router-dom";
-import Detail from "./components/Detail";
-import Header from "./components/Header";
-import Player from "./components/Player";
-import Sidebar from "./components/Sidebar";
+import Detail from "./components/Detail/index";
+import Header from "./components/Header/index";
+import Player from "./components/Player/index";
+import Sidebar from "./components/Sidebar/index";
 import { getThemeConfig } from "./config/themeConfig";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
-import Category from "./pages/Category";
-import Favorites from "./pages/Favorites";
-import Listened from "./pages/Listened";
-import Recommended from "./pages/Recommended";
+import Category from "./pages/Category/index";
+import Favorites from "./pages/Favorites/index";
+import Listened from "./pages/Listened/index";
+import Recommended from "./pages/Recommended/index";
 
 const AppContent = () => {
   const { mode } = useTheme();

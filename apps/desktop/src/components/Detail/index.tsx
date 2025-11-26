@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 import { Avatar, Col, Row, Table, Typography, theme } from "antd";
 import React from "react";
-import styles from "./Detail.module.less";
+import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
 
