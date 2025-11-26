@@ -6,7 +6,9 @@ import {
   Param,
   Post,
   Put,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { Album } from '@soundx/db';
 import {
   IErrorResponse,
@@ -205,6 +207,37 @@ export class AlbumController {
         code: 500,
         message: error,
       };
+    }
+  }
+
+  // 新增：最近 8 个专辑
+  @Get('/latest')
+  async getLatestAlbums(): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
+    try {
+      const list = await this.albumService.getLatestAlbums(8);
+      return { code: 200, message: 'success', data: list };
+    } catch (error) {
+      return { code: 500, message: String(error) };
+    }
+  }
+
+  // 新增：随机推荐 8 条未听过的专辑
+  @Get('/recommend')
+  async getRandomUnlistenedAlbums(
+    @Req() req: Request,
+  ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
+    try {
+      const userId = (req.user as any)?.userId;
+      if (!userId) {
+        return { code: 500, message: '未认证用户' };
+      }
+      const list = await this.albumService.getRandomUnlistenedAlbums(
+        Number(userId),
+        8,
+      );
+      return { code: 200, message: 'success', data: list };
+    } catch (error) {
+      return { code: 500, message: String(error) };
     }
   }
 }

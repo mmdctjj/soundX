@@ -1,8 +1,8 @@
 // auth/auth.service.ts
 import { Injectable } from '@nestjs/common';
-import { UserService } from 'src/services/user';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@soundx/db';
+import { UserService } from 'src/services/user';
 
 @Injectable()
 export class AuthService {
@@ -25,14 +25,10 @@ export class AuthService {
   login(user: User) {
     const payload = { username: user.username, sub: user.id };
     const token = this.jwtService.sign(payload);
-    return `Biz${token}`;
+    return `${token}`;
   }
 
   verifyToken(token: string) {
-    if (!token.startsWith('Biz')) {
-      throw new Error('Invalid token format');
-    }
-    const actualToken = token.slice(3);
-    return this.jwtService.verify(actualToken);
+    return this.jwtService.verify(token);
   }
 }

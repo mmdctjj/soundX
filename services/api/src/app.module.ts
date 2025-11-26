@@ -27,10 +27,12 @@ import { UserAudiobookHistoryService } from './services/user-audiobook-history';
 import { UserAudiobookLikeService } from './services/user-audiobook-like';
 import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
+import { AudiobookService } from './services/audiobook';
+import { AudiobookController } from './controllers/audiobook';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(), // 自动读取 .env 文件
+    ConfigModule.forRoot(),
     AuthModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
@@ -49,6 +51,7 @@ import { UserTrackLikeService } from './services/user-track-like';
     UserAudiobookLikeController,
     UserTrackHistoryController,
     UserTrackLikeController,
+    AudiobookController,
   ],
   providers: [
     UserService,
@@ -70,6 +73,7 @@ import { UserTrackLikeService } from './services/user-track-like';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    AudiobookService,
   ],
 })
 export class AppModule {}

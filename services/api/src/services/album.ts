@@ -69,4 +69,30 @@ export class AlbumService {
     });
     return true;
   }
+
+  // 新增：最近专辑（按 id 倒序）
+  async getLatestAlbums(limit = 8): Promise<Album[]> {
+    return await this.prisma.album.findMany({
+      orderBy: { id: 'desc' },
+      take: limit,
+    });
+  }
+
+  // 随机推荐：用户未听过的专辑
+  async getRandomUnlistenedAlbums(userId: number, limit = 8): Promise<Album[]> {
+    const listened = await this.prisma.userAlbumHistory.findMany({
+      where: { userId },
+      select: { albumId: true },
+    });
+    const listenedIds = listened.map((r) => r.albumId);
+
+    const candidates = await this.prisma.album.findMany({
+      where: listenedIds.length ? { id: { notIn: listenedIds } } : undefined,
+    });
+
+    if (candidates.length <= limit) return candidates;
+
+    const shuffled = candidates.sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, limit);
+  }
 }
