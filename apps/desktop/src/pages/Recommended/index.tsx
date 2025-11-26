@@ -1,19 +1,21 @@
 import { SyncOutlined } from "@ant-design/icons";
+import type { Album } from "@soundx/db";
 import { Button, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import Cover from "../../components/Cover/index";
-import { getRecommendedSections } from "../../services/recommended";
+import { getRecentAlbums, getRecommendedAlbums } from "../../services/album";
 import { cacheUtils } from "../../utils/cache";
 import styles from "./index.module.less";
 
 const { Title } = Typography;
 
-const CACHE_KEY = "recommended_sections";
+const CACHE_KEY_RECOMMENDED = "recommended_albums";
+const CACHE_KEY_RECENT = "recent_albums";
 
 interface RecommendedSection {
   id: string;
   title: string;
-  items: any[];
+  items: Album[];
 }
 
 const Recommended: React.FC = () => {
@@ -30,22 +32,45 @@ const Recommended: React.FC = () => {
     try {
       setLoading(true);
 
+      let recommendedAlbums: Album[] = [];
+      let recentAlbums: Album[] = [];
+
       // Try to get from cache first
       if (!forceRefresh) {
-        const cached = cacheUtils.get<RecommendedSection[]>(CACHE_KEY);
-        if (cached) {
-          setSections(cached);
+        const cachedRecommended = cacheUtils.get<Album[]>(
+          CACHE_KEY_RECOMMENDED
+        );
+        const cachedRecent = cacheUtils.get<Album[]>(CACHE_KEY_RECENT);
+
+        if (cachedRecommended && cachedRecent) {
+          recommendedAlbums = cachedRecommended;
+          recentAlbums = cachedRecent;
+          setSections([
+            { id: "recommended", title: "为你推荐", items: recommendedAlbums },
+            { id: "recent", title: "最近上新", items: recentAlbums },
+          ]);
           setLoading(false);
           return;
         }
       }
 
       // Fetch from API
-      const data = await getRecommendedSections();
-      setSections(data);
+      const [recommendedRes, recentRes] = await Promise.all([
+        getRecommendedAlbums(),
+        getRecentAlbums(),
+      ]);
+
+      recommendedAlbums = recommendedRes.data || [];
+      recentAlbums = recentRes.data || [];
+
+      setSections([
+        { id: "recommended", title: "为你推荐", items: recommendedAlbums },
+        { id: "recent", title: "最近上新", items: recentAlbums },
+      ]);
 
       // Save to cache
-      cacheUtils.set(CACHE_KEY, data);
+      cacheUtils.set(CACHE_KEY_RECOMMENDED, recommendedAlbums);
+      cacheUtils.set(CACHE_KEY_RECENT, recentAlbums);
     } catch (error) {
       console.error("Failed to load recommended sections:", error);
     } finally {
@@ -56,8 +81,39 @@ const Recommended: React.FC = () => {
   const refreshSection = async (sectionId: string) => {
     try {
       setRefreshing(sectionId);
-      // Force refresh from API
-      await loadSections(true);
+
+      // Refresh only the specific section
+      if (sectionId === "recommended") {
+        const res = await getRecommendedAlbums();
+        const recommendedAlbums = res.data || [];
+
+        // Update only the recommended section
+        setSections((prev) =>
+          prev.map((section) =>
+            section.id === "recommended"
+              ? { ...section, items: recommendedAlbums }
+              : section
+          )
+        );
+
+        // Update cache
+        cacheUtils.set(CACHE_KEY_RECOMMENDED, recommendedAlbums);
+      } else if (sectionId === "recent") {
+        const res = await getRecentAlbums();
+        const recentAlbums = res.data || [];
+
+        // Update only the recent section
+        setSections((prev) =>
+          prev.map((section) =>
+            section.id === "recent"
+              ? { ...section, items: recentAlbums }
+              : section
+          )
+        );
+
+        // Update cache
+        cacheUtils.set(CACHE_KEY_RECENT, recentAlbums);
+      }
     } catch (error) {
       console.error("Failed to refresh section:", error);
     } finally {
@@ -73,7 +129,7 @@ const Recommended: React.FC = () => {
           <div key={sectionIndex} className={styles.section}>
             <div className={styles.sectionHeader}>
               <Title level={3} className={styles.sectionTitle}>
-                {sectionIndex === 1 ? "New Releases" : "Top Charts"}
+                {sectionIndex === 1 ? "为你推荐" : "最近上新"}
               </Title>
             </div>
             <div className={styles.grid}>

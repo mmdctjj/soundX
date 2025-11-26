@@ -2,7 +2,8 @@
   "name": "@soundx/core",
   "version": "0.0.1",
   "description": "",
-  "main": "dist/cjs/index.js",
+  "type": "module",
+  "main": "dist/esm/index.js",
   "module": "dist/esm/index.js",
   "scripts": {
     "dev": "father dev",
@@ -22,7 +23,7 @@
     "access": "public"
   },
   "dependencies": {
-    "music-metadata": "^11.2.1",
+    "music-metadata": "^7.14.0",
     "webdav": "^5.8.0"
   },
   "devDependencies": {

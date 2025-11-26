@@ -1,5 +1,5 @@
-import { createClient } from "webdav";
 import * as music from "music-metadata";
+import { createClient } from "webdav";
 
 export class WebDavMusicScanner {
   private client;
@@ -30,7 +30,7 @@ export class WebDavMusicScanner {
       try {
         // 获取文件内容
         const fileContent = await this.client.getFileContents(
-          `${this.baseUrl}${file.filename}`,
+          file.filename,
           {
             format: "binary",
           }
@@ -38,27 +38,52 @@ export class WebDavMusicScanner {
 
         // 调试：验证 fileContent 类型和大小
         console.log(`File: ${file.filename}`);
-
-        // 检查是否为空
-        if (
-          !(fileContent instanceof ArrayBuffer) ||
-          fileContent.byteLength === 0
-        ) {
-          throw new Error(`Empty or invalid file content for ${file.filename}`);
-        }
+        console.log(`Type: ${typeof fileContent}, Constructor: ${fileContent?.constructor?.name}`);
+        console.log(`Is Buffer: ${Buffer.isBuffer(fileContent)}`);
+        console.log(`Is ArrayBuffer: ${fileContent instanceof ArrayBuffer}`);
 
         // 转换为 Uint8Array
-        const uint8Array = new Uint8Array(fileContent);
+        let uint8Array: Uint8Array;
+
+        if (Buffer.isBuffer(fileContent)) {
+          // Node.js Buffer
+          uint8Array = new Uint8Array(fileContent);
+        } else if (fileContent instanceof ArrayBuffer) {
+          // ArrayBuffer
+          uint8Array = new Uint8Array(fileContent);
+        } else {
+          throw new Error(`Unexpected file content type: ${typeof fileContent}`);
+        }
+
+        // 检查是否为空
+        if (uint8Array.byteLength === 0) {
+          throw new Error(`Empty file content for ${file.filename}`);
+        }
+
+        console.log(`Size: ${uint8Array.byteLength} bytes`);
 
         // 解析元数据
         const metadata = await this.musicMetadata.parseBuffer(uint8Array, {
           mimeType: this.getMimeType(file.basename),
         });
 
+        // 提取封面图片
+        let cover = null;
+        if (metadata.common.picture && metadata.common.picture.length > 0) {
+          const picture = metadata.common.picture[0];
+          cover = {
+            format: picture.format,
+            data: picture.data, // Buffer 数据
+            description: picture.description,
+            type: picture.type,
+          };
+        }
+
         // 添加结果
         results.push({
           path: file.filename,
           size: file.size,
+          cover, // 封面信息
           ...metadata.common,
         });
       } catch (err) {
@@ -86,4 +111,4 @@ export class WebDavMusicScanner {
   }
 }
 
-export default music;
+export default WebDavMusicScanner;

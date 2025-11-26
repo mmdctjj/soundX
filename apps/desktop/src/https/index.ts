@@ -2,7 +2,7 @@ import { message } from "antd";
 import axios, { AxiosError, type AxiosResponse } from "axios";
 
 const instance = axios.create({
-  baseURL: "/api/production",
+  baseURL: "/api",
   timeout: 30000,
 });
 
@@ -19,7 +19,7 @@ instance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      config.headers.set("Authorization", `${token}`);
+      config.headers.set("Authorization", `Bearer ${token}`);
     }
     return config;
   },
