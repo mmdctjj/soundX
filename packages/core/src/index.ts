@@ -17,7 +17,22 @@ export class WebDavMusicScanner {
     this.musicMetadata = music;
   }
 
+  async ensureCacheDirectory() {
+    const cacheDir = "/.soundx";
+    try {
+      const exists = await this.client.exists(cacheDir);
+      if (!exists) {
+        await this.client.createDirectory(cacheDir);
+        console.log(`Created cache directory: ${cacheDir}`);
+      }
+    } catch (err) {
+      console.error(`Failed to create cache directory: ${err}`);
+    }
+  }
+
   async scanAllMusic(directory = "/"): Promise<any[]> {
+    await this.ensureCacheDirectory();
+
     const files = await this.client.getDirectoryContents(directory);
     const musicFiles = (Array.isArray(files) ? files : files.data).filter(
       (f) => f.type === "file" && /\.(mp3|flac|ogg|wav)$/i.test(f.basename)
@@ -36,31 +51,18 @@ export class WebDavMusicScanner {
           }
         );
 
-        // 调试：验证 fileContent 类型和大小
-        console.log(`File: ${file.filename}`);
-        console.log(`Type: ${typeof fileContent}, Constructor: ${fileContent?.constructor?.name}`);
-        console.log(`Is Buffer: ${Buffer.isBuffer(fileContent)}`);
-        console.log(`Is ArrayBuffer: ${fileContent instanceof ArrayBuffer}`);
-
         // 转换为 Uint8Array
         let uint8Array: Uint8Array;
 
         if (Buffer.isBuffer(fileContent)) {
-          // Node.js Buffer
           uint8Array = new Uint8Array(fileContent);
         } else if (fileContent instanceof ArrayBuffer) {
-          // ArrayBuffer
           uint8Array = new Uint8Array(fileContent);
         } else {
-          throw new Error(`Unexpected file content type: ${typeof fileContent}`);
+          continue;
         }
 
-        // 检查是否为空
-        if (uint8Array.byteLength === 0) {
-          throw new Error(`Empty file content for ${file.filename}`);
-        }
-
-        console.log(`Size: ${uint8Array.byteLength} bytes`);
+        if (uint8Array.byteLength === 0) continue;
 
         // 解析元数据
         const metadata = await this.musicMetadata.parseBuffer(uint8Array, {
@@ -68,22 +70,30 @@ export class WebDavMusicScanner {
         });
 
         // 提取封面图片
-        let cover = null;
+        let coverPath = null;
         if (metadata.common.picture && metadata.common.picture.length > 0) {
           const picture = metadata.common.picture[0];
-          cover = {
-            format: picture.format,
-            data: picture.data, // Buffer 数据
-            description: picture.description,
-            type: picture.type,
-          };
+          const ext = picture.format.split('/')[1] || 'jpg';
+          // 使用文件名作为封面名，避免冲突
+          const safeName = file.basename.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
+          const coverName = `${safeName}.${ext}`;
+          const remoteCoverPath = `/.soundx/${coverName}`;
+
+          try {
+            // 上传封面到 WebDAV
+            await this.client.putFileContents(remoteCoverPath, Buffer.from(picture.data));
+            coverPath = remoteCoverPath;
+            console.log(`Saved cover to ${remoteCoverPath}`);
+          } catch (e) {
+            console.error(`Failed to save cover for ${file.filename}:`, e);
+          }
         }
 
         // 添加结果
         results.push({
           path: file.filename,
           size: file.size,
-          cover, // 封面信息
+          coverPath, // 返回远程封面路径
           ...metadata.common,
         });
       } catch (err) {

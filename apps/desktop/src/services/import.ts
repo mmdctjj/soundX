@@ -1,0 +1,37 @@
+import request from "../https";
+import type { ISuccessResponse } from "../models";
+
+export enum TaskStatus {
+  INITIALIZING = 'INITIALIZING',
+  PARSING = 'PARSING',
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+}
+
+export interface ImportTask {
+  id: string;
+  status: TaskStatus;
+  message?: string;
+  total?: number;
+  current?: number;
+}
+
+export interface CreateTaskParams {
+  username: string;
+  password: string;
+  webdavUrl: string;
+}
+
+export interface CreateTaskResponse {
+  id: string;
+}
+
+// 创建导入任务
+export const createImportTask = (data: CreateTaskParams) => {
+  return request.post<any, ISuccessResponse<CreateTaskResponse>>("/import/task", data);
+};
+
+// 查询任务状态
+export const getImportTask = (id: string) => {
+  return request.get<any, ISuccessResponse<ImportTask>>(`/import/task/${id}`);
+};
