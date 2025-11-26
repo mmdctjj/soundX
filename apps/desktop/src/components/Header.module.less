@@ -1,0 +1,92 @@
+.header {
+  height: 64px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 100;
+}
+
+.navControls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.navGroup {
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 10px 15px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.navIcon {
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  color: inherit;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.searchBar {
+  flex: 1;
+  max-width: 400px;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  margin: 0 20px;
+  border-radius: 20px;
+  padding: 5px;
+}
+
+.searchInput {
+  border-radius: 20px;
+  color: inherit;
+  background-color: transparent;
+
+  :global {
+    .ant-input {
+      background-color: transparent;
+      color: inherit;
+    }
+  }
+}
+
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.actionIcon {
+  font-size: 18px;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #ddd;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

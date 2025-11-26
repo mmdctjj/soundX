@@ -1,0 +1,39 @@
+.container {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.section {
+  margin-bottom: 40px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.sectionTitle {
+  margin: 0 !important;
+}
+
+.refreshButton {
+  opacity: 0.7;
+  color: inherit !important;
+
+  &:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 30px;
+}

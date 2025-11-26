@@ -9,8 +9,19 @@ import {
   StepForwardOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
-import { Drawer, Flex, List, Popover, Slider, Tooltip, Typography } from "antd";
+import {
+  Drawer,
+  Flex,
+  List,
+  Popover,
+  Slider,
+  Tooltip,
+  Typography,
+  theme,
+} from "antd";
 import React from "react";
+import { useTheme } from "../context/ThemeContext";
+import styles from "./Player.module.less";
 
 const { Text, Title } = Typography;
 
@@ -68,8 +79,15 @@ const Player: React.FC = () => {
   const [skipStart, setSkipStart] = React.useState(0);
   const [skipEnd, setSkipEnd] = React.useState(0);
   const [isPlaylistOpen, setIsPlaylistOpen] = React.useState(false);
-
   const [isFullPlayerVisible, setIsFullPlayerVisible] = React.useState(false);
+
+  const { token } = theme.useToken();
+  const { mode } = useTheme();
+
+  const drawerBgImage =
+    mode === "dark"
+      ? "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')"
+      : "url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2564&auto=format&fit=crop')";
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -83,105 +101,43 @@ const Player: React.FC = () => {
 
   return (
     <div
-      style={{
-        height: "90px",
-        backgroundColor: "var(--player-bg)",
-        borderTop: "1px solid var(--border-color)",
-        display: "flex",
-        alignItems: "center",
-        padding: "0 20px",
-        justifyContent: "space-between",
-      }}
+      className={styles.player}
+      style={{ color: token.colorText, borderRightColor: token.colorBorder }}
     >
       {/* Song Info */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "15px",
-          width: "250px",
-          cursor: "pointer",
-        }}
+        className={styles.songInfo}
         onClick={() => setIsFullPlayerVisible(true)}
       >
-        <div
-          style={{
-            width: "50px",
-            height: "50px",
-            backgroundColor: "#333",
-            borderRadius: "4px",
-            overflow: "hidden",
-          }}
-        >
+        <div className={styles.coverWrapper}>
           <img
             src="https://picsum.photos/seed/1/300/300"
             alt="cover"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            className={styles.coverImage}
           />
         </div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <Text style={{ color: "var(--text-primary)" }}>
-            How to make your partner...
-          </Text>
-          <Text style={{ color: "var(--text-secondary)", fontSize: "12px" }}>
+        <div className={styles.songDetails}>
+          <Text strong>How to make your partner...</Text>
+          <Text type="secondary" style={{ fontSize: "12px" }}>
             Ken Adams
           </Text>
         </div>
       </div>
 
       {/* Controls */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flex: 1,
-          gap: "20px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "20px",
-            marginBottom: "5px",
-          }}
-        >
-          <StepBackwardOutlined
-            style={{
-              color: "var(--text-primary)",
-              fontSize: "20px",
-              cursor: "pointer",
-            }}
-          />
+      <div className={styles.controls}>
+        <div className={styles.controlButtons}>
+          <StepBackwardOutlined className={styles.controlIcon} />
           <div onClick={togglePlay} style={{ cursor: "pointer" }}>
-            {isPlaying ? (
-              <PlayCircleFilled
-                style={{ color: "var(--accent-color)", fontSize: "40px" }}
-              /> // Ideally PauseCircleFilled
-            ) : (
-              <PlayCircleFilled
-                style={{ color: "var(--accent-color)", fontSize: "40px" }}
-              />
-            )}
+            <PlayCircleFilled
+              className={styles.playIcon}
+              style={{ color: token.colorPrimary }}
+            />
           </div>
-          <StepForwardOutlined
-            style={{
-              color: "var(--text-primary)",
-              fontSize: "20px",
-              cursor: "pointer",
-            }}
-          />
+          <StepForwardOutlined className={styles.controlIcon} />
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            width: "60%",
-          }}
-        >
-          <Text style={{ color: "var(--text-secondary)", fontSize: "10px" }}>
+        <div className={styles.progressWrapper}>
+          <Text type="secondary" style={{ fontSize: "10px" }}>
             {formatTime(currentTime)}
           </Text>
           <Slider
@@ -190,26 +146,18 @@ const Player: React.FC = () => {
             onChange={setCurrentTime}
             tooltip={{ open: false }}
             style={{ flex: 1, margin: 0 }}
-            trackStyle={{ backgroundColor: "var(--text-primary)" }}
-            railStyle={{ backgroundColor: "#333" }}
+            trackStyle={{ backgroundColor: token.colorText }}
+            railStyle={{ backgroundColor: token.colorBorder }}
             handleStyle={{ display: "none" }}
           />
-          <Text style={{ color: "var(--text-secondary)", fontSize: "10px" }}>
+          <Text type="secondary" style={{ fontSize: "10px" }}>
             {formatTime(duration)}
           </Text>
         </div>
       </div>
 
       {/* Volume & Settings */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "15px",
-          width: "150px",
-          justifyContent: "flex-end",
-        }}
-      >
+      <div className={styles.settings}>
         {/* Play Order */}
         <Popover
           content={
@@ -229,7 +177,7 @@ const Player: React.FC = () => {
                   borderRadius: "4px",
                   backgroundColor:
                     playOrder === "sequential"
-                      ? "rgba(0,0,0,0.1)"
+                      ? token.colorFillTertiary
                       : "transparent",
                 }}
               >
@@ -242,7 +190,9 @@ const Player: React.FC = () => {
                   padding: "8px 12px",
                   borderRadius: "4px",
                   backgroundColor:
-                    playOrder === "random" ? "rgba(0,0,0,0.1)" : "transparent",
+                    playOrder === "random"
+                      ? token.colorFillTertiary
+                      : "transparent",
                 }}
               >
                 随机播放
@@ -254,7 +204,9 @@ const Player: React.FC = () => {
                   padding: "8px 12px",
                   borderRadius: "4px",
                   backgroundColor:
-                    playOrder === "loop" ? "rgba(0,0,0,0.1)" : "transparent",
+                    playOrder === "loop"
+                      ? token.colorFillTertiary
+                      : "transparent",
                 }}
               >
                 单曲循环
@@ -265,13 +217,7 @@ const Player: React.FC = () => {
           placement="top"
         >
           <Tooltip title="播放顺序">
-            <SwapOutlined
-              style={{
-                color: "var(--text-primary)",
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
-            />
+            <SwapOutlined className={styles.settingIcon} />
           </Tooltip>
         </Popover>
 
@@ -293,13 +239,7 @@ const Player: React.FC = () => {
           placement="top"
         >
           <Tooltip title="定时关闭">
-            <ClockCircleOutlined
-              style={{
-                color: "var(--text-primary)",
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
-            />
+            <ClockCircleOutlined className={styles.settingIcon} />
           </Tooltip>
         </Popover>
 
@@ -347,13 +287,7 @@ const Player: React.FC = () => {
           placement="top"
         >
           <Tooltip title="跳过片头/片尾">
-            <DeliveredProcedureOutlined
-              style={{
-                color: "var(--text-primary)",
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
-            />
+            <DeliveredProcedureOutlined className={styles.settingIcon} />
           </Tooltip>
         </Popover>
 
@@ -374,13 +308,7 @@ const Player: React.FC = () => {
           placement="top"
         >
           <Tooltip title="音量">
-            <SoundOutlined
-              style={{
-                color: "var(--text-primary)",
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
-            />
+            <SoundOutlined className={styles.settingIcon} />
           </Tooltip>
         </Popover>
 
@@ -388,11 +316,7 @@ const Player: React.FC = () => {
         <Tooltip title="播放列表">
           <OrderedListOutlined
             onClick={() => setIsPlaylistOpen(true)}
-            style={{
-              color: "var(--text-primary)",
-              fontSize: "18px",
-              cursor: "pointer",
-            }}
+            className={styles.settingIcon}
           />
         </Tooltip>
       </div>
@@ -403,116 +327,60 @@ const Player: React.FC = () => {
         height="100%"
         open={isFullPlayerVisible}
         onClose={() => setIsFullPlayerVisible(false)}
+        classNames={{ body: styles.fullPlayerBody }}
         styles={{
           body: {
-            padding: 0,
-            backgroundColor: "var(--bg-color)",
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')",
-            display: "flex",
-            overflow: "hidden",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
+            backgroundImage: drawerBgImage,
           },
           header: { display: "none" },
         }}
         closeIcon={null}
       >
-        <div style={{}}></div>
         {/* Close Button */}
-        <div style={{ position: "absolute", top: 30, right: 30, zIndex: 10 }}>
+        <div className={styles.fullPlayerClose}>
           <DownOutlined
             onClick={() => setIsFullPlayerVisible(false)}
-            style={{
-              fontSize: 24,
-              color: "var(--text-primary)",
-              cursor: "pointer",
-            }}
+            className={styles.fullPlayerCloseIcon}
           />
         </div>
 
         {/* Left Side - Cover (1/3) */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%",
-            position: "relative",
-          }}
-        >
+        <div className={styles.fullPlayerLeft}>
           {/* Background Blur Effect */}
           <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 0,
-            }}
+            className={styles.fullPlayerBackground}
+            style={{ backgroundImage: drawerBgImage }}
           />
 
           <img
             src="https://picsum.photos/seed/1/300/300"
             alt="Current Cover"
-            style={{
-              width: "50vh",
-              height: "50vh",
-              objectFit: "cover",
-              borderRadius: "20px",
-              zIndex: 1,
-              boxShadow: "10px 10px 20px rgba(255, 255, 255, 0.5)",
-            }}
+            className={styles.fullPlayerCover}
           />
         </div>
 
         {/* Right Side - Info & Playlist (2/3) */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            padding: "60px 40px",
-          }}
-        >
+        <div className={styles.fullPlayerRight}>
           {/* Top: Title */}
           <div style={{ marginBottom: "40px" }}>
-            <Title
-              level={1}
-              style={{ color: "var(--text-primary)", margin: "0 0 10px 0" }}
-            >
+            <Title level={1} style={{ margin: "0 0 10px 0" }}>
               How to make your partner...
             </Title>
-            <Text style={{ color: "var(--text-secondary)", fontSize: "20px" }}>
+            <Text style={{ fontSize: "20px" }} type="secondary">
               Ken Adams
             </Text>
           </div>
 
           {/* Bottom: Playlist */}
           <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
-            <Title
-              level={4}
-              style={{ color: "var(--text-primary)", marginBottom: "20px" }}
-            >
+            <Title level={4} style={{ marginBottom: "20px" }}>
               播放列表
             </Title>
             <List
               itemLayout="horizontal"
               dataSource={playlists}
               renderItem={(item) => (
-                <List.Item
-                  style={{
-                    borderBottom: "1px solid rgba(255,255,255,0.05)",
-                    padding: "15px 0",
-                    cursor: "pointer",
-                    transition: "all 0.3s",
-                  }}
-                  className="playlist-item"
-                >
+                <List.Item className={styles.playlistItem}>
                   <List.Item.Meta
                     avatar={
                       <img
@@ -527,20 +395,9 @@ const Player: React.FC = () => {
                       />
                     }
                     title={
-                      <Text
-                        style={{
-                          color: "var(--text-primary)",
-                          fontSize: "16px",
-                        }}
-                      >
-                        {item.title}
-                      </Text>
+                      <Text style={{ fontSize: "16px" }}>{item.title}</Text>
                     }
-                    description={
-                      <Text style={{ color: "var(--text-secondary)" }}>
-                        {item.artist}
-                      </Text>
-                    }
+                    description={<Text type="secondary">{item.artist}</Text>}
                   />
                 </List.Item>
               )}

@@ -3,6 +3,7 @@ import { Button, Typography } from "antd";
 import React from "react";
 import Cover from "../components/Cover";
 import type { RecommendedItem } from "../models";
+import styles from "./Recommended.module.less";
 
 const { Title } = Typography;
 
@@ -135,41 +136,19 @@ const recommendedData: RecommendedItem[] = [
 
 const Recommended: React.FC = () => {
   return (
-    <div
-      style={{
-        flex: 1,
-        padding: "30px",
-        overflowY: "auto",
-        backgroundColor: "var(--glass-bg)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-      }}
-    >
+    <div className={styles.container}>
       {recommendedData.map((section) => (
-        <div key={section.id} style={{ marginBottom: "40px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "20px",
-            }}
-          >
-            <Title level={3} style={{ color: "white", margin: 0 }}>
+        <div key={section.id} className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <Title level={3} className={styles.sectionTitle}>
               {section.title}
             </Title>
-            <Button type="text" style={{ color: "var(--text-secondary)" }}>
+            <Button type="text" className={styles.refreshButton}>
               换一批 <SyncOutlined />
             </Button>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-              gap: "30px",
-            }}
-          >
+          <div className={styles.grid}>
             {section.items.map((item) => (
               <Cover key={item.id} item={item} />
             ))}
