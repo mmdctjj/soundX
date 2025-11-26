@@ -8,6 +8,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   z-index: 100;
+  -webkit-app-region: drag; // Enable window dragging
 }
 
 .navControls {
@@ -25,6 +26,7 @@
   display: flex;
   gap: 15px;
   align-items: center;
+  -webkit-app-region: no-drag; // Allow clicking navigation buttons
 }
 
 .navIcon {
@@ -47,6 +49,7 @@
   margin: 0 20px;
   border-radius: 20px;
   padding: 5px;
+  -webkit-app-region: no-drag; // Allow typing in search
 }
 
 .searchInput {
@@ -66,6 +69,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
+  -webkit-app-region: no-drag; // Allow clicking user actions
 }
 
 .actionIcon {

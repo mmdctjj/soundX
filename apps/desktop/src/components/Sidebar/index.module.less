@@ -8,6 +8,7 @@
   flex-direction: column;
   height: 100%;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-app-region: drag; // Enable window dragging
 }
 
 .header {
@@ -46,6 +47,7 @@
   cursor: pointer;
   margin-top: 10px;
   transition: opacity 0.2s;
+  -webkit-app-region: no-drag; // Allow clicking
 
   &:hover {
     opacity: 1;
@@ -72,6 +74,7 @@
   transition: background-color 0.2s, color 0.2s;
   color: inherit;
   opacity: 0.7;
+  -webkit-app-region: no-drag; // Allow clicking menu items
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);
