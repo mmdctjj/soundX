@@ -8,97 +8,126 @@ import {
   ShareAltOutlined,
   SortAscendingOutlined,
 } from "@ant-design/icons";
-import { Avatar, Col, Row, Table, Typography, theme } from "antd";
-import React from "react";
+import {
+  Avatar,
+  Col,
+  Row,
+  Spin,
+  Table,
+  Typography,
+  message,
+  theme,
+} from "antd";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import type { Album } from "../../models";
+import { getAlbumById, getAlbumTracks } from "../../services/album";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
 
-const episodes = [
-  {
-    key: "1",
-    title: "Find topic that tou love",
-    artist: "Ken Adams",
-    playlist: "How to Start Podcast",
-    plays: "2,412",
-    duration: "08:12",
-    image: "https://picsum.photos/seed/10/100/100",
-  },
-  {
-    key: "2",
-    title: "Invite your friends instead",
-    artist: "Ken Adams",
-    playlist: "How to Start Podcast",
-    plays: "2,341",
-    duration: "18:11",
-    image: "https://picsum.photos/seed/11/100/100",
-  },
-  {
-    key: "3",
-    title: "How to make your partner talk more",
-    artist: "Ken Adams",
-    playlist: "How to Start Podcast",
-    plays: "1,212",
-    duration: "12:11",
-    image: "https://picsum.photos/seed/12/100/100",
-  },
-  {
-    key: "4",
-    title: "Invest in podcast tools",
-    artist: "Ken Adams",
-    playlist: "How to Start Podcast",
-    plays: "3,123",
-    duration: "18:31",
-    image: "https://picsum.photos/seed/13/100/100",
-  },
-];
-
 const Detail: React.FC = () => {
   const { token } = theme.useToken();
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get("id");
+
+  const [album, setAlbum] = useState<Album | null>(null);
+  const [tracks, setTracks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
+
+  useEffect(() => {
+    console.log("id", id);
+    if (id) {
+      fetchAlbumDetails(Number(id));
+      fetchTracks(Number(id), 0);
+    }
+  }, [id]);
+
+  const fetchAlbumDetails = async (albumId: number) => {
+    try {
+      console.log("albumId", albumId);
+      const res = await getAlbumById(albumId);
+      if (res.code === 200) {
+        setAlbum(res.data);
+      } else {
+        message.error(res.message);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchTracks = async (albumId: number, currentPage: number) => {
+    console.log("albumId", albumId);
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await getAlbumTracks(
+        albumId,
+        pageSize,
+        currentPage * pageSize
+      );
+      if (res.code === 200) {
+        const newTracks = res.data.list;
+        setTracks((prev) =>
+          currentPage === 0 ? newTracks : [...prev, ...newTracks]
+        );
+        setHasMore(tracks.length + newTracks.length < res.data.total);
+        setPage(currentPage + 1);
+      } else {
+        message.error(res.message);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    if (
+      target.scrollTop + target.offsetHeight === target.scrollHeight &&
+      hasMore &&
+      !loading &&
+      id
+    ) {
+      fetchTracks(Number(id), page);
+    }
+  };
 
   const columns = [
     {
       title: "#",
-      dataIndex: "key",
-      key: "key",
+      dataIndex: "index",
+      key: "index",
       width: 50,
-      render: (text: string) => <Text type="secondary">{text}</Text>,
-    },
-    {
-      title: "状态",
-      dataIndex: "status",
-      key: "status",
-      width: 60,
-      render: (text: string, record: any) => (
-        <img
-          src={record.image}
-          alt={text}
-          style={{
-            width: "40px",
-            height: "40px",
-            borderRadius: "4px",
-            objectFit: "cover",
-          }}
-        />
+      render: (_: any, __: any, index: number) => (
+        <Text type="secondary">{index + 1}</Text>
       ),
     },
     {
       title: "Title",
-      dataIndex: "title",
-      key: "title",
+      dataIndex: "name",
+      key: "name",
+      ellipsis: true,
       render: (text: string) => <Text strong>{text}</Text>,
     },
     {
-      title: "Playlist",
-      dataIndex: "playlist",
-      key: "playlist",
-      render: (text: string) => <Text type="secondary">{text}</Text>,
-    },
-    {
-      title: "时长",
+      title: "Duration",
       dataIndex: "duration",
       key: "duration",
-      render: (text: string) => <Text type="secondary">{text}</Text>,
+      width: 100,
+      render: (duration: number) => (
+        <Text type="secondary">
+          {duration
+            ? `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, "0")}`
+            : "-"}
+        </Text>
+      ),
     },
     {
       title: "",
@@ -116,13 +145,21 @@ const Detail: React.FC = () => {
     },
   ];
 
+  if (!album && !loading) {
+    return <div className={styles.detailContainer}>Loading...</div>;
+  }
+
   return (
-    <div className={styles.detailContainer}>
+    <div
+      className={styles.detailContainer}
+      onScroll={handleScroll}
+      style={{ overflowY: "auto", height: "100%" }}
+    >
       {/* Header Banner */}
       <div
         className={styles.banner}
         style={{
-          backgroundImage: "url(https://picsum.photos/seed/podcast/1200/400)",
+          backgroundImage: `url(${album?.cover ? `http://localhost:3000${album.cover}` : "https://picsum.photos/seed/podcast/1200/400"})`,
         }}
       >
         <div className={styles.bannerOverlay}></div>
@@ -131,30 +168,31 @@ const Detail: React.FC = () => {
           <div>
             <div className={styles.titleGroup}>
               <Title level={1} style={{ color: "white", margin: 0 }}>
-                How to start podcast
+                {album?.name || "Unknown Album"}
               </Title>
               <CheckCircleFilled
                 style={{ color: "#1890ff", fontSize: "24px" }}
               />
             </div>
-            <span className={styles.statsText}>40,142 Monthly Listeners</span>
+            <span className={styles.statsText}>
+              {album?.year || "Unknown Year"}
+            </span>
           </div>
 
           <div className={styles.userInfo}>
             <Avatar
               size={50}
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ken"
+              src={
+                album?.cover
+                  ? `http://localhost:3000${album.cover}`
+                  : "https://api.dicebear.com/7.x/avataaars/svg?seed=Ken"
+              }
             />
             <div style={{ display: "flex", flexDirection: "column" }}>
               <Text
                 style={{ color: "white", fontWeight: 600, fontSize: "16px" }}
               >
-                Ken Adam
-              </Text>
-              <Text
-                style={{ color: "rgba(255,255,255,0.8)", fontSize: "12px" }}
-              >
-                51k Followers
+                {album?.artist || "Unknown Artist"}
               </Text>
             </div>
           </div>
@@ -197,16 +235,23 @@ const Detail: React.FC = () => {
               </div>
             </div>
 
-            {/* Episode List */}
+            {/* Track List */}
             <Table
-              dataSource={episodes}
+              dataSource={tracks}
               columns={columns}
               pagination={false}
+              rowKey="id"
+              loading={loading}
               rowClassName="episode-row"
               onRow={() => ({
                 style: { cursor: "pointer" },
               })}
             />
+            {loading && (
+              <div style={{ textAlign: "center", padding: "10px" }}>
+                <Spin />
+              </div>
+            )}
           </Col>
         </Row>
       </div>

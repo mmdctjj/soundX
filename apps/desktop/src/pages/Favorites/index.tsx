@@ -1,5 +1,5 @@
 import { SyncOutlined } from "@ant-design/icons";
-import type { Album } from "@soundx/db";
+import { type Album } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
 import { Button, Col, Row, Skeleton, Timeline, Typography } from "antd";
 import React, { useRef, useState } from "react";
@@ -10,6 +10,11 @@ import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
 
 const { Title } = Typography;
+
+enum TrackType {
+  MUSIC = "MUSIC",
+  PODCAST = "PODCAST",
+}
 
 const CACHE_KEY = "favorites_timeline";
 
@@ -26,6 +31,7 @@ const generateMockTimelineItem = (page: number): TimelineItem => {
       artist: `Artist ${id}`,
       cover: `https://picsum.photos/seed/${id}/300/300`,
       year: "2023",
+      type: TrackType.MUSIC,
     });
   }
 

@@ -13,6 +13,26 @@ export class TrackService {
     return await this.prisma.track.findMany();
   }
 
+  async getTracksByAlbum(albumName: string, artist: string, pageSize: number, skip: number): Promise<Track[]> {
+    return await this.prisma.track.findMany({
+      where: {
+        album: albumName,
+        artist: artist,
+      },
+      skip: skip,
+      take: pageSize,
+    });
+  }
+
+  async getTrackCountByAlbum(albumName: string, artist: string): Promise<number> {
+    return await this.prisma.track.count({
+      where: {
+        album: albumName,
+        artist: artist,
+      },
+    });
+  }
+
   async getTrackTableList(pageSize: number, current: number): Promise<Track[]> {
     return await this.prisma.track.findMany({
       skip: (current - 1) * pageSize,

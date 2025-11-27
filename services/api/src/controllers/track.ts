@@ -19,7 +19,7 @@ import { TrackService } from '../services/track';
 
 @Controller()
 export class TrackController {
-  constructor(private readonly trackService: TrackService) {}
+  constructor(private readonly trackService: TrackService) { }
 
   @Get('/track/list')
   async getTrackList(): Promise<ISuccessResponse<Track[]> | IErrorResponse> {
@@ -203,3 +203,10 @@ export class TrackController {
         };
       }
     } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+}

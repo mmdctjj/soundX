@@ -70,3 +70,17 @@ export const getRecentAlbums = (type?: string) => {
   });
 };
 
+// Get album details by ID
+export const getAlbumById = (id: number) => {
+  return request.get<any, ISuccessResponse<Album>>(`/album/${id}`);
+};
+
+// Get album tracks with pagination
+export const getAlbumTracks = (id: number, pageSize: number, skip: number) => {
+  return request.get<any, ISuccessResponse<{ list: any[]; total: number }>>(
+    `/album/${id}/tracks`,
+    {
+      params: { pageSize, skip },
+    }
+  );
+};

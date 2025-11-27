@@ -16,7 +16,7 @@ const Cover: CoverComponent = ({ item }) => {
   return (
     <div
       className={styles.coverContainer}
-      onClick={() => navigate(`//detail?id=${item.id}`)}
+      onClick={() => navigate(`/detail?id=${item.id}`)}
     >
       <div className={styles.imageWrapper}>
         <img

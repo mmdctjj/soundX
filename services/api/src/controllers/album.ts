@@ -18,10 +18,14 @@ import {
   ITableData,
 } from 'src/common/const';
 import { AlbumService } from '../services/album';
+import { TrackService } from '../services/track';
 
 @Controller('/album')
 export class AlbumController {
-  constructor(private readonly albumService: AlbumService) {}
+  constructor(
+    private readonly albumService: AlbumService,
+    private readonly trackService: TrackService,
+  ) { }
 
   @Get('/list')
   async getAlbumList(): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
@@ -39,6 +43,8 @@ export class AlbumController {
       };
     }
   }
+
+
 
   @Get('/table-list')
   async getAlbumTableList(
@@ -243,6 +249,70 @@ export class AlbumController {
       return { code: 200, message: 'success', data: list };
     } catch (error) {
       return { code: 500, message: String(error) };
+    }
+  }
+  @Get('/:id')
+  async getAlbumById(
+    @Param('id') id: string,
+  ): Promise<ISuccessResponse<Album> | IErrorResponse> {
+    try {
+      if (isNaN(Number(id))) {
+        return { code: 500, message: 'Invalid ID' };
+      }
+      const album = await this.albumService.getAlbumById(parseInt(id));
+      if (!album) {
+        return { code: 500, message: 'Album not found' };
+      }
+      return {
+        code: 200,
+        message: 'success',
+        data: album,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: String(error),
+      };
+    }
+  }
+
+  @Get('/:id/tracks')
+  async getAlbumTracks(
+    @Param('id') id: string,
+    @Query('pageSize') pageSize: number,
+    @Query('skip') skip: number,
+  ): Promise<ISuccessResponse<any> | IErrorResponse> {
+    try {
+      if (isNaN(Number(id))) {
+        return { code: 500, message: 'Invalid ID' };
+      }
+      const album = await this.albumService.getAlbumById(parseInt(id));
+      if (!album) {
+        return { code: 500, message: 'Album not found' };
+      }
+      const tracks = await this.trackService.getTracksByAlbum(
+        album.name,
+        album.artist,
+        Number(pageSize) || 20,
+        Number(skip) || 0,
+      );
+      const total = await this.trackService.getTrackCountByAlbum(
+        album.name,
+        album.artist,
+      );
+      return {
+        code: 200,
+        message: 'success',
+        data: {
+          list: tracks,
+          total,
+        },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: String(error),
+      };
     }
   }
 }
