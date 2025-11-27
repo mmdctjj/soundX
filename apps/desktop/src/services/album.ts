@@ -76,11 +76,17 @@ export const getAlbumById = (id: number) => {
 };
 
 // Get album tracks with pagination
-export const getAlbumTracks = (id: number, pageSize: number, skip: number) => {
+export const getAlbumTracks = (
+  id: number,
+  pageSize: number,
+  skip: number,
+  sort: "asc" | "desc" = "asc",
+  keyword?: string
+) => {
   return request.get<any, ISuccessResponse<{ list: any[]; total: number }>>(
     `/album/${id}/tracks`,
     {
-      params: { pageSize, skip },
+      params: { pageSize, skip, sort, keyword },
     }
   );
 };

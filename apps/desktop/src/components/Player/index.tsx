@@ -1,14 +1,15 @@
 import {
-  ClockCircleOutlined,
   DeliveredProcedureOutlined,
   DownOutlined,
   OrderedListOutlined,
+  PauseCircleFilled,
   PlayCircleFilled,
   SoundOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
+import { type Track } from "@soundx/db";
 import {
   Drawer,
   Flex,
@@ -19,102 +20,81 @@ import {
   Typography,
   theme,
 } from "antd";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
+import { usePlayerStore } from "../../store/player";
 import styles from "./index.module.less";
 
 const { Text, Title } = Typography;
 
-const playlists = [
-  {
-    title: "Woh Pehli Dafa",
-    artist: "DZ Messili",
-    image: "https://picsum.photos/seed/1/300/300",
-  },
-  {
-    title: "Hollywood",
-    artist: "Babbu Maan",
-    image: "https://picsum.photos/seed/2/300/300",
-  },
-  {
-    title: "The Egyptian",
-    artist: "Apple Music Dance",
-    image: "https://picsum.photos/seed/3/300/300",
-  },
-  {
-    title: "Lucky You",
-    artist: "Chance Music",
-    image: "https://picsum.photos/seed/4/300/300",
-  },
-  {
-    title: "No Love",
-    artist: "Mark Dohnewr",
-    image: "https://picsum.photos/seed/5/300/300",
-  },
-  {
-    title: "If You",
-    artist: "Mayorkun",
-    image: "https://picsum.photos/seed/6/300/300",
-  },
-  {
-    title: "Elevated",
-    artist: "Shubh",
-    image: "https://picsum.photos/seed/7/300/300",
-  },
-  {
-    title: "Brown Munde",
-    artist: "Ap Dhillon",
-    image: "https://picsum.photos/seed/8/300/300",
-  },
-];
-
 const Player: React.FC = () => {
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const [currentTime, setCurrentTime] = React.useState(0);
-  const [duration] = React.useState(221); // 03:41
+  const {
+    currentTrack,
+    isPlaying,
+    playlist,
+    playMode,
+    volume,
+    currentTime,
+    duration,
+    play,
+    pause,
+    next,
+    prev,
+    setMode,
+    setVolume,
+    setCurrentTime,
+    setDuration,
+  } = usePlayerStore();
 
-  // Load settings from localStorage
-  const [volume, setVolume] = React.useState(() => {
-    const saved = localStorage.getItem("playerVolume");
-    return saved ? Number(saved) : 70;
-  });
+  const audioRef = useRef<HTMLAudioElement>(null);
 
-  const [playOrder, setPlayOrder] = React.useState<
-    "sequential" | "random" | "loop"
-  >(() => {
-    const saved = localStorage.getItem("playOrder");
-    return saved === "sequential" || saved === "random" || saved === "loop"
-      ? saved
-      : "sequential";
-  });
-
-  const [skipStart, setSkipStart] = React.useState(() => {
+  // Local state for UI interactions
+  const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
+  const [isFullPlayerVisible, setIsFullPlayerVisible] = useState(false);
+  const [skipStart, setSkipStart] = useState(() => {
     const saved = localStorage.getItem("skipStart");
     return saved ? Number(saved) : 0;
   });
-
-  const [skipEnd, setSkipEnd] = React.useState(() => {
+  const [skipEnd, setSkipEnd] = useState(() => {
     const saved = localStorage.getItem("skipEnd");
     return saved ? Number(saved) : 0;
   });
 
-  const [isPlaylistOpen, setIsPlaylistOpen] = React.useState(false);
-  const [isFullPlayerVisible, setIsFullPlayerVisible] = React.useState(false);
+  // Sync volume with audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
+    }
+  }, [volume]);
 
-  // Save settings to localStorage when they change
-  React.useEffect(() => {
+  // Handle play/pause
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.play().catch((e) => {
+          console.error("Playback failed", e);
+          pause();
+        });
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [isPlaying, currentTrack]);
+
+  // Save settings
+  useEffect(() => {
     localStorage.setItem("playerVolume", String(volume));
   }, [volume]);
 
-  React.useEffect(() => {
-    localStorage.setItem("playOrder", playOrder);
-  }, [playOrder]);
+  useEffect(() => {
+    localStorage.setItem("playOrder", playMode);
+  }, [playMode]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem("skipStart", String(skipStart));
   }, [skipStart]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem("skipEnd", String(skipEnd));
   }, [skipEnd]);
 
@@ -134,13 +114,70 @@ const Player: React.FC = () => {
       .padStart(2, "0")}`;
   };
 
-  const togglePlay = () => setIsPlaying(!isPlaying);
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      const time = audioRef.current.currentTime;
+      setCurrentTime(time);
+
+      // Handle skip end
+      if (skipEnd > 0 && duration > 0 && time >= duration - skipEnd) {
+        next();
+      }
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+      // Handle skip start
+      if (skipStart > 0) {
+        audioRef.current.currentTime = skipStart;
+      }
+    }
+  };
+
+  const handleEnded = () => {
+    next();
+  };
+
+  const handleSeek = (val: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = val;
+      setCurrentTime(val);
+    }
+  };
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  };
+
+  const getCoverUrl = (path?: string | null) => {
+    return path
+      ? `http://localhost:3000${path}`
+      : "https://picsum.photos/seed/music/300/300";
+  };
 
   return (
     <div
       className={styles.player}
       style={{ color: token.colorText, borderRightColor: token.colorBorder }}
     >
+      <audio
+        ref={audioRef}
+        src={
+          currentTrack?.path
+            ? `http://localhost:3000/audio/${currentTrack.path.split("/").pop()}`
+            : undefined
+        }
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={handleEnded}
+      />
+
       {/* Song Info */}
       <div
         className={styles.songInfo}
@@ -148,15 +185,17 @@ const Player: React.FC = () => {
       >
         <div className={styles.coverWrapper}>
           <img
-            src="https://picsum.photos/seed/1/300/300"
+            src={getCoverUrl(currentTrack?.cover)}
             alt="cover"
             className={styles.coverImage}
           />
         </div>
         <div className={styles.songDetails}>
-          <Text strong>How to make your partner...</Text>
+          <Text strong ellipsis style={{ maxWidth: 250 }}>
+            {currentTrack?.name || "No Track"}
+          </Text>
           <Text type="secondary" style={{ fontSize: "12px" }}>
-            Ken Adams
+            {currentTrack?.artist || "Unknown Artist"}
           </Text>
         </div>
       </div>
@@ -164,14 +203,21 @@ const Player: React.FC = () => {
       {/* Controls */}
       <div className={styles.controls}>
         <div className={styles.controlButtons}>
-          <StepBackwardOutlined className={styles.controlIcon} />
+          <StepBackwardOutlined className={styles.controlIcon} onClick={prev} />
           <div onClick={togglePlay} style={{ cursor: "pointer" }}>
-            <PlayCircleFilled
-              className={styles.playIcon}
-              style={{ color: token.colorPrimary }}
-            />
+            {isPlaying ? (
+              <PauseCircleFilled
+                className={styles.playIcon}
+                style={{ color: token.colorPrimary }}
+              />
+            ) : (
+              <PlayCircleFilled
+                className={styles.playIcon}
+                style={{ color: token.colorPrimary }}
+              />
+            )}
           </div>
-          <StepForwardOutlined className={styles.controlIcon} />
+          <StepForwardOutlined className={styles.controlIcon} onClick={next} />
         </div>
         <div className={styles.progressWrapper}>
           <Text type="secondary" style={{ fontSize: "10px" }}>
@@ -179,8 +225,8 @@ const Player: React.FC = () => {
           </Text>
           <Slider
             value={currentTime}
-            max={duration}
-            onChange={setCurrentTime}
+            max={duration || 100}
+            onChange={handleSeek}
             tooltip={{ open: false }}
             style={{ flex: 1, margin: 0 }}
             trackStyle={{ backgroundColor: token.colorText }}
@@ -207,13 +253,13 @@ const Player: React.FC = () => {
               }}
             >
               <div
-                onClick={() => setPlayOrder("sequential")}
+                onClick={() => setMode("sequence")}
                 style={{
                   cursor: "pointer",
                   padding: "8px 12px",
                   borderRadius: "4px",
                   backgroundColor:
-                    playOrder === "sequential"
+                    playMode === "sequence"
                       ? token.colorFillTertiary
                       : "transparent",
                 }}
@@ -221,13 +267,13 @@ const Player: React.FC = () => {
                 顺序播放
               </div>
               <div
-                onClick={() => setPlayOrder("random")}
+                onClick={() => setMode("shuffle")}
                 style={{
                   cursor: "pointer",
                   padding: "8px 12px",
                   borderRadius: "4px",
                   backgroundColor:
-                    playOrder === "random"
+                    playMode === "shuffle"
                       ? token.colorFillTertiary
                       : "transparent",
                 }}
@@ -235,18 +281,32 @@ const Player: React.FC = () => {
                 随机播放
               </div>
               <div
-                onClick={() => setPlayOrder("loop")}
+                onClick={() => setMode("loop")}
                 style={{
                   cursor: "pointer",
                   padding: "8px 12px",
                   borderRadius: "4px",
                   backgroundColor:
-                    playOrder === "loop"
+                    playMode === "loop"
                       ? token.colorFillTertiary
                       : "transparent",
                 }}
               >
                 单曲循环
+              </div>
+              <div
+                onClick={() => setMode("single")}
+                style={{
+                  cursor: "pointer",
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  backgroundColor:
+                    playMode === "single"
+                      ? token.colorFillTertiary
+                      : "transparent",
+                }}
+              >
+                单曲播放
               </div>
             </div>
           }
@@ -262,12 +322,11 @@ const Player: React.FC = () => {
         <Popover
           content={
             <Flex vertical justify="center">
-              <Text style={{ fontSize: "12px" }}>{volume} 分钟后自动关闭</Text>
+              <Text style={{ fontSize: "12px" }}>音量: {volume}%</Text>
               <Slider
-                style={{ width: "200px" }}
+                style={{ width: "100px" }}
                 value={volume}
                 max={100}
-                step={5}
                 onChange={setVolume}
               />
             </Flex>
@@ -275,8 +334,8 @@ const Player: React.FC = () => {
           trigger="click"
           placement="top"
         >
-          <Tooltip title="定时关闭">
-            <ClockCircleOutlined className={styles.settingIcon} />
+          <Tooltip title="音量">
+            <SoundOutlined className={styles.settingIcon} />
           </Tooltip>
         </Popover>
 
@@ -328,27 +387,6 @@ const Player: React.FC = () => {
           </Tooltip>
         </Popover>
 
-        <Popover
-          content={
-            <Flex
-              vertical
-              justify="center"
-              style={{ height: "150px", padding: "10px 0" }}
-            >
-              <Text style={{ marginBottom: "5px", textAlign: "center" }}>
-                {volume}
-              </Text>
-              <Slider vertical value={volume} onChange={setVolume} />
-            </Flex>
-          }
-          trigger="click"
-          placement="top"
-        >
-          <Tooltip title="音量">
-            <SoundOutlined className={styles.settingIcon} />
-          </Tooltip>
-        </Popover>
-
         {/* Playlist */}
         <Tooltip title="播放列表">
           <OrderedListOutlined
@@ -390,7 +428,7 @@ const Player: React.FC = () => {
           />
 
           <img
-            src="https://picsum.photos/seed/1/300/300"
+            src={getCoverUrl(currentTrack?.cover)}
             alt="Current Cover"
             className={styles.fullPlayerCover}
           />
@@ -401,28 +439,38 @@ const Player: React.FC = () => {
           {/* Top: Title */}
           <div style={{ marginBottom: "40px" }}>
             <Title level={1} style={{ margin: "0 0 10px 0" }}>
-              How to make your partner...
+              {currentTrack?.name || "No Track"}
             </Title>
             <Text style={{ fontSize: "20px" }} type="secondary">
-              Ken Adams
+              {currentTrack?.artist || "Unknown Artist"}
             </Text>
           </div>
 
           {/* Bottom: Playlist */}
           <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
             <Title level={4} style={{ marginBottom: "20px" }}>
-              播放列表
+              ``` 播放列表 ({playlist.length})
             </Title>
             <List
               itemLayout="horizontal"
-              dataSource={playlists}
-              renderItem={(item) => (
-                <List.Item className={styles.playlistItem}>
+              dataSource={playlist}
+              renderItem={(item: Track) => (
+                <List.Item
+                  className={styles.playlistItem}
+                  onClick={() => play(item)}
+                  style={{
+                    cursor: "pointer",
+                    backgroundColor:
+                      currentTrack?.id === item.id
+                        ? "rgba(255,255,255,0.1)"
+                        : "transparent",
+                  }}
+                >
                   <List.Item.Meta
                     avatar={
                       <img
-                        src={item.image}
-                        alt={item.title}
+                        src={getCoverUrl(item.cover)}
+                        alt={item.name}
                         style={{
                           width: "50px",
                           height: "50px",
@@ -432,7 +480,17 @@ const Player: React.FC = () => {
                       />
                     }
                     title={
-                      <Text style={{ fontSize: "16px" }}>{item.title}</Text>
+                      <Text
+                        style={{
+                          fontSize: "16px",
+                          color:
+                            currentTrack?.id === item.id
+                              ? token.colorPrimary
+                              : undefined,
+                        }}
+                      >
+                        {item.name}
+                      </Text>
                     }
                     description={<Text type="secondary">{item.artist}</Text>}
                   />
@@ -444,7 +502,7 @@ const Player: React.FC = () => {
       </Drawer>
 
       <Drawer
-        title="播放列表"
+        title={`播放列表 (${playlist.length})`}
         placement="right"
         open={isPlaylistOpen}
         onClose={() => setIsPlaylistOpen(false)}
@@ -452,20 +510,41 @@ const Player: React.FC = () => {
         <List
           style={{ width: "100%" }}
           itemLayout="horizontal"
-          dataSource={playlists}
-          renderItem={(item) => (
-            <List.Item>
+          dataSource={playlist}
+          renderItem={(item: Track) => (
+            <List.Item
+              onClick={() => play(item)}
+              style={{
+                cursor: "pointer",
+                backgroundColor:
+                  currentTrack?.id === item.id
+                    ? token.colorFillTertiary
+                    : "transparent",
+              }}
+            >
               <List.Item.Meta
                 avatar={
                   <img
-                    src={item.image}
-                    alt={item.title}
+                    src={getCoverUrl(item.cover)}
+                    alt={item.name}
                     style={{
                       width: "25px",
                       height: "25px",
                       objectFit: "cover",
                     }}
                   />
+                }
+                title={
+                  <Text
+                    style={{
+                      color:
+                        currentTrack?.id === item.id
+                          ? token.colorPrimary
+                          : undefined,
+                    }}
+                  >
+                    {item.name}
+                  </Text>
                 }
                 description={item.artist}
               />

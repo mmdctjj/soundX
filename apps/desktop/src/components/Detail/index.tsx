@@ -1,153 +1,199 @@
 import {
   CaretRightOutlined,
-  CheckCircleFilled,
   CloudDownloadOutlined,
   HeartOutlined,
-  MoreOutlined,
-  SearchOutlined,
+  PauseOutlined,
+  PlayCircleOutlined,
   ShareAltOutlined,
   SortAscendingOutlined,
+  SortDescendingOutlined,
 } from "@ant-design/icons";
-import {
-  Avatar,
-  Col,
-  Row,
-  Spin,
-  Table,
-  Typography,
-  message,
-  theme,
-} from "antd";
+import { type Album, type Track } from "@soundx/db";
+import { Avatar, Col, Flex, Input, Row, Table, theme, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { Album } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
+import { usePlayerStore } from "../../store/player";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
 
 const Detail: React.FC = () => {
-  const { token } = theme.useToken();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
 
   const [album, setAlbum] = useState<Album | null>(null);
-  const [tracks, setTracks] = useState<any[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<"asc" | "desc">("asc");
+  const [keyword, setKeyword] = useState("");
+  const [keywordMidValue, setKeywordMidValue] = useState("");
+
+  const { token } = theme.useToken();
+
+  const { play, setPlaylist, currentTrack, isPlaying, toggleLike } =
+    usePlayerStore();
+
   const pageSize = 20;
 
   useEffect(() => {
-    console.log("id", id);
     if (id) {
       fetchAlbumDetails(Number(id));
-      fetchTracks(Number(id), 0);
+      // Reset list when id changes
+      setTracks([]);
+      setPage(0);
+      setHasMore(true);
+      fetchTracks(Number(id), 0, sort, keyword);
     }
-  }, [id]);
+  }, [id, sort, keyword]);
 
   const fetchAlbumDetails = async (albumId: number) => {
     try {
-      console.log("albumId", albumId);
       const res = await getAlbumById(albumId);
       if (res.code === 200) {
         setAlbum(res.data);
-      } else {
-        message.error(res.message);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Failed to fetch album details:", error);
     }
   };
 
-  const fetchTracks = async (albumId: number, currentPage: number) => {
-    console.log("albumId", albumId);
+  const fetchTracks = async (
+    albumId: number,
+    currentPage: number,
+    currentSort: "asc" | "desc",
+    currentKeyword: string
+  ) => {
     if (loading) return;
     setLoading(true);
     try {
       const res = await getAlbumTracks(
         albumId,
         pageSize,
-        currentPage * pageSize
+        currentPage * pageSize,
+        currentSort,
+        currentKeyword
       );
       if (res.code === 200) {
         const newTracks = res.data.list;
-        setTracks((prev) =>
-          currentPage === 0 ? newTracks : [...prev, ...newTracks]
-        );
-        setHasMore(tracks.length + newTracks.length < res.data.total);
+        if (currentPage === 0) {
+          setTracks(newTracks);
+        } else {
+          setTracks((prev) => [...prev, ...newTracks]);
+        }
+        setHasMore(newTracks.length === pageSize);
         setPage(currentPage + 1);
-      } else {
-        message.error(res.message);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Failed to fetch tracks:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
+    const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
     if (
-      target.scrollTop + target.offsetHeight === target.scrollHeight &&
+      scrollHeight - scrollTop === clientHeight &&
       hasMore &&
       !loading &&
       id
     ) {
-      fetchTracks(Number(id), page);
+      fetchTracks(Number(id), page, sort, keyword);
     }
+  };
+
+  const handlePlayAll = () => {
+    if (tracks.length > 0) {
+      setPlaylist(tracks);
+      play(tracks[0]);
+    }
+  };
+
+  const handlePlayTrack = (track: Track) => {
+    // If track is not in current playlist (or playlist is empty), set it
+    // For simplicity, we can just set the current visible tracks as playlist
+    setPlaylist(tracks);
+    play(track);
+  };
+
+  const handleToggleLike = async (e: React.MouseEvent, track: Track) => {
+    e.stopPropagation();
+    await toggleLike(track.id);
+    // Optimistically update UI if needed, or rely on store/refetch
+    // For now, let's just force a re-render or assume store handles it if we had like status in store
+    // Since we don't have like status in Track model in frontend easily syncable without refetch,
+    // we might need to update local state.
+    // But Track model has likedByUsers... which is complex to check.
+    // Let's assume for this task we just trigger the action.
   };
 
   const columns = [
     {
       title: "#",
-      dataIndex: "index",
-      key: "index",
-      width: 50,
-      render: (_: any, __: any, index: number) => (
-        <Text type="secondary">{index + 1}</Text>
-      ),
+      key: "id",
+      width: 100,
+      render: (_: any, record: Track) => {
+        return <Text>{record.id}</Text>;
+      },
     },
     {
-      title: "Title",
+      title: " ",
+      key: "play",
+      width: 100,
+      render: (_: any, record: Track) => {
+        const isCurrent = currentTrack?.id === record.id;
+        return (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePlayTrack(record);
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            <Text strong={currentTrack?.id === record.id}>
+              {isCurrent && isPlaying ? (
+                <PauseOutlined />
+              ) : (
+                <PlayCircleOutlined />
+              )}
+            </Text>
+          </div>
+        );
+      },
+    },
+    {
+      title: "标题",
       dataIndex: "name",
       key: "name",
       ellipsis: true,
-      render: (text: string) => <Text strong>{text}</Text>,
+      render: (text: string, record: Track) => (
+        <Text strong={currentTrack?.id === record.id}>{text}</Text>
+      ),
     },
     {
-      title: "Duration",
+      title: "时长",
       dataIndex: "duration",
       key: "duration",
       width: 100,
       render: (duration: number) => (
-        <Text type="secondary">
-          {duration
-            ? `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, "0")}`
-            : "-"}
-        </Text>
+        <Text type="secondary">{duration ? duration : "00:00"}</Text>
       ),
     },
     {
-      title: "",
-      key: "action",
+      title: ":",
+      key: "actions",
       width: 50,
-      render: () => (
-        <MoreOutlined
-          style={{
-            cursor: "pointer",
-            fontSize: "18px",
-            opacity: 0.7,
-          }}
+      render: (_: any, record: Track) => (
+        <HeartOutlined
+          onClick={(e) => handleToggleLike(e, record)}
+          style={{ cursor: "pointer" }}
         />
       ),
     },
   ];
-
-  if (!album && !loading) {
-    return <div className={styles.detailContainer}>Loading...</div>;
-  }
 
   return (
     <div
@@ -164,39 +210,24 @@ const Detail: React.FC = () => {
       >
         <div className={styles.bannerOverlay}></div>
 
-        <div className={styles.bannerContent}>
-          <div>
-            <div className={styles.titleGroup}>
-              <Title level={1} style={{ color: "white", margin: 0 }}>
-                {album?.name || "Unknown Album"}
-              </Title>
-              <CheckCircleFilled
-                style={{ color: "#1890ff", fontSize: "24px" }}
-              />
-            </div>
-            <span className={styles.statsText}>
-              {album?.year || "Unknown Year"}
-            </span>
-          </div>
-
-          <div className={styles.userInfo}>
-            <Avatar
-              size={50}
-              src={
-                album?.cover
-                  ? `http://localhost:3000${album.cover}`
-                  : "https://api.dicebear.com/7.x/avataaars/svg?seed=Ken"
-              }
-            />
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <Text
-                style={{ color: "white", fontWeight: 600, fontSize: "16px" }}
-              >
-                {album?.artist || "Unknown Artist"}
-              </Text>
-            </div>
-          </div>
-        </div>
+        <Flex align="center" gap={16} className={styles.bannerContent}>
+          <Avatar
+            size={50}
+            src={
+              album?.cover
+                ? `http://localhost:3000${album.cover}`
+                : "https://api.dicebear.com/7.x/avataaars/svg?seed=Ken"
+            }
+          />
+          <Flex vertical gap={0}>
+            <Title level={4} style={{ color: "#fff", margin: 0 }}>
+              {album?.name || "Unknown Album"}
+            </Title>
+            <Text type="secondary" style={{ color: "#ccc" }}>
+              {album?.artist || "Unknown Artist"}
+            </Text>
+          </Flex>
+        </Flex>
       </div>
 
       <div className={styles.contentPadding} style={{ color: token.colorText }}>
@@ -211,6 +242,7 @@ const Detail: React.FC = () => {
                   style={{ backgroundColor: token.colorPrimary }}
                 >
                   <CaretRightOutlined
+                    onClick={handlePlayAll}
                     style={{ color: "white", fontSize: "30px" }}
                   />
                 </div>
@@ -224,14 +256,25 @@ const Detail: React.FC = () => {
               <div
                 style={{ display: "flex", alignItems: "center", gap: "15px" }}
               >
-                <SearchOutlined
+                <Input.Search
                   className={styles.actionIcon}
+                  onChange={(e) => setKeywordMidValue(e.target.value)}
+                  onPressEnter={() => setKeyword(keywordMidValue)}
                   style={{ fontSize: "18px" }}
                 />
-                <SortAscendingOutlined
-                  className={styles.actionIcon}
-                  style={{ fontSize: "18px" }}
-                />
+                {sort === "desc" ? (
+                  <SortAscendingOutlined
+                    className={styles.actionIcon}
+                    style={{ fontSize: "18px" }}
+                    onClick={() => setSort("asc")}
+                  />
+                ) : (
+                  <SortDescendingOutlined
+                    className={styles.actionIcon}
+                    style={{ fontSize: "18px" }}
+                    onClick={() => setSort("desc")}
+                  />
+                )}
               </div>
             </div>
 
@@ -242,16 +285,12 @@ const Detail: React.FC = () => {
               pagination={false}
               rowKey="id"
               loading={loading}
-              rowClassName="episode-row"
-              onRow={() => ({
+              onRow={(record) => ({
+                onDoubleClick: () => handlePlayTrack(record),
                 style: { cursor: "pointer" },
               })}
+              rowClassName="episode-row"
             />
-            {loading && (
-              <div style={{ textAlign: "center", padding: "10px" }}>
-                <Spin />
-              </div>
-            )}
           </Col>
         </Row>
       </div>

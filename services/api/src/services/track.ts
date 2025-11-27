@@ -13,23 +13,49 @@ export class TrackService {
     return await this.prisma.track.findMany();
   }
 
-  async getTracksByAlbum(albumName: string, artist: string, pageSize: number, skip: number): Promise<Track[]> {
+  async getTracksByAlbum(
+    albumName: string,
+    artist: string,
+    pageSize: number,
+    skip: number,
+    sort: 'asc' | 'desc' = 'asc',
+    keyword?: string,
+  ): Promise<Track[]> {
+    const where: any = {
+      album: albumName,
+      artist: artist,
+    };
+
+    if (keyword) {
+      where.name = { contains: keyword };
+    }
+
     return await this.prisma.track.findMany({
-      where: {
-        album: albumName,
-        artist: artist,
+      where,
+      orderBy: {
+        id: sort, // Ideally sort by track index if available, falling back to id
       },
       skip: skip,
       take: pageSize,
     });
   }
 
-  async getTrackCountByAlbum(albumName: string, artist: string): Promise<number> {
+  async getTrackCountByAlbum(
+    albumName: string,
+    artist: string,
+    keyword?: string,
+  ): Promise<number> {
+    const where: any = {
+      album: albumName,
+      artist: artist,
+    };
+
+    if (keyword) {
+      where.name = { contains: keyword };
+    }
+
     return await this.prisma.track.count({
-      where: {
-        album: albumName,
-        artist: artist,
-      },
+      where,
     });
   }
 

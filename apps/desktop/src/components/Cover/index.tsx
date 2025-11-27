@@ -6,17 +6,18 @@ import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
 
-interface CoverComponent extends React.FC<{ item: Album }> {
+interface CoverComponent extends React.FC<{ item: Album; size?: number }> {
   Skeleton: React.FC;
 }
 
-const Cover: CoverComponent = ({ item }) => {
+const Cover: CoverComponent = ({ item, size }) => {
   const navigate = useNavigate();
 
   return (
     <div
       className={styles.coverContainer}
       onClick={() => navigate(`/detail?id=${item.id}`)}
+      style={size ? { width: size } : undefined}
     >
       <div className={styles.imageWrapper}>
         <img
