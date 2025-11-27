@@ -10,8 +10,16 @@ function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC || "", "electron-vite.svg"),
     titleBarStyle: "hidden",
-    transparent: true,
-    // Enable window transparency
+    // Enable native window controls on Windows (Minimize, Maximize, Close)
+    titleBarOverlay: {
+      color: "rgba(0,0,0,0)",
+      // Transparent background
+      symbolColor: "#ffffff",
+      // White symbols
+      height: 30
+    },
+    transparent: process.platform === "darwin",
+    // Transparency works best on macOS
     opacity: 0.95,
     // Window opacity (0.0 - 1.0), adjust as needed
     vibrancy: "popover",
