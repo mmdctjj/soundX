@@ -10,6 +10,7 @@ export interface ScanResult {
   album?: string;
   duration?: number;
   coverPath?: string;
+  lyrics?: string;
   [key: string]: any;
 }
 
@@ -44,6 +45,15 @@ export class LocalMusicScanner {
         const parentDir = path.dirname(filePath);
         const folderName = path.basename(parentDir);
         metadata.album = folderName;
+
+        // If no cover, look for first image in directory
+        if (!metadata.coverPath) {
+          const coverPath = await this.findCoverInDirectory(parentDir);
+          if (coverPath) {
+            metadata.coverPath = coverPath;
+          }
+        }
+
         results.push(metadata);
       }
     });
@@ -89,6 +99,16 @@ export class LocalMusicScanner {
         coverPath = savePath;
       }
 
+      // Extract lyrics from metadata or file
+      let lyrics = null;
+      if (common.lyrics && common.lyrics.length > 0) {
+        // lyrics can be string[] or string
+        lyrics = Array.isArray(common.lyrics) ? common.lyrics.join('\n') : common.lyrics;
+      } else {
+        // Look for lyrics file in the same directory
+        lyrics = await this.findLyricsFile(filePath);
+      }
+
       return {
         path: filePath,
         size: fs.statSync(filePath).size,
@@ -96,13 +116,60 @@ export class LocalMusicScanner {
         artist: common.artist,
         album: common.album,
         duration: metadata.format.duration,
+        ...common,
         coverPath: coverPath || undefined,
-        ...common
+        lyrics: lyrics || undefined,
       };
     } catch (e) {
       console.error(`Failed to parse ${filePath}`, e);
       return null;
     }
+  }
+
+  private async findLyricsFile(audioFilePath: string): Promise<string | null> {
+    const dir = path.dirname(audioFilePath);
+    const baseName = path.basename(audioFilePath, path.extname(audioFilePath));
+
+    // Try .lrc first, then .txt
+    const lrcPath = path.join(dir, `${baseName}.lrc`);
+    const txtPath = path.join(dir, `${baseName}.txt`);
+
+    if (fs.existsSync(lrcPath)) {
+      return fs.readFileSync(lrcPath, 'utf-8');
+    }
+
+    if (fs.existsSync(txtPath)) {
+      return fs.readFileSync(txtPath, 'utf-8');
+    }
+
+    return null;
+  }
+
+  private async findCoverInDirectory(dir: string): Promise<string | null> {
+    try {
+      const files = fs.readdirSync(dir);
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+
+      for (const file of files) {
+        const ext = path.extname(file).toLowerCase();
+        if (imageExtensions.includes(ext)) {
+          const fullPath = path.join(dir, file);
+          const stat = fs.statSync(fullPath);
+
+          if (stat.isFile()) {
+            // Copy to cache directory
+            const cacheName = `${path.basename(dir)}_cover${ext}`;
+            const cachePath = path.join(this.cacheDir, cacheName);
+            fs.copyFileSync(fullPath, cachePath);
+            return cachePath;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`Failed to find cover in ${dir}:`, e);
+    }
+
+    return null;
   }
 }
 

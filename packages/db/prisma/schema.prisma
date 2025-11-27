@@ -23,6 +23,7 @@ model Track {
   album     String
   cover     String?
   duration  Int?
+  lyrics    String?
   type      TrackType @default(MUSIC)
   createdAt DateTime @default(now())
   /// 🔁 反向关系

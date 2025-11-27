@@ -14,9 +14,20 @@ const Cover: CoverComponent = ({ item }) => {
   const navigate = useNavigate();
 
   return (
-    <div className={styles.coverContainer} onClick={() => navigate("/detail")}>
+    <div
+      className={styles.coverContainer}
+      onClick={() => navigate(`//detail?id=${item.id}`)}
+    >
       <div className={styles.imageWrapper}>
-        <img src={item.cover ?? ""} alt={item.name} className={styles.image} />
+        <img
+          src={
+            item.cover
+              ? `http://localhost:3000${item.cover}`
+              : `https://picsum.photos/seed/${item.id}/300/300`
+          }
+          alt={item.name}
+          className={styles.image}
+        />
       </div>
       <Title level={5} className={styles.title}>
         {item.name}

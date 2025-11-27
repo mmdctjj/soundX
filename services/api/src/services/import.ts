@@ -47,12 +47,10 @@ export class ImportService {
     return this.tasks.get(id);
   }
 
-  private convertToHttpUrl(localPath: string, cachePath: string): string {
+  private convertToHttpUrl(localPath: string): string {
     // Extract filename from local path
     const filename = path.basename(localPath);
-    // Convert to HTTP URL
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
-    return `${baseUrl}/covers/${filename}`;
+    return `/covers/${filename}`;
   }
 
   private async startImport(id: string, musicPath: string, audiobookPath: string, cachePath: string) {
@@ -79,7 +77,7 @@ export class ImportService {
         const albumName = item.album || 'Unknown Album';
 
         // Convert local cover path to HTTP URL
-        const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, cachePath) : null;
+        const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath) : null;
 
         // 1. Handle Artist
         let artist = await this.artistService.findByName(artistName);
@@ -107,6 +105,7 @@ export class ImportService {
           cover: coverUrl,
           path: item.path,
           duration: Math.round(item.duration || 0),
+          lyrics: item.lyrics || null,
           type: type,
           createdAt: new Date(),
         });

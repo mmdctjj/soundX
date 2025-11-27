@@ -21,7 +21,7 @@ import { AlbumService } from '../services/album';
 
 @Controller('/album')
 export class AlbumController {
-  constructor(private readonly albumService: AlbumService) { }
+  constructor(private readonly albumService: AlbumService) {}
 
   @Get('/list')
   async getAlbumList(): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
