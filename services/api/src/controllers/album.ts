@@ -6,10 +6,11 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { Album } from '@soundx/db';
+import { Request } from 'express';
 import {
   IErrorResponse,
   ILoadMoreData,
@@ -20,7 +21,7 @@ import { AlbumService } from '../services/album';
 
 @Controller('/album')
 export class AlbumController {
-  constructor(private readonly albumService: AlbumService) {}
+  constructor(private readonly albumService: AlbumService) { }
 
   @Get('/list')
   async getAlbumList(): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
@@ -212,9 +213,11 @@ export class AlbumController {
 
   // 新增：最近 8 个专辑
   @Get('/latest')
-  async getLatestAlbums(): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
+  async getLatestAlbums(
+    @Query('type') type?: string,
+  ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
     try {
-      const list = await this.albumService.getLatestAlbums(8);
+      const list = await this.albumService.getLatestAlbums(8, type);
       return { code: 200, message: 'success', data: list };
     } catch (error) {
       return { code: 500, message: String(error) };
@@ -225,6 +228,7 @@ export class AlbumController {
   @Get('/recommend')
   async getRandomUnlistenedAlbums(
     @Req() req: Request,
+    @Query('type') type?: string,
   ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
     try {
       const userId = (req.user as any)?.userId;
@@ -234,6 +238,7 @@ export class AlbumController {
       const list = await this.albumService.getRandomUnlistenedAlbums(
         Number(userId),
         8,
+        type,
       );
       return { code: 200, message: 'success', data: list };
     } catch (error) {

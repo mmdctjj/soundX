@@ -13,6 +13,10 @@ export class AlbumService {
     return await this.prisma.album.findMany();
   }
 
+  async findByName(name: string, artist?: string, type?: any): Promise<Album | null> {
+    return await this.prisma.album.findFirst({ where: { name, artist, type } });
+  }
+
   async getAlbumTableList(pageSize: number, current: number): Promise<Album[]> {
     return await this.prisma.album.findMany({
       skip: (current - 1) * pageSize,
@@ -71,23 +75,29 @@ export class AlbumService {
   }
 
   // 新增：最近专辑（按 id 倒序）
-  async getLatestAlbums(limit = 8): Promise<Album[]> {
+  async getLatestAlbums(limit = 8, type?: any): Promise<Album[]> {
     return await this.prisma.album.findMany({
+      where: type ? { type } : undefined,
       orderBy: { id: 'desc' },
       take: limit,
     });
   }
 
   // 随机推荐：用户未听过的专辑
-  async getRandomUnlistenedAlbums(userId: number, limit = 8): Promise<Album[]> {
+  async getRandomUnlistenedAlbums(userId: number, limit = 8, type?: any): Promise<Album[]> {
     const listened = await this.prisma.userAlbumHistory.findMany({
       where: { userId },
       select: { albumId: true },
     });
     const listenedIds = listened.map((r) => r.albumId);
 
+    const whereClause: any = listenedIds.length ? { id: { notIn: listenedIds } } : {};
+    if (type) {
+      whereClause.type = type;
+    }
+
     const candidates = await this.prisma.album.findMany({
-      where: listenedIds.length ? { id: { notIn: listenedIds } } : undefined,
+      where: whereClause,
     });
 
     if (candidates.length <= limit) return candidates;

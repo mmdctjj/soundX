@@ -48,11 +48,21 @@ const Header: React.FC = () => {
 
   const handleImportClick = () => {
     setIsModalOpen(true);
+    // Load saved paths from localStorage
+    const savedPaths = localStorage.getItem("importPaths");
+    if (savedPaths) {
+      try {
+        const paths = JSON.parse(savedPaths);
+        form.setFieldsValue(paths);
+      } catch (e) {
+        console.error("Failed to load saved paths:", e);
+      }
+    }
   };
 
   const handleCancel = () => {
     setIsModalOpen(false);
-    form.resetFields();
+    // Don't reset fields to keep the values
   };
 
   const pollTaskStatus = async (taskId: string) => {
@@ -64,7 +74,7 @@ const Header: React.FC = () => {
           message.success(`导入成功！共导入 ${total} 首歌曲`);
           setLoading(false);
           setIsModalOpen(false);
-          form.resetFields();
+          // Don't reset fields to keep the saved paths
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
         } else if (status === TaskStatus.FAILED) {
           message.error(`导入失败: ${taskMsg}`);
@@ -92,6 +102,9 @@ const Header: React.FC = () => {
       if (res.code === 200 && res.data) {
         const taskId = res.data.id;
         message.success("任务创建成功，开始导入...");
+
+        // Save paths to localStorage
+        localStorage.setItem("importPaths", JSON.stringify(values));
 
         // Start polling
         pollTimerRef.current = setInterval(() => {
@@ -202,7 +215,7 @@ const Header: React.FC = () => {
       </div>
 
       <Modal
-        title="导入音乐 (WebDAV)"
+        title="导入本地音乐"
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}
@@ -210,25 +223,25 @@ const Header: React.FC = () => {
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            name="webdavUrl"
-            label="WebDAV 地址"
-            rules={[{ required: true, message: "请输入 WebDAV 地址" }]}
+            name="musicPath"
+            label="音乐目录 (绝对路径)"
+            rules={[{ required: true, message: "请输入音乐目录路径" }]}
           >
-            <Input placeholder="http://example.com/webdav" />
+            <Input placeholder="/Users/username/Music" />
           </Form.Item>
           <Form.Item
-            name="username"
-            label="用户名"
-            rules={[{ required: true, message: "请输入用户名" }]}
+            name="audiobookPath"
+            label="有声书目录 (绝对路径)"
+            rules={[{ required: true, message: "请输入有声书目录路径" }]}
           >
-            <Input placeholder="Username" />
+            <Input placeholder="/Users/username/Audiobooks" />
           </Form.Item>
           <Form.Item
-            name="password"
-            label="密码"
-            rules={[{ required: true, message: "请输入密码" }]}
+            name="cachePath"
+            label="缓存目录 (绝对路径)"
+            rules={[{ required: true, message: "请输入缓存目录路径" }]}
           >
-            <Input.Password placeholder="Password" />
+            <Input placeholder="/Users/username/.soundx/cache" />
           </Form.Item>
         </Form>
       </Modal>

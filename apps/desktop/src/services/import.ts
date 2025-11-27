@@ -17,9 +17,9 @@ export interface ImportTask {
 }
 
 export interface CreateTaskParams {
-  username: string;
-  password: string;
-  webdavUrl: string;
+  musicPath: string;
+  audiobookPath: string;
+  cachePath: string;
 }
 
 export interface CreateTaskResponse {

@@ -38,6 +38,7 @@ model Album {
   artist String
   cover  String?
   year   String?
+  type   TrackType @default(MUSIC)
   /// 🔁 反向关系
   likedByUsers    UserAlbumLike[]
   listenedByUsers UserAlbumHistory[]

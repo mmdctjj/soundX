@@ -1,7 +1,7 @@
-# utils
+# 
 
-[![NPM version](https://img.shields.io/npm/v/utils.svg?style=flat)](https://npmjs.com/package/utils)
-[![NPM downloads](http://img.shields.io/npm/dm/utils.svg?style=flat)](https://npmjs.com/package/utils)
+[![NPM version](https://img.shields.io/npm/v/.svg?style=flat)](https://npmjs.com/package/)
+[![NPM downloads](http://img.shields.io/npm/dm/.svg?style=flat)](https://npmjs.com/package/)
 
 ## Install
 

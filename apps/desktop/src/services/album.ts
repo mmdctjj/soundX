@@ -57,12 +57,16 @@ export const batchDeleteAlbums = (ids: number[]) => {
 };
 
 // Get recommended albums (8 random unlistened albums)
-export const getRecommendedAlbums = () => {
-  return request.get<any, ISuccessResponse<Album[]>>("/album/recommend");
+export const getRecommendedAlbums = (type?: string) => {
+  return request.get<any, ISuccessResponse<Album[]>>("/album/recommend", {
+    params: type ? { type } : undefined,
+  });
 };
 
 // Get recent albums (8 latest albums)
-export const getRecentAlbums = () => {
-  return request.get<any, ISuccessResponse<Album[]>>("/album/latest");
+export const getRecentAlbums = (type?: string) => {
+  return request.get<any, ISuccessResponse<Album[]>>("/album/latest", {
+    params: type ? { type } : undefined,
+  });
 };
 

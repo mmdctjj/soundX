@@ -10,10 +10,9 @@
     "build:deps": "father prebundle",
     "prepublishOnly": "father doctor && npm run build"
   },
+  "types": "dist/esm/index.d.ts",
   "keywords": [],
-  "authors": [
-    "984808285@qq.com"
-  ],
+  "authors": [],
   "license": "MIT",
   "files": [
     "dist",
@@ -22,7 +21,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "dependencies": {
+    "music-metadata": "^7.14.0"
+  },
   "devDependencies": {
-    "father": "^4.5.5"
+    "father": "^4.5.3"
   }
 }

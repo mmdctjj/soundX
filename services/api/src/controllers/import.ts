@@ -7,8 +7,13 @@ export class ImportController {
 
   @Post('task')
   createTask(@Body() body: any) {
-    const { username, password, webdavUrl } = body;
-    const id = this.importService.createTask(username, password, webdavUrl);
+    const { musicPath, audiobookPath, cachePath } = body;
+    // Basic validation
+    if (!cachePath) {
+      return { code: 400, message: 'cachePath is required' };
+    }
+
+    const id = this.importService.createTask(musicPath || '', audiobookPath || '', cachePath);
     return { code: 200, message: 'success', data: { id } };
   }
 

@@ -28,7 +28,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.1.5",
-    "@soundx/core": "workspace:*",
+    "@soundx/utils": "workspace:*",
     "@soundx/db": "workspace:*",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

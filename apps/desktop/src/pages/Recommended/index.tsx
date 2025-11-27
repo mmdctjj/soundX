@@ -23,10 +23,40 @@ const Recommended: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState<string | null>(null);
 
+  // Get current play mode from localStorage
+  const [playMode, setPlayMode] = useState<"music" | "audiobook">(() => {
+    return (
+      (localStorage.getItem("playMode") as "music" | "audiobook") || "music"
+    );
+  });
+
+  // Listen for playMode changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const newMode =
+        (localStorage.getItem("playMode") as "music" | "audiobook") || "music";
+      if (newMode !== playMode) {
+        setPlayMode(newMode);
+        loadSections(true); // Reload data when mode changes
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    // Also check periodically in case localStorage changed in same window
+    const interval = setInterval(handleStorageChange, 500);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [playMode]);
+
   // Load initial data
   useEffect(() => {
     loadSections();
   }, []);
+
+  const getCacheKey = (base: string) => `${base}_${playMode}`;
 
   const loadSections = async (forceRefresh = false) => {
     try {
@@ -38,9 +68,11 @@ const Recommended: React.FC = () => {
       // Try to get from cache first
       if (!forceRefresh) {
         const cachedRecommended = cacheUtils.get<Album[]>(
-          CACHE_KEY_RECOMMENDED
+          getCacheKey(CACHE_KEY_RECOMMENDED)
         );
-        const cachedRecent = cacheUtils.get<Album[]>(CACHE_KEY_RECENT);
+        const cachedRecent = cacheUtils.get<Album[]>(
+          getCacheKey(CACHE_KEY_RECENT)
+        );
 
         if (cachedRecommended && cachedRecent) {
           recommendedAlbums = cachedRecommended;
@@ -54,10 +86,11 @@ const Recommended: React.FC = () => {
         }
       }
 
-      // Fetch from API
+      // Fetch from API with type parameter
+      const type = playMode === "music" ? "MUSIC" : "AUDIOBOOK";
       const [recommendedRes, recentRes] = await Promise.all([
-        getRecommendedAlbums(),
-        getRecentAlbums(),
+        getRecommendedAlbums(type),
+        getRecentAlbums(type),
       ]);
 
       recommendedAlbums = recommendedRes.data || [];
@@ -68,9 +101,9 @@ const Recommended: React.FC = () => {
         { id: "recent", title: "最近上新", items: recentAlbums },
       ]);
 
-      // Save to cache
-      cacheUtils.set(CACHE_KEY_RECOMMENDED, recommendedAlbums);
-      cacheUtils.set(CACHE_KEY_RECENT, recentAlbums);
+      // Save to cache with type-specific keys
+      cacheUtils.set(getCacheKey(CACHE_KEY_RECOMMENDED), recommendedAlbums);
+      cacheUtils.set(getCacheKey(CACHE_KEY_RECENT), recentAlbums);
     } catch (error) {
       console.error("Failed to load recommended sections:", error);
     } finally {
@@ -82,9 +115,11 @@ const Recommended: React.FC = () => {
     try {
       setRefreshing(sectionId);
 
+      const type = playMode === "music" ? "MUSIC" : "AUDIOBOOK";
+
       // Refresh only the specific section
       if (sectionId === "recommended") {
-        const res = await getRecommendedAlbums();
+        const res = await getRecommendedAlbums(type);
         const recommendedAlbums = res.data || [];
 
         // Update only the recommended section
@@ -97,9 +132,9 @@ const Recommended: React.FC = () => {
         );
 
         // Update cache
-        cacheUtils.set(CACHE_KEY_RECOMMENDED, recommendedAlbums);
+        cacheUtils.set(getCacheKey(CACHE_KEY_RECOMMENDED), recommendedAlbums);
       } else if (sectionId === "recent") {
-        const res = await getRecentAlbums();
+        const res = await getRecentAlbums(type);
         const recentAlbums = res.data || [];
 
         // Update only the recent section
@@ -112,10 +147,10 @@ const Recommended: React.FC = () => {
         );
 
         // Update cache
-        cacheUtils.set(CACHE_KEY_RECENT, recentAlbums);
+        cacheUtils.set(getCacheKey(CACHE_KEY_RECENT), recentAlbums);
       }
     } catch (error) {
-      console.error("Failed to refresh section:", error);
+      console.error(`Failed to refresh ${sectionId} section:`, error);
     } finally {
       setRefreshing(null);
     }

@@ -13,6 +13,10 @@ export class ArtistService {
     return await this.prisma.artist.findMany();
   }
 
+  async findByName(name: string): Promise<Artist | null> {
+    return await this.prisma.artist.findFirst({ where: { name } });
+  }
+
   async getArtistTableList(
     pageSize: number,
     current: number,

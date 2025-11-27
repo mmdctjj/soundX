@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { WebDavMusicScanner } from '@soundx/core';
 import { TrackType } from '@soundx/db';
+import { LocalMusicScanner } from '@soundx/utils';
 import { randomUUID } from 'crypto';
+import * as path from 'path';
+import { AlbumService } from './album';
+import { ArtistService } from './artist';
 import { TrackService } from './track';
 
 export enum TaskStatus {
@@ -23,14 +26,17 @@ export interface ImportTask {
 export class ImportService {
   private tasks: Map<string, ImportTask> = new Map();
 
-  constructor(private readonly trackService: TrackService) { }
+  constructor(
+    private readonly trackService: TrackService,
+    private readonly albumService: AlbumService,
+    private readonly artistService: ArtistService,
+  ) { }
 
-  createTask(username: string, password: string, webdavUrl: string): string {
+  createTask(musicPath: string, audiobookPath: string, cachePath: string): string {
     const id = randomUUID();
     this.tasks.set(id, { id, status: TaskStatus.INITIALIZING });
 
-    // Start async import
-    this.startImport(id, username, password, webdavUrl).catch(err => {
+    this.startImport(id, musicPath, audiobookPath, cachePath).catch(err => {
       console.error("Unhandled import error", err);
     });
 
@@ -41,42 +47,80 @@ export class ImportService {
     return this.tasks.get(id);
   }
 
-  private async startImport(id: string, username: string, password: string, webdavUrl: string) {
+  private convertToHttpUrl(localPath: string, cachePath: string): string {
+    // Extract filename from local path
+    const filename = path.basename(localPath);
+    // Convert to HTTP URL
+    const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+    return `${baseUrl}/covers/${filename}`;
+  }
+
+  private async startImport(id: string, musicPath: string, audiobookPath: string, cachePath: string) {
     const task = this.tasks.get(id);
     if (!task) return;
 
     try {
-      const scanner = new WebDavMusicScanner(webdavUrl, "", username, password);
+      const scanner = new LocalMusicScanner(cachePath);
 
       task.status = TaskStatus.PARSING;
 
-      const results = await scanner.scanAllMusic("/");
+      // Scan Music
+      const musicResults = await scanner.scanMusic(musicPath);
+      console.log("musicResults", musicResults);
+      // Scan Audiobooks
+      const audiobookResults = await scanner.scanAudiobook(audiobookPath);
+      console.log("audiobookResults", audiobookResults);
 
-      task.total = results.length;
+      task.total = musicResults.length + audiobookResults.length;
       task.current = 0;
 
-      for (const item of results) {
-        // Construct full URL for the track
-        const baseUrl = webdavUrl.endsWith('/') ? webdavUrl.slice(0, -1) : webdavUrl;
-        const fullPath = baseUrl + item.path;
+      const processItem = async (item: any, type: TrackType) => {
+        const artistName = item.artist || 'Unknown Artist';
+        const albumName = item.album || 'Unknown Album';
 
-        // For cover, if it's a relative path starting with /, append to baseUrl
-        let coverUrl = item.coverPath;
-        if (coverUrl && coverUrl.startsWith('/')) {
-          coverUrl = baseUrl + coverUrl;
+        // Convert local cover path to HTTP URL
+        const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, cachePath) : null;
+
+        // 1. Handle Artist
+        let artist = await this.artistService.findByName(artistName);
+        if (!artist) {
+          artist = await this.artistService.createArtist({ name: artistName, avatar: null });
         }
 
+        // 2. Handle Album
+        let album = await this.albumService.findByName(albumName, artistName, type);
+        if (!album) {
+          album = await this.albumService.createAlbum({
+            name: albumName,
+            artist: artistName,
+            cover: coverUrl,
+            year: item.year ? String(item.year) : null,
+            type: type
+          });
+        }
+
+        // 3. Create Track
         await this.trackService.createTrack({
-          name: item.title || item.path.split('/').pop() || 'Unknown',
-          artist: item.artist || 'Unknown',
-          album: item.album || 'Unknown',
+          name: item.title || path.basename(item.path),
+          artist: artistName,
+          album: albumName,
           cover: coverUrl,
-          path: fullPath,
+          path: item.path,
           duration: Math.round(item.duration || 0),
-          type: TrackType.MUSIC,
+          type: type,
           createdAt: new Date(),
         });
-        task.current++;
+        task.current = (task.current || 0) + 1;
+      };
+
+      // Save Music
+      for (const item of musicResults) {
+        await processItem(item, TrackType.MUSIC);
+      }
+
+      // Save Audiobooks
+      for (const item of audiobookResults) {
+        await processItem(item, TrackType.AUDIOBOOK);
       }
 
       task.status = TaskStatus.SUCCESS;
