@@ -170,7 +170,7 @@ const Player: React.FC = () => {
         ref={audioRef}
         src={
           currentTrack?.path
-            ? `http://localhost:3000/${currentTrack.type === "AUDIOBOOK" ? "audio" : "music"}/${currentTrack.path}`
+            ? `http://localhost:3000/audio/${currentTrack.path}`
             : undefined
         }
         onTimeUpdate={handleTimeUpdate}
@@ -449,7 +449,7 @@ const Player: React.FC = () => {
           {/* Bottom: Playlist */}
           <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
             <Title level={4} style={{ marginBottom: "20px" }}>
-              ``` 播放列表 ({playlist.length})
+              播放列表 ({playlist.length})
             </Title>
             <List
               itemLayout="horizontal"

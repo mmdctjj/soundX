@@ -47,7 +47,7 @@ export class ImportService {
     return this.tasks.get(id);
   }
 
-  private convertToHttpUrl(localPath: string, type: 'cover' | 'audio', basePath: string): string {
+  private convertToHttpUrl(localPath: string, type: 'cover' | 'audio' | 'music', basePath: string): string {
     // Calculate relative path from base directory to preserve folder structure
     const relativePath = path.relative(basePath, localPath);
 
@@ -57,7 +57,7 @@ export class ImportService {
       return `/covers/${filename}`;
     } else {
       // For audio, preserve the relative path structure
-      return `/audio/${relativePath}`;
+      return `/${type}/${relativePath}`;
     }
   }
 
@@ -88,7 +88,7 @@ export class ImportService {
         const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
 
         // Convert local audio path to HTTP URL, preserving relative path from base directory
-        const audioUrl = this.convertToHttpUrl(item.path, 'audio', audioBasePath);
+        const audioUrl = this.convertToHttpUrl(item.path, type === TrackType.AUDIOBOOK ? 'audio' : 'music', audioBasePath);
 
         // 1. Handle Artist
         let artist = await this.artistService.findByName(artistName);
