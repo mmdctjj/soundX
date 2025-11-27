@@ -79,7 +79,6 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(92, 92, 255, 0.4);
 }
 
 .actionGroup {
@@ -94,14 +93,9 @@
 }
 
 .actionIcon {
-  color: inherit;
-  font-size: 24px;
-  opacity: 0.7;
+  font-size: 18px;
+  opacity: 1;
   cursor: pointer;
-
-  &:hover {
-    opacity: 1;
-  }
 }
 
 .contentPadding {
@@ -119,12 +113,32 @@
   .ant-table-thead > tr > th {
     background: transparent !important;
     color: inherit !important;
+    border: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+
+    // Hide or match the column separator color
+    &::before {
+      background-color: currentColor !important;
+      opacity: 1;
+    }
   }
   .ant-table-tbody > tr > td {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
   .ant-table-tbody > tr:hover > td {
     background: transparent !important;
+  }
+}
+
+.searchInput {
+  border-radius: 20px;
+  color: inherit;
+  background-color: transparent;
+
+  :global {
+    .ant-input {
+      background-color: transparent;
+      color: inherit;
+    }
   }
 }

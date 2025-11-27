@@ -80,7 +80,7 @@ export class ImportService {
       task.total = musicResults.length + audiobookResults.length;
       task.current = 0;
 
-      const processItem = async (item: any, type: TrackType, audioBasePath: string) => {
+      const processItem = async (item: any, type: TrackType, audioBasePath: string, index: number) => {
         const artistName = item.artist || 'Unknown Artist';
         const albumName = item.album || 'Unknown Album';
 
@@ -117,6 +117,7 @@ export class ImportService {
           path: audioUrl,
           duration: Math.round(item.duration || 0),
           lyrics: item.lyrics || null,
+          index: index + 1 || 1, // Track number/index from metadata
           type: type,
           createdAt: new Date(),
         });
@@ -124,14 +125,14 @@ export class ImportService {
       };
 
       // Save Music
-      for (const item of musicResults) {
-        await processItem(item, TrackType.MUSIC, musicPath);
-      }
+      musicResults.map((item, index) => {
+        processItem(item, TrackType.MUSIC, musicPath, index);
+      });
 
       // Save Audiobooks
-      for (const item of audiobookResults) {
-        await processItem(item, TrackType.AUDIOBOOK, audiobookPath);
-      }
+      audiobookResults.map((item, index) => {
+        processItem(item, TrackType.AUDIOBOOK, audiobookPath, index);
+      });
 
       task.status = TaskStatus.SUCCESS;
     } catch (error) {

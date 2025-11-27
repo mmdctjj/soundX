@@ -21,7 +21,6 @@ import {
   theme,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
-import { useTheme } from "../../context/ThemeContext";
 import { usePlayerStore } from "../../store/player";
 import styles from "./index.module.less";
 
@@ -99,12 +98,6 @@ const Player: React.FC = () => {
   }, [skipEnd]);
 
   const { token } = theme.useToken();
-  const { mode } = useTheme();
-
-  const drawerBgImage =
-    mode === "dark"
-      ? "url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')"
-      : "url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2564&auto=format&fit=crop')";
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -404,9 +397,6 @@ const Player: React.FC = () => {
         onClose={() => setIsFullPlayerVisible(false)}
         classNames={{ body: styles.fullPlayerBody }}
         styles={{
-          body: {
-            backgroundImage: drawerBgImage,
-          },
           header: { display: "none" },
         }}
         closeIcon={null}
@@ -422,35 +412,73 @@ const Player: React.FC = () => {
         {/* Left Side - Cover (1/3) */}
         <div className={styles.fullPlayerLeft}>
           {/* Background Blur Effect */}
-          <div
+          {/* <div
             className={styles.fullPlayerBackground}
             style={{ backgroundImage: drawerBgImage }}
-          />
+          /> */}
 
-          <img
-            src={getCoverUrl(currentTrack?.cover)}
-            alt="Current Cover"
-            className={styles.fullPlayerCover}
-          />
+          <Flex vertical align="center" gap={20}>
+            <img
+              src={getCoverUrl(currentTrack?.cover)}
+              alt="Current Cover"
+              className={styles.fullPlayerCover}
+            />
+
+            <Flex
+              justify="space-between"
+              align="center"
+              style={{ width: "250px" }}
+            >
+              <Text type="secondary" style={{ fontSize: "10px" }}>
+                {formatTime(currentTime)}
+              </Text>
+              <Slider
+                value={currentTime}
+                max={duration || 100}
+                style={{ width: "150px" }}
+                onChange={handleSeek}
+                tooltip={{ open: false }}
+                handleStyle={{ display: "none" }}
+              />
+              <Text type="secondary" style={{ fontSize: "10px" }}>
+                {formatTime(duration)}
+              </Text>
+            </Flex>
+
+            <Flex justify="center" style={{ fontSize: 50 }} gap={30}>
+              <StepBackwardOutlined
+                className={styles.controlIcon}
+                onClick={prev}
+              />
+              <div onClick={togglePlay} style={{ cursor: "pointer" }}>
+                {isPlaying ? (
+                  <PauseCircleFilled className={styles.playIcon} />
+                ) : (
+                  <PlayCircleFilled className={styles.playIcon} />
+                )}
+              </div>
+              <StepForwardOutlined
+                className={styles.controlIcon}
+                onClick={next}
+              />
+            </Flex>
+          </Flex>
         </div>
 
         {/* Right Side - Info & Playlist (2/3) */}
         <div className={styles.fullPlayerRight}>
           {/* Top: Title */}
-          <div style={{ marginBottom: "40px" }}>
-            <Title level={1} style={{ margin: "0 0 10px 0" }}>
+          <div style={{ marginBottom: "24px" }}>
+            <Title level={3} style={{ margin: "0 0 10px 0" }}>
               {currentTrack?.name || "No Track"}
             </Title>
-            <Text style={{ fontSize: "20px" }} type="secondary">
+            <Text type="secondary">
               {currentTrack?.artist || "Unknown Artist"}
             </Text>
           </div>
-
+          <Title level={4}>播放列表 ({playlist.length})</Title>
           {/* Bottom: Playlist */}
           <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
-            <Title level={4} style={{ marginBottom: "20px" }}>
-              播放列表 ({playlist.length})
-            </Title>
             <List
               itemLayout="horizontal"
               dataSource={playlist}

@@ -32,9 +32,12 @@ export class TrackService {
 
     return await this.prisma.track.findMany({
       where,
-      orderBy: {
-        id: sort, // Ideally sort by track index if available, falling back to id
-      },
+      orderBy: [
+        { index: sort }, // Primary sort by track index
+        {
+          id: sort,
+        }
+      ],
       skip: skip,
       take: pageSize,
     });

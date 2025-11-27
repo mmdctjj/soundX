@@ -5,6 +5,7 @@ import { Button, Col, Row, Skeleton, Timeline, Typography } from "antd";
 import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
+import { getAlbumHistory } from "../../services/user";
 import { cacheUtils } from "../../utils/cache";
 import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
@@ -12,30 +13,6 @@ import styles from "./index.module.less";
 const { Title } = Typography;
 
 const CACHE_KEY = "listened_timeline";
-
-// Function to generate mock timeline items
-const generateMockTimelineItem = (page: number): TimelineItem => {
-  const baseTime = Date.now() - page * 5 * 24 * 60 * 60 * 1000; // Each page is 5 days earlier
-  const albums: Album[] = [];
-
-  const itemCount = Math.floor(Math.random() * 3) + 2; // 2-4 items per timeline
-  for (let i = 0; i < itemCount; i++) {
-    const id = page * 4 + i + 1;
-    albums.push({
-      id,
-      name: `Listened Album ${id}`,
-      artist: `Artist ${id}`,
-      cover: `https://picsum.photos/seed/${id}/300/300`,
-      year: "2023",
-    });
-  }
-
-  return {
-    id: `timeline-${page}`,
-    time: baseTime,
-    items: albums,
-  };
-};
 
 interface Result {
   list: TimelineItem[];
@@ -60,18 +37,54 @@ const Listened: React.FC = () => {
       }
     }
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // Fetch real data from API
+      const response = await getAlbumHistory(4, currentPage);
 
-    const newItem = generateMockTimelineItem(currentPage);
-    const newList = d ? [...d.list, newItem] : [newItem];
+      if (response.code === 200 && response.data) {
+        const { list, total } = response.data;
 
-    // Cache the data
-    cacheUtils.set(CACHE_KEY, newList);
+        // Group albums by date
+        const timelineMap = new Map<string, Album[]>();
 
+        list.forEach((historyItem: any) => {
+          const dateKey = new Date(historyItem.listenedAt).toDateString();
+          if (!timelineMap.has(dateKey)) {
+            timelineMap.set(dateKey, []);
+          }
+          // Assuming historyItem has album data
+          if (historyItem.album) {
+            timelineMap.get(dateKey)!.push(historyItem.album);
+          }
+        });
+
+        // Convert map to timeline items
+        const newItems: TimelineItem[] = Array.from(timelineMap.entries()).map(
+          ([date, albums]) => ({
+            id: date,
+            time: new Date(date).getTime(),
+            items: albums,
+          })
+        );
+
+        const newList = d ? [...d.list, ...newItems] : newItems;
+
+        // Cache the data
+        cacheUtils.set(CACHE_KEY, newList);
+
+        return {
+          list: newList,
+          hasMore: newList.length < total,
+        };
+      }
+    } catch (error) {
+      console.error("Failed to load album history:", error);
+    }
+
+    // Fallback to empty result
     return {
-      list: newList,
-      hasMore: newList.length < 12, // Limit to 12 timeline items
+      list: d?.list || [],
+      hasMore: false,
     };
   };
 

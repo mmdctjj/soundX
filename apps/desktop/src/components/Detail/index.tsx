@@ -4,6 +4,7 @@ import {
   HeartOutlined,
   PauseOutlined,
   PlayCircleOutlined,
+  SearchOutlined,
   ShareAltOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
@@ -106,17 +107,19 @@ const Detail: React.FC = () => {
   };
 
   const handlePlayAll = () => {
-    if (tracks.length > 0) {
+    if (tracks.length > 0 && album) {
       setPlaylist(tracks);
-      play(tracks[0]);
+      play(tracks[0], album.id);
     }
   };
 
   const handlePlayTrack = (track: Track) => {
     // If track is not in current playlist (or playlist is empty), set it
     // For simplicity, we can just set the current visible tracks as playlist
-    setPlaylist(tracks);
-    play(track);
+    if (album) {
+      setPlaylist(tracks);
+      play(track, album.id);
+    }
   };
 
   const handleToggleLike = async (e: React.MouseEvent, track: Track) => {
@@ -133,10 +136,10 @@ const Detail: React.FC = () => {
   const columns = [
     {
       title: "#",
-      key: "id",
+      key: "index",
       width: 100,
-      render: (_: any, record: Track) => {
-        return <Text>{record.id}</Text>;
+      render: (_: number, record: Track) => {
+        return <Text>{record?.index?.toString()}</Text>;
       },
     },
     {
@@ -239,28 +242,41 @@ const Detail: React.FC = () => {
               <div className={styles.mainControls}>
                 <div
                   className={styles.playButton}
-                  style={{ backgroundColor: token.colorPrimary }}
+                  style={{
+                    backgroundColor: `rgba(255, 255, 255, 0.1)`,
+                    border: `0.1px solid ${token.colorTextSecondary}`,
+                  }}
                 >
                   <CaretRightOutlined
                     onClick={handlePlayAll}
-                    style={{ color: "white", fontSize: "30px" }}
+                    style={{
+                      color: token.colorTextSecondary,
+                      fontSize: "30px",
+                    }}
                   />
                 </div>
-                <div className={styles.actionGroup}>
+                <Typography.Text
+                  type="secondary"
+                  className={styles.actionGroup}
+                >
                   <HeartOutlined className={styles.actionIcon} />
                   <ShareAltOutlined className={styles.actionIcon} />
                   <CloudDownloadOutlined className={styles.actionIcon} />
-                </div>
+                </Typography.Text>
               </div>
 
               <div
                 style={{ display: "flex", alignItems: "center", gap: "15px" }}
               >
-                <Input.Search
-                  className={styles.actionIcon}
+                <Input
+                  prefix={
+                    <SearchOutlined
+                      style={{ color: token.colorTextSecondary }}
+                    />
+                  }
+                  className={styles.searchInput}
                   onChange={(e) => setKeywordMidValue(e.target.value)}
                   onPressEnter={() => setKeyword(keywordMidValue)}
-                  style={{ fontSize: "18px" }}
                 />
                 {sort === "desc" ? (
                   <SortAscendingOutlined

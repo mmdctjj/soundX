@@ -38,10 +38,14 @@ export class UserAlbumHistoryService {
     });
   }
 
-  async loadMoreUserAlbumHistory(pageSize: number, loadCount: number) {
+  async loadMoreUserAlbumHistory(pageSize: number, loadCount: number, userId: number) {
     return await this.prisma.userAlbumHistory.findMany({
       skip: loadCount * pageSize,
-      take: pageSize,
+      take: loadCount,
+      where: { userId },
+      include: {
+        album: true,
+      },
     });
   }
 

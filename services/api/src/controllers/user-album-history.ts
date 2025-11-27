@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import { UserAlbumHistory } from '@soundx/db';
 import {
   IErrorResponse,
   ILoadMoreData,
@@ -6,13 +7,12 @@ import {
   ITableData,
 } from 'src/common/const';
 import { UserAlbumHistoryService } from '../services/user-album-history';
-import { UserAlbumHistory } from '@soundx/db';
 
 @Controller('user-album-histories')
 export class UserAlbumHistoryController {
   constructor(
     private readonly userAlbumHistoryService: UserAlbumHistoryService,
-  ) {}
+  ) { }
 
   @Post()
   async create(
@@ -39,25 +39,6 @@ export class UserAlbumHistoryController {
   async findAll(): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
       const data = await this.userAlbumHistoryService.findAll();
-      return {
-        code: 200,
-        message: 'success',
-        data,
-      };
-    } catch (error) {
-      return {
-        code: 500,
-        message: error,
-      };
-    }
-  }
-
-  @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-  ): Promise<ISuccessResponse<any> | IErrorResponse> {
-    try {
-      const data = await this.userAlbumHistoryService.findOne(+id);
       return {
         code: 200,
         message: 'success',
@@ -124,23 +105,29 @@ export class UserAlbumHistoryController {
 
   @Get('/load-more')
   async loadMoreUserAlbumHistory(
-    @Param('pageSize') pageSize: number,
-    @Param('loadCount') loadCount: number,
+    @Query('pageSize') pageSize: string,
+    @Query('loadCount') loadCount: string,
+    @Query('userId') userId: string,
   ): Promise<
     ISuccessResponse<ILoadMoreData<UserAlbumHistory[]>> | IErrorResponse
   > {
     try {
+      const pageSizeNum = parseInt(pageSize, 10);
+      const loadCountNum = parseInt(loadCount, 10);
+      const userIdNum = parseInt(userId, 10);
+
       const list = await this.userAlbumHistoryService.loadMoreUserAlbumHistory(
-        pageSize,
-        loadCount,
+        pageSizeNum,
+        loadCountNum,
+        userIdNum,
       );
       const total = await this.userAlbumHistoryService.userAlbumHistoryCount();
       return {
         code: 200,
         message: 'success',
         data: {
-          pageSize,
-          loadCount,
+          pageSize: pageSizeNum,
+          loadCount: loadCountNum,
           list,
           total,
         },
@@ -152,4 +139,25 @@ export class UserAlbumHistoryController {
       };
     }
   }
+
+  @Get(':id')
+  async findOne(
+    @Param('id') id: string,
+  ): Promise<ISuccessResponse<any> | IErrorResponse> {
+    try {
+      const data = await this.userAlbumHistoryService.findOne(+id);
+      return {
+        code: 200,
+        message: 'success',
+        data,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
 }
+
+

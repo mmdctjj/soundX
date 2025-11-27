@@ -1,9 +1,10 @@
 import request from "../https";
-import { type ISuccessResponse } from "../models";
+import { type ILoadMoreData, type ISuccessResponse } from "../models";
 
 export const addToHistory = (trackId: number) => {
   return request.post<any, ISuccessResponse<any>>("/user-track-histories", {
     trackId,
+    userId: 1,
     // userId is handled by backend from token/session usually, or we pass it if needed.
     // Based on controller, it expects a UserTrackHistory object body.
     // Let's check the controller again. It takes UserTrackHistory.
@@ -20,8 +21,22 @@ export const addToHistory = (trackId: number) => {
   });
 };
 
+export const addAlbumToHistory = (albumId: number) => {
+  return request.post<any, ISuccessResponse<any>>("/user-album-histories", {
+    albumId,
+    userId: 1, // TODO: Get from auth context
+  });
+};
+
+export const getAlbumHistory = (loadCount: number, pageSize: number,) => {
+  return request.get<any, ISuccessResponse<ILoadMoreData<any>>>("/user-album-histories/load-more", {
+    params: { pageSize, loadCount, userId: 1 },
+  });
+};
+
 export const toggleLike = (trackId: number) => {
   return request.post<any, ISuccessResponse<any>>("/user-track-likes/create", {
     trackId,
+    userId: 1,
   });
 };
