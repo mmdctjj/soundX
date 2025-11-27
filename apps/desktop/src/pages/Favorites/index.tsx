@@ -11,7 +11,7 @@ import styles from "./index.module.less";
 
 const { Title } = Typography;
 
-enum TrackType {
+export enum TrackType {
   MUSIC = "MUSIC",
   PODCAST = "PODCAST",
 }

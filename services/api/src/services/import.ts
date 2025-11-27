@@ -47,10 +47,18 @@ export class ImportService {
     return this.tasks.get(id);
   }
 
-  private convertToHttpUrl(localPath: string): string {
-    // Extract filename from local path
-    const filename = path.basename(localPath);
-    return `/covers/${filename}`;
+  private convertToHttpUrl(localPath: string, type: 'cover' | 'audio', basePath: string): string {
+    // Calculate relative path from base directory to preserve folder structure
+    const relativePath = path.relative(basePath, localPath);
+
+    if (type === 'cover') {
+      // For covers, just use filename (existing behavior)
+      const filename = path.basename(localPath);
+      return `/covers/${filename}`;
+    } else {
+      // For audio, preserve the relative path structure
+      return `/audio/${relativePath}`;
+    }
   }
 
   private async startImport(id: string, musicPath: string, audiobookPath: string, cachePath: string) {
@@ -72,12 +80,15 @@ export class ImportService {
       task.total = musicResults.length + audiobookResults.length;
       task.current = 0;
 
-      const processItem = async (item: any, type: TrackType) => {
+      const processItem = async (item: any, type: TrackType, audioBasePath: string) => {
         const artistName = item.artist || 'Unknown Artist';
         const albumName = item.album || 'Unknown Album';
 
         // Convert local cover path to HTTP URL
-        const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath) : null;
+        const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
+
+        // Convert local audio path to HTTP URL, preserving relative path from base directory
+        const audioUrl = this.convertToHttpUrl(item.path, 'audio', audioBasePath);
 
         // 1. Handle Artist
         let artist = await this.artistService.findByName(artistName);
@@ -103,7 +114,7 @@ export class ImportService {
           artist: artistName,
           album: albumName,
           cover: coverUrl,
-          path: item.path,
+          path: audioUrl,
           duration: Math.round(item.duration || 0),
           lyrics: item.lyrics || null,
           type: type,
@@ -114,12 +125,12 @@ export class ImportService {
 
       // Save Music
       for (const item of musicResults) {
-        await processItem(item, TrackType.MUSIC);
+        await processItem(item, TrackType.MUSIC, musicPath);
       }
 
       // Save Audiobooks
       for (const item of audiobookResults) {
-        await processItem(item, TrackType.AUDIOBOOK);
+        await processItem(item, TrackType.AUDIOBOOK, audiobookPath);
       }
 
       task.status = TaskStatus.SUCCESS;

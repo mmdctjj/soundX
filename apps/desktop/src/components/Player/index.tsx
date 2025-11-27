@@ -170,7 +170,7 @@ const Player: React.FC = () => {
         ref={audioRef}
         src={
           currentTrack?.path
-            ? `http://localhost:3000/audio/${currentTrack.path.split("/").pop()}`
+            ? `http://localhost:3000/${currentTrack.type === "AUDIOBOOK" ? "audio" : "music"}/${currentTrack.path}`
             : undefined
         }
         onTimeUpdate={handleTimeUpdate}

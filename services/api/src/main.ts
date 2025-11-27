@@ -18,6 +18,15 @@ async function bootstrap() {
     prefix: '/covers/',
   });
 
+  // Serve audio files from music parent directory
+  // This allows accessing audio via http://localhost:3000/audio/relative/path/to/file.m4a
+  // The music directory contains both 'music' and 'audio' subdirectories
+  const musicBaseDir = process.env.MUSIC_BASE_DIR || '/Users/bytedance/Documents/soundX/packages/test/music';
+  console.log(`Serving audio files from: ${musicBaseDir}`);
+  app.useStaticAssets(musicBaseDir, {
+    prefix: '/audio/',
+  });
+
   const config = new DocumentBuilder()
     .setTitle('SoundX API')
     .setDescription('SoundX API documentation')
