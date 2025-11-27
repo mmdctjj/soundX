@@ -1,6 +1,6 @@
 import type { Album } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
-import { Tabs } from "antd";
+import { Col, Row, Tabs } from "antd";
 import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
 import styles from "./index.module.less";
@@ -93,18 +93,22 @@ const Category: React.FC = () => {
 
       {/* Cover Grid with Infinite Scroll */}
       <div ref={scrollRef} className={styles.grid}>
-        {data?.list.map((album) => (
-          <Cover key={album.id} item={album} />
-        ))}
-
-        {(loading || loadingMore) && (
-          <>
-            {Array.from({ length: 8 }).map((_, index) => (
-              <Cover.Skeleton key={`skeleton-${index}`} />
-            ))}
-          </>
-        )}
-
+        <Row gutter={[24, 24]}>
+          {data?.list?.map((item) => (
+            <Col key={item.id}>
+              <Cover item={item} />
+            </Col>
+          ))}
+          {(loading || loadingMore) && (
+            <>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Col key={`skeleton-${index}`}>
+                  <Cover.Skeleton />
+                </Col>
+              ))}
+            </>
+          )}
+        </Row>
         {data && !data.hasMore && data.list.length > 0 && (
           <div className={styles.noMore}>没有更多了</div>
         )}

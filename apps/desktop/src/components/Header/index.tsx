@@ -10,7 +10,7 @@ import {
   SkinOutlined,
   SunOutlined,
 } from "@ant-design/icons";
-import { Form, Input, message, Modal, theme, Tooltip } from "antd";
+import { Form, Input, message, Modal, Popover, theme, Tooltip } from "antd";
 import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
@@ -41,6 +41,7 @@ const Header: React.FC = () => {
     const newMode = playMode === "music" ? "audiobook" : "music";
     setPlayMode(newMode);
     localStorage.setItem("playMode", newMode);
+    window.location.reload();
   };
 
   const iconStyle = { color: token.colorTextSecondary };
@@ -186,11 +187,10 @@ const Header: React.FC = () => {
             )}
           </div>
         </Tooltip>
-        <Tooltip title="导入">
+        <Tooltip title="mini播放器">
           <ImportOutlined
             className={styles.actionIcon}
             style={actionIconStyle}
-            onClick={handleImportClick}
           />
         </Tooltip>
         <Tooltip title="主题">
@@ -205,13 +205,58 @@ const Header: React.FC = () => {
             {mode === "dark" ? <SunOutlined /> : <MoonOutlined />}
           </div>
         </Tooltip>
-        <div className={styles.avatar}>
-          <img
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-            alt="avatar"
-            style={{ width: "100%", height: "100%" }}
-          />
-        </div>
+        <Popover
+          content={
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "5px",
+                padding: "0px",
+              }}
+            >
+              <div
+                style={{
+                  cursor: "pointer",
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  backgroundColor: "transparent",
+                }}
+                onClick={handleImportClick}
+              >
+                导入本地音乐
+              </div>
+              <div
+                style={{
+                  cursor: "pointer",
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  backgroundColor: "transparent",
+                }}
+              >
+                清空缓存文件
+              </div>
+              <div
+                style={{
+                  cursor: "pointer",
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  backgroundColor: "transparent",
+                }}
+              >
+                退出登陆
+              </div>
+            </div>
+          }
+        >
+          <div className={styles.avatar}>
+            <img
+              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+              alt="avatar"
+              style={{ width: "100%", height: "100%" }}
+            />
+          </div>
+        </Popover>
       </div>
 
       <Modal

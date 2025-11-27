@@ -1,6 +1,6 @@
 import { SyncOutlined } from "@ant-design/icons";
 import type { Album } from "@soundx/db";
-import { Button, Typography } from "antd";
+import { Button, Col, Row, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import Cover from "../../components/Cover/index";
 import { getRecentAlbums, getRecommendedAlbums } from "../../services/album";
@@ -196,11 +196,13 @@ const Recommended: React.FC = () => {
             </Button>
           </div>
 
-          <div className={styles.grid}>
+          <Row gutter={[24, 24]}>
             {section.items.map((item) => (
-              <Cover key={item.id} item={item} />
+              <Col key={item.id}>
+                <Cover item={item} />
+              </Col>
             ))}
-          </div>
+          </Row>
         </div>
       ))}
     </div>

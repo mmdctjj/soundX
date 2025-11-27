@@ -1,7 +1,7 @@
 import { SyncOutlined } from "@ant-design/icons";
 import type { Album } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
-import { Button, Skeleton, Timeline, Typography } from "antd";
+import { Button, Col, Row, Skeleton, Timeline, Typography } from "antd";
 import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
@@ -24,7 +24,7 @@ const generateMockTimelineItem = (page: number): TimelineItem => {
       id,
       name: `Favorite Album ${id}`,
       artist: `Artist ${id}`,
-      cover: `https://picsum.photos/seed/fav${id}/300/300`,
+      cover: `https://picsum.photos/seed/${id}/300/300`,
       year: "2023",
     });
   }
@@ -96,11 +96,13 @@ const Favorites: React.FC = () => {
           <Title level={4} className={styles.timelineTitle}>
             {formatTimeLabel(item.time)}
           </Title>
-          <div className={styles.grid}>
+          <Row gutter={[24, 24]} className={styles.grid}>
             {item.items.map((album) => (
-              <Cover key={album.id} item={album} />
+              <Col key={album.id}>
+                <Cover item={album} />
+              </Col>
             ))}
-          </div>
+          </Row>
         </div>
       ),
     })) || [];
@@ -132,11 +134,13 @@ const Favorites: React.FC = () => {
             paragraph={false}
             className={styles.skeletonTitle}
           />
-          <div className={styles.grid}>
+          <Row gutter={[24, 24]}>
             {Array.from({ length: 4 }).map((_, index) => (
-              <Cover.Skeleton key={`skeleton-${index}`} />
+              <Col key={`skeleton-${index}`}>
+                <Cover.Skeleton />
+              </Col>
             ))}
-          </div>
+          </Row>
         </div>
       )}
 

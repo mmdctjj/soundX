@@ -203,10 +203,3 @@ export class TrackController {
         };
       }
     } catch (error) {
-      return {
-        code: 500,
-        message: error,
-      };
-    }
-  }
-}
