@@ -17,6 +17,7 @@ export interface ImportTask {
 }
 
 export interface CreateTaskParams {
+  serverAddress: string;
   musicPath: string;
   audiobookPath: string;
   cachePath: string;
@@ -28,10 +29,20 @@ export interface CreateTaskResponse {
 
 // 创建导入任务
 export const createImportTask = (data: CreateTaskParams) => {
-  return request.post<any, ISuccessResponse<CreateTaskResponse>>("/import/task", data);
+  const { serverAddress, ...taskData } = data;
+  return request.post<any, ISuccessResponse<CreateTaskResponse>>(
+    "/import/task",
+    taskData,
+    {
+      baseURL: serverAddress,
+    }
+  );
 };
 
 // 查询任务状态
-export const getImportTask = (id: string) => {
-  return request.get<any, ISuccessResponse<ImportTask>>(`/import/task/${id}`);
+export const getImportTask = (id: string, serverAddress?: string) => {
+  return request.get<any, ISuccessResponse<ImportTask>>(
+    `/import/task/${id}`,
+    serverAddress ? { baseURL: serverAddress } : undefined
+  );
 };

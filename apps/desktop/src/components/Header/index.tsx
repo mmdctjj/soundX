@@ -82,7 +82,19 @@ const Header: React.FC = () => {
 
   const pollTaskStatus = async (taskId: string) => {
     try {
-      const res = await getImportTask(taskId);
+      // Get serverAddress from localStorage
+      const savedPaths = localStorage.getItem("importPaths");
+      let serverAddress: string | undefined;
+      if (savedPaths) {
+        try {
+          const paths = JSON.parse(savedPaths);
+          serverAddress = paths.serverAddress;
+        } catch (e) {
+          console.error("Failed to parse saved paths:", e);
+        }
+      }
+
+      const res = await getImportTask(taskId, serverAddress);
       if (res.code === 200 && res.data) {
         const { status, message: taskMsg, total } = res.data;
         if (status === TaskStatus.SUCCESS) {
@@ -342,6 +354,29 @@ const Header: React.FC = () => {
         confirmLoading={loading}
       >
         <Form form={form} layout="vertical">
+          <Form.Item
+            name="serverAddress"
+            label="服务端地址"
+            rules={[
+              { required: true, message: "请输入服务端地址" },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (
+                    value.startsWith("http://") ||
+                    value.startsWith("https://")
+                  ) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(
+                    new Error("服务端地址必须以 http:// 或 https:// 开头")
+                  );
+                },
+              },
+            ]}
+          >
+            <Input placeholder="http://localhost:3000" />
+          </Form.Item>
           <Form.Item
             name="musicPath"
             label="音乐目录 (绝对路径)"
