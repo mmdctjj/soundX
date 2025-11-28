@@ -1,4 +1,4 @@
-import { SyncOutlined } from "@ant-design/icons";
+import { SettingOutlined, SyncOutlined } from "@ant-design/icons";
 import type { Album, Artist, Track } from "@soundx/db";
 import { Avatar, Button, Col, Row, Typography } from "antd";
 import React, { useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import { getLatestArtists } from "../../services/artist";
 import { getLatestTracks } from "../../services/track";
 import { cacheUtils } from "../../utils/cache";
 import styles from "./index.module.less";
+import SectionOrderModal from "./SectionOrderModal";
 
 const { Title } = Typography;
 
@@ -16,6 +17,7 @@ const CACHE_KEY_RECOMMENDED = "recommended_albums";
 const CACHE_KEY_RECENT = "recent_albums";
 const CACHE_KEY_ARTISTS = "latest_artists";
 const CACHE_KEY_TRACKS = "latest_tracks";
+const STORAGE_KEY_ORDER = "recommended_section_order";
 
 interface RecommendedSection {
   id: string;
@@ -29,6 +31,7 @@ const Recommended: React.FC = () => {
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState<string | null>(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   // Get current play mode from localStorage
   const [playMode, setPlayMode] = useState<"music" | "audiobook">(() => {
@@ -64,6 +67,32 @@ const Recommended: React.FC = () => {
   }, []);
 
   const getCacheKey = (base: string) => `${base}_${playMode}`;
+
+  const sortSections = (
+    sectionsToSort: RecommendedSection[]
+  ): RecommendedSection[] => {
+    try {
+      const savedOrder = localStorage.getItem(STORAGE_KEY_ORDER);
+      if (savedOrder) {
+        const orderIds = JSON.parse(savedOrder) as string[];
+        return [...sectionsToSort].sort((a, b) => {
+          const indexA = orderIds.indexOf(a.id);
+          const indexB = orderIds.indexOf(b.id);
+          // If both are in the saved order, sort by index
+          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+          // If only A is in order, it comes first
+          if (indexA !== -1) return -1;
+          // If only B is in order, it comes first
+          if (indexB !== -1) return 1;
+          // If neither, keep original order
+          return 0;
+        });
+      }
+    } catch (e) {
+      console.error("Failed to parse section order:", e);
+    }
+    return sectionsToSort;
+  };
 
   const loadSections = async (forceRefresh = false) => {
     try {
@@ -127,7 +156,7 @@ const Recommended: React.FC = () => {
             });
           }
 
-          setSections(newSections);
+          setSections(sortSections(newSections));
           setLoading(false);
           return;
         }
@@ -181,7 +210,7 @@ const Recommended: React.FC = () => {
         });
       }
 
-      setSections(newSections);
+      setSections(sortSections(newSections));
 
       // Save to cache with type-specific keys
       cacheUtils.set(getCacheKey(CACHE_KEY_RECOMMENDED), recommendedAlbums);
@@ -241,6 +270,18 @@ const Recommended: React.FC = () => {
 
   const handleArtistClick = (artistId: number) => {
     navigate(`/artist/${artistId}`);
+  };
+
+  const handleSaveOrder = (newOrder: string[]) => {
+    localStorage.setItem(STORAGE_KEY_ORDER, JSON.stringify(newOrder));
+    setSections((prev) => {
+      const sorted = [...prev].sort((a, b) => {
+        const indexA = newOrder.indexOf(a.id);
+        const indexB = newOrder.indexOf(b.id);
+        return indexA - indexB;
+      });
+      return sorted;
+    });
   };
 
   // Show skeleton loading on initial load
@@ -313,6 +354,23 @@ const Recommended: React.FC = () => {
           </Row>
         </div>
       ))}
+
+      <div style={{ textAlign: "center", marginTop: 40, marginBottom: 20 }}>
+        <Button
+          type="dashed"
+          icon={<SettingOutlined />}
+          onClick={() => setIsOrderModalOpen(true)}
+        >
+          调整版块顺序
+        </Button>
+      </div>
+
+      <SectionOrderModal
+        visible={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        sections={sections.map((s) => ({ id: s.id, title: s.title }))}
+        onSave={handleSaveOrder}
+      />
     </div>
   );
 };
