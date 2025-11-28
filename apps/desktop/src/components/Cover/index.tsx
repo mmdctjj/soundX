@@ -1,22 +1,36 @@
-import type { Album } from "@soundx/db";
+import type { Album, Track } from "@soundx/db";
 import { Skeleton, Typography } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { usePlayerStore } from "../../store/player";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
 
-interface CoverComponent extends React.FC<{ item: Album; size?: number }> {
+interface CoverComponent
+  extends React.FC<{ item: Album | Track; size?: number; isTrack?: boolean }> {
   Skeleton: React.FC;
 }
 
-const Cover: CoverComponent = ({ item, size }) => {
+const Cover: CoverComponent = ({ item, size, isTrack = false }) => {
   const navigate = useNavigate();
+  const { play, setPlaylist } = usePlayerStore();
+
+  const handleClick = () => {
+    if (isTrack) {
+      // For tracks, play directly
+      play(item as Track);
+      setPlaylist([item as Track]);
+    } else {
+      // For albums, navigate to detail page
+      navigate(`/detail?id=${item.id}`);
+    }
+  };
 
   return (
     <div
       className={styles.coverContainer}
-      onClick={() => navigate(`/detail?id=${item.id}`)}
+      onClick={handleClick}
       style={size ? { width: size } : undefined}
     >
       <div className={styles.imageWrapper}>

@@ -346,6 +346,8 @@ const Recommended: React.FC = () => {
                       {item.name}
                     </div>
                   </div>
+                ) : section.type === "track" ? (
+                  <Cover item={item} isTrack={true} />
                 ) : (
                   <Cover item={item} />
                 )}

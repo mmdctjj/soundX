@@ -16,12 +16,14 @@ import {
   List,
   Popover,
   Slider,
+  Tabs,
   Tooltip,
   Typography,
   theme,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "../../store/player";
+import Lyrics from "./Lyrics";
 import styles from "./index.module.less";
 
 const { Text, Title } = Typography;
@@ -58,6 +60,7 @@ const Player: React.FC = () => {
     const saved = localStorage.getItem("skipEnd");
     return saved ? Number(saved) : 0;
   });
+  const [activeTab, setActiveTab] = useState<"playlist" | "lyrics">("playlist");
 
   // Sync volume with audio element
   useEffect(() => {
@@ -465,7 +468,7 @@ const Player: React.FC = () => {
           </Flex>
         </div>
 
-        {/* Right Side - Info & Playlist (2/3) */}
+        {/* Right Side - Info & Playlist/Lyrics (2/3) */}
         <div className={styles.fullPlayerRight}>
           {/* Top: Title */}
           <div style={{ marginBottom: "24px" }}>
@@ -476,55 +479,89 @@ const Player: React.FC = () => {
               {currentTrack?.artist || "Unknown Artist"}
             </Text>
           </div>
-          <Title level={4}>播放列表 ({playlist.length})</Title>
-          {/* Bottom: Playlist */}
-          <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
-            <List
-              itemLayout="horizontal"
-              dataSource={playlist}
-              renderItem={(item: Track) => (
-                <List.Item
-                  className={styles.playlistItem}
-                  onClick={() => play(item)}
-                  style={{
-                    cursor: "pointer",
-                    backgroundColor:
-                      currentTrack?.id === item.id
-                        ? "rgba(255,255,255,0.1)"
-                        : "transparent",
-                  }}
-                >
-                  <List.Item.Meta
-                    avatar={
-                      <img
-                        src={getCoverUrl(item.cover)}
-                        alt={item.name}
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          objectFit: "cover",
-                          borderRadius: "8px",
-                        }}
-                      />
-                    }
-                    title={
-                      <Text
-                        style={{
-                          fontSize: "16px",
-                          color:
-                            currentTrack?.id === item.id
-                              ? token.colorPrimary
-                              : undefined,
-                        }}
-                      >
-                        {item.name}
-                      </Text>
-                    }
-                    description={<Text type="secondary">{item.artist}</Text>}
-                  />
-                </List.Item>
+
+          {/* Tab Switcher */}
+          <div className={styles.tabHeader}>
+            <Tabs
+              activeKey={activeTab}
+              onChange={(e) => setActiveTab(e as "playlist" | "lyrics")}
+              items={[
+                { key: "lyrics", label: "歌词" },
+                { key: "playlist", label: `播放列表 (${playlist.length})` },
+              ].filter((item) =>
+                localStorage.getItem("playMode") === "music"
+                  ? true
+                  : item.key !== "lyrics"
               )}
             />
+          </div>
+
+          {/* Content */}
+          <div
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {activeTab === "playlist" ? (
+              <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
+                <List
+                  itemLayout="horizontal"
+                  dataSource={playlist}
+                  renderItem={(item: Track) => (
+                    <List.Item
+                      className={styles.playlistItem}
+                      onClick={() => play(item)}
+                      style={{
+                        cursor: "pointer",
+                        backgroundColor:
+                          currentTrack?.id === item.id
+                            ? "rgba(255,255,255,0.1)"
+                            : "transparent",
+                      }}
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <img
+                            src={getCoverUrl(item.cover)}
+                            alt={item.name}
+                            style={{
+                              width: "50px",
+                              height: "50px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                            }}
+                          />
+                        }
+                        title={
+                          <Text
+                            style={{
+                              fontSize: "16px",
+                              color:
+                                currentTrack?.id === item.id
+                                  ? token.colorPrimary
+                                  : undefined,
+                            }}
+                          >
+                            {item.name}
+                          </Text>
+                        }
+                        description={
+                          <Text type="secondary">{item.artist}</Text>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              </div>
+            ) : (
+              <Lyrics
+                lyrics={currentTrack?.lyrics || null}
+                currentTime={currentTime}
+              />
+            )}
           </div>
         </div>
       </Drawer>
