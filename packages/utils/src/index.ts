@@ -105,8 +105,31 @@ export class LocalMusicScanner {
         // lyrics can be string[] or string
         lyrics = Array.isArray(common.lyrics) ? common.lyrics.join('\n') : common.lyrics;
       } else {
-        // Look for lyrics file in the same directory
-        lyrics = await this.findLyricsFile(filePath);
+        // Try to find lyrics in native tags (e.g., USLT in ID3v2)
+        if (metadata.native && metadata.native['ID3v2.3']) {
+          const uslt = metadata.native['ID3v2.3'].find((tag: any) => tag.id === 'USLT');
+          if (uslt && uslt.value && uslt.value.text) {
+            lyrics = uslt.value.text;
+          }
+        }
+
+        // Also check ID3v2.4 just in case
+        if (!lyrics && metadata.native && metadata.native['ID3v2.4']) {
+          const uslt = metadata.native['ID3v2.4'].find((tag: any) => tag.id === 'USLT');
+          if (uslt && uslt.value && uslt.value.text) {
+            lyrics = uslt.value.text;
+          }
+        }
+
+        // If still no lyrics, look for lyrics file in the same directory
+        if (!lyrics) {
+          lyrics = await this.findLyricsFile(filePath);
+        }
+      }
+
+      // Sanitize lyrics (remove null bytes)
+      if (lyrics) {
+        lyrics = lyrics.replace(/\u0000/g, '');
       }
 
       return {

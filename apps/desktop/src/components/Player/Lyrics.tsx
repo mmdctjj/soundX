@@ -28,23 +28,29 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
       return;
     }
 
-    const lines = lyrics.split("\n");
+    const lines = lyrics.split(/\r?\n/);
     const parsed: LyricLine[] = [];
-    const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+    // Regex to match all timestamps in a line: [mm:ss.xx] or [mm:ss.xxx]
+    const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g;
 
     lines.forEach((line) => {
-      const match = timeRegex.exec(line);
-      if (match) {
-        const minutes = parseInt(match[1], 10);
-        const seconds = parseInt(match[2], 10);
-        const milliseconds = parseInt(match[3], 10);
-        const time = minutes * 60 + seconds + milliseconds / 1000;
+      const matches = [...line.matchAll(timeRegex)];
+      if (matches.length > 0) {
         const text = line.replace(timeRegex, "").trim();
         if (text) {
-          parsed.push({ time, text });
+          matches.forEach((match) => {
+            const minutes = parseInt(match[1], 10);
+            const seconds = parseInt(match[2], 10);
+            const milliseconds = parseInt(match[3], 10);
+            const time = minutes * 60 + seconds + milliseconds / 1000;
+            parsed.push({ time, text });
+          });
         }
       }
     });
+
+    // Sort by time
+    parsed.sort((a, b) => a.time - b.time);
 
     setParsedLyrics(parsed);
   }, [lyrics]);
