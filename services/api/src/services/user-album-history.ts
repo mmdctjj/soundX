@@ -39,17 +39,37 @@ export class UserAlbumHistoryService {
   }
 
   async loadMoreUserAlbumHistory(pageSize: number, loadCount: number, userId: number) {
-    return await this.prisma.userAlbumHistory.findMany({
+    const list = await this.prisma.userAlbumHistory.findMany({
+      where: { userId },
+      orderBy: {
+        // 按 albumId 分组后，每组按 listenedAt 最大值排序
+        listenedAt: 'desc',
+      },
+
+      // 每个 albumId 只保留最新一条
+      distinct: ['albumId'],
+
       skip: loadCount * pageSize,
       take: loadCount,
-      where: { userId },
+
       include: {
-        album: true,
+        album: true, // 带出专辑信息
       },
     });
+
+    return list;
   }
 
-  async userAlbumHistoryCount() {
+
+  async userAlbumHistoryCount(userId?: number) {
+    if (userId) {
+      // Count unique albums for the user
+      const uniqueAlbums = await this.prisma.userAlbumHistory.groupBy({
+        by: ['albumId'],
+        where: { userId },
+      });
+      return uniqueAlbums.length;
+    }
     return await this.prisma.userAlbumHistory.count();
   }
 }

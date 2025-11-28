@@ -20,6 +20,9 @@ const Listened: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const type =
+    localStorage.getItem("playMode") === "music" ? "MUSIC" : "AUDIOBOOK";
+
   const loadMoreListened = async (d: Result | undefined): Promise<Result> => {
     const currentPage = d ? d.list.length : 0;
 
@@ -49,7 +52,7 @@ const Listened: React.FC = () => {
           ([date, albums]) => ({
             id: date,
             time: new Date(date).getTime(),
-            items: albums,
+            items: albums?.filter((album) => album.type === type),
           })
         );
 

@@ -1,17 +1,25 @@
 import { type Album, type Artist } from "@soundx/db";
-import { Avatar, Col, Empty, Row, Typography, message } from "antd";
+import {
+  Avatar,
+  Col,
+  Empty,
+  Flex,
+  Row,
+  Skeleton,
+  Typography,
+  message,
+} from "antd";
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Cover from "../../components/Cover";
 import { getAlbumsByArtist } from "../../services/album";
 import { getArtistById } from "../../services/artist";
 import styles from "./index.module.less";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const ArtistDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +50,40 @@ const ArtistDetail: React.FC = () => {
 
     fetchData();
   }, [id]);
+
+  if (loading) {
+    return (
+      <Flex vertical gap={24} className={styles.container}>
+        <Flex vertical align="center" gap={34}>
+          <Skeleton.Avatar active size={200} />
+          <Skeleton.Input active />
+        </Flex>
+        <Skeleton.Input active />
+        <Flex gap={24}>
+          <Flex vertical gap={24}>
+            <Skeleton.Node style={{ width: 200, height: 200 }} active />
+            <Skeleton.Input active />
+            <Skeleton.Input active />
+          </Flex>
+          <Flex vertical gap={24}>
+            <Skeleton.Node style={{ width: 200, height: 200 }} active />
+            <Skeleton.Input active />
+            <Skeleton.Input active />
+          </Flex>
+          <Flex vertical gap={24}>
+            <Skeleton.Node style={{ width: 200, height: 200 }} active />
+            <Skeleton.Input active />
+            <Skeleton.Input active />
+          </Flex>
+          <Flex vertical gap={24}>
+            <Skeleton.Node style={{ width: 200, height: 200 }} active />
+            <Skeleton.Input active />
+            <Skeleton.Input active />
+          </Flex>
+        </Flex>
+      </Flex>
+    );
+  }
 
   if (!artist) {
     return (

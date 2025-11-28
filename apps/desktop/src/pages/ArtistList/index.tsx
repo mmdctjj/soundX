@@ -1,21 +1,12 @@
 import { type Artist } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
-import {
-  Avatar,
-  Card,
-  Col,
-  Empty,
-  Flex,
-  Row,
-  Skeleton,
-  Typography,
-} from "antd";
-import React, { useRef, useState } from "react";
+import { Avatar, Col, Empty, Flex, Row, Skeleton, Typography } from "antd";
+import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getArtistList } from "../../services/artist";
 import styles from "./index.module.less";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 interface Result {
   list: Artist[];
@@ -26,8 +17,6 @@ interface Result {
 const ArtistList: React.FC = () => {
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [type, setType] = useState<"MUSIC" | "AUDIOBOOK">("MUSIC");
 
   const loadMoreArtists = async (d: Result | undefined): Promise<Result> => {
     const current = d ? Math.ceil(d.list.length / 20) + 1 : 0;
@@ -37,7 +26,11 @@ const ArtistList: React.FC = () => {
       // TODO: Update getArtistList to support pagination and type filtering
       // For now, we might need to fetch all or use existing API
       // Assuming we will update the service to support these params
-      const res = await getArtistList(pageSize, current, type);
+      const res = await getArtistList(
+        pageSize,
+        current,
+        localStorage.getItem("playMode") === "music" ? "MUSIC" : "AUDIOBOOK"
+      );
 
       if (res.code === 200 && res.data) {
         const { list, total } = res.data;
@@ -62,7 +55,6 @@ const ArtistList: React.FC = () => {
   const { data, loading, loadingMore } = useInfiniteScroll(loadMoreArtists, {
     target: scrollRef,
     isNoMore: (d) => !d?.hasMore,
-    reloadDeps: [type], // Reload when type changes
   });
 
   return (
@@ -101,7 +93,7 @@ const ArtistList: React.FC = () => {
         </Row>
 
         {(loading || loadingMore) && (
-          <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
+          <Row gutter={[24, 24]}>
             {Array.from({ length: 6 }).map((_, index) => (
               <Col
                 key={`skeleton-${index}`}
@@ -111,12 +103,10 @@ const ArtistList: React.FC = () => {
                 lg={4}
                 xl={4}
               >
-                <Card className={styles.card}>
-                  <div className={styles.coverContainer}>
-                    <Skeleton.Avatar active size={120} shape="circle" />
-                  </div>
+                <Flex vertical align="center">
+                  <Skeleton.Avatar active size={120} shape="circle" />
                   <Skeleton.Input active />
-                </Card>
+                </Flex>
               </Col>
             ))}
           </Row>

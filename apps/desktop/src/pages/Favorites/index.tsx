@@ -1,7 +1,7 @@
 import { SyncOutlined } from "@ant-design/icons";
 import { type Album } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
-import { Button, Col, Row, Skeleton, Timeline, Typography } from "antd";
+import { Button, Col, Empty, Row, Skeleton, Timeline, Typography } from "antd";
 import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
@@ -19,6 +19,9 @@ interface Result {
 const Favorites: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const type =
+    localStorage.getItem("playMode") === "music" ? "MUSIC" : "AUDIOBOOK";
 
   const loadMoreFavorites = async (d: Result | undefined): Promise<Result> => {
     const currentPage = d ? d.list.length : 0;
@@ -44,7 +47,7 @@ const Favorites: React.FC = () => {
           ([date, albums]) => ({
             id: date,
             time: new Date(date).getTime(),
-            items: albums,
+            items: albums?.filter((album) => album.type === type),
           })
         );
 
@@ -136,6 +139,12 @@ const Favorites: React.FC = () => {
 
       {data && !data.hasMore && data.list.length > 0 && (
         <div className={styles.noMore}>没有更多了</div>
+      )}
+
+      {data?.list.length === 0 && !loading && (
+        <div className={styles.noData}>
+          <Empty />
+        </div>
       )}
     </div>
   );

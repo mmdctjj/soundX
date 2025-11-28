@@ -34,5 +34,6 @@ export interface ILoadMoreData<T> {
   loadCount: number;
   pageSize: number;
   total: number;
-  list: T;
+  list: T[];
+  hasMore: boolean;
 }

@@ -23,8 +23,9 @@ export const getAlbumTableList = (params: {
 export const loadMoreAlbum = (params: {
   pageSize: number;
   loadCount: number;
+  type?: string;
 }) => {
-  return request.get<any, ISuccessResponse<ILoadMoreData<Album[]>>>(
+  return request.get<any, ISuccessResponse<ILoadMoreData<Album>>>(
     "/album/load-more",
     { params }
   );

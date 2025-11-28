@@ -1,18 +1,18 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
-import { UserAudiobookLikeService } from '../services/user-audiobook-like';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { UserAudiobookLike } from '@soundx/db';
 import {
   IErrorResponse,
   ILoadMoreData,
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { UserAudiobookLike } from '@soundx/db';
+import { UserAudiobookLikeService } from '../services/user-audiobook-like';
 
 @Controller('user-audiobook-likes')
 export class UserAudiobookLikeController {
   constructor(
     private readonly userAudiobookLikeService: UserAudiobookLikeService,
-  ) {}
+  ) { }
 
   @Post()
   async create(

@@ -28,7 +28,7 @@ export const addAlbumToHistory = (albumId: number) => {
   });
 };
 
-export const getAlbumHistory = (loadCount: number, pageSize: number,) => {
+export const getAlbumHistory = (loadCount: number, pageSize: number) => {
   return request.get<any, ISuccessResponse<ILoadMoreData<any>>>("/user-album-histories/load-more", {
     params: { pageSize, loadCount, userId: 1 },
   });

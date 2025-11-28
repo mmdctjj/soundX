@@ -121,7 +121,9 @@ export class UserAlbumHistoryController {
         loadCountNum,
         userIdNum,
       );
-      const total = await this.userAlbumHistoryService.userAlbumHistoryCount();
+      const total = await this.userAlbumHistoryService.userAlbumHistoryCount(userIdNum);
+      const hasMore = list.length + (loadCountNum * pageSizeNum) < total;
+
       return {
         code: 200,
         message: 'success',
@@ -130,6 +132,7 @@ export class UserAlbumHistoryController {
           loadCount: loadCountNum,
           list,
           total,
+          hasMore,
         },
       };
     } catch (error) {

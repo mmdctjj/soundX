@@ -3,6 +3,7 @@ import { useInfiniteScroll } from "ahooks";
 import { Col, Row, Tabs } from "antd";
 import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
+import { loadMoreAlbum } from "../../services/album";
 import styles from "./index.module.less";
 
 interface CategoryTab {
@@ -23,25 +24,6 @@ const categoryTabs: CategoryTab[] = [
   { value: 10, label: "乡村" },
 ];
 
-// Function to generate mock albums
-const generateMockAlbums = (page: number, pageSize: number): Album[] => {
-  const albums: Album[] = [];
-  const startId = page * pageSize;
-
-  for (let i = 0; i < pageSize; i++) {
-    const id = startId + i + 1;
-    albums.push({
-      id,
-      name: `Album ${id}`,
-      artist: `Artist ${id}`,
-      cover: `https://picsum.photos/seed/cat${id}/300/300`,
-      year: "2023",
-    });
-  }
-
-  return albums;
-};
-
 interface Result {
   list: Album[];
   hasMore: boolean;
@@ -52,17 +34,29 @@ const Category: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const loadMoreAlbums = async (d: Result | undefined): Promise<Result> => {
-    const currentPage = d ? Math.floor(d.list.length / 12) : 0;
+    const pageSize = 12;
+    const loadCount = d ? Math.floor(d.list.length / pageSize) : 0;
+    const type =
+      localStorage.getItem("playMode") === "music" ? "MUSIC" : "AUDIOBOOK";
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const res = await loadMoreAlbum({ pageSize, loadCount, type });
 
-    const newAlbums = generateMockAlbums(currentPage, 12);
-    const newList = d ? [...d.list, ...newAlbums] : newAlbums;
+      if (res.code === 200 && res.data) {
+        const { list, hasMore } = res.data;
+        const newList = d ? [...d.list, ...list] : list;
+        return {
+          list: newList,
+          hasMore,
+        };
+      }
+    } catch (error) {
+      console.error("Failed to fetch albums:", error);
+    }
 
     return {
-      list: newList,
-      hasMore: newList.length < 60, // Limit to 60 items for demo
+      list: d?.list || [],
+      hasMore: false,
     };
   };
 

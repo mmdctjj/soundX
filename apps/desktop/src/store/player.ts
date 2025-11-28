@@ -25,8 +25,19 @@ interface PlayerState {
   toggleLike: (trackId: number) => Promise<void>;
 }
 
+// Load cached track from localStorage
+const getCachedTrack = (): Track | null => {
+  try {
+    const cached = localStorage.getItem("currentTrack");
+    return cached ? JSON.parse(cached) : null;
+  } catch (e) {
+    console.error("Failed to load cached track", e);
+    return null;
+  }
+};
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-  currentTrack: null,
+  currentTrack: getCachedTrack(),
   isPlaying: false,
   playlist: [],
   playMode: "sequence",
@@ -40,6 +51,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (track) {
       if (currentTrack?.id !== track.id) {
         set({ currentTrack: track, isPlaying: true });
+
+        // Cache the current track to localStorage
+        try {
+          localStorage.setItem("currentTrack", JSON.stringify(track));
+        } catch (e) {
+          console.error("Failed to cache track", e);
+        }
 
         // Add track to history
         try {
@@ -92,8 +110,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       if (nextIndex >= playlist.length) return;
     }
 
-    set({ currentTrack: playlist[nextIndex], isPlaying: true });
-    addToHistory(playlist[nextIndex].id);
+    const nextTrack = playlist[nextIndex];
+    set({ currentTrack: nextTrack, isPlaying: true });
+
+    // Cache the current track to localStorage
+    try {
+      localStorage.setItem("currentTrack", JSON.stringify(nextTrack));
+    } catch (e) {
+      console.error("Failed to cache track", e);
+    }
+
+    addToHistory(nextTrack.id);
   },
   prev: () => {
     const { playlist, currentTrack } = get();
@@ -104,8 +131,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     if (prevIndex < 0) return;
 
-    set({ currentTrack: playlist[prevIndex], isPlaying: true });
-    addToHistory(playlist[prevIndex].id);
+    const prevTrack = playlist[prevIndex];
+    set({ currentTrack: prevTrack, isPlaying: true });
+
+    // Cache the current track to localStorage
+    try {
+      localStorage.setItem("currentTrack", JSON.stringify(prevTrack));
+    } catch (e) {
+      console.error("Failed to cache track", e);
+    }
+
+    addToHistory(prevTrack.id);
   },
   setMode: (mode: "sequence" | "loop" | "shuffle" | "single") => set({ playMode: mode }),
   setVolume: (volume: number) => set({ volume }),

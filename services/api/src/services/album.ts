@@ -45,10 +45,11 @@ export class AlbumService {
     });
   }
 
-  async loadMoreAlbum(pageSize: number, loadCount: number): Promise<Album[]> {
+  async loadMoreAlbum(pageSize: number, loadCount: number, type?: any): Promise<Album[]> {
     return await this.prisma.album.findMany({
       skip: loadCount * pageSize,
       take: pageSize,
+      where: { type },
     });
   }
 

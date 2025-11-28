@@ -97,23 +97,27 @@ export class AlbumController {
 
   @Get('/load-more')
   async loadMoreAlbum(
-    @Param('pageSize') pageSize: number,
-    @Param('loadCount') loadCount: number,
-  ): Promise<ISuccessResponse<ILoadMoreData<Album[]>> | IErrorResponse> {
+    @Query('pageSize') pageSize: number,
+    @Query('loadCount') loadCount: number,
+    @Query('type') type?: string,
+  ): Promise<ISuccessResponse<ILoadMoreData<Album>> | IErrorResponse> {
     try {
       const albumList = await this.albumService.loadMoreAlbum(
-        pageSize,
-        loadCount,
+        Number(pageSize),
+        Number(loadCount),
+        type,
       );
       const total = await this.albumService.albumCount();
+      const hasMore = albumList.length + (Number(loadCount) * Number(pageSize)) < total;
       return {
         code: 200,
         message: 'success',
         data: {
-          pageSize,
-          loadCount,
+          pageSize: Number(pageSize),
+          loadCount: Number(loadCount),
           list: albumList,
           total,
+          hasMore,
         },
       };
     } catch (error) {
