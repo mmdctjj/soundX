@@ -6,13 +6,10 @@ import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
 import { getAlbumHistory } from "../../services/user";
-import { cacheUtils } from "../../utils/cache";
 import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
 
 const { Title } = Typography;
-
-const CACHE_KEY = "listened_timeline";
 
 interface Result {
   list: TimelineItem[];
@@ -26,20 +23,9 @@ const Listened: React.FC = () => {
   const loadMoreListened = async (d: Result | undefined): Promise<Result> => {
     const currentPage = d ? d.list.length : 0;
 
-    // Try cache first for initial load
-    if (currentPage === 0) {
-      const cached = cacheUtils.get<TimelineItem[]>(CACHE_KEY);
-      if (cached && cached.length > 0) {
-        return {
-          list: cached,
-          hasMore: cached.length < 12,
-        };
-      }
-    }
-
     try {
       // Fetch real data from API
-      const response = await getAlbumHistory(4, currentPage);
+      const response = await getAlbumHistory(20, currentPage);
 
       if (response.code === 200 && response.data) {
         const { list, total } = response.data;
@@ -69,9 +55,6 @@ const Listened: React.FC = () => {
 
         const newList = d ? [...d.list, ...newItems] : newItems;
 
-        // Cache the data
-        cacheUtils.set(CACHE_KEY, newList);
-
         return {
           list: newList,
           hasMore: newList.length < total,
@@ -98,7 +81,6 @@ const Listened: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    cacheUtils.clear(CACHE_KEY);
     await reload();
     setRefreshing(false);
   };

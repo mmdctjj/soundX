@@ -1,6 +1,7 @@
 import {
   CaretRightOutlined,
   CloudDownloadOutlined,
+  HeartFilled,
   HeartOutlined,
   PauseOutlined,
   PlayCircleOutlined,
@@ -10,10 +11,22 @@ import {
   SortDescendingOutlined,
 } from "@ant-design/icons";
 import { type Album, type Track } from "@soundx/db";
-import { Avatar, Col, Flex, Input, Row, Table, theme, Typography } from "antd";
+import { useRequest } from "ahooks";
+import {
+  Avatar,
+  Col,
+  Flex,
+  Input,
+  message,
+  Row,
+  Table,
+  theme,
+  Typography,
+} from "antd";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
+import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
 import { usePlayerStore } from "../../store/player";
 import styles from "./index.module.less";
 
@@ -31,6 +44,7 @@ const Detail: React.FC = () => {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [keyword, setKeyword] = useState("");
   const [keywordMidValue, setKeywordMidValue] = useState("");
+  const [isLiked, setIsLiked] = useState(false);
 
   const { token } = theme.useToken();
 
@@ -38,6 +52,26 @@ const Detail: React.FC = () => {
     usePlayerStore();
 
   const pageSize = 20;
+
+  const { run: likeAlbum } = useRequest(toggleAlbumLike, {
+    manual: true,
+    onSuccess: (res) => {
+      if (res.code === 200) {
+        setIsLiked(true);
+        message.success("收藏成功");
+      }
+    },
+  });
+
+  const { run: unlikeAlbumRequest } = useRequest(unlikeAlbum, {
+    manual: true,
+    onSuccess: (res) => {
+      if (res.code === 200) {
+        setIsLiked(false);
+        message.success("已取消收藏");
+      }
+    },
+  });
 
   useEffect(() => {
     if (id) {
@@ -55,6 +89,13 @@ const Detail: React.FC = () => {
       const res = await getAlbumById(albumId);
       if (res.code === 200) {
         setAlbum(res.data);
+        // Check if liked by current user (userId: 1)
+        // @ts-ignore - likedByUsers is included in response but might not be in type definition yet
+        const likedByUsers = res.data.likedByUsers || [];
+        const isLikedByCurrentUser = likedByUsers.some(
+          (like: any) => like.userId === 1
+        );
+        setIsLiked(isLikedByCurrentUser);
       }
     } catch (error) {
       console.error("Failed to fetch album details:", error);
@@ -259,7 +300,18 @@ const Detail: React.FC = () => {
                   type="secondary"
                   className={styles.actionGroup}
                 >
-                  <HeartOutlined className={styles.actionIcon} />
+                  {isLiked ? (
+                    <HeartFilled
+                      className={styles.actionIcon}
+                      style={{ color: "#ff4d4f" }}
+                      onClick={() => album && unlikeAlbumRequest(album.id)}
+                    />
+                  ) : (
+                    <HeartOutlined
+                      className={styles.actionIcon}
+                      onClick={() => album && likeAlbum(album.id)}
+                    />
+                  )}
                   <ShareAltOutlined className={styles.actionIcon} />
                   <CloudDownloadOutlined className={styles.actionIcon} />
                 </Typography.Text>

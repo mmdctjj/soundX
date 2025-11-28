@@ -40,3 +40,22 @@ export const toggleLike = (trackId: number) => {
     userId: 1,
   });
 };
+
+export const toggleAlbumLike = (albumId: number) => {
+  return request.post<any, ISuccessResponse<any>>("/user-album-likes", {
+    albumId,
+    userId: 1,
+  });
+};
+
+export const unlikeAlbum = (albumId: number) => {
+  return request.delete<any, ISuccessResponse<any>>("/user-album-likes/unlike", {
+    params: { albumId, userId: 1 },
+  });
+};
+
+export const getFavoriteAlbums = (loadCount: number, pageSize: number) => {
+  return request.get<any, ISuccessResponse<ILoadMoreData<any>>>("/user-album-likes/load-more", {
+    params: { pageSize, loadCount, userId: 1 },
+  });
+};

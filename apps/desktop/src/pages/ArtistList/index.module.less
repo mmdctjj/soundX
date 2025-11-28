@@ -1,0 +1,71 @@
+.container {
+  padding: 24px;
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0 !important;
+}
+
+.content {
+  padding-bottom: 24px;
+}
+
+.card {
+  background: transparent !important;
+  border: none !important;
+  text-align: center;
+
+  :global {
+    .ant-card-body {
+      padding: 12px 0;
+    }
+  }
+}
+
+.coverContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+  transition: transform 0.3s ease;
+
+  img {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.avatar {
+  border: 2px solid var(--ant-color-border-secondary);
+  background-color: var(--ant-color-bg-container);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.artistName {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artistType {
+  font-size: 12px;
+}
+
+.noMore {
+  text-align: center;
+  margin-top: 24px;
+  color: var(--ant-color-text-secondary);
+}

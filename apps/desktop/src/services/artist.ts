@@ -6,8 +6,21 @@ import type {
   ITableData,
 } from "../models";
 
-export const getArtistList = () => {
-  return request.get<any, ISuccessResponse<Artist[]>>("/artist/list");
+export const getArtistList = (
+  pageSize: number,
+  loadCount: number,
+  type?: string
+) => {
+  return request.get<any, ISuccessResponse<ILoadMoreData<Artist[]>>>(
+    "/artist/load-more",
+    {
+      params: {
+        pageSize,
+        loadCount,
+        type,
+      },
+    }
+  );
 };
 
 export const getArtistTableList = (params: {
@@ -54,4 +67,8 @@ export const batchDeleteArtists = (ids: number[]) => {
     "/artist/batch-delete",
     { data: ids }
   );
+};
+
+export const getArtistById = (id: number) => {
+  return request.get<any, ISuccessResponse<Artist>>(`/artist/${id}`);
 };

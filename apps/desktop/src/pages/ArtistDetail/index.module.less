@@ -1,0 +1,88 @@
+.container {
+  padding: 24px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.header {
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  margin-bottom: 16px;
+}
+
+.artistName {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.artistType {
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.sectionTitle {
+  margin-bottom: 24px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.card {
+  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  :global {
+    .ant-card-body {
+      padding: 12px;
+    }
+  }
+}
+
+.coverContainer {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+
+  img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.albumName {
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.albumYear {
+  display: block;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.45);
+}

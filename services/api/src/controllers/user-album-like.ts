@@ -1,15 +1,15 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
-import { UserAlbumLikeService } from '../services/user-album-like';
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import { UserAlbumLike } from '@soundx/db';
 import {
   IErrorResponse,
   ILoadMoreData,
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { UserAlbumLike } from '@soundx/db';
+import { UserAlbumLikeService } from '../services/user-album-like';
 @Controller('user-album-likes')
 export class UserAlbumLikeController {
-  constructor(private readonly userAlbumLikeService: UserAlbumLikeService) {}
+  constructor(private readonly userAlbumLikeService: UserAlbumLikeService) { }
 
   @Post()
   async create(
@@ -49,31 +49,15 @@ export class UserAlbumLikeController {
     }
   }
 
-  @Get(':id')
-  async findOne(
-    @Param('id') id: string,
+  @Delete('/unlike')
+  async unlike(
+    @Query('userId') userId: string,
+    @Query('albumId') albumId: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
-      const data = await this.userAlbumLikeService.findOne(+id);
-      return {
-        code: 200,
-        message: 'success',
-        data,
-      };
-    } catch (error) {
-      return {
-        code: 500,
-        message: error,
-      };
-    }
-  }
-
-  @Delete(':id')
-  async remove(
-    @Param('id') id: string,
-  ): Promise<ISuccessResponse<any> | IErrorResponse> {
-    try {
-      const data = await this.userAlbumLikeService.remove(+id);
+      const userIdNum = parseInt(userId, 10);
+      const albumIdNum = parseInt(albumId, 10);
+      const data = await this.userAlbumLikeService.removeByUserAndAlbum(userIdNum, albumIdNum);
       return {
         code: 200,
         message: 'success',
@@ -89,21 +73,23 @@ export class UserAlbumLikeController {
 
   @Get('/table-list')
   async getUserAlbumLikeTableList(
-    @Param('pageSize') pageSize: number,
-    @Param('current') current: number,
+    @Query('pageSize') pageSize: string,
+    @Query('current') current: string,
   ): Promise<ISuccessResponse<ITableData<UserAlbumLike[]>> | IErrorResponse> {
     try {
+      const pageSizeNum = parseInt(pageSize, 10);
+      const currentNum = parseInt(current, 10);
       const list = await this.userAlbumLikeService.getUserAlbumLikeTableList(
-        pageSize,
-        current,
+        pageSizeNum,
+        currentNum,
       );
       const total = await this.userAlbumLikeService.userAlbumLikeCount();
       return {
         code: 200,
         message: 'success',
         data: {
-          pageSize,
-          current,
+          pageSize: pageSizeNum,
+          current: currentNum,
           list,
           total,
         },
@@ -118,26 +104,51 @@ export class UserAlbumLikeController {
 
   @Get('/load-more')
   async loadMoreUserAlbumLike(
-    @Param('pageSize') pageSize: number,
-    @Param('loadCount') loadCount: number,
+    @Query('pageSize') pageSize: string,
+    @Query('loadCount') loadCount: string,
+    @Query('userId') userId: string,
   ): Promise<
     ISuccessResponse<ILoadMoreData<UserAlbumLike[]>> | IErrorResponse
   > {
     try {
+      const pageSizeNum = parseInt(pageSize, 10);
+      const loadCountNum = parseInt(loadCount, 10);
+      const userIdNum = parseInt(userId, 10);
+
       const list = await this.userAlbumLikeService.loadMoreUserAlbumLike(
-        pageSize,
-        loadCount,
+        pageSizeNum,
+        loadCountNum,
+        userIdNum,
       );
       const total = await this.userAlbumLikeService.userAlbumLikeCount();
       return {
         code: 200,
         message: 'success',
         data: {
-          pageSize,
-          loadCount,
+          pageSize: pageSizeNum,
+          loadCount: loadCountNum,
           list,
           total,
         },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get(':id')
+  async findOne(
+    @Param('id') id: string,
+  ): Promise<ISuccessResponse<any> | IErrorResponse> {
+    try {
+      const data = await this.userAlbumLikeService.findOne(+id);
+      return {
+        code: 200,
+        message: 'success',
+        data,
       };
     } catch (error) {
       return {

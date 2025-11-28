@@ -30,8 +30,12 @@ export class AlbumService {
     return await this.prisma.album.findFirst({ where });
   }
 
+  async getAlbumsByArtist(artist: string): Promise<Album[]> {
+    return await this.prisma.album.findMany({ where: { artist } });
+  }
+
   async getAlbumById(id: number): Promise<Album | null> {
-    return await this.prisma.album.findUnique({ where: { id } });
+    return await this.prisma.album.findUnique({ where: { id }, include: { likedByUsers: true, listenedByUsers: true } });
   }
 
   async getAlbumTableList(pageSize: number, current: number): Promise<Album[]> {

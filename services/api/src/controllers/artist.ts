@@ -6,11 +6,13 @@ import {
   Param,
   Post,
   Put,
+  Query
 } from '@nestjs/common';
 import { Artist } from '@soundx/db';
 import {
   IErrorResponse,
   ILoadMoreData,
+  INotFoundResponse,
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
@@ -19,7 +21,7 @@ import { ArtistService } from '../services/artist';
 
 @Controller('/artist')
 export class ArtistController {
-  constructor(private readonly artistService: ArtistService) {}
+  constructor(private readonly artistService: ArtistService) { }
 
   @Get('/list')
   async getArtistList(): Promise<ISuccessResponse<Artist[]> | IErrorResponse> {
@@ -69,21 +71,25 @@ export class ArtistController {
 
   @Get('/load-more')
   async loadMoreArtist(
-    @Param('pageSize') pageSize: number,
-    @Param('loadCount') loadCount: number,
+    @Query('pageSize') pageSize: string,
+    @Query('loadCount') loadCount: string,
+    @Query('type') type?: string,
   ): Promise<ISuccessResponse<ILoadMoreData<Artist[]>> | IErrorResponse> {
     try {
+      const size = parseInt(pageSize, 10);
+      const count = parseInt(loadCount, 10);
       const artistList = await this.artistService.loadMoreArtist(
-        pageSize,
-        loadCount,
+        size,
+        count,
+        type,
       );
       const total = await this.artistService.artistCount();
       return {
         code: 200,
         message: 'success',
         data: {
-          pageSize,
-          loadCount,
+          pageSize: size,
+          loadCount: count,
           list: artistList,
           total,
         },
@@ -200,6 +206,32 @@ export class ArtistController {
         return {
           code: 500,
           message: '批量删除失败',
+        };
+      }
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/:id')
+  async getArtistById(
+    @Param('id') id: string,
+  ): Promise<ISuccessResponse<Artist> | IErrorResponse | INotFoundResponse> {
+    try {
+      const artist = await this.artistService.getArtistById(parseInt(id));
+      if (artist) {
+        return {
+          code: 200,
+          message: 'success',
+          data: artist,
+        };
+      } else {
+        return {
+          code: 404,
+          message: 'Artist not found',
         };
       }
     } catch (error) {

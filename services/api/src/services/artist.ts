@@ -13,12 +13,20 @@ export class ArtistService {
     return await this.prisma.artist.findMany();
   }
 
-  async findByName(name: string): Promise<Artist | null> {
+  async findByName(name: string, type?: any): Promise<Artist | null> {
     // Don't search if name is null
     if (name === null || name === undefined) {
       return null;
     }
-    return await this.prisma.artist.findFirst({ where: { name } });
+    const where: any = { name };
+    if (type) {
+      where.type = type;
+    }
+    return await this.prisma.artist.findFirst({ where });
+  }
+
+  async getArtistById(id: number): Promise<Artist | null> {
+    return await this.prisma.artist.findUnique({ where: { id } });
   }
 
   async getArtistTableList(
@@ -31,10 +39,19 @@ export class ArtistService {
     });
   }
 
-  async loadMoreArtist(pageSize: number, loadCount: number): Promise<Artist[]> {
+  async loadMoreArtist(
+    pageSize: number,
+    loadCount: number,
+    type?: any,
+  ): Promise<Artist[]> {
+    const where: any = {};
+    if (type) {
+      where.type = type;
+    }
     return await this.prisma.artist.findMany({
       skip: loadCount * pageSize,
       take: pageSize,
+      where,
     });
   }
 

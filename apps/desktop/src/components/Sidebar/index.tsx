@@ -5,6 +5,7 @@ import {
   HeartOutlined,
   PlusOutlined,
   SoundOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import { Typography, theme } from "antd";
 import React from "react";
@@ -43,6 +44,12 @@ const Sidebar: React.FC = () => {
           text="分类"
           onClick={() => navigate("/category")}
           active={isActive("/category")}
+        />
+        <MenuItem
+          icon={<TeamOutlined />}
+          text="艺术家"
+          onClick={() => navigate("/artists")}
+          active={isActive("/artists")}
         />
       </div>
 

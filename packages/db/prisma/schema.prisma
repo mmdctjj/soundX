@@ -50,6 +50,7 @@ model Artist {
   id     Int @id @default(autoincrement())
   name   String
   avatar String?
+  type   TrackType @default(MUSIC)
 }
 
 model UserTrackLike {

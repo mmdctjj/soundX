@@ -6,6 +6,8 @@ import Player from "./components/Player/index";
 import Sidebar from "./components/Sidebar/index";
 import { getThemeConfig } from "./config/themeConfig";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import ArtistDetail from "./pages/ArtistDetail";
+import ArtistList from "./pages/ArtistList";
 import Category from "./pages/Category/index";
 import Favorites from "./pages/Favorites/index";
 import Listened from "./pages/Listened/index";
@@ -45,9 +47,11 @@ const AppContent = () => {
               />
               <Route path="/recommended" element={<Recommended />} />
               <Route path="/detail" element={<Detail />} />
+              <Route path="/artist/:id" element={<ArtistDetail />} />
               <Route path="/category" element={<Category />} />
               <Route path="/favorites" element={<Favorites />} />
               <Route path="/listened" element={<Listened />} />
+              <Route path="/artists" element={<ArtistList />} />
             </Routes>
           </div>
         </div>

@@ -5,42 +5,11 @@ import { Button, Col, Row, Skeleton, Timeline, Typography } from "antd";
 import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
-import { cacheUtils } from "../../utils/cache";
+import { getFavoriteAlbums } from "../../services/user";
 import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
 
 const { Title } = Typography;
-
-export enum TrackType {
-  MUSIC = "MUSIC",
-  PODCAST = "PODCAST",
-}
-
-const CACHE_KEY = "favorites_timeline";
-
-// Function to generate mock timeline items
-const generateMockTimelineItem = (page: number): TimelineItem => {
-  const baseTime = Date.now() - page * 7 * 24 * 60 * 60 * 1000; // Each page is 1 week earlier
-  const albums: Album[] = [];
-
-  for (let i = 0; i < 4; i++) {
-    const id = page * 4 + i + 1;
-    albums.push({
-      id,
-      name: `Favorite Album ${id}`,
-      artist: `Artist ${id}`,
-      cover: `https://picsum.photos/seed/${id}/300/300`,
-      year: "2023",
-      type: TrackType.MUSIC,
-    });
-  }
-
-  return {
-    id: `timeline-${page}`,
-    time: baseTime,
-    items: albums,
-  };
-};
 
 interface Result {
   list: TimelineItem[];
@@ -54,29 +23,45 @@ const Favorites: React.FC = () => {
   const loadMoreFavorites = async (d: Result | undefined): Promise<Result> => {
     const currentPage = d ? d.list.length : 0;
 
-    // Try cache first for initial load
-    if (currentPage === 0) {
-      const cached = cacheUtils.get<TimelineItem[]>(CACHE_KEY);
-      if (cached && cached.length > 0) {
+    try {
+      const res = await getFavoriteAlbums(20, currentPage);
+      if (res.code === 200 && res.data) {
+        const { list, total } = res.data;
+
+        // Group by date
+        const timelineMap = new Map<string, Album[]>();
+        list.forEach((item: any) => {
+          const dateKey = new Date(item.createdAt).toDateString();
+          if (!timelineMap.has(dateKey)) {
+            timelineMap.set(dateKey, []);
+          }
+          if (item.album) {
+            timelineMap.get(dateKey)!.push(item.album);
+          }
+        });
+
+        const newItems: TimelineItem[] = Array.from(timelineMap.entries()).map(
+          ([date, albums]) => ({
+            id: date,
+            time: new Date(date).getTime(),
+            items: albums,
+          })
+        );
+
+        const newList = d ? [...d.list, ...newItems] : newItems;
+
         return {
-          list: cached,
-          hasMore: cached.length < 10,
+          list: newList,
+          hasMore: newList.length < total,
         };
       }
+    } catch (error) {
+      console.error("Failed to fetch favorites:", error);
     }
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const newItem = generateMockTimelineItem(currentPage);
-    const newList = d ? [...d.list, newItem] : [newItem];
-
-    // Cache the data
-    cacheUtils.set(CACHE_KEY, newList);
-
     return {
-      list: newList,
-      hasMore: newList.length < 10, // Limit to 10 timeline items
+      list: d?.list || [],
+      hasMore: false,
     };
   };
 
@@ -90,7 +75,6 @@ const Favorites: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    cacheUtils.clear(CACHE_KEY);
     await reload();
     setRefreshing(false);
   };

@@ -91,9 +91,15 @@ export class ImportService {
         const audioUrl = this.convertToHttpUrl(item.path, type === TrackType.AUDIOBOOK ? 'audio' : 'music', audioBasePath);
 
         // 1. Handle Artist
-        let artist = await this.artistService.findByName(artistName);
+        let artist = await this.artistService.findByName(artistName, type);
         if (!artist) {
-          artist = await this.artistService.createArtist({ name: artistName, avatar: null });
+          // Use album cover as fallback for artist avatar if not provided
+          // Since we don't have artist specific avatar in import, we use coverUrl (which is album cover)
+          artist = await this.artistService.createArtist({
+            name: artistName,
+            avatar: coverUrl,
+            type: type
+          });
         }
 
         // 2. Handle Album

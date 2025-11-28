@@ -90,3 +90,7 @@ export const getAlbumTracks = (
     }
   );
 };
+
+export const getAlbumsByArtist = (artist: string) => {
+  return request.get<any, ISuccessResponse<Album[]>>(`/album/artist/${artist}`);
+};

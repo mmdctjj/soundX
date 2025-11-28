@@ -46,6 +46,26 @@ export class AlbumController {
 
 
 
+
+  @Get('/artist/:artist')
+  async getAlbumsByArtist(
+    @Param('artist') artist: string,
+  ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
+    try {
+      const albumList = await this.albumService.getAlbumsByArtist(artist);
+      return {
+        code: 200,
+        message: 'success',
+        data: albumList,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
   @Get('/table-list')
   async getAlbumTableList(
     @Param('pageSize') pageSize: number,
