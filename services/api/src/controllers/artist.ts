@@ -19,11 +19,11 @@ import {
 import { Public } from 'src/common/public.decorator';
 import { ArtistService } from '../services/artist';
 
-@Controller('/artist')
+@Controller()
 export class ArtistController {
   constructor(private readonly artistService: ArtistService) { }
 
-  @Get('/list')
+  @Get('/artist/list')
   async getArtistList(): Promise<ISuccessResponse<Artist[]> | IErrorResponse> {
     try {
       const artistList = await this.artistService.getArtistList();
@@ -40,7 +40,7 @@ export class ArtistController {
     }
   }
 
-  @Get('/table-list')
+  @Get('/artist/table-list')
   async getArtistTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
@@ -69,7 +69,7 @@ export class ArtistController {
     }
   }
 
-  @Get('/load-more')
+  @Get('/artist/load-more')
   async loadMoreArtist(
     @Query('pageSize') pageSize: string,
     @Query('loadCount') loadCount: string,
@@ -103,7 +103,7 @@ export class ArtistController {
   }
 
   @Public()
-  @Post()
+  @Post('/artist')
   async createArtist(
     @Body() artist: Omit<Artist, 'id'>,
   ): Promise<ISuccessResponse<Artist> | IErrorResponse> {
@@ -122,7 +122,7 @@ export class ArtistController {
     }
   }
 
-  @Put('/:id')
+  @Put('/artist/:id')
   async updateArtist(
     @Param('id') id: string,
     @Body() artist: Partial<Artist>,
@@ -145,7 +145,7 @@ export class ArtistController {
     }
   }
 
-  @Delete('/:id')
+  @Delete('/artist/:id')
   async deleteArtist(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -164,7 +164,7 @@ export class ArtistController {
     }
   }
 
-  @Post('/batch-create')
+  @Post('/artist/batch-create')
   async createArtists(
     @Body() artists: Omit<Artist, 'id'>[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -190,7 +190,7 @@ export class ArtistController {
     }
   }
 
-  @Delete('/batch-delete')
+  @Delete('/artist/batch-delete')
   async deleteArtists(
     @Body() ids: number[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -206,32 +206,6 @@ export class ArtistController {
         return {
           code: 500,
           message: '批量删除失败',
-        };
-      }
-    } catch (error) {
-      return {
-        code: 500,
-        message: error,
-      };
-    }
-  }
-
-  @Get('/:id')
-  async getArtistById(
-    @Param('id') id: string,
-  ): Promise<ISuccessResponse<Artist> | IErrorResponse | INotFoundResponse> {
-    try {
-      const artist = await this.artistService.getArtistById(parseInt(id));
-      if (artist) {
-        return {
-          code: 200,
-          message: 'success',
-          data: artist,
-        };
-      } else {
-        return {
-          code: 404,
-          message: 'Artist not found',
         };
       }
     } catch (error) {
@@ -263,4 +237,32 @@ export class ArtistController {
       };
     }
   }
+
+
+  @Get('/artist/:id')
+  async getArtistById(
+    @Param('id') id: string,
+  ): Promise<ISuccessResponse<Artist> | IErrorResponse | INotFoundResponse> {
+    try {
+      const artist = await this.artistService.getArtistById(parseInt(id));
+      if (artist) {
+        return {
+          code: 200,
+          message: 'success',
+          data: artist,
+        };
+      } else {
+        return {
+          code: 404,
+          message: 'Artist not found',
+        };
+      }
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
 }

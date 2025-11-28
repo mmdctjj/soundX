@@ -20,14 +20,14 @@ import {
 import { AlbumService } from '../services/album';
 import { TrackService } from '../services/track';
 
-@Controller('/album')
+@Controller()
 export class AlbumController {
   constructor(
     private readonly albumService: AlbumService,
     private readonly trackService: TrackService,
   ) { }
 
-  @Get('/list')
+  @Get('/album/list')
   async getAlbumList(): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
     try {
       const albumList = await this.albumService.getAlbumList();
@@ -47,7 +47,7 @@ export class AlbumController {
 
 
 
-  @Get('/artist/:artist')
+  @Get('/album/artist/:artist')
   async getAlbumsByArtist(
     @Param('artist') artist: string,
   ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
@@ -66,7 +66,7 @@ export class AlbumController {
     }
   }
 
-  @Get('/table-list')
+  @Get('/album/table-list')
   async getAlbumTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
@@ -95,7 +95,7 @@ export class AlbumController {
     }
   }
 
-  @Get('/load-more')
+  @Get('/album/load-more')
   async loadMoreAlbum(
     @Query('pageSize') pageSize: number,
     @Query('loadCount') loadCount: number,
@@ -126,7 +126,7 @@ export class AlbumController {
     }
   }
 
-  @Post('/album')
+  @Post('/')
   async createAlbum(
     @Body() album: Omit<Album, 'id'>,
   ): Promise<ISuccessResponse<Album> | IErrorResponse> {
@@ -145,49 +145,7 @@ export class AlbumController {
     }
   }
 
-  @Put('/:id')
-  async updateAlbum(
-    @Param('id') id: string,
-    @Body() album: Partial<Album>,
-  ): Promise<ISuccessResponse<Album> | IErrorResponse> {
-    try {
-      const albumInfo = await this.albumService.updateAlbum(
-        parseInt(id),
-        album,
-      );
-      return {
-        code: 200,
-        message: 'success',
-        data: albumInfo,
-      };
-    } catch (error) {
-      return {
-        code: 500,
-        message: error,
-      };
-    }
-  }
-
-  @Delete('/:id')
-  async deleteAlbum(
-    @Param('id') id: string,
-  ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
-    try {
-      const isSuccess = await this.albumService.deleteAlbum(parseInt(id));
-      return {
-        code: 200,
-        message: 'success',
-        data: isSuccess,
-      };
-    } catch (error) {
-      return {
-        code: 500,
-        message: error,
-      };
-    }
-  }
-
-  @Post('/batch-create')
+  @Post('/album/batch-create')
   async createAlbums(
     @Body() albums: Omit<Album, 'id'>[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -213,7 +171,7 @@ export class AlbumController {
     }
   }
 
-  @Delete('/batch-delete')
+  @Delete('/album/batch-delete')
   async deleteAlbums(
     @Body() ids: number[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -239,8 +197,51 @@ export class AlbumController {
     }
   }
 
+  @Put('/album/:id')
+  async updateAlbum(
+    @Param('id') id: string,
+    @Body() album: Partial<Album>,
+  ): Promise<ISuccessResponse<Album> | IErrorResponse> {
+    try {
+      const albumInfo = await this.albumService.updateAlbum(
+        parseInt(id),
+        album,
+      );
+      return {
+        code: 200,
+        message: 'success',
+        data: albumInfo,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Delete('/album/:id')
+  async deleteAlbum(
+    @Param('id') id: string,
+  ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
+    try {
+      const isSuccess = await this.albumService.deleteAlbum(parseInt(id));
+      return {
+        code: 200,
+        message: 'success',
+        data: isSuccess,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+
   // 新增：最近 8 个专辑
-  @Get('/latest')
+  @Get('/album/latest')
   async getLatestAlbums(
     @Query('type') type?: string,
   ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
@@ -253,7 +254,7 @@ export class AlbumController {
   }
 
   // 新增：随机推荐 8 条未听过的专辑
-  @Get('/recommend')
+  @Get('/album/recommend')
   async getRandomUnlistenedAlbums(
     @Req() req: Request,
     @Query('type') type?: string,
@@ -273,7 +274,30 @@ export class AlbumController {
       return { code: 500, message: String(error) };
     }
   }
-  @Get('/:id')
+
+  @Get('/album/search')
+  async searchAlbums(
+    @Query('keyword') keyword: string,
+    @Query('type') type?: string,
+    @Query('limit') limit?: string,
+  ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
+    try {
+      const limitNum = limit ? parseInt(limit, 10) : 10;
+      const albums = await this.albumService.searchAlbums(keyword, type, limitNum);
+      return {
+        code: 200,
+        message: 'success',
+        data: albums,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/album/:id')
   async getAlbumById(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<Album> | IErrorResponse> {
@@ -298,7 +322,7 @@ export class AlbumController {
     }
   }
 
-  @Get('/:id/tracks')
+  @Get('/album/:id/tracks')
   async getAlbumTracks(
     @Param('id') id: string,
     @Query('pageSize') pageSize: number,
@@ -339,28 +363,6 @@ export class AlbumController {
       return {
         code: 500,
         message: String(error),
-      };
-    }
-  }
-
-  @Get('/album/search')
-  async searchAlbums(
-    @Query('keyword') keyword: string,
-    @Query('type') type?: string,
-    @Query('limit') limit?: string,
-  ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
-    try {
-      const limitNum = limit ? parseInt(limit, 10) : 10;
-      const albums = await this.albumService.searchAlbums(keyword, type, limitNum);
-      return {
-        code: 200,
-        message: 'success',
-        data: albums,
-      };
-    } catch (error) {
-      return {
-        code: 500,
-        message: error,
       };
     }
   }
