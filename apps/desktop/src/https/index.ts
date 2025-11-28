@@ -1,8 +1,32 @@
 import { message } from "antd";
 import axios, { AxiosError, type AxiosResponse } from "axios";
 
+// Get base URL based on environment
+function getBaseURL(): string {
+  // In development, use proxy
+  if (import.meta.env.DEV) {
+    return "/api";
+  }
+
+  // In production, use server address from localStorage or default
+  try {
+    const savedPaths = localStorage.getItem("importPaths");
+    if (savedPaths) {
+      const paths = JSON.parse(savedPaths);
+      if (paths.serverAddress) {
+        return paths.serverAddress;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to get server address from localStorage:", e);
+  }
+
+  // Default fallback
+  return "http://localhost:3000";
+}
+
 const instance = axios.create({
-  baseURL: "/api",
+  baseURL: getBaseURL(),
   timeout: 30000,
 });
 
@@ -21,6 +45,12 @@ instance.interceptors.request.use(
     if (token) {
       config.headers.set("Authorization", `Bearer ${token}`);
     }
+
+    // Update baseURL dynamically in production
+    if (!import.meta.env.DEV) {
+      config.baseURL = getBaseURL();
+    }
+
     return config;
   },
   (error) => {

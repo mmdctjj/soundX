@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+// In development: __dirname is in electron/, dist is at ../dist
+// In production: __dirname is in dist-electron/, dist is at ../dist (sibling directory)
+// Both cases use the same relative path, but we need to ensure it resolves correctly
 process.env.DIST = path.join(__dirname, '../dist')
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public')
 
@@ -39,9 +42,27 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(path.join(process.env.DIST || '', 'index.html'))
+    win.loadFile(path.join(process.env.DIST!, 'index.html'))
   }
+
+  // Add keyboard shortcut to open DevTools (Cmd+Option+I on Mac, Ctrl+Shift+I on Windows/Linux)
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'i' || input.key === 'I') {
+      if (process.platform === 'darwin') {
+        // Mac: Cmd+Option+I
+        if (input.meta && input.alt) {
+          win?.webContents.toggleDevTools()
+          event.preventDefault()
+        }
+      } else {
+        // Windows/Linux: Ctrl+Shift+I
+        if (input.control && input.shift) {
+          win?.webContents.toggleDevTools()
+          event.preventDefault()
+        }
+      }
+    }
+  })
 }
 
 app.on('window-all-closed', () => {
