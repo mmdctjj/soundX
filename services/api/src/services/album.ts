@@ -14,7 +14,20 @@ export class AlbumService {
   }
 
   async findByName(name: string, artist?: string, type?: any): Promise<Album | null> {
-    return await this.prisma.album.findFirst({ where: { name, artist, type } });
+    // Build where clause dynamically to avoid null matching issues
+    const where: any = {};
+
+    if (name !== null && name !== undefined) {
+      where.name = name;
+    }
+    if (artist !== null && artist !== undefined) {
+      where.artist = artist;
+    }
+    if (type !== null && type !== undefined) {
+      where.type = type;
+    }
+
+    return await this.prisma.album.findFirst({ where });
   }
 
   async getAlbumById(id: number): Promise<Album | null> {

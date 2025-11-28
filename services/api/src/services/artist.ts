@@ -14,6 +14,10 @@ export class ArtistService {
   }
 
   async findByName(name: string): Promise<Artist | null> {
+    // Don't search if name is null
+    if (name === null || name === undefined) {
+      return null;
+    }
     return await this.prisma.artist.findFirst({ where: { name } });
   }
 

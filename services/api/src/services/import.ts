@@ -81,8 +81,8 @@ export class ImportService {
       task.current = 0;
 
       const processItem = async (item: any, type: TrackType, audioBasePath: string, index: number) => {
-        const artistName = item.artist || 'Unknown Artist';
-        const albumName = item.album || 'Unknown Album';
+        const artistName = item.artist || null;
+        const albumName = item.album || null;
 
         // Convert local cover path to HTTP URL
         const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
@@ -124,15 +124,15 @@ export class ImportService {
         task.current = (task.current || 0) + 1;
       };
 
-      // Save Music
-      musicResults.map((item, index) => {
-        processItem(item, TrackType.MUSIC, musicPath, index);
-      });
+      // Save Music (sequential to avoid duplicate creation)
+      for (const [index, item] of musicResults.entries()) {
+        await processItem(item, TrackType.MUSIC, musicPath, index);
+      }
 
-      // Save Audiobooks
-      audiobookResults.map((item, index) => {
-        processItem(item, TrackType.AUDIOBOOK, audiobookPath, index);
-      });
+      // Save Audiobooks (sequential to avoid duplicate creation)
+      for (const [index, item] of audiobookResults.entries()) {
+        await processItem(item, TrackType.AUDIOBOOK, audiobookPath, index);
+      }
 
       task.status = TaskStatus.SUCCESS;
     } catch (error) {
