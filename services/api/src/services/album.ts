@@ -127,4 +127,24 @@ export class AlbumService {
     const shuffled = candidates.sort(() => Math.random() - 0.5);
     return shuffled.slice(0, limit);
   }
+
+  // 搜索专辑
+  async searchAlbums(keyword: string, type?: any, limit: number = 10): Promise<Album[]> {
+    const where: any = {
+      OR: [
+        { name: { contains: keyword } },
+        { artist: { contains: keyword } },
+      ],
+    };
+
+    if (type) {
+      where.type = type;
+    }
+
+    return await this.prisma.album.findMany({
+      where,
+      take: limit,
+      orderBy: { id: 'desc' },
+    });
+  }
 }

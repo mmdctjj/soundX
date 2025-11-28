@@ -27,6 +27,12 @@ const Listened: React.FC = () => {
     const currentPage = d ? d.list.length : 0;
 
     try {
+      if (d?.hasMore === false) {
+        return {
+          list: d?.list || [],
+          hasMore: false,
+        };
+      }
       // Fetch real data from API
       const response = await getAlbumHistory(20, currentPage);
 

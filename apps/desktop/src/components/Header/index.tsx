@@ -11,7 +11,7 @@ import {
   SunOutlined,
 } from "@ant-design/icons";
 import { Form, Input, message, Modal, Popover, theme, Tooltip } from "antd";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import {
@@ -19,6 +19,11 @@ import {
   getImportTask,
   TaskStatus,
 } from "../../services/import";
+import {
+  searchAll,
+  type SearchResults as SearchResultsType,
+} from "../../services/search";
+import SearchResults from "../SearchResults";
 import styles from "./index.module.less";
 
 const Header: React.FC = () => {
@@ -29,6 +34,15 @@ const Header: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const pollTimerRef = useRef<number | null>(null);
+
+  // Search state
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResultsType | null>(
+    null
+  );
+  const [showResults, setShowResults] = useState(false);
+  const searchTimerRef = useRef<number | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Mode state: 'music' | 'audiobook'
   const [playMode, setPlayMode] = React.useState<"music" | "audiobook">(() => {
@@ -121,10 +135,61 @@ const Header: React.FC = () => {
     }
   };
 
+  // Search handlers
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchKeyword(value);
+
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    if (value.trim()) {
+      searchTimerRef.current = setTimeout(async () => {
+        try {
+          const type =
+            localStorage.getItem("playMode") === "music"
+              ? "MUSIC"
+              : "AUDIOBOOK";
+          const results = await searchAll(value.trim(), type);
+          setSearchResults(results);
+          setShowResults(true);
+        } catch (error) {
+          console.error("Search error:", error);
+        }
+      }, 300);
+    } else {
+      setSearchResults(null);
+      setShowResults(false);
+    }
+  };
+
+  const handleCloseSearch = () => {
+    setShowResults(false);
+  };
+
+  // Click outside to close search results
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   // Cleanup timer on unmount
   React.useEffect(() => {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
   }, []);
 
@@ -158,16 +223,26 @@ const Header: React.FC = () => {
       </div>
 
       {/* Search Bar */}
-      <div className={styles.searchBar}>
+      <div className={styles.searchBar} ref={searchContainerRef}>
         <Input
           prefix={
             <SearchOutlined style={{ color: token.colorTextSecondary }} />
           }
-          placeholder="HLE官宣Gumayusi加盟"
+          placeholder="搜索单曲、艺术家、专辑"
           bordered={false}
           className={styles.searchInput}
           style={{ color: token.colorText }}
+          value={searchKeyword}
+          onChange={handleSearchChange}
+          onFocus={() => {
+            if (searchResults) {
+              setShowResults(true);
+            }
+          }}
         />
+        {showResults && searchResults && (
+          <SearchResults results={searchResults} onClose={handleCloseSearch} />
+        )}
       </div>
 
       {/* User Actions */}

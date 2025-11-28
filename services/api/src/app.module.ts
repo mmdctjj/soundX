@@ -38,7 +38,7 @@ import { UserTrackLikeService } from './services/user-track-like';
     AuthModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '1d' },
+      signOptions: { expiresIn: '100y' },
     }),
   ],
   controllers: [

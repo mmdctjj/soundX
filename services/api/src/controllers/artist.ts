@@ -8,7 +8,7 @@ import {
   Put,
   Query
 } from '@nestjs/common';
-import { Artist } from '@soundx/db';
+import { Artist, TrackType } from '@soundx/db';
 import {
   IErrorResponse,
   ILoadMoreData,
@@ -234,6 +234,28 @@ export class ArtistController {
           message: 'Artist not found',
         };
       }
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/artist/search')
+  async searchArtists(
+    @Query('keyword') keyword: string,
+    @Query('type') type?: TrackType,
+    @Query('limit') limit?: string,
+  ): Promise<ISuccessResponse<Artist[]> | IErrorResponse> {
+    try {
+      const limitNum = limit ? parseInt(limit, 10) : 10;
+      const artists = await this.artistService.searchArtists(keyword, type, limitNum);
+      return {
+        code: 200,
+        message: 'success',
+        data: artists,
+      };
     } catch (error) {
       return {
         code: 500,

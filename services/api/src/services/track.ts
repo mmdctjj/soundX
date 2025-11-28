@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient, Track } from '@soundx/db';
+import { PrismaClient, Track, TrackType } from '@soundx/db';
 
 @Injectable()
 export class TrackService {
@@ -118,4 +118,25 @@ export class TrackService {
     });
     return true;
   }
+
+  // 搜索单曲
+  async searchTracks(keyword: string, type?: TrackType, limit: number = 10): Promise<Track[]> {
+    return await this.prisma.track.findMany({
+      where: {
+        AND: [
+          type ? { type } : {},
+          {
+            OR: [
+              { name: { contains: keyword } },
+              { artist: { contains: keyword } },
+              { album: { contains: keyword } },
+            ],
+          },
+        ],
+      },
+      take: limit,
+      orderBy: { id: 'desc' },
+    });
+  }
+
 }

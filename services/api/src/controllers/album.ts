@@ -100,7 +100,7 @@ export class AlbumController {
     @Query('pageSize') pageSize: number,
     @Query('loadCount') loadCount: number,
     @Query('type') type?: string,
-  ): Promise<ISuccessResponse<ILoadMoreData<Album>> | IErrorResponse> {
+  ): Promise<ISuccessResponse<ILoadMoreData<Album[]>> | IErrorResponse> {
     try {
       const albumList = await this.albumService.loadMoreAlbum(
         Number(pageSize),
@@ -108,7 +108,6 @@ export class AlbumController {
         type,
       );
       const total = await this.albumService.albumCount();
-      const hasMore = albumList.length + (Number(loadCount) * Number(pageSize)) < total;
       return {
         code: 200,
         message: 'success',
@@ -117,7 +116,6 @@ export class AlbumController {
           loadCount: Number(loadCount),
           list: albumList,
           total,
-          hasMore,
         },
       };
     } catch (error) {
@@ -341,6 +339,28 @@ export class AlbumController {
       return {
         code: 500,
         message: String(error),
+      };
+    }
+  }
+
+  @Get('/album/search')
+  async searchAlbums(
+    @Query('keyword') keyword: string,
+    @Query('type') type?: string,
+    @Query('limit') limit?: string,
+  ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
+    try {
+      const limitNum = limit ? parseInt(limit, 10) : 10;
+      const albums = await this.albumService.searchAlbums(keyword, type, limitNum);
+      return {
+        code: 200,
+        message: 'success',
+        data: albums,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
       };
     }
   }

@@ -6,8 +6,9 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
-import { Track } from '@soundx/db';
+import { Track, TrackType } from '@soundx/db';
 import {
   IErrorResponse,
   ILoadMoreData,
@@ -202,6 +203,28 @@ export class TrackController {
           message: '批量删除失败',
         };
       }
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/track/search')
+  async searchTracks(
+    @Query('keyword') keyword: string,
+    @Query('type') type?: TrackType,
+    @Query('limit') limit?: string,
+  ): Promise<ISuccessResponse<Track[]> | IErrorResponse> {
+    try {
+      const limitNum = limit ? parseInt(limit, 10) : 10;
+      const tracks = await this.trackService.searchTracks(keyword, type, limitNum);
+      return {
+        code: 200,
+        message: 'success',
+        data: tracks,
+      };
     } catch (error) {
       return {
         code: 500,

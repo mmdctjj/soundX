@@ -17,6 +17,11 @@ const AppContent = () => {
   const { mode } = useTheme();
   const themeConfig = getThemeConfig(mode);
 
+  localStorage.setItem(
+    "token",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1tZGN0amoiLCJzdWIiOjEsImlhdCI6MTc2NDMxOTg0NCwiZXhwIjo0OTIwMDc5ODQ0fQ.lWXXDofK6Q0J_YJp5OHEhcV43mGupfeEytq4NL9QUqw"
+  );
+
   return (
     <ConfigProvider theme={themeConfig}>
       <div

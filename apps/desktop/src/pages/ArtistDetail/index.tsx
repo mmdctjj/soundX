@@ -118,7 +118,7 @@ const ArtistDetail: React.FC = () => {
         </Title>
         <Row gutter={[24, 24]}>
           {albums.map((album) => (
-            <Col key={album.id} xs={12} sm={8} md={6} lg={4} xl={4}>
+            <Col key={album.id}>
               <Cover item={album} />
             </Col>
           ))}

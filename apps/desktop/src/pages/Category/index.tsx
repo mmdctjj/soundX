@@ -1,28 +1,10 @@
 import type { Album } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
-import { Col, Row, Tabs } from "antd";
-import React, { useRef, useState } from "react";
+import { Col, Row } from "antd";
+import React, { useRef } from "react";
 import Cover from "../../components/Cover/index";
 import { loadMoreAlbum } from "../../services/album";
 import styles from "./index.module.less";
-
-interface CategoryTab {
-  value: number;
-  label: string;
-}
-
-const categoryTabs: CategoryTab[] = [
-  { value: 1, label: "全部" },
-  { value: 2, label: "流行" },
-  { value: 3, label: "摇滚" },
-  { value: 4, label: "电子" },
-  { value: 5, label: "古典" },
-  { value: 6, label: "爵士" },
-  { value: 7, label: "嘻哈" },
-  { value: 8, label: "民谣" },
-  { value: 9, label: "R&B" },
-  { value: 10, label: "乡村" },
-];
 
 interface Result {
   list: Album[];
@@ -30,7 +12,7 @@ interface Result {
 }
 
 const Category: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>("1");
+  // const [activeTab, setActiveTab] = useState<string>("1");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const loadMoreAlbums = async (d: Result | undefined): Promise<Result> => {
@@ -65,16 +47,16 @@ const Category: React.FC = () => {
     isNoMore: (d) => !d?.hasMore,
   });
 
-  const tabItems = categoryTabs.map((tab) => ({
-    key: String(tab.value),
-    label: tab.label,
-  }));
+  // const tabItems = categoryTabs.map((tab) => ({
+  //   key: String(tab.value),
+  //   label: tab.label,
+  // }));
 
   return (
     <div className={styles.container}>
       {/* Tabs */}
       <div>
-        <Tabs
+        {/* <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
           items={tabItems}
@@ -82,7 +64,7 @@ const Category: React.FC = () => {
             marginBottom: "30px",
             borderBottom: "none",
           }}
-        />
+        /> */}
       </div>
 
       {/* Cover Grid with Infinite Scroll */}
