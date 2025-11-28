@@ -1,4 +1,4 @@
-import { type Album, type Artist } from "@soundx/db";
+import { type Album, type Artist, type Track } from "@soundx/db";
 import {
   Avatar,
   Col,
@@ -6,6 +6,7 @@ import {
   Flex,
   Row,
   Skeleton,
+  Table,
   Typography,
   message,
 } from "antd";
@@ -14,14 +15,16 @@ import { useParams } from "react-router-dom";
 import Cover from "../../components/Cover";
 import { getAlbumsByArtist } from "../../services/album";
 import { getArtistById } from "../../services/artist";
+import { getTracksByArtist } from "../../services/track";
 import styles from "./index.module.less";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const ArtistDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,6 +39,11 @@ const ArtistDetail: React.FC = () => {
           const albumsRes = await getAlbumsByArtist(artistRes.data.name);
           if (albumsRes.code === 200 && albumsRes.data) {
             setAlbums(albumsRes.data);
+          }
+          // Fetch tracks using artist name
+          const tracksRes = await getTracksByArtist(artistRes.data.name);
+          if (tracksRes.code === 200 && tracksRes.data) {
+            setTracks(tracksRes.data);
           }
         } else {
           message.error("Failed to load artist details");
@@ -114,7 +122,7 @@ const ArtistDetail: React.FC = () => {
 
       <div className={styles.content}>
         <Title level={4} className={styles.sectionTitle}>
-          专辑 ({albums.length})
+          所有专辑 ({albums.length})
         </Title>
         <Row gutter={[24, 24]}>
           {albums.map((album) => (
@@ -124,6 +132,41 @@ const ArtistDetail: React.FC = () => {
           ))}
         </Row>
         {albums.length === 0 && <Empty description="暂无专辑" />}
+      </div>
+
+      <div style={{ marginTop: "48px" }}>
+        <Title level={4} className={styles.sectionTitle}>
+          所有单曲 ({tracks.length})
+        </Title>
+        <Table
+          columns={[
+            {
+              title: "#",
+              key: "index",
+              width: 100,
+              render: (_: number, record: Track) => {
+                return <Text>{record?.index?.toString()}</Text>;
+              },
+            },
+            {
+              title: "标题",
+              dataIndex: "name",
+              key: "name",
+              ellipsis: true,
+            },
+            {
+              title: "时长",
+              dataIndex: "duration",
+              key: "duration",
+              width: 100,
+              render: (duration: number) => (
+                <Text type="secondary">{duration ? duration : "00:00"}</Text>
+              ),
+            },
+          ]}
+          dataSource={tracks}
+          pagination={false}
+        />
       </div>
     </div>
   );

@@ -250,4 +250,23 @@ export class TrackController {
       };
     }
   }
+
+  @Get('/track/artist')
+  async getTracksByArtist(
+    @Query('artist') artist: string,
+  ): Promise<ISuccessResponse<Track[]> | IErrorResponse> {
+    try {
+      const tracks = await this.trackService.getTracksByArtist(artist);
+      return {
+        code: 200,
+        message: 'success',
+        data: tracks,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
 }

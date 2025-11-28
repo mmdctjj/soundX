@@ -62,7 +62,7 @@ const ArtistList: React.FC = () => {
       <div className={styles.content}>
         <Row gutter={[24, 24]}>
           {data?.list.map((artist) => (
-            <Col key={artist.id} xs={12} sm={8} md={6} lg={4} xl={4}>
+            <Col key={artist.id}>
               <Flex
                 vertical
                 align="center"

@@ -61,3 +61,9 @@ export const getLatestTracks = (type?: string) => {
     params: { type },
   });
 };
+
+export const getTracksByArtist = (artist: string) => {
+  return request.get<any, ISuccessResponse<Track[]>>("/track/artist", {
+    params: { artist },
+  });
+};

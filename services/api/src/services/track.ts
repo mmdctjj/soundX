@@ -147,4 +147,12 @@ export class TrackService {
       orderBy: { id: 'desc' },
     });
   }
+
+  // 根据艺术家获取单曲
+  async getTracksByArtist(artist: string): Promise<Track[]> {
+    return await this.prisma.track.findMany({
+      where: { artist },
+      orderBy: { id: 'desc' },
+    });
+  }
 }
