@@ -55,3 +55,9 @@ export const batchDeleteTracks = (ids: number[]) => {
     { data: ids }
   );
 };
+
+export const getLatestTracks = (type?: string) => {
+  return request.get<any, ISuccessResponse<Track[]>>("/track/latest", {
+    params: { type },
+  });
+};

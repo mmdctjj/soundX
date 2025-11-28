@@ -72,3 +72,7 @@ export const batchDeleteArtists = (ids: number[]) => {
 export const getArtistById = (id: number) => {
   return request.get<any, ISuccessResponse<Artist>>(`/artist/${id}`);
 };
+
+export const getLatestArtists = (type: string) => {
+  return request.get<any, ISuccessResponse<Artist[]>>("/artist/latest", { params: { type } });
+};

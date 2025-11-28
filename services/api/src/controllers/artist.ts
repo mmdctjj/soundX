@@ -238,6 +238,27 @@ export class ArtistController {
     }
   }
 
+  @Get('/artist/latest')
+  async getLatestArtists(
+    @Query('type') type: TrackType,
+    @Query('limit') limit?: string,
+  ): Promise<ISuccessResponse<Artist[]> | IErrorResponse> {
+    try {
+      const limitNum = limit ? parseInt(limit, 10) : 10;
+      const artists = await this.artistService.getLatestArtists(limitNum, type);
+      return {
+        code: 200,
+        message: 'success',
+        data: artists,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
 
   @Get('/artist/:id')
   async getArtistById(
@@ -264,5 +285,4 @@ export class ArtistController {
       };
     }
   }
-
 }

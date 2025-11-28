@@ -232,4 +232,22 @@ export class TrackController {
       };
     }
   }
+  @Get('/track/latest')
+  async getLatestTracks(
+    @Query('type') type?: TrackType,
+  ): Promise<ISuccessResponse<Track[]> | IErrorResponse> {
+    try {
+      const tracks = await this.trackService.getLatestTracks(type);
+      return {
+        code: 200,
+        message: 'success',
+        data: tracks,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
 }

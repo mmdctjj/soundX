@@ -139,4 +139,12 @@ export class TrackService {
     });
   }
 
+  // 获取最新单曲
+  async getLatestTracks(type?: TrackType, limit: number = 8): Promise<Track[]> {
+    return await this.prisma.track.findMany({
+      where: type ? { type } : {},
+      take: limit,
+      orderBy: { id: 'desc' },
+    });
+  }
 }

@@ -120,4 +120,15 @@ export class ArtistService {
       orderBy: { id: 'desc' },
     });
   }
+
+  // 获取最近的艺术家
+  async getLatestArtists(limit: number = 8, type: TrackType): Promise<Artist[]> {
+    return await this.prisma.artist.findMany({
+      take: limit,
+      where: {
+        type,
+      },
+      orderBy: { id: 'desc' }, // Assuming higher ID means newer, or use createdAt if available
+    });
+  }
 }

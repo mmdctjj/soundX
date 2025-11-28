@@ -1,9 +1,12 @@
 import { SyncOutlined } from "@ant-design/icons";
-import type { Album } from "@soundx/db";
-import { Button, Col, Row, Typography } from "antd";
+import type { Album, Artist, Track } from "@soundx/db";
+import { Avatar, Button, Col, Row, Typography } from "antd";
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Cover from "../../components/Cover/index";
 import { getRecentAlbums, getRecommendedAlbums } from "../../services/album";
+import { getLatestArtists } from "../../services/artist";
+import { getLatestTracks } from "../../services/track";
 import { cacheUtils } from "../../utils/cache";
 import styles from "./index.module.less";
 
@@ -11,14 +14,18 @@ const { Title } = Typography;
 
 const CACHE_KEY_RECOMMENDED = "recommended_albums";
 const CACHE_KEY_RECENT = "recent_albums";
+const CACHE_KEY_ARTISTS = "latest_artists";
+const CACHE_KEY_TRACKS = "latest_tracks";
 
 interface RecommendedSection {
   id: string;
   title: string;
-  items: Album[];
+  items: (Album | Artist | Track)[];
+  type: "album" | "artist" | "track";
 }
 
 const Recommended: React.FC = () => {
+  const navigate = useNavigate();
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState<string | null>(null);
@@ -64,6 +71,8 @@ const Recommended: React.FC = () => {
 
       let recommendedAlbums: Album[] = [];
       let recentAlbums: Album[] = [];
+      let latestArtists: Artist[] = [];
+      let latestTracks: Track[] = [];
 
       // Try to get from cache first
       if (!forceRefresh) {
@@ -73,14 +82,52 @@ const Recommended: React.FC = () => {
         const cachedRecent = cacheUtils.get<Album[]>(
           getCacheKey(CACHE_KEY_RECENT)
         );
+        const cachedArtists = cacheUtils.get<Artist[]>(
+          getCacheKey(CACHE_KEY_ARTISTS)
+        );
+        const cachedTracks = cacheUtils.get<Track[]>(
+          getCacheKey(CACHE_KEY_TRACKS)
+        );
 
-        if (cachedRecommended && cachedRecent) {
+        if (cachedRecommended && cachedRecent && cachedArtists) {
           recommendedAlbums = cachedRecommended;
           recentAlbums = cachedRecent;
-          setSections([
-            { id: "recommended", title: "为你推荐", items: recommendedAlbums },
-            { id: "recent", title: "最近上新", items: recentAlbums },
-          ]);
+          latestArtists = cachedArtists;
+          if (playMode === "music" && cachedTracks) {
+            latestTracks = cachedTracks;
+          }
+
+          const newSections: RecommendedSection[] = [
+            {
+              id: "recommended",
+              title: "为你推荐",
+              items: recommendedAlbums,
+              type: "album",
+            },
+            {
+              id: "recent",
+              title: "最近上新",
+              items: recentAlbums,
+              type: "album",
+            },
+            {
+              id: "artists",
+              title: "艺术家",
+              items: latestArtists,
+              type: "artist",
+            },
+          ];
+
+          if (playMode === "music") {
+            newSections.push({
+              id: "tracks",
+              title: "上新单曲",
+              items: latestTracks,
+              type: "track",
+            });
+          }
+
+          setSections(newSections);
           setLoading(false);
           return;
         }
@@ -88,22 +135,61 @@ const Recommended: React.FC = () => {
 
       // Fetch from API with type parameter
       const type = playMode === "music" ? "MUSIC" : "AUDIOBOOK";
-      const [recommendedRes, recentRes] = await Promise.all([
+      const promises: Promise<any>[] = [
         getRecommendedAlbums(type),
         getRecentAlbums(type),
-      ]);
+        getLatestArtists(type),
+      ];
+
+      if (playMode === "music") {
+        promises.push(getLatestTracks("MUSIC"));
+      }
+
+      const results = await Promise.all(promises);
+      const recommendedRes = results[0];
+      const recentRes = results[1];
+      const artistsRes = results[2];
+      const tracksRes = playMode === "music" ? results[3] : null;
 
       recommendedAlbums = recommendedRes.data || [];
       recentAlbums = recentRes.data || [];
+      latestArtists = artistsRes.data || [];
+      latestTracks = tracksRes?.data || [];
 
-      setSections([
-        { id: "recommended", title: "为你推荐", items: recommendedAlbums },
-        { id: "recent", title: "最近上新", items: recentAlbums },
-      ]);
+      const newSections: RecommendedSection[] = [
+        {
+          id: "recommended",
+          title: "为你推荐",
+          items: recommendedAlbums,
+          type: "album",
+        },
+        { id: "recent", title: "最近上新", items: recentAlbums, type: "album" },
+        {
+          id: "artists",
+          title: "艺术家",
+          items: latestArtists,
+          type: "artist",
+        },
+      ];
+
+      if (playMode === "music") {
+        newSections.push({
+          id: "tracks",
+          title: "上新单曲",
+          items: latestTracks,
+          type: "track",
+        });
+      }
+
+      setSections(newSections);
 
       // Save to cache with type-specific keys
       cacheUtils.set(getCacheKey(CACHE_KEY_RECOMMENDED), recommendedAlbums);
       cacheUtils.set(getCacheKey(CACHE_KEY_RECENT), recentAlbums);
+      cacheUtils.set(getCacheKey(CACHE_KEY_ARTISTS), latestArtists);
+      if (playMode === "music") {
+        cacheUtils.set(getCacheKey(CACHE_KEY_TRACKS), latestTracks);
+      }
     } catch (error) {
       console.error("Failed to load recommended sections:", error);
     } finally {
@@ -117,37 +203,26 @@ const Recommended: React.FC = () => {
 
       const type = playMode === "music" ? "MUSIC" : "AUDIOBOOK";
 
-      // Refresh only the specific section
       if (sectionId === "recommended") {
         const res = await getRecommendedAlbums(type);
-        const recommendedAlbums = res.data || [];
-
-        // Update only the recommended section
-        setSections((prev) =>
-          prev.map((section) =>
-            section.id === "recommended"
-              ? { ...section, items: recommendedAlbums }
-              : section
-          )
-        );
-
-        // Update cache
-        cacheUtils.set(getCacheKey(CACHE_KEY_RECOMMENDED), recommendedAlbums);
+        const data = res.data || [];
+        updateSection(sectionId, data);
+        cacheUtils.set(getCacheKey(CACHE_KEY_RECOMMENDED), data);
       } else if (sectionId === "recent") {
         const res = await getRecentAlbums(type);
-        const recentAlbums = res.data || [];
-
-        // Update only the recent section
-        setSections((prev) =>
-          prev.map((section) =>
-            section.id === "recent"
-              ? { ...section, items: recentAlbums }
-              : section
-          )
-        );
-
-        // Update cache
-        cacheUtils.set(getCacheKey(CACHE_KEY_RECENT), recentAlbums);
+        const data = res.data || [];
+        updateSection(sectionId, data);
+        cacheUtils.set(getCacheKey(CACHE_KEY_RECENT), data);
+      } else if (sectionId === "artists") {
+        const res = await getLatestArtists(type);
+        const data = res.data || [];
+        updateSection(sectionId, data);
+        cacheUtils.set(getCacheKey(CACHE_KEY_ARTISTS), data);
+      } else if (sectionId === "tracks") {
+        const res = await getLatestTracks("MUSIC");
+        const data = res.data || [];
+        updateSection(sectionId, data);
+        cacheUtils.set(getCacheKey(CACHE_KEY_TRACKS), data);
       }
     } catch (error) {
       console.error(`Failed to refresh ${sectionId} section:`, error);
@@ -156,15 +231,27 @@ const Recommended: React.FC = () => {
     }
   };
 
+  const updateSection = (sectionId: string, items: any[]) => {
+    setSections((prev) =>
+      prev.map((section) =>
+        section.id === sectionId ? { ...section, items } : section
+      )
+    );
+  };
+
+  const handleArtistClick = (artistId: number) => {
+    navigate(`/artist/${artistId}`);
+  };
+
   // Show skeleton loading on initial load
   if (loading) {
     return (
       <div className={styles.container}>
-        {[1, 2].map((sectionIndex) => (
+        {[1, 2, 3].map((sectionIndex) => (
           <div key={sectionIndex} className={styles.section}>
             <div className={styles.sectionHeader}>
               <Title level={3} className={styles.sectionTitle}>
-                {sectionIndex === 1 ? "为你推荐" : "最近上新"}
+                加载中...
               </Title>
             </div>
             <div className={styles.grid}>
@@ -197,9 +284,30 @@ const Recommended: React.FC = () => {
           </div>
 
           <Row gutter={[24, 24]}>
-            {section.items.map((item) => (
+            {section.items.map((item: any) => (
               <Col key={item.id}>
-                <Cover item={item} />
+                {section.type === "artist" ? (
+                  <div
+                    className={styles.artistCard}
+                    onClick={() => handleArtistClick(item.id)}
+                    style={{ cursor: "pointer", textAlign: "center" }}
+                  >
+                    <Avatar
+                      src={
+                        item.avatar
+                          ? `http://localhost:3000${item.avatar}`
+                          : `https://picsum.photos/seed/${item.id}/200/200`
+                      }
+                      size={120}
+                      icon={!item.avatar && item.name[0]}
+                    />
+                    <div style={{ marginTop: 8, fontWeight: 500 }}>
+                      {item.name}
+                    </div>
+                  </div>
+                ) : (
+                  <Cover item={item} />
+                )}
               </Col>
             ))}
           </Row>
