@@ -4,6 +4,7 @@ import { Avatar, Col, Empty, Flex, Row, Skeleton, Typography } from "antd";
 import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getArtistList } from "../../services/artist";
+import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
 const { Text } = Typography;
@@ -17,6 +18,7 @@ interface Result {
 const ArtistList: React.FC = () => {
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { mode } = usePlayMode();
 
   const loadMoreArtists = async (d: Result | undefined): Promise<Result> => {
     const current = d ? Math.ceil(d.list.length / 20) + 1 : 0;
@@ -26,11 +28,7 @@ const ArtistList: React.FC = () => {
       // TODO: Update getArtistList to support pagination and type filtering
       // For now, we might need to fetch all or use existing API
       // Assuming we will update the service to support these params
-      const res = await getArtistList(
-        pageSize,
-        current,
-        localStorage.getItem("playMode") === "music" ? "MUSIC" : "AUDIOBOOK"
-      );
+      const res = await getArtistList(pageSize, current, mode);
 
       if (res.code === 200 && res.data) {
         const { list, total } = res.data;

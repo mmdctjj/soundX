@@ -8,6 +8,7 @@ import { getRecentAlbums, getRecommendedAlbums } from "../../services/album";
 import { getLatestArtists } from "../../services/artist";
 import { getLatestTracks } from "../../services/track";
 import { cacheUtils } from "../../utils/cache";
+import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 import SectionOrderModal from "./SectionOrderModal";
 
@@ -34,37 +35,12 @@ const Recommended: React.FC = () => {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   // Get current play mode from localStorage
-  const [playMode, setPlayMode] = useState<"music" | "audiobook">(() => {
-    return (
-      (localStorage.getItem("playMode") as "music" | "audiobook") || "music"
-    );
-  });
+  const { mode: playMode } = usePlayMode();
 
-  // Listen for playMode changes
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const newMode =
-        (localStorage.getItem("playMode") as "music" | "audiobook") || "music";
-      if (newMode !== playMode) {
-        setPlayMode(newMode);
-        loadSections(true); // Reload data when mode changes
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    // Also check periodically in case localStorage changed in same window
-    const interval = setInterval(handleStorageChange, 500);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
-    };
-  }, [playMode]);
-
-  // Load initial data
+  // Load initial data whenever playMode changes
   useEffect(() => {
     loadSections();
-  }, []);
+  }, [playMode]);
 
   const getCacheKey = (base: string) => `${base}_${playMode}`;
 
@@ -122,7 +98,7 @@ const Recommended: React.FC = () => {
           recommendedAlbums = cachedRecommended;
           recentAlbums = cachedRecent;
           latestArtists = cachedArtists;
-          if (playMode === "music" && cachedTracks) {
+          if (playMode === "MUSIC" && cachedTracks) {
             latestTracks = cachedTracks;
           }
 
@@ -147,7 +123,7 @@ const Recommended: React.FC = () => {
             },
           ];
 
-          if (playMode === "music") {
+          if (playMode === "MUSIC") {
             newSections.push({
               id: "tracks",
               title: "上新单曲",
@@ -162,15 +138,15 @@ const Recommended: React.FC = () => {
         }
       }
 
-      // Fetch from API with type parameter
-      const type = playMode === "music" ? "MUSIC" : "AUDIOBOOK";
+      // Fetch from API with playMode as type parameter
+      const type = playMode;
       const promises: Promise<any>[] = [
         getRecommendedAlbums(type),
         getRecentAlbums(type),
         getLatestArtists(type),
       ];
 
-      if (playMode === "music") {
+      if (playMode === "MUSIC") {
         promises.push(getLatestTracks("MUSIC"));
       }
 
@@ -178,7 +154,7 @@ const Recommended: React.FC = () => {
       const recommendedRes = results[0];
       const recentRes = results[1];
       const artistsRes = results[2];
-      const tracksRes = playMode === "music" ? results[3] : null;
+      const tracksRes = playMode === "MUSIC" ? results[3] : null;
 
       recommendedAlbums = recommendedRes.data || [];
       recentAlbums = recentRes.data || [];
@@ -201,7 +177,7 @@ const Recommended: React.FC = () => {
         },
       ];
 
-      if (playMode === "music") {
+      if (playMode === "MUSIC") {
         newSections.push({
           id: "tracks",
           title: "上新单曲",
@@ -216,7 +192,7 @@ const Recommended: React.FC = () => {
       cacheUtils.set(getCacheKey(CACHE_KEY_RECOMMENDED), recommendedAlbums);
       cacheUtils.set(getCacheKey(CACHE_KEY_RECENT), recentAlbums);
       cacheUtils.set(getCacheKey(CACHE_KEY_ARTISTS), latestArtists);
-      if (playMode === "music") {
+      if (playMode === "MUSIC") {
         cacheUtils.set(getCacheKey(CACHE_KEY_TRACKS), latestTracks);
       }
     } catch (error) {
@@ -230,7 +206,7 @@ const Recommended: React.FC = () => {
     try {
       setRefreshing(sectionId);
 
-      const type = playMode === "music" ? "MUSIC" : "AUDIOBOOK";
+      const type = playMode;
 
       if (sectionId === "recommended") {
         const res = await getRecommendedAlbums(type);

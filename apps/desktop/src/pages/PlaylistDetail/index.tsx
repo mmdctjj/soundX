@@ -41,6 +41,7 @@ import {
 } from "../../services/playlist";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
+import { usePlayMode } from "../../utils/playMode";
 // Use the same styles as Detail component
 import styles from "../../components/Detail/index.module.less";
 
@@ -73,6 +74,8 @@ const PlaylistDetail: React.FC = () => {
     currentTrack,
     isPlaying,
   } = usePlayerStore();
+
+  const { mode } = usePlayMode();
 
   const fetchPlaylist = async () => {
     if (!id) return;
@@ -155,10 +158,7 @@ const PlaylistDetail: React.FC = () => {
     setPendingAction("move");
     setIsAddToPlaylistModalOpen(true);
     try {
-      const mode =
-        (localStorage.getItem("playMode") as "music" | "audiobook") || "music";
-      const type = mode === "music" ? "MUSIC" : "AUDIOBOOK";
-      const res = await getPlaylists(type);
+      const res = await getPlaylists(mode);
       if (res.code === 200) {
         setPlaylists(res.data);
       }

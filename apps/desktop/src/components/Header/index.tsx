@@ -10,7 +10,17 @@ import {
   SkinOutlined,
   SunOutlined,
 } from "@ant-design/icons";
-import { Form, Input, message, Modal, Popover, theme, Tooltip } from "antd";
+import { TrackType } from "@soundx/db";
+import {
+  Flex,
+  Form,
+  Input,
+  message,
+  Modal,
+  Popover,
+  theme,
+  Tooltip,
+} from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
@@ -23,6 +33,8 @@ import {
   searchAll,
   type SearchResults as SearchResultsType,
 } from "../../services/search";
+import { isWindows } from "../../utils/platform";
+import { usePlayMode } from "../../utils/playMode";
 import SearchResults from "../SearchResults";
 import styles from "./index.module.less";
 
@@ -45,17 +57,15 @@ const Header: React.FC = () => {
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Mode state: 'music' | 'audiobook'
-  const [playMode, setPlayMode] = React.useState<"music" | "audiobook">(() => {
-    return (
-      (localStorage.getItem("playMode") as "music" | "audiobook") || "music"
-    );
-  });
+  const { mode: playMode, setMode: setPlayMode } = usePlayMode();
 
+  // ... inside component
   const togglePlayMode = () => {
-    const newMode = playMode === "music" ? "audiobook" : "music";
+    const newMode =
+      playMode === TrackType.MUSIC ? TrackType.AUDIOBOOK : TrackType.MUSIC;
     setPlayMode(newMode);
-    localStorage.setItem("playMode", newMode);
-    window.location.reload();
+    // Reload to apply changes globally if needed, though usePlayMode handles reactivity
+    // window.location.reload(); // Removed reload as we now have reactive state
   };
 
   const iconStyle = { color: token.colorTextSecondary };
@@ -260,14 +270,16 @@ const Header: React.FC = () => {
       {/* User Actions */}
       <div className={styles.userActions}>
         <Tooltip
-          title={playMode === "music" ? "切换至有声书模式" : "切换至音乐模式"}
+          title={
+            playMode === TrackType.MUSIC ? "切换至有声书模式" : "切换至音乐模式"
+          }
         >
           <div
             onClick={togglePlayMode}
             className={styles.actionIcon}
             style={actionIconStyle}
           >
-            {playMode === "music" ? (
+            {playMode === TrackType.MUSIC ? (
               <CustomerServiceOutlined />
             ) : (
               <ReadOutlined />
@@ -336,13 +348,18 @@ const Header: React.FC = () => {
             </div>
           }
         >
-          <div className={styles.avatar}>
-            <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-              alt="avatar"
-              style={{ width: "100%", height: "100%" }}
-            />
-          </div>
+          <Flex
+            gap={12}
+            align="center"
+            style={{ paddingRight: isWindows() ? "140px" : "0" }}
+          >
+            <div className={styles.avatar}>
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                style={{ width: "100%", height: "100%" }}
+              />
+            </div>
+          </Flex>
         </Popover>
       </div>
 

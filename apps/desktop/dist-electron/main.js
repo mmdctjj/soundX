@@ -18,6 +18,8 @@ function createWindow() {
       // White symbols
       height: 30
     },
+    resizable: true,
+    maximizable: true,
     transparent: process.platform === "darwin",
     // Transparency works best on macOS
     opacity: 0.95,

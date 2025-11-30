@@ -4,6 +4,7 @@ import { Col, Row } from "antd";
 import React, { useRef } from "react";
 import Cover from "../../components/Cover/index";
 import { loadMoreAlbum } from "../../services/album";
+import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
 interface Result {
@@ -14,12 +15,12 @@ interface Result {
 const Category: React.FC = () => {
   // const [activeTab, setActiveTab] = useState<string>("1");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { mode } = usePlayMode();
 
   const loadMoreAlbums = async (d: Result | undefined): Promise<Result> => {
     const pageSize = 12;
     const loadCount = d ? Math.floor(d.list.length / pageSize) : 0;
-    const type =
-      localStorage.getItem("playMode") === "music" ? "MUSIC" : "AUDIOBOOK";
+    const type = mode;
 
     try {
       const res = await loadMoreAlbum({ pageSize, loadCount, type });

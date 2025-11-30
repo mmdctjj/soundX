@@ -34,6 +34,7 @@ import {
 } from "../../services/playlist";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
+import { usePlayMode } from "../../utils/playMode";
 import Lyrics from "./Lyrics";
 import styles from "./index.module.less";
 
@@ -171,10 +172,8 @@ const Player: React.FC = () => {
     setSelectedTrack(track);
     setIsAddToPlaylistModalOpen(true);
     try {
-      const mode =
-        (localStorage.getItem("playMode") as "music" | "audiobook") || "music";
-      const type = mode === "music" ? "MUSIC" : "AUDIOBOOK";
-      const res = await getPlaylists(type);
+      const { mode } = usePlayMode();
+      const res = await getPlaylists(mode);
       if (res.code === 200) {
         setPlaylists(res.data);
       }

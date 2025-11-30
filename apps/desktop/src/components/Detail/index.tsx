@@ -40,6 +40,7 @@ import {
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
+import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -68,6 +69,8 @@ const Detail: React.FC = () => {
 
   const { play, setPlaylist, currentTrack, isPlaying, toggleLike } =
     usePlayerStore();
+
+  const { mode } = usePlayMode();
 
   const pageSize = 20;
 
@@ -191,10 +194,7 @@ const Detail: React.FC = () => {
     setSelectedTrack(track);
     setIsAddToPlaylistModalOpen(true);
     try {
-      const mode =
-        (localStorage.getItem("playMode") as "music" | "audiobook") || "music";
-      const type = mode === "music" ? "MUSIC" : "AUDIOBOOK";
-      const res = await getPlaylists(type);
+      const res = await getPlaylists(mode);
       if (res.code === 200) {
         setPlaylists(res.data);
       }

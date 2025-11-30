@@ -26,6 +26,7 @@ import type { TimelineItem } from "../../models";
 import { getAlbumHistory, getTrackHistory } from "../../services/user";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
+import { usePlayMode } from "../../utils/playMode";
 import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
 
@@ -44,8 +45,8 @@ const Listened: React.FC = () => {
   const { token } = theme.useToken();
   const { play, setPlaylist, currentTrack, isPlaying } = usePlayerStore();
 
-  const type =
-    localStorage.getItem("playMode") === "music" ? "MUSIC" : "AUDIOBOOK";
+  const { mode } = usePlayMode();
+  const type = mode;
 
   const loadMoreListened = async (d: Result | undefined): Promise<Result> => {
     const currentLoadCount = d?.nextId || 0;

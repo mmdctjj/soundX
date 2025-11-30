@@ -15,6 +15,7 @@ import {
   getPlaylists,
   type Playlist,
 } from "../../services/playlist";
+import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
 const { Text, Title } = Typography;
@@ -28,17 +29,11 @@ const Sidebar: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
-  // Get current mode from localStorage or default to music
-  const mode =
-    (localStorage.getItem("playMode") as "music" | "audiobook") || "music";
-
-  // Listen for mode changes (custom event or polling/context would be better, but for now we rely on reload or simple check)
-  // Since Header reloads page on mode change, we just need to fetch on mount.
+  const { mode } = usePlayMode();
 
   const fetchPlaylists = async () => {
     try {
-      const type = mode === "music" ? "MUSIC" : "AUDIOBOOK";
-      const res = await getPlaylists(type);
+      const res = await getPlaylists(mode);
       if (res.code === 200) {
         setPlaylists(res.data);
       }
@@ -57,8 +52,7 @@ const Sidebar: React.FC = () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
-      const type = mode === "music" ? "MUSIC" : "AUDIOBOOK";
-      const res = await createPlaylist(values.name, type);
+      const res = await createPlaylist(values.name, mode);
 
       if (res.code === 200) {
         message.success("创建成功");
