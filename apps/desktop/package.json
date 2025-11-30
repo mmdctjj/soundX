@@ -75,6 +75,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Sound X"
     },
+    "electronRebuild": false,
     "mac": {
       "target": [
         "dmg",

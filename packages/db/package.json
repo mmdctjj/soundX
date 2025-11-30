@@ -11,6 +11,10 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "files": [
+    "dist",
+    "prisma"
+  ],
   "scripts": {
     "build": "tsc && tsc -p tsconfig.esm.json",
     "generate": "prisma generate",

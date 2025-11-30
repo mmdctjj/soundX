@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./packages/db/prisma/dev.db
+    volumes:
+      # Mount database file for persistence
+      - ./packages/db/prisma:/app/packages/db/prisma
+      # Mount cache directory for cover images
+      - api-cache:/app/cache
+    restart: unless-stopped
+
+volumes:
+  api-cache:
