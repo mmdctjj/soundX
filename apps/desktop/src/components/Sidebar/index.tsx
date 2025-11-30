@@ -6,7 +6,6 @@ import {
   PlusOutlined,
   SoundOutlined,
   TeamOutlined,
-  UnorderedListOutlined,
 } from "@ant-design/icons";
 import { Form, Input, Modal, Typography, message, theme } from "antd";
 import React, { useEffect, useState } from "react";
@@ -30,11 +29,8 @@ const Sidebar: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // Get current mode from localStorage or default to music
-  const [mode, setMode] = useState<"music" | "audiobook">(() => {
-    return (
-      (localStorage.getItem("playMode") as "music" | "audiobook") || "music"
-    );
-  });
+  const mode =
+    (localStorage.getItem("playMode") as "music" | "audiobook") || "music";
 
   // Listen for mode changes (custom event or polling/context would be better, but for now we rely on reload or simple check)
   // Since Header reloads page on mode change, we just need to fetch on mount.
@@ -136,7 +132,7 @@ const Sidebar: React.FC = () => {
         {playlists.map((playlist) => (
           <MenuItem
             key={playlist.id}
-            icon={<UnorderedListOutlined />}
+            icon={<></>}
             text={playlist.name}
             onClick={() => navigate(`/playlist/${playlist.id}`)}
             active={isActive(`/playlist/${playlist.id}`)}

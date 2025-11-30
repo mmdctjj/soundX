@@ -1,4 +1,5 @@
 import { ConfigProvider } from "antd";
+import zhCN from "antd/locale/zh_CN";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Detail from "./components/Detail/index";
 import Header from "./components/Header/index";
@@ -19,7 +20,7 @@ const AppContent = () => {
   const themeConfig = getThemeConfig(mode);
 
   return (
-    <ConfigProvider theme={themeConfig}>
+    <ConfigProvider theme={themeConfig} locale={zhCN}>
       <div
         style={{
           display: "flex",

@@ -331,28 +331,26 @@ const PlaylistDetail: React.FC = () => {
         <Flex align="center" gap={16} className={styles.bannerContent}>
           <div
             style={{
-              width: 150,
-              height: 150,
+              width: 50,
+              height: 50,
               backgroundColor: token.colorFillSecondary,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              borderRadius: 8,
-              fontSize: 64,
-              color: token.colorTextSecondary,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+              borderRadius: "50%",
             }}
           >
-            {playlist?.name?.[0]?.toUpperCase() || "P"}
+            <img
+              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+              alt="avatar"
+              style={{ width: "100%", height: "100%" }}
+            />
           </div>
           <Flex vertical gap={0}>
             <Title level={4} style={{ color: "#fff", margin: 0 }}>
               {playlist?.name || "Unknown Playlist"}
             </Title>
             <Text type="secondary" style={{ color: "#ccc" }}>
-              User • {playlist?.tracks?.length || 0} 首歌曲
-            </Text>
-            <Text type="secondary" style={{ color: "#aaa", fontSize: "12px" }}>
               创建于{" "}
               {playlist?.createdAt
                 ? new Date(playlist.createdAt).toLocaleDateString()

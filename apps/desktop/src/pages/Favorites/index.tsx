@@ -1,62 +1,144 @@
-import { SyncOutlined } from "@ant-design/icons";
-import { type Album } from "@soundx/db";
+import {
+  AppstoreOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  SyncOutlined,
+  UnorderedListOutlined,
+} from "@ant-design/icons";
+import { type Album, type Track } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
-import { Button, Col, Empty, Row, Skeleton, Timeline, Typography } from "antd";
+import {
+  Button,
+  Col,
+  Empty,
+  Flex,
+  Row,
+  Segmented,
+  Skeleton,
+  Table,
+  Timeline,
+  Typography,
+  theme,
+} from "antd";
 import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
-import { getFavoriteAlbums } from "../../services/user";
+import { getFavoriteAlbums, getFavoriteTracks } from "../../services/user";
+import { usePlayerStore } from "../../store/player";
 import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 interface Result {
   list: TimelineItem[];
   hasMore: boolean;
+  nextId?: number;
 }
 
 const Favorites: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<"album" | "track">("album");
+  const { token } = theme.useToken();
+  const { play, setPlaylist, currentTrack, isPlaying } = usePlayerStore();
 
   const type =
     localStorage.getItem("playMode") === "music" ? "MUSIC" : "AUDIOBOOK";
 
   const loadMoreFavorites = async (d: Result | undefined): Promise<Result> => {
-    const currentPage = d ? d.list.length : 0;
+    const currentLoadCount = d?.nextId || 0;
+    const isFirstLoad = !d;
 
     try {
-      const res = await getFavoriteAlbums(20, currentPage);
-      if (res.code === 200 && res.data) {
-        const { list, total } = res.data;
+      if (viewMode === "album") {
+        const res = await getFavoriteAlbums(
+          20,
+          isFirstLoad ? 0 : d.list.length
+        );
+        if (res.code === 200 && res.data) {
+          const { list, total } = res.data;
 
-        // Group by date
-        const timelineMap = new Map<string, Album[]>();
-        list.forEach((item: any) => {
-          const dateKey = new Date(item.createdAt).toDateString();
-          if (!timelineMap.has(dateKey)) {
-            timelineMap.set(dateKey, []);
-          }
-          if (item.album) {
-            timelineMap.get(dateKey)!.push(item.album);
-          }
-        });
+          // Group by date
+          const timelineMap = new Map<string, Album[]>();
+          list.forEach((item: any) => {
+            const dateKey = new Date(item.createdAt).toDateString();
+            if (!timelineMap.has(dateKey)) {
+              timelineMap.set(dateKey, []);
+            }
+            if (item.album) {
+              timelineMap.get(dateKey)!.push(item.album);
+            }
+          });
 
-        const newItems: TimelineItem[] = Array.from(timelineMap.entries()).map(
-          ([date, albums]) => ({
+          const newItems: TimelineItem[] = Array.from(
+            timelineMap.entries()
+          ).map(([date, albums]) => ({
             id: date,
             time: new Date(date).getTime(),
             items: albums?.filter((album) => album.type === type),
-          })
-        );
+          }));
 
-        const newList = d ? [...d.list, ...newItems] : newItems;
+          const newList = d ? [...d.list, ...newItems] : newItems;
 
-        return {
-          list: newList,
-          hasMore: newList.length < total,
-        };
+          return {
+            list: newList,
+            hasMore: newList.length < total, // This might be inaccurate if we filter by type, but good enough for now
+            nextId: 0, // Not used for albums pagination logic which uses offset
+          };
+        }
+      } else {
+        // Track mode
+        const res = await getFavoriteTracks(currentLoadCount, 20);
+        console.log(res);
+        if (res.code === 200 && res.data) {
+          const { list, total: _total, loadCount } = res.data;
+
+          const timelineMap = new Map<string, Track[]>();
+          list.forEach((item: any) => {
+            const dateKey = new Date(item.createdAt).toDateString();
+            if (!timelineMap.has(dateKey)) {
+              timelineMap.set(dateKey, []);
+            }
+            if (item.track) {
+              timelineMap.get(dateKey)!.push(item.track);
+            }
+          });
+
+          const newItems: TimelineItem[] = Array.from(
+            timelineMap.entries()
+          ).map(([date, tracks]) => ({
+            id: date,
+            time: new Date(date).getTime(),
+            items: tracks, // We assume tracks are already filtered by type if needed, or we filter here?
+            // Tracks don't strictly have a 'type' field like Album in the schema I recall, but they belong to albums.
+            // For now assume all liked tracks are valid.
+          }));
+
+          // Merge with existing items if date matches
+          let mergedList = d ? [...d.list] : [];
+          newItems.forEach((newItem) => {
+            const existingItemIndex = mergedList.findIndex(
+              (item) => item.id === newItem.id
+            );
+            if (existingItemIndex > -1) {
+              mergedList[existingItemIndex].items = [
+                ...mergedList[existingItemIndex].items,
+                ...newItem.items,
+              ];
+            } else {
+              mergedList.push(newItem);
+            }
+          });
+
+          if (!d) mergedList = newItems;
+
+          return {
+            list: mergedList,
+            hasMore: list.length === 20, // Simple check
+            nextId: loadCount,
+          };
+        }
       }
     } catch (error) {
       console.error("Failed to fetch favorites:", error);
@@ -73,6 +155,7 @@ const Favorites: React.FC = () => {
     {
       target: scrollRef,
       isNoMore: (d) => !d?.hasMore,
+      reloadDeps: [viewMode],
     }
   );
 
@@ -82,6 +165,80 @@ const Favorites: React.FC = () => {
     setRefreshing(false);
   };
 
+  const handlePlayTrack = (track: Track, tracks: Track[]) => {
+    setPlaylist(tracks);
+    play(track, -1);
+  };
+
+  const columns = [
+    {
+      title: " ",
+      key: "play",
+      width: 50,
+      render: (_: any, record: Track) => {
+        const isCurrent = currentTrack?.id === record.id;
+        return (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              // Find the list this track belongs to
+              const group = data?.list.find((item) =>
+                item.items.some((t: Track) => t.id === record.id)
+              );
+              if (group) {
+                handlePlayTrack(record, group.items as Track[]);
+              }
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            {isCurrent && isPlaying ? (
+              <PauseCircleOutlined style={{ color: token.colorPrimary }} />
+            ) : (
+              <PlayCircleOutlined />
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      title: "标题",
+      dataIndex: "name",
+      key: "name",
+      render: (text: string, record: Track) => (
+        <Text
+          strong={currentTrack?.id === record.id}
+          style={{
+            color:
+              currentTrack?.id === record.id ? token.colorPrimary : undefined,
+          }}
+        >
+          {text}
+        </Text>
+      ),
+    },
+    {
+      title: "艺术家",
+      dataIndex: "artist",
+      key: "artist",
+      render: (text: string) => <Text type="secondary">{text}</Text>,
+    },
+    {
+      title: "专辑",
+      dataIndex: ["album", "name"],
+      key: "album",
+      render: (text: string) => <Text type="secondary">{text}</Text>,
+    },
+    {
+      title: "时长",
+      dataIndex: "duration",
+      key: "duration",
+      width: 100,
+      render: (duration: number) => (
+        <Text type="secondary">{duration ? duration : "00:00"}</Text>
+      ),
+    },
+  ];
+
   const timelineItems =
     data?.list.map((item) => ({
       children: (
@@ -89,13 +246,29 @@ const Favorites: React.FC = () => {
           <Title level={4} className={styles.timelineTitle}>
             {formatTimeLabel(item.time)}
           </Title>
-          <Row gutter={[24, 24]} className={styles.grid}>
-            {item.items.map((album) => (
-              <Col key={album.id}>
-                <Cover item={album} />
-              </Col>
-            ))}
-          </Row>
+          {viewMode === "album" ? (
+            <Row gutter={[24, 24]} className={styles.grid}>
+              {item.items.map((album) => (
+                <Col key={album.id}>
+                  <Cover item={album as Album} />
+                </Col>
+              ))}
+            </Row>
+          ) : (
+            <Table
+              dataSource={item.items as Track[]}
+              columns={columns}
+              pagination={false}
+              rowKey="id"
+              showHeader={false}
+              size="small"
+              onRow={(record) => ({
+                onDoubleClick: () => {
+                  handlePlayTrack(record, item.items as Track[]);
+                },
+              })}
+            />
+          )}
         </div>
       ),
     })) || [];
@@ -106,15 +279,27 @@ const Favorites: React.FC = () => {
         <Title level={2} className={styles.title}>
           收藏
         </Title>
-        <Button
-          type="text"
-          icon={<SyncOutlined spin={refreshing} />}
-          onClick={handleRefresh}
-          loading={refreshing}
-          className={styles.refreshButton}
-        >
-          刷新
-        </Button>
+        <Flex gap={8} align="center">
+          {type === "MUSIC" && (
+            <Segmented
+              options={[
+                { value: "album", icon: <AppstoreOutlined /> },
+                { value: "track", icon: <UnorderedListOutlined /> },
+              ]}
+              value={viewMode}
+              onChange={(value) => setViewMode(value as "album" | "track")}
+            />
+          )}
+          <Button
+            type="text"
+            icon={<SyncOutlined spin={refreshing} />}
+            onClick={handleRefresh}
+            loading={refreshing}
+            className={styles.refreshButton}
+          >
+            刷新
+          </Button>
+        </Flex>
       </div>
 
       <Timeline mode="left" items={timelineItems} className={styles.timeline} />
@@ -143,7 +328,7 @@ const Favorites: React.FC = () => {
 
       {data?.list.length === 0 && !loading && (
         <div className={styles.noData}>
-          <Empty />
+          <Empty description="暂无收藏" />
         </div>
       )}
     </div>

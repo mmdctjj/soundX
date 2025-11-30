@@ -1,16 +1,16 @@
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { UserTrackLike } from '@soundx/db';
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
-import { UserTrackLikeService } from '../services/user-track-like';
 import {
   IErrorResponse,
+  ILoadMoreData,
   ISuccessResponse,
   ITableData,
-  ILoadMoreData,
 } from 'src/common/const';
+import { UserTrackLikeService } from '../services/user-track-like';
 
 @Controller('user-track-likes')
 export class UserTrackLikeController {
-  constructor(private readonly userTrackLikeService: UserTrackLikeService) {}
+  constructor(private readonly userTrackLikeService: UserTrackLikeService) { }
 
   @Post('/create')
   async create(
@@ -35,45 +35,6 @@ export class UserTrackLikeController {
   async findAll(): Promise<ISuccessResponse<UserTrackLike[]> | IErrorResponse> {
     try {
       const data = await this.userTrackLikeService.findAll();
-      return {
-        code: 200,
-        message: 'success',
-        data,
-      };
-    } catch (error) {
-      return {
-        code: 500,
-        message: error,
-      };
-    }
-  }
-
-  @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-  ): Promise<ISuccessResponse<UserTrackLike | null> | IErrorResponse> {
-    try {
-      const data = await this.userTrackLikeService.findOne(+id);
-      return {
-        code: 200,
-        message: 'success',
-        data,
-      };
-    } catch (error) {
-      return {
-        code: 500,
-        message: error,
-      };
-    }
-  }
-
-  @Delete(':id')
-  async remove(
-    @Param('id') id: string,
-  ): Promise<ISuccessResponse<UserTrackLike> | IErrorResponse> {
-    try {
-      const data = await this.userTrackLikeService.remove(+id);
       return {
         code: 200,
         message: 'success',
@@ -118,23 +79,26 @@ export class UserTrackLikeController {
 
   @Get('/load-more')
   async loadMoreUserTrackLike(
-    @Param('lastId') lastId: string,
-    @Param('pageSize') pageSize: string = '10',
+    @Query('userId') userId: string,
+    @Query('loadCount') loadCount: string,
+    @Query('pageSize') pageSize: string = '10',
   ): Promise<
     ISuccessResponse<ILoadMoreData<UserTrackLike[]>> | IErrorResponse
   > {
     try {
       const list = await this.userTrackLikeService.loadMoreUserTrackLike(
-        Number(lastId),
+        Number(loadCount),
         Number(pageSize),
+        Number(userId),
       );
+
       const total = await this.userTrackLikeService.userTrackLikeCount();
       return {
         code: 200,
         message: 'success',
         data: {
           pageSize: Number(pageSize),
-          loadCount: Number(lastId),
+          loadCount: Number(loadCount),
           list,
           total,
         },
@@ -157,6 +121,45 @@ export class UserTrackLikeController {
         code: 200,
         message: 'success',
         data: count,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get(':id')
+  async findOne(
+    @Param('id') id: string,
+    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+  ): Promise<ISuccessResponse<UserTrackLike | null> | IErrorResponse> {
+    try {
+      const data = await this.userTrackLikeService.findOne(+id);
+      return {
+        code: 200,
+        message: 'success',
+        data,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Delete(':id')
+  async remove(
+    @Param('id') id: string,
+  ): Promise<ISuccessResponse<UserTrackLike> | IErrorResponse> {
+    try {
+      const data = await this.userTrackLikeService.remove(+id);
+      return {
+        code: 200,
+        message: 'success',
+        data,
       };
     } catch (error) {
       return {

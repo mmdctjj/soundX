@@ -59,3 +59,15 @@ export const getFavoriteAlbums = (loadCount: number, pageSize: number) => {
     params: { pageSize, loadCount, userId: 1 },
   });
 };
+
+export const getFavoriteTracks = (loadCount: number, pageSize: number) => {
+  return request.get<any, ISuccessResponse<ILoadMoreData<any>>>("/user-track-likes/load-more", {
+    params: { pageSize, loadCount: loadCount, userId: 1, lastId: loadCount },
+  });
+};
+
+export const getTrackHistory = (loadCount: number, pageSize: number) => {
+  return request.get<any, ISuccessResponse<ILoadMoreData<any>>>("/user-track-histories/load-more", {
+    params: { pageSize, loadCount: loadCount, userId: 1 },
+  });
+};

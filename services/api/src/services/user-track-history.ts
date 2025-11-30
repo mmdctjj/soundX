@@ -38,14 +38,22 @@ export class UserTrackHistoryService {
     });
   }
 
-  async loadMoreUserTrackHistory(pageSize: number, loadCount: number) {
+  async loadMoreUserTrackHistory(pageSize: number, loadCount: number, userId: number) {
     return await this.prisma.userTrackHistory.findMany({
       skip: loadCount * pageSize,
       take: pageSize,
+      where: { userId },
+      include: {
+        track: true,
+      },
+      distinct: ['trackId'],
+      orderBy: {
+        listenedAt: 'desc',
+      },
     });
   }
 
-  async userTrackHistoryCount() {
-    return await this.prisma.userTrackHistory.count();
+  async userTrackHistoryCount(userId: number) {
+    return await this.prisma.userTrackHistory.count({ where: { userId } });
   }
 }
