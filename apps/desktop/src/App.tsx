@@ -11,6 +11,7 @@ import ArtistList from "./pages/ArtistList";
 import Category from "./pages/Category/index";
 import Favorites from "./pages/Favorites/index";
 import Listened from "./pages/Listened/index";
+import PlaylistDetail from "./pages/PlaylistDetail";
 import Recommended from "./pages/Recommended/index";
 
 const AppContent = () => {
@@ -52,6 +53,7 @@ const AppContent = () => {
               <Route path="/favorites" element={<Favorites />} />
               <Route path="/listened" element={<Listened />} />
               <Route path="/artists" element={<ArtistList />} />
+              <Route path="/playlist/:id" element={<PlaylistDetail />} />
             </Routes>
           </div>
         </div>

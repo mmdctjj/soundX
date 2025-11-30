@@ -1,9 +1,11 @@
 import {
   DeliveredProcedureOutlined,
   DownOutlined,
+  MoreOutlined,
   OrderedListOutlined,
   PauseCircleFilled,
   PlayCircleFilled,
+  PlusOutlined,
   SoundOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
@@ -12,16 +14,24 @@ import {
 import { type Track } from "@soundx/db";
 import {
   Drawer,
+  Dropdown,
   Flex,
   List,
+  message,
+  Modal,
   Popover,
   Slider,
   Tabs,
+  theme,
   Tooltip,
   Typography,
-  theme,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import {
+  addTrackToPlaylist,
+  getPlaylists,
+  type Playlist,
+} from "../../services/playlist";
 import { usePlayerStore } from "../../store/player";
 import Lyrics from "./Lyrics";
 import styles from "./index.module.less";
@@ -61,6 +71,12 @@ const Player: React.FC = () => {
     return saved ? Number(saved) : 0;
   });
   const [activeTab, setActiveTab] = useState<"playlist" | "lyrics">("playlist");
+
+  // Playlist Modal State
+  const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] =
+    useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   // Sync volume with audio element
   useEffect(() => {
@@ -155,6 +171,38 @@ const Player: React.FC = () => {
     return path
       ? `http://localhost:3000${path}`
       : "https://picsum.photos/seed/music/300/300";
+  };
+
+  const openAddToPlaylistModal = async (e: React.MouseEvent, track: Track) => {
+    e.stopPropagation();
+    setSelectedTrack(track);
+    setIsAddToPlaylistModalOpen(true);
+    try {
+      const mode =
+        (localStorage.getItem("playMode") as "music" | "audiobook") || "music";
+      const type = mode === "music" ? "MUSIC" : "AUDIOBOOK";
+      const res = await getPlaylists(type);
+      if (res.code === 200) {
+        setPlaylists(res.data);
+      }
+    } catch (error) {
+      message.error("获取播放列表失败");
+    }
+  };
+
+  const handleAddToPlaylist = async (playlistId: number) => {
+    if (!selectedTrack) return;
+    try {
+      const res = await addTrackToPlaylist(playlistId, selectedTrack.id);
+      if (res.code === 200) {
+        message.success("添加成功");
+        setIsAddToPlaylistModalOpen(false);
+      } else {
+        message.error("添加失败");
+      }
+    } catch (error) {
+      message.error("添加失败");
+    }
   };
 
   return (
@@ -521,6 +569,36 @@ const Player: React.FC = () => {
                             ? "rgba(255,255,255,0.1)"
                             : "transparent",
                       }}
+                      actions={[
+                        <Dropdown
+                          key="more"
+                          trigger={["click"]}
+                          menu={{
+                            items: [
+                              {
+                                key: "add",
+                                label: "添加到播放列表",
+                                icon: <PlusOutlined />,
+                                onClick: (info) => {
+                                  info.domEvent.stopPropagation();
+                                  openAddToPlaylistModal(
+                                    info.domEvent as any,
+                                    item
+                                  );
+                                },
+                              },
+                            ],
+                          }}
+                        >
+                          <MoreOutlined
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              color: token.colorTextSecondary,
+                              cursor: "pointer",
+                            }}
+                          />
+                        </Dropdown>,
+                      ]}
                     >
                       <List.Item.Meta
                         avatar={
@@ -586,6 +664,33 @@ const Player: React.FC = () => {
                     ? token.colorFillTertiary
                     : "transparent",
               }}
+              actions={[
+                <Dropdown
+                  key="more"
+                  trigger={["click"]}
+                  menu={{
+                    items: [
+                      {
+                        key: "add",
+                        label: "添加到播放列表",
+                        icon: <PlusOutlined />,
+                        onClick: (info) => {
+                          info.domEvent.stopPropagation();
+                          openAddToPlaylistModal(info.domEvent as any, item);
+                        },
+                      },
+                    ],
+                  }}
+                >
+                  <MoreOutlined
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      color: token.colorTextSecondary,
+                      cursor: "pointer",
+                    }}
+                  />
+                </Dropdown>,
+              ]}
             >
               <List.Item.Meta
                 avatar={
@@ -617,6 +722,27 @@ const Player: React.FC = () => {
           )}
         />
       </Drawer>
+
+      <Modal
+        title="添加到播放列表"
+        open={isAddToPlaylistModalOpen}
+        onCancel={() => setIsAddToPlaylistModalOpen(false)}
+        footer={null}
+      >
+        <List
+          dataSource={playlists}
+          renderItem={(item) => (
+            <List.Item
+              onClick={() => handleAddToPlaylist(item.id)}
+              style={{ cursor: "pointer" }}
+              className={styles.playlistItem}
+            >
+              <Text>{item.name}</Text>
+              <Text type="secondary">{item._count?.tracks || 0} 首</Text>
+            </List.Item>
+          )}
+        />
+      </Modal>
     </div>
   );
 };

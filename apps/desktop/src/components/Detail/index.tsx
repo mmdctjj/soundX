@@ -3,8 +3,10 @@ import {
   CloudDownloadOutlined,
   HeartFilled,
   HeartOutlined,
+  MoreOutlined,
   PauseOutlined,
   PlayCircleOutlined,
+  PlusOutlined,
   SearchOutlined,
   ShareAltOutlined,
   SortAscendingOutlined,
@@ -15,9 +17,13 @@ import { useRequest } from "ahooks";
 import {
   Avatar,
   Col,
+  Dropdown,
   Flex,
   Input,
+  List,
+  type MenuProps,
   message,
+  Modal,
   Row,
   Table,
   theme,
@@ -26,6 +32,11 @@ import {
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
+import {
+  addTrackToPlaylist,
+  getPlaylists,
+  type Playlist,
+} from "../../services/playlist";
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
 import { usePlayerStore } from "../../store/player";
 import styles from "./index.module.less";
@@ -45,6 +56,12 @@ const Detail: React.FC = () => {
   const [keyword, setKeyword] = useState("");
   const [keywordMidValue, setKeywordMidValue] = useState("");
   const [isLiked, setIsLiked] = useState(false);
+
+  // Playlist Modal State
+  const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] =
+    useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   const { token } = theme.useToken();
 
@@ -166,12 +183,38 @@ const Detail: React.FC = () => {
   const handleToggleLike = async (e: React.MouseEvent, track: Track) => {
     e.stopPropagation();
     await toggleLike(track.id);
-    // Optimistically update UI if needed, or rely on store/refetch
-    // For now, let's just force a re-render or assume store handles it if we had like status in store
-    // Since we don't have like status in Track model in frontend easily syncable without refetch,
-    // we might need to update local state.
-    // But Track model has likedByUsers... which is complex to check.
-    // Let's assume for this task we just trigger the action.
+  };
+
+  const openAddToPlaylistModal = async (e: React.MouseEvent, track: Track) => {
+    e.stopPropagation();
+    setSelectedTrack(track);
+    setIsAddToPlaylistModalOpen(true);
+    try {
+      const mode =
+        (localStorage.getItem("playMode") as "music" | "audiobook") || "music";
+      const type = mode === "music" ? "MUSIC" : "AUDIOBOOK";
+      const res = await getPlaylists(type);
+      if (res.code === 200) {
+        setPlaylists(res.data);
+      }
+    } catch (error) {
+      message.error("获取播放列表失败");
+    }
+  };
+
+  const handleAddToPlaylist = async (playlistId: number) => {
+    if (!selectedTrack) return;
+    try {
+      const res = await addTrackToPlaylist(playlistId, selectedTrack.id);
+      if (res.code === 200) {
+        message.success("添加成功");
+        setIsAddToPlaylistModalOpen(false);
+      } else {
+        message.error("添加失败");
+      }
+    } catch (error) {
+      message.error("添加失败");
+    }
   };
 
   const columns = [
@@ -227,15 +270,44 @@ const Detail: React.FC = () => {
       ),
     },
     {
-      title: ":",
+      title: <MoreOutlined />,
       key: "actions",
-      width: 50,
-      render: (_: any, record: Track) => (
-        <HeartOutlined
-          onClick={(e) => handleToggleLike(e, record)}
-          style={{ cursor: "pointer" }}
-        />
-      ),
+      width: 100,
+      render: (_: any, record: Track) => {
+        const items: MenuProps["items"] = [
+          {
+            key: "like",
+            label: isLiked ? "取消收藏" : "收藏",
+            icon: isLiked ? (
+              <HeartFilled style={{ color: "#ff4d4f" }} />
+            ) : (
+              <HeartOutlined />
+            ),
+            onClick: (info) => {
+              info.domEvent.stopPropagation();
+              handleToggleLike(info.domEvent as any, record);
+            },
+          },
+          {
+            key: "add",
+            label: "添加到播放列表",
+            icon: <PlusOutlined />,
+            onClick: (info) => {
+              info.domEvent.stopPropagation();
+              openAddToPlaylistModal(info.domEvent as any, record);
+            },
+          },
+        ];
+
+        return (
+          <Dropdown menu={{ items }} trigger={["click"]}>
+            <MoreOutlined
+              style={{ cursor: "pointer", fontSize: "20px" }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Dropdown>
+        );
+      },
     },
   ];
 
@@ -362,6 +434,27 @@ const Detail: React.FC = () => {
           </Col>
         </Row>
       </div>
+
+      <Modal
+        title="添加到播放列表"
+        open={isAddToPlaylistModalOpen}
+        onCancel={() => setIsAddToPlaylistModalOpen(false)}
+        footer={null}
+      >
+        <List
+          dataSource={playlists}
+          renderItem={(item) => (
+            <List.Item
+              onClick={() => handleAddToPlaylist(item.id)}
+              style={{ cursor: "pointer" }}
+              className={styles.playlistItem}
+            >
+              <Text>{item.name}</Text>
+              <Text type="secondary">{item._count?.tracks || 0} 首</Text>
+            </List.Item>
+          )}
+        />
+      </Modal>
     </div>
   );
 };

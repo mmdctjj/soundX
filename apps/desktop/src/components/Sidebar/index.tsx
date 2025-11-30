@@ -6,10 +6,16 @@ import {
   PlusOutlined,
   SoundOutlined,
   TeamOutlined,
+  UnorderedListOutlined,
 } from "@ant-design/icons";
-import { Typography, theme } from "antd";
-import React from "react";
+import { Form, Input, Modal, Typography, message, theme } from "antd";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import {
+  createPlaylist,
+  getPlaylists,
+  type Playlist,
+} from "../../services/playlist";
 import styles from "./index.module.less";
 
 const { Text, Title } = Typography;
@@ -18,8 +24,60 @@ const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = theme.useToken();
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+
+  // Get current mode from localStorage or default to music
+  const [mode, setMode] = useState<"music" | "audiobook">(() => {
+    return (
+      (localStorage.getItem("playMode") as "music" | "audiobook") || "music"
+    );
+  });
+
+  // Listen for mode changes (custom event or polling/context would be better, but for now we rely on reload or simple check)
+  // Since Header reloads page on mode change, we just need to fetch on mount.
+
+  const fetchPlaylists = async () => {
+    try {
+      const type = mode === "music" ? "MUSIC" : "AUDIOBOOK";
+      const res = await getPlaylists(type);
+      if (res.code === 200) {
+        setPlaylists(res.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch playlists:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlaylists();
+  }, [mode]);
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleCreatePlaylist = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+      const type = mode === "music" ? "MUSIC" : "AUDIOBOOK";
+      const res = await createPlaylist(values.name, type);
+
+      if (res.code === 200) {
+        message.success("创建成功");
+        setIsModalOpen(false);
+        form.resetFields();
+        fetchPlaylists();
+      } else {
+        message.error("创建失败");
+      }
+    } catch (error) {
+      console.error("Create playlist error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div
@@ -74,9 +132,21 @@ const Sidebar: React.FC = () => {
           active={isActive("/listened")}
         />
 
+        {/* Dynamic Playlists */}
+        {playlists.map((playlist) => (
+          <MenuItem
+            key={playlist.id}
+            icon={<UnorderedListOutlined />}
+            text={playlist.name}
+            onClick={() => navigate(`/playlist/${playlist.id}`)}
+            active={isActive(`/playlist/${playlist.id}`)}
+          />
+        ))}
+
         <div
           className={styles.addPlaylist}
-          style={{ color: token.colorTextSecondary }}
+          style={{ color: token.colorTextSecondary, cursor: "pointer" }}
+          onClick={() => setIsModalOpen(true)}
         >
           <div
             className={styles.addIcon}
@@ -87,6 +157,24 @@ const Sidebar: React.FC = () => {
           <Text style={{ color: "inherit" }}>添加播放列表</Text>
         </div>
       </div>
+
+      <Modal
+        title="新建播放列表"
+        open={isModalOpen}
+        onOk={handleCreatePlaylist}
+        onCancel={() => setIsModalOpen(false)}
+        confirmLoading={loading}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="name"
+            label="列表名称"
+            rules={[{ required: true, message: "请输入列表名称" }]}
+          >
+            <Input placeholder="请输入播放列表名称" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
@@ -114,7 +202,9 @@ const MenuItem = ({
       }}
     >
       <span style={{ fontSize: "20px" }}>{icon}</span>
-      <Text style={{ color: "inherit" }}>{text}</Text>
+      <Text style={{ color: "inherit" }} ellipsis>
+        {text}
+      </Text>
     </div>
   );
 };

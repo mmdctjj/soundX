@@ -10,6 +10,7 @@ import { AlbumController } from './controllers/album';
 import { ArtistController } from './controllers/artist';
 import { AudiobookController } from './controllers/audiobook';
 import { ImportController } from './controllers/import';
+import { PlaylistController } from './controllers/playlist';
 import { TrackController } from './controllers/track';
 import { UserController } from './controllers/user';
 import { UserAlbumHistoryController } from './controllers/user-album-history';
@@ -23,6 +24,7 @@ import { AlbumService } from './services/album';
 import { ArtistService } from './services/artist';
 import { AudiobookService } from './services/audiobook';
 import { ImportService } from './services/import';
+import { PlaylistService } from './services/playlist';
 import { TrackService } from './services/track';
 import { UserService } from './services/user';
 import { UserAlbumHistoryService } from './services/user-album-history';
@@ -55,6 +57,7 @@ import { UserTrackLikeService } from './services/user-track-like';
     UserTrackLikeController,
     AudiobookController,
     ImportController,
+    PlaylistController,
   ],
   providers: [
     UserService,
@@ -78,6 +81,7 @@ import { UserTrackLikeService } from './services/user-track-like';
       useClass: JwtAuthGuard,
     },
     AudiobookService,
+    PlaylistService,
   ],
 })
 export class AppModule { }
