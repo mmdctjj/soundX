@@ -16,6 +16,7 @@ import Cover from "../../components/Cover";
 import { getAlbumsByArtist } from "../../services/album";
 import { getArtistById } from "../../services/artist";
 import { getTracksByArtist } from "../../services/track";
+import { formatDuration } from "../../utils/formatDuration";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -160,7 +161,7 @@ const ArtistDetail: React.FC = () => {
               key: "duration",
               width: 100,
               render: (duration: number) => (
-                <Text type="secondary">{duration ? duration : "00:00"}</Text>
+                <Text type="secondary">{formatDuration(duration)}</Text>
               ),
             },
           ]}

@@ -25,6 +25,7 @@ import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
 import { getFavoriteAlbums, getFavoriteTracks } from "../../services/user";
 import { usePlayerStore } from "../../store/player";
+import { formatDuration } from "../../utils/formatDuration";
 import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
 
@@ -110,7 +111,7 @@ const Favorites: React.FC = () => {
           ).map(([date, tracks]) => ({
             id: date,
             time: new Date(date).getTime(),
-            items: tracks, // We assume tracks are already filtered by type if needed, or we filter here?
+            items: tracks?.filter((track) => track.type === type), // We assume tracks are already filtered by type if needed, or we filter here?
             // Tracks don't strictly have a 'type' field like Album in the schema I recall, but they belong to albums.
             // For now assume all liked tracks are valid.
           }));
@@ -234,7 +235,7 @@ const Favorites: React.FC = () => {
       key: "duration",
       width: 100,
       render: (duration: number) => (
-        <Text type="secondary">{duration ? duration : "00:00"}</Text>
+        <Text type="secondary">{formatDuration(duration)}</Text>
       ),
     },
   ];

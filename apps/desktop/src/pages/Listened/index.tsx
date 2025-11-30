@@ -25,6 +25,7 @@ import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
 import { getAlbumHistory, getTrackHistory } from "../../services/user";
 import { usePlayerStore } from "../../store/player";
+import { formatDuration } from "../../utils/formatDuration";
 import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
 
@@ -120,7 +121,7 @@ const Listened: React.FC = () => {
           ).map(([date, tracks]) => ({
             id: date,
             time: new Date(date).getTime(),
-            items: tracks,
+            items: tracks?.filter((track) => track.type === type),
           }));
 
           // Merge with existing items if date matches
@@ -242,7 +243,7 @@ const Listened: React.FC = () => {
       key: "duration",
       width: 100,
       render: (duration: number) => (
-        <Text type="secondary">{duration ? duration : "00:00"}</Text>
+        <Text type="secondary">{formatDuration(duration)}</Text>
       ),
     },
   ];

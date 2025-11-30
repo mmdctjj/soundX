@@ -39,6 +39,7 @@ import {
 } from "../../services/playlist";
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
 import { usePlayerStore } from "../../store/player";
+import { formatDuration } from "../../utils/formatDuration";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -266,7 +267,7 @@ const Detail: React.FC = () => {
       key: "duration",
       width: 100,
       render: (duration: number) => (
-        <Text type="secondary">{duration ? duration : "00:00"}</Text>
+        <Text type="secondary">{formatDuration(duration)}</Text>
       ),
     },
     {

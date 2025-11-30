@@ -33,6 +33,7 @@ import {
   type Playlist,
 } from "../../services/playlist";
 import { usePlayerStore } from "../../store/player";
+import { formatDuration } from "../../utils/formatDuration";
 import Lyrics from "./Lyrics";
 import styles from "./index.module.less";
 
@@ -117,14 +118,6 @@ const Player: React.FC = () => {
   }, [skipEnd]);
 
   const { token } = theme.useToken();
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
@@ -265,7 +258,7 @@ const Player: React.FC = () => {
         </div>
         <div className={styles.progressWrapper}>
           <Text type="secondary" style={{ fontSize: "10px" }}>
-            {formatTime(currentTime)}
+            {formatDuration(currentTime)}
           </Text>
           <Slider
             value={currentTime}
@@ -278,7 +271,7 @@ const Player: React.FC = () => {
             handleStyle={{ display: "none" }}
           />
           <Text type="secondary" style={{ fontSize: "10px" }}>
-            {formatTime(duration)}
+            {formatDuration(duration)}
           </Text>
         </div>
       </div>
@@ -481,7 +474,7 @@ const Player: React.FC = () => {
               style={{ width: "250px" }}
             >
               <Text type="secondary" style={{ fontSize: "10px" }}>
-                {formatTime(currentTime)}
+                {formatDuration(currentTime)}
               </Text>
               <Slider
                 value={currentTime}
@@ -492,7 +485,7 @@ const Player: React.FC = () => {
                 handleStyle={{ display: "none" }}
               />
               <Text type="secondary" style={{ fontSize: "10px" }}>
-                {formatTime(duration)}
+                {formatDuration(duration)}
               </Text>
             </Flex>
 

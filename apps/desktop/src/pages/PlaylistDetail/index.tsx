@@ -40,6 +40,7 @@ import {
   type Playlist,
 } from "../../services/playlist";
 import { usePlayerStore } from "../../store/player";
+import { formatDuration } from "../../utils/formatDuration";
 // Use the same styles as Detail component
 import styles from "../../components/Detail/index.module.less";
 
@@ -262,7 +263,7 @@ const PlaylistDetail: React.FC = () => {
       key: "duration",
       width: 100,
       render: (duration: number) => (
-        <Text type="secondary">{duration ? duration : "00:00"}</Text>
+        <Text type="secondary">{formatDuration(duration)}</Text>
       ),
     },
     {
