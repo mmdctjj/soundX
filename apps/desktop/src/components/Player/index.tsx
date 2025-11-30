@@ -1,10 +1,13 @@
 import {
   DeliveredProcedureOutlined,
   DownOutlined,
+  HeartFilled,
+  HeartOutlined,
   MoreOutlined,
   OrderedListOutlined,
   PauseCircleFilled,
   PlayCircleFilled,
+  PlayCircleOutlined,
   PlusOutlined,
   SoundOutlined,
   StepBackwardOutlined,
@@ -57,6 +60,7 @@ const Player: React.FC = () => {
     setVolume,
     setCurrentTime,
     setDuration,
+    toggleLike,
   } = usePlayerStore();
 
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -568,6 +572,32 @@ const Player: React.FC = () => {
                           menu={{
                             items: [
                               {
+                                key: "play",
+                                label: "播放",
+                                icon: <PlayCircleOutlined />,
+                                onClick: () => {
+                                  play(item);
+                                },
+                              },
+                              {
+                                key: "like",
+                                label: (item as any).likedByUsers?.some(
+                                  (like: any) => like.userId === 1
+                                )
+                                  ? "取消收藏"
+                                  : "收藏",
+                                icon: (item as any).likedByUsers?.some(
+                                  (like: any) => like.userId === 1
+                                ) ? (
+                                  <HeartFilled style={{ color: "#ff4d4f" }} />
+                                ) : (
+                                  <HeartOutlined />
+                                ),
+                                onClick: () => {
+                                  toggleLike(item.id);
+                                },
+                              },
+                              {
                                 key: "add",
                                 label: "添加到播放列表",
                                 icon: <PlusOutlined />,
@@ -662,6 +692,32 @@ const Player: React.FC = () => {
                   trigger={["click"]}
                   menu={{
                     items: [
+                      {
+                        key: "play",
+                        label: "播放",
+                        icon: <PlayCircleOutlined />,
+                        onClick: () => {
+                          play(item);
+                        },
+                      },
+                      {
+                        key: "like",
+                        label: (item as any).likedByUsers?.some(
+                          (like: any) => like.userId === 1
+                        )
+                          ? "取消收藏"
+                          : "收藏",
+                        icon: (item as any).likedByUsers?.some(
+                          (like: any) => like.userId === 1
+                        ) ? (
+                          <HeartFilled style={{ color: "#ff4d4f" }} />
+                        ) : (
+                          <HeartOutlined />
+                        ),
+                        onClick: () => {
+                          toggleLike(item.id);
+                        },
+                      },
                       {
                         key: "add",
                         label: "添加到播放列表",

@@ -277,9 +277,24 @@ const Detail: React.FC = () => {
       render: (_: any, record: Track) => {
         const items: MenuProps["items"] = [
           {
+            key: "play",
+            label: "播放",
+            icon: <PlayCircleOutlined />,
+            onClick: (info) => {
+              info.domEvent.stopPropagation();
+              handlePlayTrack(record);
+            },
+          },
+          {
             key: "like",
-            label: isLiked ? "取消收藏" : "收藏",
-            icon: isLiked ? (
+            label: (record as any).likedByUsers?.some(
+              (like: any) => like.userId === 1
+            )
+              ? "取消收藏"
+              : "收藏",
+            icon: (record as any).likedByUsers?.some(
+              (like: any) => like.userId === 1
+            ) ? (
               <HeartFilled style={{ color: "#ff4d4f" }} />
             ) : (
               <HeartOutlined />
