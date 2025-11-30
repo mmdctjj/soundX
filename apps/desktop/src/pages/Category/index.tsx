@@ -25,11 +25,11 @@ const Category: React.FC = () => {
       const res = await loadMoreAlbum({ pageSize, loadCount, type });
 
       if (res.code === 200 && res.data) {
-        const { list, hasMore } = res.data;
+        const { list } = res.data;
         const newList = d ? [...d.list, ...list] : list;
         return {
           list: newList,
-          hasMore,
+          hasMore: list.length === pageSize,
         };
       }
     } catch (error) {

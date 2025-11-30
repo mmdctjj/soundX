@@ -49,7 +49,6 @@ const Listened: React.FC = () => {
 
   const loadMoreListened = async (d: Result | undefined): Promise<Result> => {
     const currentLoadCount = d?.nextId || 0;
-    const isFirstLoad = !d;
 
     try {
       if (viewMode === "album") {
@@ -60,13 +59,10 @@ const Listened: React.FC = () => {
           };
         }
         // Fetch real data from API
-        const response = await getAlbumHistory(
-          20,
-          isFirstLoad ? 0 : d.list.length
-        );
+        const response = await getAlbumHistory(currentLoadCount, 20);
 
         if (response.code === 200 && response.data) {
-          const { list, total } = response.data;
+          const { list } = response.data;
 
           // Group albums by date
           const timelineMap = new Map<string, Album[]>();
@@ -91,19 +87,35 @@ const Listened: React.FC = () => {
             items: albums?.filter((album) => album.type === type),
           }));
 
-          const newList = d ? [...d.list, ...newItems] : newItems;
+          // Merge with existing items if date matches
+          let mergedList = d ? [...d.list] : [];
+          newItems.forEach((newItem) => {
+            const existingItemIndex = mergedList.findIndex(
+              (item) => item.id === newItem.id
+            );
+            if (existingItemIndex > -1) {
+              mergedList[existingItemIndex].items = [
+                ...mergedList[existingItemIndex].items,
+                ...newItem.items,
+              ];
+            } else {
+              mergedList.push(newItem);
+            }
+          });
+
+          if (!d) mergedList = newItems;
 
           return {
-            list: newList,
-            hasMore: newList.length < total,
-            nextId: 0,
+            list: mergedList,
+            hasMore: list.length === 20,
+            nextId: currentLoadCount + 1,
           };
         }
       } else {
         // Track mode
         const res = await getTrackHistory(currentLoadCount, 20);
         if (res.code === 200 && res.data) {
-          const { list, total: _total, loadCount } = res.data;
+          const { list, total: _total } = res.data;
 
           const timelineMap = new Map<string, Track[]>();
           list.forEach((item: any) => {
@@ -145,7 +157,7 @@ const Listened: React.FC = () => {
           return {
             list: mergedList,
             hasMore: list.length === 20, // Simple check
-            nextId: loadCount,
+            nextId: currentLoadCount + 1,
           };
         }
       }

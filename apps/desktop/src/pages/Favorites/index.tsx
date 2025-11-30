@@ -49,16 +49,12 @@ const Favorites: React.FC = () => {
 
   const loadMoreFavorites = async (d: Result | undefined): Promise<Result> => {
     const currentLoadCount = d?.nextId || 0;
-    const isFirstLoad = !d;
 
     try {
       if (viewMode === "album") {
-        const res = await getFavoriteAlbums(
-          20,
-          isFirstLoad ? 0 : d.list.length
-        );
+        const res = await getFavoriteAlbums(currentLoadCount, 20);
         if (res.code === 200 && res.data) {
-          const { list, total } = res.data;
+          const { list } = res.data;
 
           // Group by date
           const timelineMap = new Map<string, Album[]>();
@@ -78,42 +74,6 @@ const Favorites: React.FC = () => {
             id: date,
             time: new Date(date).getTime(),
             items: albums?.filter((album) => album.type === type),
-          }));
-
-          const newList = d ? [...d.list, ...newItems] : newItems;
-
-          return {
-            list: newList,
-            hasMore: newList.length < total, // This might be inaccurate if we filter by type, but good enough for now
-            nextId: 0, // Not used for albums pagination logic which uses offset
-          };
-        }
-      } else {
-        // Track mode
-        const res = await getFavoriteTracks(currentLoadCount, 20);
-        console.log(res);
-        if (res.code === 200 && res.data) {
-          const { list, total: _total, loadCount } = res.data;
-
-          const timelineMap = new Map<string, Track[]>();
-          list.forEach((item: any) => {
-            const dateKey = new Date(item.createdAt).toDateString();
-            if (!timelineMap.has(dateKey)) {
-              timelineMap.set(dateKey, []);
-            }
-            if (item.track) {
-              timelineMap.get(dateKey)!.push(item.track);
-            }
-          });
-
-          const newItems: TimelineItem[] = Array.from(
-            timelineMap.entries()
-          ).map(([date, tracks]) => ({
-            id: date,
-            time: new Date(date).getTime(),
-            items: tracks?.filter((track) => track.type === type), // We assume tracks are already filtered by type if needed, or we filter here?
-            // Tracks don't strictly have a 'type' field like Album in the schema I recall, but they belong to albums.
-            // For now assume all liked tracks are valid.
           }));
 
           // Merge with existing items if date matches
@@ -136,8 +96,57 @@ const Favorites: React.FC = () => {
 
           return {
             list: mergedList,
-            hasMore: list.length === 20, // Simple check
-            nextId: loadCount,
+            hasMore: list.length === 20,
+            nextId: currentLoadCount + 1,
+          };
+        }
+      } else {
+        // Track mode
+        const res = await getFavoriteTracks(currentLoadCount, 20);
+        if (res.code === 200 && res.data) {
+          const { list, total: _total } = res.data;
+
+          const timelineMap = new Map<string, Track[]>();
+          list.forEach((item: any) => {
+            const dateKey = new Date(item.createdAt).toDateString();
+            if (!timelineMap.has(dateKey)) {
+              timelineMap.set(dateKey, []);
+            }
+            if (item.track) {
+              timelineMap.get(dateKey)!.push(item.track);
+            }
+          });
+
+          const newItems: TimelineItem[] = Array.from(
+            timelineMap.entries()
+          ).map(([date, tracks]) => ({
+            id: date,
+            time: new Date(date).getTime(),
+            items: tracks?.filter((track) => track.type === type),
+          }));
+
+          // Merge with existing items if date matches
+          let mergedList = d ? [...d.list] : [];
+          newItems.forEach((newItem) => {
+            const existingItemIndex = mergedList.findIndex(
+              (item) => item.id === newItem.id
+            );
+            if (existingItemIndex > -1) {
+              mergedList[existingItemIndex].items = [
+                ...mergedList[existingItemIndex].items,
+                ...newItem.items,
+              ];
+            } else {
+              mergedList.push(newItem);
+            }
+          });
+
+          if (!d) mergedList = newItems;
+
+          return {
+            list: mergedList,
+            hasMore: list.length === 20,
+            nextId: currentLoadCount + 1,
           };
         }
       }

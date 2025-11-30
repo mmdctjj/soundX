@@ -41,7 +41,7 @@ export class UserAlbumLikeService {
   async loadMoreUserAlbumLike(pageSize: number, loadCount: number, userId: number) {
     return await this.prisma.userAlbumLike.findMany({
       skip: loadCount * pageSize,
-      take: loadCount,
+      take: pageSize,
       where: { userId },
       include: {
         album: true,

@@ -50,7 +50,7 @@ export class UserAlbumHistoryService {
       distinct: ['albumId'],
 
       skip: loadCount * pageSize,
-      take: loadCount,
+      take: pageSize,
 
       include: {
         album: true, // 带出专辑信息
