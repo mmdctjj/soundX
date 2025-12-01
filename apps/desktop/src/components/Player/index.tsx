@@ -62,6 +62,7 @@ const Player: React.FC = () => {
     setDuration,
     toggleLike,
   } = usePlayerStore();
+  const { mode: appMode } = usePlayMode();
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -533,9 +534,7 @@ const Player: React.FC = () => {
                 { key: "lyrics", label: "歌词" },
                 { key: "playlist", label: `播放列表 (${playlist.length})` },
               ].filter((item) =>
-                localStorage.getItem("playMode") === "music"
-                  ? true
-                  : item.key !== "lyrics"
+                appMode === "MUSIC" ? true : item.key !== "lyrics"
               )}
             />
           </div>

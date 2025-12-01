@@ -31,21 +31,21 @@ services:
       - soundx-network
 
   # 2. Web 前端服务 (Nginx) - 用于托管静态文件和反向代理
-  web:
-    platform: linux/amd64
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: frontend_runner # 使用多阶段构建的目标
-    container_name: soundx-web
-    ports:
-      - "8080:80" # <--- 将 Web 服务的 80 端口映射到宿主机的 8080 端口
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - api # 确保 API 容器先启动
-    networks:
-      - soundx-network
+  # web:
+  #   platform: linux/amd64
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: frontend_runner # 使用多阶段构建的目标
+  #   container_name: soundx-web
+  #   ports:
+  #     - "8080:80" # <--- 将 Web 服务的 80 端口映射到宿主机的 8080 端口
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - api # 确保 API 容器先启动
+  #   networks:
+  #     - soundx-network
 
 volumes:
   api-cache: # 命名卷用于缓存

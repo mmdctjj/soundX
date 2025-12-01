@@ -18,7 +18,7 @@ import { AudiobookService } from '../services/audiobook';
 
 @Controller('/audiobook')
 export class AudiobookController {
-  constructor(private readonly audiobookService: AudiobookService) {}
+  constructor(private readonly audiobookService: AudiobookService) { }
 
   @Get('/list')
   async getAudiobookList(): Promise<

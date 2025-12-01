@@ -9,7 +9,7 @@ export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   // 验证用户：检查用户名和密码是否正确
   async validateUser(username: string, pass: string): Promise<User | null> {

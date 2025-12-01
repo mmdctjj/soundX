@@ -1,12 +1,12 @@
-import { Controller, Request, Post, Body } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { Public } from '../common/public.decorator';
-import { IErrorResponse, ISuccessResponse } from 'src/common/const';
+import { Body, Controller, Post } from '@nestjs/common';
 import { User } from '@soundx/db';
+import { IErrorResponse, ISuccessResponse } from 'src/common/const';
+import { Public } from '../common/public.decorator';
+import { AuthService } from './auth.service';
 
 @Controller()
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Public()
   @Post('/auth/login')

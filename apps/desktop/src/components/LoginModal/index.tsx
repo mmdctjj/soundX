@@ -80,7 +80,7 @@ const LoginModal = () => {
           <Form.Item>
             <Button
               type="primary"
-              htmlType="submit"
+              onClick={() => form.submit()}
               block
               loading={loading}
               style={{ marginTop: 16 }}
@@ -134,7 +134,7 @@ const LoginModal = () => {
           <Form.Item>
             <Button
               type="primary"
-              htmlType="submit"
+              onClick={() => form.submit()}
               block
               loading={loading}
               style={{ marginTop: 16 }}

@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../dist"  /// 自定义为源代码目录内的相对路径
 }
 
 datasource db {

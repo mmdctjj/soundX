@@ -169,10 +169,7 @@ const Header: React.FC = () => {
     if (value.trim()) {
       searchTimerRef.current = setTimeout(async () => {
         try {
-          const type =
-            localStorage.getItem("playMode") === "music"
-              ? "MUSIC"
-              : "AUDIOBOOK";
+          const type = playMode;
           const results = await searchAll(value.trim(), type);
           setSearchResults(results);
           setShowResults(true);

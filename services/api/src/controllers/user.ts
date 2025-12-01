@@ -7,19 +7,19 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { UserService } from '../services/user';
 import { User } from '@soundx/db';
 import {
   IErrorResponse,
+  ILoadMoreData,
   ISuccessResponse,
   ITableData,
-  ILoadMoreData,
 } from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
+import { UserService } from '../services/user';
 
 @Controller()
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @Get('/user/list')
   async getUserList(): Promise<ISuccessResponse<User[]> | IErrorResponse> {

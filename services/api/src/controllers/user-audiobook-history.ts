@@ -1,18 +1,18 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
-import { UserAudiobookHistoryService } from '../services/user-audiobook-history';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { UserAudiobookHistory } from '@soundx/db';
 import {
   IErrorResponse,
   ILoadMoreData,
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { UserAudiobookHistory } from '@soundx/db';
+import { UserAudiobookHistoryService } from '../services/user-audiobook-history';
 
 @Controller('user-audiobook-histories')
 export class UserAudiobookHistoryController {
   constructor(
     private readonly userAudiobookHistoryService: UserAudiobookHistoryService,
-  ) {}
+  ) { }
 
   @Post()
   async create(
