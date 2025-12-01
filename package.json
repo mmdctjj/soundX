@@ -22,7 +22,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@soundx/ui": "workspace:^",
     "@soundx/utils": "workspace:^"
   },
   "devDependencies": {

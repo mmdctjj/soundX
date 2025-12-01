@@ -323,7 +323,7 @@ const Header: React.FC = () => {
                 }}
                 onClick={handleImportClick}
               >
-                导入本地音乐
+                数据源设置
               </div>
               <div
                 style={{
@@ -364,7 +364,7 @@ const Header: React.FC = () => {
       </div>
 
       <Modal
-        title="导入本地音乐"
+        title="数据源设置"
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}

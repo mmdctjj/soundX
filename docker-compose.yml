@@ -1,21 +1,55 @@
 version: "3.8"
 
 services:
+  # 1. API 后端服务 (Node.js)
   api:
+    platform: linux/amd64
     build:
-      context: .
-      dockerfile: services/api/Dockerfile
+      context: . # 上下文必须是根目录
+      dockerfile: Dockerfile # Dockerfile 必须在根目录
+      target: backend_runner # 使用多阶段构建的目标
+    container_name: soundx-api
+
+    # 容器内部端口 (3000) 默认对内部网络开放，无需 ports 字段映射到宿主机
+    # 如果要直接测试 API，可以加上 ports: - "3000:3000"
     ports:
-      - "8080:80"
+      - "3000:3000"
+
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:./packages/db/prisma/dev.db
+      # 推荐使用 PostgreSQL/MySQL，如果坚持 SQLite，路径需要指向 /app/
+      # 并且 db 文件需要通过 volume 持久化
+      - DATABASE_URL=file:/app/dev.db
+
+    # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:
-      # Mount database file for persistence
-      - ./packages/db/prisma:/app/packages/db/prisma
-      # Mount cache directory for cover images
+      - api-db:/app/
       - api-cache:/app/cache
+
     restart: unless-stopped
+    networks:
+      - soundx-network
+
+  # 2. Web 前端服务 (Nginx) - 用于托管静态文件和反向代理
+  web:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend_runner # 使用多阶段构建的目标
+    container_name: soundx-web
+    ports:
+      - "8080:80" # <--- 将 Web 服务的 80 端口映射到宿主机的 8080 端口
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api # 确保 API 容器先启动
+    networks:
+      - soundx-network
 
 volumes:
-  api-cache:
+  api-cache: # 命名卷用于缓存
+  api-db: # 命名卷用于 SQLite 或其他数据文件
+
+networks:
+  soundx-network:

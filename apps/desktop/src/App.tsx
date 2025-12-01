@@ -64,10 +64,15 @@ const AppContent = () => {
   );
 };
 
+import LoginModal from "./components/LoginModal";
+
+// ... existing imports
+
 function App() {
   return (
     <ThemeProvider>
       <AppContent />
+      <LoginModal />
     </ThemeProvider>
   );
 }
