@@ -3,6 +3,9 @@
 # ==========================================
 FROM node:22-alpine AS base
 
+RUN apk update && apk upgrade
+RUN apk add --no-cache openssl
+
 RUN npm install -g pnpm
 WORKDIR /app
 
@@ -51,6 +54,7 @@ COPY packages/utils/package.json   ./packages/utils/
 COPY services/api/package.json     ./services/api/
 
 # 2. 安装生产依赖
+RUN apt-get update -y && apt-get install -y openssl
 RUN npm i -g pnpm && pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # 3. 复制构建产物 + prisma client
@@ -64,13 +68,13 @@ CMD ["node", "services/api/dist/main.js"]
 # ==========================================
 # Stage 4: Frontend Runner（Nginx 承载 web）
 # ==========================================
-# FROM nginx:alpine AS frontend_runner
+FROM nginx:alpine AS frontend_runner
 
-# # 拷贝 Nginx 配置
-# COPY nginx.conf /etc/nginx/nginx.conf
+# 拷贝 Nginx 配置
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# # 拷贝前端构建产物
-# COPY --from=builder /app/apps/desktop/dist /usr/share/nginx/html
+# 拷贝前端构建产物
+COPY --from=builder /app/apps/desktop/dist /usr/share/nginx/html
 
-# EXPOSE 80
-# CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

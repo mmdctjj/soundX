@@ -1,9 +1,9 @@
 // auth/jwt.strategy.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { Request } from 'express';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { Request } from 'express';
+import { ExtractJwt, Strategy } from 'passport-jwt';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -11,7 +11,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') as string, // 从 .env 读取
+      secretOrKey: configService.get<string>('jwt.secret') as string, // 从 config 读取
       passReqToCallback: true,
     });
   }
