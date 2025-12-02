@@ -88,7 +88,7 @@ const LoginModal = () => {
 
   return (
     <Modal
-      open={!token}
+      open={!token && !!localStorage.getItem("dataSourceOrigin")}
       footer={null}
       closable={false}
       maskClosable={false}

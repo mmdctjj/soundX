@@ -37,7 +37,7 @@ RUN pnpm --filter @soundx/db build
 RUN pnpm --filter @soundx/db run generate
 
 RUN pnpm --filter @soundx/api build
-RUN pnpm --filter @soundx/desktop build
+RUN pnpm --filter @soundx/desktop run build:web
 
 # ==========================================
 # Stage 3: Backend Runner（只放生产依赖 + dist + prisma client）
