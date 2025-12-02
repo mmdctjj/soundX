@@ -1,3 +1,4 @@
+import { PlayCircleOutlined } from "@ant-design/icons";
 import {
   Avatar,
   Col,
@@ -16,6 +17,7 @@ import { type Album, type Artist, type Track } from "../../models";
 import { getAlbumsByArtist } from "../../services/album";
 import { getArtistById } from "../../services/artist";
 import { getTracksByArtist } from "../../services/track";
+import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
 import styles from "./index.module.less";
 
@@ -27,6 +29,7 @@ const ArtistDetail: React.FC = () => {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
+  const { play, setPlaylist, currentTrack } = usePlayerStore();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,6 +62,11 @@ const ArtistDetail: React.FC = () => {
 
     fetchData();
   }, [id]);
+
+  const handlePlayTrack = (track: Track) => {
+    play(track);
+    setPlaylist(tracks);
+  };
 
   if (loading) {
     return (
@@ -144,9 +152,14 @@ const ArtistDetail: React.FC = () => {
             {
               title: "#",
               key: "index",
-              width: 100,
+              width: 80,
               render: (_: number, record: Track) => {
-                return <Text>{record?.index?.toString()}</Text>;
+                const isPlaying = currentTrack?.id === record.id;
+                return isPlaying ? (
+                  <PlayCircleOutlined style={{ fontSize: 16 }} />
+                ) : (
+                  <Text>{record?.index?.toString()}</Text>
+                );
               },
             },
             {
@@ -167,6 +180,13 @@ const ArtistDetail: React.FC = () => {
           ]}
           dataSource={tracks}
           pagination={false}
+          onRow={(record) => ({
+            onClick: () => handlePlayTrack(record),
+            style: { cursor: "pointer" },
+          })}
+          rowClassName={(record) =>
+            currentTrack?.id === record.id ? styles.activeRow : ""
+          }
         />
       </div>
     </div>
