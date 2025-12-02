@@ -1,3 +1,11 @@
+# 忽略依赖安装目录
+node_modules
+**/node_modules
+
+# 忽略构建产物
+**/dist
+**/build
+
 coverage
 *.log
 .env

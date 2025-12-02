@@ -56,6 +56,7 @@ const LoginModal = () => {
         });
         if (res.data) {
           setLogin(res.data.token, res.data);
+          localStorage.setItem("token", res.data.token);
           message.success("登录成功");
 
           // Save or clear credentials based on rememberMe
@@ -75,6 +76,7 @@ const LoginModal = () => {
           password: values.password,
         });
         if (res.data) {
+          localStorage.setItem("token", res.data.token);
           setLogin(res.data.token, res.data);
           message.success("注册成功");
         }

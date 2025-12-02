@@ -29,15 +29,18 @@ RUN pnpm install --frozen-lockfile
 # 4. 复制完整源码
 COPY . .
 
-# 5. 构建所有 workspace
-RUN pnpm --filter @soundx/utils build
-RUN pnpm --filter @soundx/db build
-
+# 5. 构建所有 workspace (修改部分开始)
+# 构建 @soundx/utils
+RUN cd packages/utils && pnpm run build
+# 构建 @soundx/db
+RUN cd packages/db && pnpm run build
 # 6. Prisma generate（确保生成到 packages/db/generated/client）
-RUN pnpm --filter @soundx/db run generate
-
-RUN pnpm --filter @soundx/api build
-RUN pnpm --filter @soundx/desktop run build:web
+# 确保在 db 目录下运行 generate
+RUN cd packages/db && pnpm run generate
+# 构建 @soundx/api
+RUN cd services/api && pnpm run build
+# 构建 @soundx/desktop (Web)
+RUN cd apps/desktop && pnpm run build:web
 
 # ==========================================
 # Stage 3: Backend Runner（只放生产依赖 + dist + prisma client）
@@ -53,18 +56,20 @@ COPY packages/db/package.json      ./packages/db/
 COPY packages/utils/package.json   ./packages/utils/
 COPY services/api/package.json     ./services/api/
 
-# 2. 安装生产依赖
+# 2. 安装生产依赖 + 全局安装 prisma (用于 db push)
 RUN apt-get update -y && apt-get install -y openssl
-RUN npm i -g pnpm && pnpm install --prod --frozen-lockfile --ignore-scripts
+RUN npm i -g pnpm prisma@6.6.0 && pnpm install --prod --frozen-lockfile --ignore-scripts
 
-# 3. 复制构建产物 + prisma client
+# 3. 复制构建产物 + prisma client + prisma schema
 COPY --from=builder /app/packages/db/dist       ./packages/db/dist
+COPY --from=builder /app/packages/db/prisma     ./packages/db/prisma
 COPY --from=builder /app/packages/utils/dist    ./packages/utils/dist
 COPY --from=builder /app/services/api/dist      ./services/api/dist
 COPY --from=builder /app/apps/desktop/dist      ./apps/desktop/dist
 
 EXPOSE 3000
-CMD ["node", "services/api/dist/main.js"]
+
+CMD ["sh", "-c", "cd packages/db && npx prisma migrate deploy && cd ../../services/api && node dist/main.js"]
 
 # ==========================================
 # Stage 4: Frontend Runner（Nginx 承载 web）
