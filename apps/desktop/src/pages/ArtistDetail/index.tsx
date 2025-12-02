@@ -1,4 +1,3 @@
-import { type Album, type Artist, type Track } from "@soundx/db";
 import {
   Avatar,
   Col,
@@ -13,6 +12,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Cover from "../../components/Cover";
+import { type Album, type Artist, type Track } from "../../models";
 import { getAlbumsByArtist } from "../../services/album";
 import { getArtistById } from "../../services/artist";
 import { getTracksByArtist } from "../../services/track";

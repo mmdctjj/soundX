@@ -1,5 +1,5 @@
-import { type Track } from "@soundx/db";
 import { create } from "zustand";
+import { type Track } from "../models";
 import { addAlbumToHistory, addToHistory, toggleLike } from "../services/user";
 
 interface PlayerState {

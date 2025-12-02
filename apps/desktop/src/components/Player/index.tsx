@@ -14,7 +14,6 @@ import {
   StepForwardOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
-import { type Track } from "@soundx/db";
 import {
   Drawer,
   Dropdown,
@@ -30,6 +29,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { type Track } from "../../models";
 import {
   addTrackToPlaylist,
   getPlaylists,

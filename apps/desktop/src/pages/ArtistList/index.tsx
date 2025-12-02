@@ -1,8 +1,8 @@
-import { type Artist } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
 import { Avatar, Col, Empty, Flex, Row, Skeleton, Typography } from "antd";
 import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { type Artist } from "../../models";
 import { getArtistList } from "../../services/artist";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";

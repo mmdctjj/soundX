@@ -1,9 +1,9 @@
 import { SettingOutlined, SyncOutlined } from "@ant-design/icons";
-import type { Album, Artist, Track } from "@soundx/db";
 import { Avatar, Button, Col, Row, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Cover from "../../components/Cover/index";
+import type { Album, Artist, Track } from "../../models";
 import { getRecentAlbums, getRecommendedAlbums } from "../../services/album";
 import { getLatestArtists } from "../../services/artist";
 import { getLatestTracks } from "../../services/track";

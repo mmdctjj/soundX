@@ -10,7 +10,6 @@ import {
   SortAscendingOutlined,
   SortDescendingOutlined,
 } from "@ant-design/icons";
-import { type Track } from "@soundx/db";
 import {
   Button,
   Col,
@@ -30,6 +29,7 @@ import {
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { type Track } from "../../models";
 import {
   addTrackToPlaylist,
   deletePlaylist,

@@ -5,7 +5,6 @@ import {
   SyncOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
-import type { Album, Track } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
 import {
   Button,
@@ -22,7 +21,7 @@ import {
 } from "antd";
 import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
-import type { TimelineItem } from "../../models";
+import type { Album, TimelineItem, Track } from "../../models";
 import { getAlbumHistory, getTrackHistory } from "../../services/user";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
@@ -205,7 +204,7 @@ const Listened: React.FC = () => {
             onClick={(e) => {
               e.stopPropagation();
               const group = data?.list.find((item) =>
-                item.items.some((t: Track) => t.id === record.id)
+                item.items.some((t) => t.id === record.id)
               );
               if (group) {
                 handlePlayTrack(record, group.items as Track[]);

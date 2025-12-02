@@ -1,9 +1,12 @@
-export * from "@soundx/db";
-
 export interface ISuccessResponse<T> {
   code: number;
   message: string;
   data: T;
+}
+
+export enum TrackType {
+  MUSIC = "MUSIC",
+  AUDIOBOOK = "AUDIOBOOK",
 }
 
 export interface IErrorResponse {
@@ -21,19 +24,137 @@ export interface ITableData<T> {
 export interface ILoadMoreData<T> {
   pageSize: number;
   loadCount: number;
-  list: T[]; // Changed from T to T[] for array type
+  list: T[];
   total: number;
-  hasMore: boolean; // Added for pagination
+  hasMore: boolean;
 }
 
 export interface RecommendedItem {
   title: string
   id: string
-  items: any[] // Using any[] temporarily as Album might be imported from @soundx/db
+  items: Album[]
 }
 
 export interface TimelineItem {
   id: string
   time: number
-  items: any[] // Using any[] temporarily
-} 
+  items: (Album | Track)[]
+}
+
+// Prisma Models
+
+export interface Track {
+  id: number;
+  name: string;
+  path: string;
+  artist: string;
+  album: string;
+  cover: string | null;
+  duration: number | null;
+  lyrics: string | null;
+  index: number | null;
+  type: TrackType;
+  createdAt: string | Date; // DateTime in Prisma maps to Date object or ISO string in JSON
+  likedByUsers?: UserTrackLike[];
+  listenedByUsers?: UserTrackHistory[];
+  likedAsAudiobookByUsers?: UserAudiobookLike[];
+  listenedAsAudiobookByUsers?: UserAudiobookHistory[];
+  playlists?: Playlist[];
+}
+
+export interface Album {
+  id: number;
+  name: string;
+  artist: string;
+  cover: string | null;
+  year: string | null;
+  type: TrackType;
+  likedByUsers?: UserAlbumLike[];
+  listenedByUsers?: UserAlbumHistory[];
+}
+
+export interface Artist {
+  id: number;
+  name: string;
+  avatar: string | null;
+  type: TrackType;
+}
+
+export interface UserTrackLike {
+  id: number;
+  userId: number;
+  trackId: number;
+  createdAt: string | Date;
+  user?: User;
+  track?: Track;
+}
+
+export interface UserTrackHistory {
+  id: number;
+  userId: number;
+  trackId: number;
+  listenedAt: string | Date;
+  user?: User;
+  track?: Track;
+}
+
+export interface UserAlbumLike {
+  id: number;
+  userId: number;
+  albumId: number;
+  createdAt: string | Date;
+  user?: User;
+  album?: Album;
+}
+
+export interface UserAlbumHistory {
+  id: number;
+  userId: number;
+  albumId: number;
+  listenedAt: string | Date;
+  user?: User;
+  album?: Album;
+}
+
+export interface UserAudiobookLike {
+  id: number;
+  userId: number;
+  trackId: number;
+  createdAt: string | Date;
+  user?: User;
+  track?: Track;
+}
+
+export interface UserAudiobookHistory {
+  id: number;
+  userId: number;
+  trackId: number;
+  listenedAt: string | Date;
+  user?: User;
+  track?: Track;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  password?: string;
+  is_admin: boolean;
+  likedTracks?: UserTrackLike[];
+  listenedTracks?: UserTrackHistory[];
+  likedAlbums?: UserAlbumLike[];
+  listenedAlbums?: UserAlbumHistory[];
+  likedAudiobooks?: UserAudiobookLike[];
+  listenedAudiobooks?: UserAudiobookHistory[];
+  playlists?: Playlist[];
+}
+
+export interface Playlist {
+  id: number;
+  name: string;
+  type: TrackType;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  userId: number;
+  user?: User;
+  tracks?: Track[];
+}

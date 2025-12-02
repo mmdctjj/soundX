@@ -4,11 +4,11 @@ import {
   MoreOutlined,
   PlayCircleOutlined,
 } from "@ant-design/icons";
-import type { Album, Track } from "@soundx/db";
 import type { MenuProps } from "antd";
 import { Dropdown, message, Skeleton, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { Album, Track } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
 import { usePlayerStore } from "../../store/player";

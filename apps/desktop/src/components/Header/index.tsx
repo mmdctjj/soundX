@@ -10,7 +10,6 @@ import {
   SkinOutlined,
   SunOutlined,
 } from "@ant-design/icons";
-import { TrackType } from "@soundx/db";
 import {
   Flex,
   Form,
@@ -24,6 +23,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
+import { TrackType } from "../../models";
 import {
   createImportTask,
   getImportTask,

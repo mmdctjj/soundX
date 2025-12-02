@@ -1,5 +1,5 @@
-import { TrackType } from "@soundx/db";
 import { useEffect, useState } from "react";
+import { TrackType } from "../models";
 
 export type PlayMode = TrackType;
 
@@ -7,10 +7,10 @@ const PLAY_MODE_KEY = "playMode";
 const EVENT_NAME = "soundx:play-mode-change";
 
 export const getPlayMode = (): PlayMode => {
-  if (typeof localStorage === "undefined") return "MUSIC";
+  if (typeof localStorage === "undefined") return TrackType.MUSIC;
   const stored = localStorage.getItem(PLAY_MODE_KEY);
-  if (stored === "audiobook" || stored === "AUDIOBOOK") return "AUDIOBOOK";
-  return "MUSIC";
+  if (stored === "audiobook" || stored === "AUDIOBOOK") return TrackType.AUDIOBOOK;
+  return TrackType.MUSIC;
 };
 
 export const setPlayMode = (mode: PlayMode) => {
@@ -26,9 +26,9 @@ export const usePlayMode = () => {
       if (e.key === PLAY_MODE_KEY) {
         const newValue = e.newValue;
         if (newValue === "audiobook" || newValue === "AUDIOBOOK") {
-          setMode("AUDIOBOOK");
+          setMode(TrackType.AUDIOBOOK);
         } else {
-          setMode("MUSIC");
+          setMode(TrackType.MUSIC);
         }
       }
     };

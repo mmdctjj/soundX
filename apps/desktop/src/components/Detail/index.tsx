@@ -12,7 +12,6 @@ import {
   SortAscendingOutlined,
   SortDescendingOutlined,
 } from "@ant-design/icons";
-import { type Album, type Track } from "@soundx/db";
 import { useRequest } from "ahooks";
 import {
   Avatar,
@@ -31,6 +30,7 @@ import {
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { type Album, type Track } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
 import {
   addTrackToPlaylist,

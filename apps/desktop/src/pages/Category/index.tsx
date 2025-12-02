@@ -1,8 +1,8 @@
-import type { Album } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
 import { Col, Row } from "antd";
 import React, { useRef } from "react";
 import Cover from "../../components/Cover/index";
+import type { Album } from "../../models";
 import { loadMoreAlbum } from "../../services/album";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";

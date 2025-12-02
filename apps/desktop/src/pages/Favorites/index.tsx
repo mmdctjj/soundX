@@ -5,7 +5,6 @@ import {
   SyncOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
-import { type Album, type Track } from "@soundx/db";
 import { useInfiniteScroll } from "ahooks";
 import {
   Button,
@@ -23,6 +22,7 @@ import {
 import React, { useRef, useState } from "react";
 import Cover from "../../components/Cover/index";
 import type { TimelineItem } from "../../models";
+import { type Album, type Track } from "../../models";
 import { getFavoriteAlbums, getFavoriteTracks } from "../../services/user";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
@@ -194,7 +194,7 @@ const Favorites: React.FC = () => {
               e.stopPropagation();
               // Find the list this track belongs to
               const group = data?.list.find((item) =>
-                item.items.some((t: Track) => t.id === record.id)
+                item.items.some((t) => t.id === record.id)
               );
               if (group) {
                 handlePlayTrack(record, group.items as Track[]);

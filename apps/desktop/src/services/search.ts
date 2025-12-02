@@ -1,6 +1,5 @@
-import type { Album, Artist, Track } from "@soundx/db";
 import request from "../https";
-import type { ISuccessResponse } from "../models";
+import type { Album, Artist, ISuccessResponse, Track } from "../models";
 
 export interface SearchResults {
   tracks: Track[];
