@@ -29,7 +29,7 @@ export const getThemeConfig = (mode: 'light' | 'dark'): ThemeConfig => {
       },
       Tooltip: {
         colorBgSpotlight: isDark ? 'rgba(30, 30, 40, 0.9)' : 'rgba(50, 50, 50, 0.9)',
-      }
+      },
     },
   };
 };

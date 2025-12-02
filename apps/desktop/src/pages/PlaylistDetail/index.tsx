@@ -11,7 +11,6 @@ import {
   SortDescendingOutlined,
 } from "@ant-design/icons";
 import {
-  Button,
   Col,
   Dropdown,
   Flex,
@@ -384,35 +383,24 @@ const PlaylistDetail: React.FC = () => {
                   />
                 </div>
 
-                {/* Edit and Delete Buttons */}
-                <Button
-                  shape="round"
-                  icon={<EditOutlined />}
-                  onClick={() => {
-                    form.setFieldsValue({ name: playlist?.name });
-                    setIsEditModalOpen(true);
-                  }}
-                  style={{ marginLeft: 16 }}
-                >
-                  编辑
-                </Button>
-                <Popconfirm
-                  title="确定删除该播放列表?"
-                  description="删除后无法恢复"
-                  onConfirm={handleDeletePlaylist}
-                  okText="删除"
-                  cancelText="取消"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Button
-                    shape="round"
-                    danger
-                    icon={<DeleteOutlined />}
-                    style={{ marginLeft: 8 }}
+                <div className={styles.actionGroup}>
+                  <EditOutlined
+                    onClick={() => {
+                      form.setFieldsValue({ name: playlist?.name });
+                      setIsEditModalOpen(true);
+                    }}
+                  />
+                  <Popconfirm
+                    title="确定删除该播放列表?"
+                    description="删除后无法恢复"
+                    onConfirm={handleDeletePlaylist}
+                    okText="删除"
+                    cancelText="取消"
+                    okButtonProps={{ danger: true }}
                   >
-                    删除
-                  </Button>
-                </Popconfirm>
+                    <DeleteOutlined />
+                  </Popconfirm>
+                </div>
               </div>
 
               <div

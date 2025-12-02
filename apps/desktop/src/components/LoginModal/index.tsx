@@ -1,31 +1,56 @@
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import {
   Button,
+  Checkbox,
   Form,
   Input,
   Modal,
-  Tabs,
   Typography,
   message,
   theme,
 } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { login, register } from "../../services/auth";
 import { useAuthStore } from "../../store/auth";
+import styles from "./index.module.less";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
+
+const REMEMBER_ME_KEY = "soundx_remember_credentials";
+
+interface RememberedCredentials {
+  username: string;
+  password: string;
+}
 
 const LoginModal = () => {
   const { token, login: setLogin } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [form] = Form.useForm();
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loginForm] = Form.useForm();
+  const [registerForm] = Form.useForm();
   const { token: themeToken } = theme.useToken();
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem(REMEMBER_ME_KEY);
+    if (savedCredentials) {
+      try {
+        const { username, password }: RememberedCredentials =
+          JSON.parse(savedCredentials);
+        loginForm.setFieldsValue({ username, password });
+        setRememberMe(true);
+      } catch (error) {
+        console.error("Failed to load saved credentials:", error);
+      }
+    }
+  }, [loginForm]);
 
   const handleFinish = async (values: any) => {
     setLoading(true);
     try {
-      if (activeTab === "login") {
+      if (isLogin) {
         const res = await login({
           username: values.username,
           password: values.password,
@@ -33,6 +58,17 @@ const LoginModal = () => {
         if (res.data) {
           setLogin(res.data.token, res.data);
           message.success("登录成功");
+
+          // Save or clear credentials based on rememberMe
+          if (rememberMe) {
+            const credentials: RememberedCredentials = {
+              username: values.username,
+              password: values.password,
+            };
+            localStorage.setItem(REMEMBER_ME_KEY, JSON.stringify(credentials));
+          } else {
+            localStorage.removeItem(REMEMBER_ME_KEY);
+          }
         }
       } else {
         const res = await register({
@@ -40,79 +76,105 @@ const LoginModal = () => {
           password: values.password,
         });
         if (res.data) {
-          // Auto login after register or switch to login
           setLogin(res.data.token, res.data);
           message.success("注册成功");
         }
       }
     } catch (error) {
       console.error(error);
-      // Error handling is usually done in request interceptor, but we can add specific handling here
     } finally {
       setLoading(false);
     }
   };
 
-  const items = [
-    {
-      key: "login",
-      label: "登录",
-      children: (
+  return (
+    <Modal
+      open={!token}
+      footer={null}
+      closable={false}
+      maskClosable={false}
+      mask={false}
+      centered
+      width={420}
+      className={styles.loginModal}
+    >
+      <div className={styles.header}>
+        <Title
+          level={2}
+          className={styles.title}
+          style={{ color: themeToken.colorText }}
+        >
+          {isLogin ? "Login" : "Sign Up"}
+        </Title>
+        <Text
+          className={styles.subtitle}
+          style={{ color: themeToken.colorTextSecondary }}
+        >
+          {isLogin ? "欢迎回来" : "创建一个新账户开始"}
+        </Text>
+      </div>
+
+      {isLogin ? (
         <Form
-          form={form}
-          name="login"
-          onFinish={handleFinish}
+          form={loginForm}
           layout="vertical"
           size="large"
+          className={styles.form}
         >
           <Form.Item
             name="username"
             rules={[{ required: true, message: "请输入用户名!" }]}
           >
-            <Input prefix={<UserOutlined />} placeholder="用户名" />
+            <Input prefix={<UserOutlined />} placeholder="User Name" />
           </Form.Item>
           <Form.Item
             name="password"
             rules={[{ required: true, message: "请输入密码!" }]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{ marginBottom: 16 }}>
+            <Checkbox
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              style={{ color: themeToken.colorTextSecondary }}
+            >
+              Remember me
+            </Checkbox>
+          </Form.Item>
+          <Form.Item style={{ marginBottom: 0 }}>
             <Button
               type="primary"
-              onClick={() => form.submit()}
+              onClick={async () => {
+                const values = await loginForm.validateFields();
+                handleFinish(values);
+              }}
               block
               loading={loading}
-              style={{ marginTop: 16 }}
+              className={styles.submitButton}
             >
-              登录
+              Login
             </Button>
           </Form.Item>
         </Form>
-      ),
-    },
-    {
-      key: "register",
-      label: "注册",
-      children: (
+      ) : (
         <Form
-          form={form}
-          name="register"
-          onFinish={handleFinish}
+          form={registerForm}
           layout="vertical"
           size="large"
+          className={styles.form}
         >
           <Form.Item
             name="username"
             rules={[{ required: true, message: "请输入用户名!" }]}
           >
-            <Input prefix={<UserOutlined />} placeholder="用户名" />
+            <Input prefix={<UserOutlined />} placeholder="User Name" />
           </Form.Item>
           <Form.Item
             name="password"
             rules={[{ required: true, message: "请输入密码!" }]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
           </Form.Item>
           <Form.Item
             name="confirm"
@@ -129,55 +191,63 @@ const LoginModal = () => {
               }),
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="确认密码" />
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="Confirm Password"
+            />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{ marginBottom: 0 }}>
             <Button
               type="primary"
-              onClick={() => form.submit()}
+              onClick={async () => {
+                const values = await registerForm.validateFields();
+                handleFinish(values);
+              }}
               block
               loading={loading}
-              style={{ marginTop: 16 }}
+              className={styles.submitButton}
             >
-              注册
+              Sign Up
             </Button>
           </Form.Item>
         </Form>
-      ),
-    },
-  ];
+      )}
 
-  return (
-    <Modal
-      open={!token}
-      footer={null}
-      closable={false}
-      maskClosable={false}
-      centered
-      width={400}
-      styles={{
-        content: {
-          padding: "32px 24px",
-          borderRadius: 16,
-          backgroundColor: themeToken.colorBgElevated,
-        },
-      }}
-    >
-      <div style={{ textAlign: "center", marginBottom: 24 }}>
-        <Title level={3} style={{ margin: 0 }}>
-          SoundX
-        </Title>
-        <Typography.Text type="secondary">
-          {activeTab === "login" ? "欢迎回来" : "创建新账户"}
-        </Typography.Text>
+      <div
+        className={styles.switchText}
+        style={{ color: themeToken.colorTextSecondary }}
+      >
+        {isLogin ? (
+          <>
+            Don't have an account?{" "}
+            <span
+              className={styles.switchLink}
+              onClick={() => setIsLogin(false)}
+              style={{ color: themeToken.colorPrimary }}
+            >
+              Signup
+            </span>
+          </>
+        ) : (
+          <>
+            Already have an account?{" "}
+            <span
+              className={styles.switchLink}
+              onClick={() => setIsLogin(true)}
+              style={{ color: themeToken.colorPrimary }}
+            >
+              Login
+            </span>
+          </>
+        )}
       </div>
-      <Tabs
-        activeKey={activeTab}
-        onChange={(key) => setActiveTab(key as "login" | "register")}
-        items={items}
-        centered
-        tabBarStyle={{ marginBottom: 24 }}
-      />
+
+      <div
+        className={styles.footer}
+        style={{ color: themeToken.colorTextTertiary }}
+      >
+        Created by SoundX
+      </div>
     </Modal>
   );
 };

@@ -1,0 +1,114 @@
+.loginModal {
+  :global {
+    .ant-modal-content {
+      opacity: 0.85;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      border-radius: 24px !important;
+      padding: 40px 32px !important;
+    }
+
+    .ant-modal-mask {
+      backdrop-filter: blur(8px) !important;
+    }
+  }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+
+  .title {
+    font-size: 32px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+}
+
+.form {
+  margin-top: 24px;
+
+  :global {
+    .ant-form-item {
+      margin-bottom: 20px;
+    }
+
+    .ant-input,
+    .ant-input-password {
+      // background: rgba(255, 255, 255, 0.1);
+      // border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+
+      .ant-input-prefix {
+        // color: rgba(255, 255, 255, 0.5);
+        margin-right: 12px;
+      }
+    }
+
+    .ant-input-affix-wrapper {
+      // background: rgba(255, 255, 255, 0.1);
+      // border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 4px 16px;
+
+      input {
+        background: transparent !important;
+        border: none !important;
+      }
+
+      .ant-input-prefix {
+        // color: rgba(255, 255, 255, 0.5);
+        margin-right: 12px;
+      }
+    }
+
+    .ant-form-item-explain-error {
+      // color: rgba(255, 100, 100, 0.9);
+      font-size: 12px;
+    }
+  }
+}
+
+.submitButton {
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.switchText {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px;
+
+  .switchLink {
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+}
+
+.footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 12px;
+}

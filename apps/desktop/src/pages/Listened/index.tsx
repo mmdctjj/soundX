@@ -304,8 +304,12 @@ const Listened: React.FC = () => {
           {type === "MUSIC" && (
             <Segmented
               options={[
-                { value: "album", icon: <AppstoreOutlined /> },
-                { value: "track", icon: <UnorderedListOutlined /> },
+                { value: "album", icon: <AppstoreOutlined />, label: "专辑" },
+                {
+                  value: "track",
+                  icon: <UnorderedListOutlined />,
+                  label: "歌曲",
+                },
               ]}
               value={viewMode}
               onChange={(value) => setViewMode(value as "album" | "track")}
@@ -344,7 +348,12 @@ const Listened: React.FC = () => {
       )}
 
       {data && !data.hasMore && data.list.length > 0 && (
-        <div className={styles.noMore}>没有更多了</div>
+        <div
+          className={styles.noMore}
+          style={{ color: token.colorTextSecondary }}
+        >
+          没有更多了
+        </div>
       )}
 
       {data?.list.length === 0 && !loading && (

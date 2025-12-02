@@ -33,6 +33,7 @@ import {
   searchAll,
   type SearchResults as SearchResultsType,
 } from "../../services/search";
+import { useAuthStore } from "../../store/auth";
 import { isWindows } from "../../utils/platform";
 import { usePlayMode } from "../../utils/playMode";
 import SearchResults from "../SearchResults";
@@ -58,6 +59,14 @@ const Header: React.FC = () => {
 
   // Mode state: 'music' | 'audiobook'
   const { mode: playMode, setMode: setPlayMode } = usePlayMode();
+  const { logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    message.success("已退出登录");
+    // Optionally reload to reset app state
+    window.location.reload();
+  };
 
   // ... inside component
   const togglePlayMode = () => {
@@ -339,6 +348,7 @@ const Header: React.FC = () => {
                   borderRadius: "4px",
                   backgroundColor: "transparent",
                 }}
+                onClick={handleLogout}
               >
                 退出登陆
               </div>

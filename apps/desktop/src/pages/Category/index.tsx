@@ -1,5 +1,5 @@
 import { useInfiniteScroll } from "ahooks";
-import { Col, Row } from "antd";
+import { Col, Row, theme } from "antd";
 import React, { useRef } from "react";
 import Cover from "../../components/Cover/index";
 import type { Album } from "../../models";
@@ -16,6 +16,7 @@ const Category: React.FC = () => {
   // const [activeTab, setActiveTab] = useState<string>("1");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { mode } = usePlayMode();
+  const { token } = theme.useToken();
 
   const loadMoreAlbums = async (d: Result | undefined): Promise<Result> => {
     const pageSize = 12;
@@ -87,7 +88,12 @@ const Category: React.FC = () => {
           )}
         </Row>
         {data && !data.hasMore && data.list.length > 0 && (
-          <div className={styles.noMore}>没有更多了</div>
+          <div
+            className={styles.noMore}
+            style={{ color: token.colorTextSecondary }}
+          >
+            没有更多了
+          </div>
         )}
       </div>
     </div>

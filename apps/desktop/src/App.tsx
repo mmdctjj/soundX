@@ -3,6 +3,7 @@ import zhCN from "antd/locale/zh_CN";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Detail from "./components/Detail/index";
 import Header from "./components/Header/index";
+import LoginModal from "./components/LoginModal";
 import Player from "./components/Player/index";
 import Sidebar from "./components/Sidebar/index";
 import { getThemeConfig } from "./config/themeConfig";
@@ -27,7 +28,7 @@ const AppContent = () => {
           flexDirection: "column",
           height: "100vh",
           width: "100vw",
-          backgroundColor: "transparent", // Transparent background
+          backgroundColor: mode !== "light" ? "#000" : "transparent", // Transparent background
           color: themeConfig.token?.colorText,
         }}
       >
@@ -60,11 +61,10 @@ const AppContent = () => {
         </div>
         <Player />
       </div>
+      <LoginModal />
     </ConfigProvider>
   );
 };
-
-import LoginModal from "./components/LoginModal";
 
 // ... existing imports
 
@@ -72,7 +72,6 @@ function App() {
   return (
     <ThemeProvider>
       <AppContent />
-      <LoginModal />
     </ThemeProvider>
   );
 }

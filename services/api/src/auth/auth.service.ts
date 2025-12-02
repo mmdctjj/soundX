@@ -31,4 +31,18 @@ export class AuthService {
   verifyToken(token: string) {
     return this.jwtService.verify(token);
   }
+
+  // 注册新用户
+  async register(username: string, password: string): Promise<User> {
+    return await this.userService.createUser({
+      username,
+      password,
+      is_admin: false,
+    });
+  }
+
+  // 根据用户名查找用户
+  async findUserByUsername(username: string): Promise<User | null> {
+    return await this.userService.getUser(username);
+  }
 }

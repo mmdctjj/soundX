@@ -294,8 +294,12 @@ const Favorites: React.FC = () => {
           {type === "MUSIC" && (
             <Segmented
               options={[
-                { value: "album", icon: <AppstoreOutlined /> },
-                { value: "track", icon: <UnorderedListOutlined /> },
+                { value: "album", icon: <AppstoreOutlined />, label: "专辑" },
+                {
+                  value: "track",
+                  icon: <UnorderedListOutlined />,
+                  label: "歌曲",
+                },
               ]}
               value={viewMode}
               onChange={(value) => setViewMode(value as "album" | "track")}
@@ -338,7 +342,10 @@ const Favorites: React.FC = () => {
       )}
 
       {data?.list.length === 0 && !loading && (
-        <div className={styles.noData}>
+        <div
+          className={styles.noData}
+          style={{ color: token.colorTextSecondary }}
+        >
           <Empty description="暂无收藏" />
         </div>
       )}

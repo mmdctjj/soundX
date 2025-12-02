@@ -1,5 +1,14 @@
 import { useInfiniteScroll } from "ahooks";
-import { Avatar, Col, Empty, Flex, Row, Skeleton, Typography } from "antd";
+import {
+  Avatar,
+  Col,
+  Empty,
+  Flex,
+  Row,
+  Skeleton,
+  theme,
+  Typography,
+} from "antd";
 import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { type Artist } from "../../models";
@@ -19,6 +28,7 @@ const ArtistList: React.FC = () => {
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { mode } = usePlayMode();
+  const { token } = theme.useToken();
 
   const loadMoreArtists = async (d: Result | undefined): Promise<Result> => {
     const current = d ? Math.ceil(d.list.length / 20) + 1 : 0;
@@ -81,9 +91,7 @@ const ArtistList: React.FC = () => {
                   />
                 </div>
                 <Flex vertical>
-                  <Text strong className={styles.artistName}>
-                    {artist.name}
-                  </Text>
+                  <Text>{artist.name}</Text>
                 </Flex>
               </Flex>
             </Col>
@@ -111,7 +119,12 @@ const ArtistList: React.FC = () => {
         )}
 
         {data && !data.hasMore && data.list.length > 0 && (
-          <div className={styles.noMore}>没有更多了</div>
+          <div
+            className={styles.noMore}
+            style={{ color: token.colorTextSecondary }}
+          >
+            没有更多了
+          </div>
         )}
 
         {!loading && !loadingMore && (!data || data.list.length === 0) && (
