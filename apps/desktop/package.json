@@ -7,7 +7,7 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && electron-builder",
+    "build": "tsc -b && vite build",
     "build:win": "cross-env VITE_PLATFORM=win tsc -b && vite build && electron-builder --win --x64",
     "build:win:arm64": "cross-env VITE_PLATFORM=win tsc -b && vite build && electron-builder --win --arm64",
     "build:mac": "cross-env VITE_PLATFORM=mac tsc -b && vite build && electron-builder --mac",

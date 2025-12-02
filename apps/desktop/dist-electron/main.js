@@ -1,14 +1,14 @@
-import { app, BrowserWindow } from "electron";
-import path from "path";
-import { fileURLToPath } from "node:url";
-const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-process.env.DIST = path.join(__dirname$1, "../dist");
-process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
-let win;
-const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
-function createWindow() {
-  win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC || "", "electron-vite.svg"),
+import { app as n, BrowserWindow as s } from "electron";
+import t from "path";
+import { fileURLToPath as c } from "node:url";
+const a = t.dirname(c(import.meta.url));
+process.env.DIST = t.join(a, "../dist");
+process.env.VITE_PUBLIC = n.isPackaged ? process.env.DIST : t.join(process.env.DIST, "../public");
+let e;
+const i = process.env.VITE_DEV_SERVER_URL;
+function l() {
+  e = new s({
+    icon: t.join(process.env.VITE_PUBLIC || "", "electron-vite.svg"),
     titleBarStyle: "hidden",
     // Enable native window controls on Windows (Minimize, Maximize, Close)
     titleBarOverlay: {
@@ -18,8 +18,8 @@ function createWindow() {
       // White symbols
       height: 30
     },
-    resizable: true,
-    maximizable: true,
+    resizable: !0,
+    maximizable: !0,
     transparent: process.platform === "darwin",
     // Transparency works best on macOS
     opacity: 0.95,
@@ -29,42 +29,18 @@ function createWindow() {
     visualEffectState: "active",
     // Keep vibrancy always active
     webPreferences: {
-      preload: path.join(__dirname$1, "preload.js")
+      preload: t.join(a, "preload.js")
     }
-  });
-  win.webContents.on("did-finish-load", () => {
-    win?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(process.env.DIST, "index.html"));
-  }
-  win.webContents.on("before-input-event", (event, input) => {
-    if (input.key === "i" || input.key === "I") {
-      if (process.platform === "darwin") {
-        if (input.meta && input.alt) {
-          win?.webContents.toggleDevTools();
-          event.preventDefault();
-        }
-      } else {
-        if (input.control && input.shift) {
-          win?.webContents.toggleDevTools();
-          event.preventDefault();
-        }
-      }
-    }
+  }), e.webContents.on("did-finish-load", () => {
+    e?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  }), i ? e.loadURL(i) : e.loadFile(t.join(process.env.DIST, "index.html")), e.webContents.on("before-input-event", (r, o) => {
+    (o.key === "i" || o.key === "I") && (process.platform === "darwin" ? o.meta && o.alt && (e?.webContents.toggleDevTools(), r.preventDefault()) : o.control && o.shift && (e?.webContents.toggleDevTools(), r.preventDefault()));
   });
 }
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-    win = null;
-  }
+n.on("window-all-closed", () => {
+  process.platform !== "darwin" && (n.quit(), e = null);
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+n.on("activate", () => {
+  s.getAllWindows().length === 0 && l();
 });
-app.whenReady().then(createWindow);
+n.whenReady().then(l);

@@ -61,6 +61,7 @@ RUN npm i -g pnpm && pnpm install --prod --frozen-lockfile --ignore-scripts
 COPY --from=builder /app/packages/db/dist       ./packages/db/dist
 COPY --from=builder /app/packages/utils/dist    ./packages/utils/dist
 COPY --from=builder /app/services/api/dist      ./services/api/dist
+COPY --from=builder /app/apps/desktop/dist      ./apps/desktop/dist
 
 EXPOSE 3000
 CMD ["node", "services/api/dist/main.js"]

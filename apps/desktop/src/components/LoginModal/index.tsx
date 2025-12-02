@@ -29,7 +29,6 @@ const LoginModal = () => {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loginForm] = Form.useForm();
-  const [registerForm] = Form.useForm();
   const { token: themeToken } = theme.useToken();
 
   // Load saved credentials on mount
@@ -159,7 +158,7 @@ const LoginModal = () => {
         </Form>
       ) : (
         <Form
-          form={registerForm}
+          form={loginForm}
           layout="vertical"
           size="large"
           className={styles.form}
@@ -200,7 +199,7 @@ const LoginModal = () => {
             <Button
               type="primary"
               onClick={async () => {
-                const values = await registerForm.validateFields();
+                const values = await loginForm.validateFields();
                 handleFinish(values);
               }}
               block
