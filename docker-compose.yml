@@ -16,10 +16,9 @@ services:
       - "3000:3000"
 
     environment:
-      - NODE_ENV=production
-      # 推荐使用 PostgreSQL/MySQL，如果坚持 SQLite，路径需要指向 /app/
-      # 并且 db 文件需要通过 volume 持久化
-      - DATABASE_URL=file:/app/data/dev.db
+      - AUDIO_BOOK_DIR=./music/audio
+      - MUSIC_BASE_DIR=./music/music
+      - CACHE_DIR=./music/cover
 
     # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:

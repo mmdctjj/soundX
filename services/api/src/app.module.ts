@@ -43,12 +43,13 @@ import { UserTrackLikeService } from './services/user-track-like';
     }),
     LoggerModule.forRoot({
       pinoHttp: {
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            singleLine: true,
-          },
-        },
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? {
+              target: require.resolve('pino-pretty'),
+              options: { singleLine: true },
+            }
+            : undefined,
       },
     }),
     AuthModule,
