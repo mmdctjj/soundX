@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Post,
   Put,
@@ -17,17 +18,20 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
+import { LogMethod } from '../common/log-method.decorator';
 import { AlbumService } from '../services/album';
 import { TrackService } from '../services/track';
 
 @Controller()
 export class AlbumController {
+  private readonly logger = new Logger(AlbumController.name);
   constructor(
     private readonly albumService: AlbumService,
     private readonly trackService: TrackService,
   ) { }
 
   @Get('/album/list')
+  @LogMethod()
   async getAlbumList(): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
     try {
       const albumList = await this.albumService.getAlbumList();
@@ -48,6 +52,7 @@ export class AlbumController {
 
 
   @Get('/album/artist/:artist')
+  @LogMethod()
   async getAlbumsByArtist(
     @Param('artist') artist: string,
   ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
@@ -67,6 +72,7 @@ export class AlbumController {
   }
 
   @Get('/album/table-list')
+  @LogMethod()
   async getAlbumTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
@@ -96,6 +102,7 @@ export class AlbumController {
   }
 
   @Get('/album/load-more')
+  @LogMethod()
   async loadMoreAlbum(
     @Query('pageSize') pageSize: number,
     @Query('loadCount') loadCount: number,
@@ -127,6 +134,7 @@ export class AlbumController {
   }
 
   @Post('/')
+  @LogMethod()
   async createAlbum(
     @Body() album: Omit<Album, 'id'>,
   ): Promise<ISuccessResponse<Album> | IErrorResponse> {
@@ -146,6 +154,7 @@ export class AlbumController {
   }
 
   @Post('/album/batch-create')
+  @LogMethod()
   async createAlbums(
     @Body() albums: Omit<Album, 'id'>[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -172,6 +181,7 @@ export class AlbumController {
   }
 
   @Delete('/album/batch-delete')
+  @LogMethod()
   async deleteAlbums(
     @Body() ids: number[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -198,6 +208,7 @@ export class AlbumController {
   }
 
   @Put('/album/:id')
+  @LogMethod()
   async updateAlbum(
     @Param('id') id: string,
     @Body() album: Partial<Album>,
@@ -221,6 +232,7 @@ export class AlbumController {
   }
 
   @Delete('/album/:id')
+  @LogMethod()
   async deleteAlbum(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -242,6 +254,7 @@ export class AlbumController {
 
   // 新增：最近 8 个专辑
   @Get('/album/latest')
+  @LogMethod()
   async getLatestAlbums(
     @Query('type') type?: string,
   ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
@@ -255,6 +268,7 @@ export class AlbumController {
 
   // 新增：随机推荐 8 条未听过的专辑
   @Get('/album/recommend')
+  @LogMethod()
   async getRandomUnlistenedAlbums(
     @Req() req: Request,
     @Query('type') type?: string,
@@ -276,6 +290,7 @@ export class AlbumController {
   }
 
   @Get('/album/search')
+  @LogMethod()
   async searchAlbums(
     @Query('keyword') keyword: string,
     @Query('type') type?: string,
@@ -298,6 +313,7 @@ export class AlbumController {
   }
 
   @Get('/album/:id')
+  @LogMethod()
   async getAlbumById(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<Album> | IErrorResponse> {
@@ -323,6 +339,7 @@ export class AlbumController {
   }
 
   @Get('/album/:id/tracks')
+  @LogMethod()
   async getAlbumTracks(
     @Param('id') id: string,
     @Query('pageSize') pageSize: number,

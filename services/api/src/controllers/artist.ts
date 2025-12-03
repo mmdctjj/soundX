@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Post,
   Put,
@@ -17,13 +18,16 @@ import {
   ITableData,
 } from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
+import { LogMethod } from '../common/log-method.decorator';
 import { ArtistService } from '../services/artist';
 
 @Controller()
 export class ArtistController {
+  private readonly logger = new Logger(ArtistController.name);
   constructor(private readonly artistService: ArtistService) { }
 
   @Get('/artist/list')
+  @LogMethod()
   async getArtistList(): Promise<ISuccessResponse<Artist[]> | IErrorResponse> {
     try {
       const artistList = await this.artistService.getArtistList();
@@ -41,6 +45,7 @@ export class ArtistController {
   }
 
   @Get('/artist/table-list')
+  @LogMethod()
   async getArtistTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
@@ -70,6 +75,7 @@ export class ArtistController {
   }
 
   @Get('/artist/load-more')
+  @LogMethod()
   async loadMoreArtist(
     @Query('pageSize') pageSize: string,
     @Query('loadCount') loadCount: string,
@@ -104,6 +110,7 @@ export class ArtistController {
 
   @Public()
   @Post('/artist')
+  @LogMethod()
   async createArtist(
     @Body() artist: Omit<Artist, 'id'>,
   ): Promise<ISuccessResponse<Artist> | IErrorResponse> {
@@ -123,6 +130,7 @@ export class ArtistController {
   }
 
   @Put('/artist/:id')
+  @LogMethod()
   async updateArtist(
     @Param('id') id: string,
     @Body() artist: Partial<Artist>,
@@ -146,6 +154,7 @@ export class ArtistController {
   }
 
   @Delete('/artist/:id')
+  @LogMethod()
   async deleteArtist(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -165,6 +174,7 @@ export class ArtistController {
   }
 
   @Post('/artist/batch-create')
+  @LogMethod()
   async createArtists(
     @Body() artists: Omit<Artist, 'id'>[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -191,6 +201,7 @@ export class ArtistController {
   }
 
   @Delete('/artist/batch-delete')
+  @LogMethod()
   async deleteArtists(
     @Body() ids: number[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -217,6 +228,7 @@ export class ArtistController {
   }
 
   @Get('/artist/search')
+  @LogMethod()
   async searchArtists(
     @Query('keyword') keyword: string,
     @Query('type') type?: TrackType,
@@ -239,6 +251,7 @@ export class ArtistController {
   }
 
   @Get('/artist/latest')
+  @LogMethod()
   async getLatestArtists(
     @Query('type') type: TrackType,
     @Query('limit') limit?: string,
@@ -261,6 +274,7 @@ export class ArtistController {
 
 
   @Get('/artist/:id')
+  @LogMethod()
   async getArtistById(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<Artist> | IErrorResponse | INotFoundResponse> {

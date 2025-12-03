@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Logger, Param, Post, Query } from '@nestjs/common';
 import { UserTrackLike } from '@soundx/db';
 import {
   IErrorResponse,
@@ -6,13 +6,16 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
+import { LogMethod } from '../common/log-method.decorator';
 import { UserTrackLikeService } from '../services/user-track-like';
 
 @Controller('user-track-likes')
 export class UserTrackLikeController {
+  private readonly logger = new Logger(UserTrackLikeController.name);
   constructor(private readonly userTrackLikeService: UserTrackLikeService) { }
 
   @Post('/create')
+  @LogMethod()
   async create(
     @Body() bodyData: UserTrackLike,
   ): Promise<ISuccessResponse<UserTrackLike> | IErrorResponse> {
@@ -32,6 +35,7 @@ export class UserTrackLikeController {
   }
 
   @Get('/list')
+  @LogMethod()
   async findAll(): Promise<ISuccessResponse<UserTrackLike[]> | IErrorResponse> {
     try {
       const data = await this.userTrackLikeService.findAll();
@@ -49,6 +53,7 @@ export class UserTrackLikeController {
   }
 
   @Get('/table-list')
+  @LogMethod()
   async getUserTrackLikeTableList(
     @Param('page') page: string = '1',
     @Param('pageSize') pageSize: string = '10',
@@ -78,6 +83,7 @@ export class UserTrackLikeController {
   }
 
   @Get('/load-more')
+  @LogMethod()
   async loadMoreUserTrackLike(
     @Query('userId') userId: string,
     @Query('loadCount') loadCount: string,
@@ -112,6 +118,7 @@ export class UserTrackLikeController {
   }
 
   @Get('/count')
+  @LogMethod()
   async userTrackLikeCount(): Promise<
     ISuccessResponse<number> | IErrorResponse
   > {
@@ -131,6 +138,7 @@ export class UserTrackLikeController {
   }
 
   @Get(':id')
+  @LogMethod()
   async findOne(
     @Param('id') id: string,
     // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
@@ -151,6 +159,7 @@ export class UserTrackLikeController {
   }
 
   @Delete(':id')
+  @LogMethod()
   async remove(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<UserTrackLike> | IErrorResponse> {

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Post,
   Put,
@@ -15,13 +16,16 @@ import {
   ITableData,
 } from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
+import { LogMethod } from '../common/log-method.decorator';
 import { UserService } from '../services/user';
 
 @Controller()
 export class UserController {
+  private readonly logger = new Logger(UserController.name);
   constructor(private readonly userService: UserService) { }
 
   @Get('/user/list')
+  @LogMethod()
   async getUserList(): Promise<ISuccessResponse<User[]> | IErrorResponse> {
     try {
       const useList = await this.userService.getUserList();
@@ -40,6 +44,7 @@ export class UserController {
   }
 
   @Get('/user/table-list')
+  @LogMethod()
   async getUserTableList(
     @Param('page') page: string = '1',
     @Param('pageSize') pageSize: string = '10',
@@ -69,6 +74,7 @@ export class UserController {
   }
 
   @Get('/user/load-more')
+  @LogMethod()
   async loadMoreUser(
     @Param('lastId') lastId: string,
     @Param('pageSize') pageSize: string = '10',
@@ -98,6 +104,7 @@ export class UserController {
   }
 
   @Get('/user/count')
+  @LogMethod()
   async userCount(): Promise<ISuccessResponse<number> | IErrorResponse> {
     try {
       const count = await this.userService.userCount();
@@ -116,6 +123,7 @@ export class UserController {
 
   @Public()
   @Post('/user')
+  @LogMethod()
   async createUser(
     @Body() user: Omit<User, 'id'>,
   ): Promise<ISuccessResponse<User> | IErrorResponse> {
@@ -135,6 +143,7 @@ export class UserController {
   }
 
   @Put('/user/:id')
+  @LogMethod()
   async updateUser(
     @Param('id') id: string,
     @Body() user: Partial<User>,
@@ -155,6 +164,7 @@ export class UserController {
   }
 
   @Delete('/user/:id')
+  @LogMethod()
   async deleteUser(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {

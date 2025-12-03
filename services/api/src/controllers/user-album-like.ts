@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Logger, Param, Post, Query } from '@nestjs/common';
 import { UserAlbumLike } from '@soundx/db';
 import {
   IErrorResponse,
@@ -6,12 +6,15 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
+import { LogMethod } from '../common/log-method.decorator';
 import { UserAlbumLikeService } from '../services/user-album-like';
 @Controller('user-album-likes')
 export class UserAlbumLikeController {
+  private readonly logger = new Logger(UserAlbumLikeController.name);
   constructor(private readonly userAlbumLikeService: UserAlbumLikeService) { }
 
   @Post()
+  @LogMethod()
   async create(
     @Body() createUserAlbumLikeDto: UserAlbumLike,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
@@ -33,6 +36,7 @@ export class UserAlbumLikeController {
   }
 
   @Get()
+  @LogMethod()
   async findAll(): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
       const data = await this.userAlbumLikeService.findAll();
@@ -50,6 +54,7 @@ export class UserAlbumLikeController {
   }
 
   @Delete('/unlike')
+  @LogMethod()
   async unlike(
     @Query('userId') userId: string,
     @Query('albumId') albumId: string,
@@ -72,6 +77,7 @@ export class UserAlbumLikeController {
   }
 
   @Get('/table-list')
+  @LogMethod()
   async getUserAlbumLikeTableList(
     @Query('pageSize') pageSize: string,
     @Query('current') current: string,
@@ -103,6 +109,7 @@ export class UserAlbumLikeController {
   }
 
   @Get('/load-more')
+  @LogMethod()
   async loadMoreUserAlbumLike(
     @Query('pageSize') pageSize: string,
     @Query('loadCount') loadCount: string,
@@ -140,6 +147,7 @@ export class UserAlbumLikeController {
   }
 
   @Get(':id')
+  @LogMethod()
   async findOne(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {

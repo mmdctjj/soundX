@@ -1,36 +1,43 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient, UserAlbumHistory } from '@soundx/db';
+import { LogMethod } from '../common/log-method.decorator';
 
 @Injectable()
 export class UserAlbumHistoryService {
+  private readonly logger = new Logger(UserAlbumHistoryService.name);
   private prisma: PrismaClient;
 
   constructor() {
     this.prisma = new PrismaClient();
   }
 
+  @LogMethod()
   async create(data: UserAlbumHistory) {
     return await this.prisma.userAlbumHistory.create({
       data,
     });
   }
 
+  @LogMethod()
   async findAll() {
     return await this.prisma.userAlbumHistory.findMany();
   }
 
+  @LogMethod()
   async findOne(id: number) {
     return await this.prisma.userAlbumHistory.findUnique({
       where: { id },
     });
   }
 
+  @LogMethod()
   async remove(id: number) {
     return await this.prisma.userAlbumHistory.delete({
       where: { id },
     });
   }
 
+  @LogMethod()
   async getUserAlbumHistoryTableList(pageSize: number, current: number) {
     return await this.prisma.userAlbumHistory.findMany({
       skip: (current - 1) * pageSize,
@@ -38,6 +45,7 @@ export class UserAlbumHistoryService {
     });
   }
 
+  @LogMethod()
   async loadMoreUserAlbumHistory(pageSize: number, loadCount: number, userId: number) {
     const list = await this.prisma.userAlbumHistory.findMany({
       where: { userId },
@@ -61,6 +69,7 @@ export class UserAlbumHistoryService {
   }
 
 
+  @LogMethod()
   async userAlbumHistoryCount(userId?: number) {
     if (userId) {
       // Count unique albums for the user

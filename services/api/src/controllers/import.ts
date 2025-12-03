@@ -1,11 +1,14 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Post } from '@nestjs/common';
+import { LogMethod } from '../common/log-method.decorator';
 import { ImportService } from '../services/import';
 
 @Controller('import')
 export class ImportController {
+  private readonly logger = new Logger(ImportController.name);
   constructor(private readonly importService: ImportService) { }
 
   @Post('task')
+  @LogMethod()
   createTask(@Body() body: any) {
     const { musicPath, audiobookPath, cachePath } = body;
     // Basic validation
@@ -18,6 +21,7 @@ export class ImportController {
   }
 
   @Get('task/:id')
+  @LogMethod()
   getTask(@Param('id') id: string) {
     const task = this.importService.getTask(id);
     if (!task) {

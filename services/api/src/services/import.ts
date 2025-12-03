@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { TrackType } from '@soundx/db';
 import { LocalMusicScanner } from '@soundx/utils';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
+import { LogMethod } from '../common/log-method.decorator';
 import { AlbumService } from './album';
 import { ArtistService } from './artist';
 import { TrackService } from './track';
@@ -24,6 +25,7 @@ export interface ImportTask {
 
 @Injectable()
 export class ImportService {
+  private readonly logger = new Logger(ImportService.name);
   private tasks: Map<string, ImportTask> = new Map();
 
   constructor(
@@ -32,6 +34,7 @@ export class ImportService {
     private readonly artistService: ArtistService,
   ) { }
 
+  @LogMethod()
   createTask(musicPath: string, audiobookPath: string, cachePath: string): string {
     const id = randomUUID();
     this.tasks.set(id, { id, status: TaskStatus.INITIALIZING });
@@ -43,6 +46,7 @@ export class ImportService {
     return id;
   }
 
+  @LogMethod()
   getTask(id: string): ImportTask | undefined {
     return this.tasks.get(id);
   }
