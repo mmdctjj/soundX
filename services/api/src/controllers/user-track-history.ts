@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Logger, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { UserTrackHistory } from '@soundx/db';
 import {
   IErrorResponse,
@@ -6,18 +6,15 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { LogMethod } from '../common/log-method.decorator';
 import { UserTrackHistoryService } from '../services/user-track-history';
 
 @Controller('user-track-histories')
 export class UserTrackHistoryController {
-  private readonly logger = new Logger(UserTrackHistoryController.name);
   constructor(
     private readonly userTrackHistoryService: UserTrackHistoryService,
   ) { }
 
   @Post()
-  @LogMethod()
   async create(
     @Body() createUserTrackHistoryDto: UserTrackHistory,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
@@ -39,7 +36,6 @@ export class UserTrackHistoryController {
   }
 
   @Get()
-  @LogMethod()
   async findAll(): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
       const data = await this.userTrackHistoryService.findAll();
@@ -57,7 +53,6 @@ export class UserTrackHistoryController {
   }
 
   @Get('/table-list')
-  @LogMethod()
   async getUserTrackHistoryTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
@@ -91,7 +86,6 @@ export class UserTrackHistoryController {
   }
 
   @Get('/load-more')
-  @LogMethod()
   async loadMoreUserTrackHistory(
     @Query('pageSize') pageSize: number,
     @Query('loadCount') loadCount: number,
@@ -128,7 +122,6 @@ export class UserTrackHistoryController {
   }
 
   @Get(':id')
-  @LogMethod()
   async findOne(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
@@ -148,7 +141,6 @@ export class UserTrackHistoryController {
   }
 
   @Delete(':id')
-  @LogMethod()
   async remove(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {

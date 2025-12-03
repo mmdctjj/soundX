@@ -1,22 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Artist, PrismaClient, TrackType } from '@soundx/db';
-import { LogMethod } from '../common/log-method.decorator';
 
 @Injectable()
 export class ArtistService {
-  private readonly logger = new Logger(ArtistService.name);
   private prisma: PrismaClient;
 
   constructor() {
     this.prisma = new PrismaClient();
   }
 
-  @LogMethod()
   async getArtistList(): Promise<Artist[]> {
     return await this.prisma.artist.findMany();
   }
 
-  @LogMethod()
   async findByName(name: string, type?: any): Promise<Artist | null> {
     // Don't search if name is null
     if (name === null || name === undefined) {
@@ -29,12 +25,10 @@ export class ArtistService {
     return await this.prisma.artist.findFirst({ where });
   }
 
-  @LogMethod()
   async getArtistById(id: number): Promise<Artist | null> {
     return await this.prisma.artist.findUnique({ where: { id } });
   }
 
-  @LogMethod()
   async getArtistTableList(
     pageSize: number,
     current: number,
@@ -45,7 +39,6 @@ export class ArtistService {
     });
   }
 
-  @LogMethod()
   async loadMoreArtist(
     pageSize: number,
     loadCount: number,
@@ -62,19 +55,16 @@ export class ArtistService {
     });
   }
 
-  @LogMethod()
   async artistCount(): Promise<number> {
     return await this.prisma.artist.count();
   }
 
-  @LogMethod()
   async createArtist(artist: Omit<Artist, 'id'>): Promise<Artist> {
     return await this.prisma.artist.create({
       data: artist,
     });
   }
 
-  @LogMethod()
   async updateArtist(id: number, artist: Partial<Artist>): Promise<Artist> {
     return await this.prisma.artist.update({
       where: { id },
@@ -82,7 +72,6 @@ export class ArtistService {
     });
   }
 
-  @LogMethod()
   async deleteArtist(id: number): Promise<boolean> {
     await this.prisma.artist.delete({
       where: { id },
@@ -91,7 +80,6 @@ export class ArtistService {
   }
 
   // 批量新增
-  @LogMethod()
   async createArtists(artists: Omit<Artist, 'id'>[]): Promise<boolean> {
     const artistList = await this.prisma.artist.createMany({
       data: artists,
@@ -103,7 +91,6 @@ export class ArtistService {
   }
 
   // 批量删除
-  @LogMethod()
   async deleteArtists(ids: number[]): Promise<boolean> {
     await this.prisma.artist.deleteMany({
       where: { id: { in: ids } },
@@ -112,7 +99,6 @@ export class ArtistService {
   }
 
   // 搜索艺术家
-  @LogMethod()
   async searchArtists(
     keyword: string,
     type?: TrackType,
@@ -136,7 +122,6 @@ export class ArtistService {
   }
 
   // 获取最近的艺术家
-  @LogMethod()
   async getLatestArtists(limit: number = 8, type: TrackType): Promise<Artist[]> {
     return await this.prisma.artist.findMany({
       take: limit,

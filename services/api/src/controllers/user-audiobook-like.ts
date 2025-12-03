@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Logger, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { UserAudiobookLike } from '@soundx/db';
 import {
   IErrorResponse,
@@ -6,18 +6,15 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { LogMethod } from '../common/log-method.decorator';
 import { UserAudiobookLikeService } from '../services/user-audiobook-like';
 
 @Controller('user-audiobook-likes')
 export class UserAudiobookLikeController {
-  private readonly logger = new Logger(UserAudiobookLikeController.name);
   constructor(
     private readonly userAudiobookLikeService: UserAudiobookLikeService,
   ) { }
 
   @Post()
-  @LogMethod()
   async create(
     @Body() createUserAudiobookLikeDto: UserAudiobookLike,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
@@ -39,7 +36,6 @@ export class UserAudiobookLikeController {
   }
 
   @Get()
-  @LogMethod()
   async findAll(): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
       const data = await this.userAudiobookLikeService.findAll();
@@ -57,7 +53,6 @@ export class UserAudiobookLikeController {
   }
 
   @Get(':id')
-  @LogMethod()
   async findOne(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
@@ -77,7 +72,6 @@ export class UserAudiobookLikeController {
   }
 
   @Delete(':id')
-  @LogMethod()
   async remove(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
@@ -97,7 +91,6 @@ export class UserAudiobookLikeController {
   }
 
   @Get('/table-list')
-  @LogMethod()
   async getUserAudiobookLikeTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
@@ -131,7 +124,6 @@ export class UserAudiobookLikeController {
   }
 
   @Get('/load-more')
-  @LogMethod()
   async loadMoreUserAudiobookLike(
     @Param('pageSize') pageSize: number,
     @Param('loadCount') loadCount: number,

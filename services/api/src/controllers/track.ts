@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Logger,
   Param,
   Post,
   Put,
@@ -17,16 +16,13 @@ import {
   ITableData,
 } from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
-import { LogMethod } from '../common/log-method.decorator';
 import { TrackService } from '../services/track';
 
 @Controller()
 export class TrackController {
-  private readonly logger = new Logger(TrackController.name);
   constructor(private readonly trackService: TrackService) { }
 
   @Get('/track/list')
-  @LogMethod()
   async getTrackList(): Promise<ISuccessResponse<Track[]> | IErrorResponse> {
     try {
       const trackList = await this.trackService.getTrackList();
@@ -44,7 +40,6 @@ export class TrackController {
   }
 
   @Get('/table-list')
-  @LogMethod()
   async getTrackTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
@@ -74,7 +69,6 @@ export class TrackController {
   }
 
   @Get('/load-more')
-  @LogMethod()
   async loadMoreTrack(
     @Param('pageSize') pageSize: number,
     @Param('loadCount') loadCount: number,
@@ -105,7 +99,6 @@ export class TrackController {
 
   @Public()
   @Post('/track')
-  @LogMethod()
   async createTrack(
     @Body() track: Omit<Track, 'id'>,
   ): Promise<ISuccessResponse<Track> | IErrorResponse> {
@@ -125,7 +118,6 @@ export class TrackController {
   }
 
   @Put('/track/:id')
-  @LogMethod()
   async updateTrack(
     @Param('id') id: string,
     @Body() track: Partial<Track>,
@@ -149,7 +141,6 @@ export class TrackController {
   }
 
   @Delete('/track/:id')
-  @LogMethod()
   async deleteTrack(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -169,7 +160,6 @@ export class TrackController {
   }
 
   @Post('/track/batch-create')
-  @LogMethod()
   async createTracks(
     @Body() tracks: Omit<Track, 'id'>[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -196,7 +186,6 @@ export class TrackController {
   }
 
   @Delete('/track/batch-delete')
-  @LogMethod()
   async deleteTracks(
     @Body() ids: number[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -223,7 +212,6 @@ export class TrackController {
   }
 
   @Get('/track/search')
-  @LogMethod()
   async searchTracks(
     @Query('keyword') keyword: string,
     @Query('type') type?: TrackType,
@@ -245,7 +233,6 @@ export class TrackController {
     }
   }
   @Get('/track/latest')
-  @LogMethod()
   async getLatestTracks(
     @Query('type') type?: TrackType,
   ): Promise<ISuccessResponse<Track[]> | IErrorResponse> {
@@ -265,7 +252,6 @@ export class TrackController {
   }
 
   @Get('/track/artist')
-  @LogMethod()
   async getTracksByArtist(
     @Query('artist') artist: string,
   ): Promise<ISuccessResponse<Track[]> | IErrorResponse> {

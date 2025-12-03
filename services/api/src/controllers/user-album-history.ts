@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Logger, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { UserAlbumHistory } from '@soundx/db';
 import {
   IErrorResponse,
@@ -6,18 +6,15 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { LogMethod } from '../common/log-method.decorator';
 import { UserAlbumHistoryService } from '../services/user-album-history';
 
 @Controller('user-album-histories')
 export class UserAlbumHistoryController {
-  private readonly logger = new Logger(UserAlbumHistoryController.name);
   constructor(
     private readonly userAlbumHistoryService: UserAlbumHistoryService,
   ) { }
 
   @Post()
-  @LogMethod()
   async create(
     @Body() createUserAlbumHistoryDto: UserAlbumHistory,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
@@ -39,7 +36,6 @@ export class UserAlbumHistoryController {
   }
 
   @Get()
-  @LogMethod()
   async findAll(): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
       const data = await this.userAlbumHistoryService.findAll();
@@ -57,7 +53,6 @@ export class UserAlbumHistoryController {
   }
 
   @Delete(':id')
-  @LogMethod()
   async remove(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
@@ -77,7 +72,6 @@ export class UserAlbumHistoryController {
   }
 
   @Get('/table-list')
-  @LogMethod()
   async getUserAlbumHistoryTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
@@ -110,7 +104,6 @@ export class UserAlbumHistoryController {
   }
 
   @Get('/load-more')
-  @LogMethod()
   async loadMoreUserAlbumHistory(
     @Query('pageSize') pageSize: string,
     @Query('loadCount') loadCount: string,
@@ -149,7 +142,6 @@ export class UserAlbumHistoryController {
   }
 
   @Get(':id')
-  @LogMethod()
   async findOne(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {

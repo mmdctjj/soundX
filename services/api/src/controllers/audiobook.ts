@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Logger,
   Param,
   Post,
   Put,
@@ -15,16 +14,13 @@ import {
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
-import { LogMethod } from '../common/log-method.decorator';
 import { AudiobookService } from '../services/audiobook';
 
 @Controller('/audiobook')
 export class AudiobookController {
-  private readonly logger = new Logger(AudiobookController.name);
   constructor(private readonly audiobookService: AudiobookService) { }
 
   @Get('/list')
-  @LogMethod()
   async getAudiobookList(): Promise<
     ISuccessResponse<Track[]> | IErrorResponse
   > {
@@ -37,7 +33,6 @@ export class AudiobookController {
   }
 
   @Get('/table-list')
-  @LogMethod()
   async getAudiobookTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
@@ -59,7 +54,6 @@ export class AudiobookController {
   }
 
   @Get('/load-more')
-  @LogMethod()
   async loadMoreAudiobook(
     @Param('pageSize') pageSize: number,
     @Param('loadCount') loadCount: number,
@@ -81,7 +75,6 @@ export class AudiobookController {
   }
 
   @Get('/latest')
-  @LogMethod()
   async getLatestAudiobooks(): Promise<
     ISuccessResponse<Track[]> | IErrorResponse
   > {
@@ -94,7 +87,6 @@ export class AudiobookController {
   }
 
   @Post()
-  @LogMethod()
   async createAudiobook(
     @Body() track: Omit<Track, 'id'>,
   ): Promise<ISuccessResponse<Track> | IErrorResponse> {
@@ -107,7 +99,6 @@ export class AudiobookController {
   }
 
   @Put('/:id')
-  @LogMethod()
   async updateAudiobook(
     @Param('id') id: string,
     @Body() track: Partial<Track>,
@@ -124,7 +115,6 @@ export class AudiobookController {
   }
 
   @Delete('/:id')
-  @LogMethod()
   async deleteAudiobook(
     @Param('id') id: string,
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -137,7 +127,6 @@ export class AudiobookController {
   }
 
   @Post('/batch-create')
-  @LogMethod()
   async createAudiobooks(
     @Body() tracks: Omit<Track, 'id'>[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -153,7 +142,6 @@ export class AudiobookController {
   }
 
   @Delete('/batch-delete')
-  @LogMethod()
   async deleteAudiobooks(
     @Body() ids: number[],
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
@@ -170,7 +158,6 @@ export class AudiobookController {
 
   // 新增：随机推荐 8 条未听过的有声书“专辑”（按 Track.album 聚合）
   @Get('/albums/recommend')
-  @LogMethod()
   async getRandomUnlistenedAudiobookAlbums(): Promise<
     ISuccessResponse<Track[]> | IErrorResponse
   > {

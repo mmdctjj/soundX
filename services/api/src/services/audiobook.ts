@@ -1,24 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaClient, Track, TrackType } from '@soundx/db';
-import { LogMethod } from '../common/log-method.decorator';
 
 @Injectable()
 export class AudiobookService {
-  private readonly logger = new Logger(AudiobookService.name);
   private prisma: PrismaClient;
 
   constructor() {
     this.prisma = new PrismaClient();
   }
 
-  @LogMethod()
   async getAudiobookList(): Promise<Track[]> {
     return await this.prisma.track.findMany({
       where: { type: TrackType.AUDIOBOOK },
     });
   }
 
-  @LogMethod()
   async getAudiobookTableList(
     pageSize: number,
     current: number,
@@ -31,7 +27,6 @@ export class AudiobookService {
     });
   }
 
-  @LogMethod()
   async loadMoreAudiobook(
     pageSize: number,
     loadCount: number,
@@ -44,7 +39,6 @@ export class AudiobookService {
     });
   }
 
-  @LogMethod()
   async getLatestAudiobooks(limit = 8): Promise<Track[]> {
     return await this.prisma.track.findMany({
       where: { type: TrackType.AUDIOBOOK },
@@ -53,21 +47,18 @@ export class AudiobookService {
     });
   }
 
-  @LogMethod()
   async audiobookCount(): Promise<number> {
     return await this.prisma.track.count({
       where: { type: TrackType.AUDIOBOOK },
     });
   }
 
-  @LogMethod()
   async createAudiobook(track: Omit<Track, 'id'>): Promise<Track> {
     return await this.prisma.track.create({
       data: { ...track, type: TrackType.AUDIOBOOK },
     });
   }
 
-  @LogMethod()
   async updateAudiobook(id: number, track: Partial<Track>): Promise<Track> {
     return await this.prisma.track.update({
       where: { id },
@@ -75,7 +66,6 @@ export class AudiobookService {
     });
   }
 
-  @LogMethod()
   async deleteAudiobook(id: number): Promise<boolean> {
     await this.prisma.track.delete({
       where: { id },
@@ -83,7 +73,6 @@ export class AudiobookService {
     return true;
   }
 
-  @LogMethod()
   async createAudiobooks(tracks: Omit<Track, 'id'>[]): Promise<boolean> {
     const res = await this.prisma.track.createMany({
       data: tracks.map((t) => ({ ...t, type: TrackType.AUDIOBOOK })),
@@ -94,7 +83,6 @@ export class AudiobookService {
     return true;
   }
 
-  @LogMethod()
   async deleteAudiobooks(ids: number[]): Promise<boolean> {
     await this.prisma.track.deleteMany({
       where: { id: { in: ids }, type: TrackType.AUDIOBOOK },
@@ -103,7 +91,6 @@ export class AudiobookService {
   }
 
   // 随机推荐：用户未听过的有声书“专辑”（按 Track.album 聚合）
-  @LogMethod()
   async getRandomUnlistenedAudiobookAlbums(
     limit: number = 8,
   ): Promise<Track[]> {

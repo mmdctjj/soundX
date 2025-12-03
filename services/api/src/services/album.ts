@@ -1,22 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Album, PrismaClient } from '@soundx/db';
-import { LogMethod } from '../common/log-method.decorator';
 
 @Injectable()
 export class AlbumService {
-  private readonly logger = new Logger(AlbumService.name);
   private prisma: PrismaClient;
 
   constructor() {
     this.prisma = new PrismaClient();
   }
 
-  @LogMethod()
   async getAlbumList(): Promise<Album[]> {
     return await this.prisma.album.findMany();
   }
 
-  @LogMethod()
   async findByName(name: string, artist?: string, type?: any): Promise<Album | null> {
     // Build where clause dynamically to avoid null matching issues
     const where: any = {};
@@ -34,17 +30,14 @@ export class AlbumService {
     return await this.prisma.album.findFirst({ where });
   }
 
-  @LogMethod()
   async getAlbumsByArtist(artist: string): Promise<Album[]> {
     return await this.prisma.album.findMany({ where: { artist } });
   }
 
-  @LogMethod()
   async getAlbumById(id: number): Promise<Album | null> {
     return await this.prisma.album.findUnique({ where: { id }, include: { likedByUsers: true, listenedByUsers: true } });
   }
 
-  @LogMethod()
   async getAlbumTableList(pageSize: number, current: number): Promise<Album[]> {
     return await this.prisma.album.findMany({
       skip: (current - 1) * pageSize,
@@ -52,7 +45,6 @@ export class AlbumService {
     });
   }
 
-  @LogMethod()
   async loadMoreAlbum(pageSize: number, loadCount: number, type?: any): Promise<Album[]> {
     return await this.prisma.album.findMany({
       skip: loadCount * pageSize,
@@ -61,19 +53,16 @@ export class AlbumService {
     });
   }
 
-  @LogMethod()
   async albumCount(): Promise<number> {
     return await this.prisma.album.count();
   }
 
-  @LogMethod()
   async createAlbum(album: Omit<Album, 'id'>): Promise<Album> {
     return await this.prisma.album.create({
       data: album,
     });
   }
 
-  @LogMethod()
   async updateAlbum(id: number, album: Partial<Album>): Promise<Album> {
     return await this.prisma.album.update({
       where: { id },
@@ -81,7 +70,6 @@ export class AlbumService {
     });
   }
 
-  @LogMethod()
   async deleteAlbum(id: number): Promise<boolean> {
     await this.prisma.album.delete({
       where: { id },
@@ -90,7 +78,6 @@ export class AlbumService {
   }
 
   // 批量新增
-  @LogMethod()
   async createAlbums(albums: Omit<Album, 'id'>[]): Promise<boolean> {
     const albumList = await this.prisma.album.createMany({
       data: albums,
@@ -102,7 +89,6 @@ export class AlbumService {
   }
 
   // 批量删除
-  @LogMethod()
   async deleteAlbums(ids: number[]): Promise<boolean> {
     await this.prisma.album.deleteMany({
       where: { id: { in: ids } },
@@ -111,7 +97,6 @@ export class AlbumService {
   }
 
   // 新增：最近专辑（按 id 倒序）
-  @LogMethod()
   async getLatestAlbums(limit = 8, type?: any): Promise<Album[]> {
     return await this.prisma.album.findMany({
       where: type ? { type } : undefined,
@@ -121,7 +106,6 @@ export class AlbumService {
   }
 
   // 随机推荐：用户未听过的专辑
-  @LogMethod()
   async getRandomUnlistenedAlbums(userId: number, limit = 8, type?: any): Promise<Album[]> {
     const listened = await this.prisma.userAlbumHistory.findMany({
       where: { userId },
@@ -145,7 +129,6 @@ export class AlbumService {
   }
 
   // 搜索专辑
-  @LogMethod()
   async searchAlbums(keyword: string, type?: any, limit: number = 10): Promise<Album[]> {
     const where: any = {
       OR: [
