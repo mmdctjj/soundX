@@ -1,6 +1,14 @@
 # SoundX
 
-SoundX 是一个基于现代 Web 技术构建的音乐流媒体应用 monorepo，包含桌面端应用（Electron + React）和后端服务（NestJS）。
+SoundX 是一个基于现代 Web 技术构建的音乐和有声书一体的本地化流媒体应用，包含桌面端、移动端、web端、小程序。以及本地化后端服务
+
+## 开发进度
+
+- [x] 桌面端
+- [x] web 端
+- [ ] 移动端
+- [ ] 小程序
+- [x] 服务端
 
 ## 项目结构
 
@@ -11,10 +19,20 @@ SoundX 是一个基于现代 Web 技术构建的音乐流媒体应用 monorepo�
 - **packages/db**: 共享的数据库模块，包含 Prisma Schema 和 Client。
 - **packages/utils**: 共享工具函数库。
 
-
 ## 页面操作指南
 
-需要先登陆，没有就先注册，注册成功后，鼠标放在用户头像处，会弹出一个下拉菜单，点击"数据源设置"，输入对应的后端地址即可
+- 1. 需要先设置后端服务地址，然后登陆，没有就先注册，注册成功后，
+- 2. 鼠标放在用户头像处，会弹出一个下拉菜单，点击 “音频文件管理”，设置音频文件的识别路径
+- 3. 输入对应的文件夹地址
+- 4. 点击确定，自动关闭说明成功了！
+- 5. 刷新页面即可
+
+## NAS 部署指南
+
+- 1. 先拉取镜像，目前还没通过自测，暂不发版，需要的联系我
+- 2. 复制 docker-compose.yml 文件到 NAS 上
+- 3. 复制 nginx.conf 到 NAS 上
+- 4. 启动服务即可
 
 ## 本地开发指南
 
@@ -99,4 +117,3 @@ docker-compose down
 - `pnpm --filter @soundx/db run studio`: 启动 Prisma Studio 查看数据库。
 - `pnpm --filter @soundx/api build`: 单独构建 API 服务。
 - `pnpm --filter @soundx/desktop build`: 单独构建桌面端应用。
-

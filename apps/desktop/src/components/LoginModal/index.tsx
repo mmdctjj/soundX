@@ -1,4 +1,4 @@
-import { LockOutlined, UserOutlined } from "@ant-design/icons";
+import { HddOutlined, LockOutlined, UserOutlined } from "@ant-design/icons";
 import {
   Button,
   Checkbox,
@@ -48,6 +48,7 @@ const LoginModal = () => {
 
   const handleFinish = async (values: any) => {
     setLoading(true);
+    localStorage.setItem("serverAddress", values.serverAddress);
     try {
       if (isLogin) {
         const res = await login({
@@ -90,7 +91,7 @@ const LoginModal = () => {
 
   return (
     <Modal
-      open={!token && !!localStorage.getItem("dataSourceOrigin")}
+      open={!token}
       footer={null}
       closable={false}
       maskClosable={false}
@@ -115,104 +116,129 @@ const LoginModal = () => {
         </Text>
       </div>
 
-      {isLogin ? (
-        <Form
-          form={loginForm}
-          layout="vertical"
-          size="large"
-          className={styles.form}
+      <Form
+        form={loginForm}
+        layout="vertical"
+        size="large"
+        className={styles.form}
+      >
+        <Form.Item
+          name="serverAddress"
+          rules={[
+            { required: true, message: "请输入服务端地址" },
+            {
+              validator: (_, value) => {
+                if (!value) return Promise.resolve();
+                if (
+                  value.startsWith("http://") ||
+                  value.startsWith("https://")
+                ) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(
+                  new Error("服务端地址必须以 http:// 或 https:// 开头")
+                );
+              },
+            },
+          ]}
         >
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: "请输入用户名!" }]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="User Name" />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: "请输入密码!" }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 16 }}>
-            <Checkbox
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              style={{ color: themeToken.colorTextSecondary }}
+          <Input prefix={<HddOutlined />} placeholder="请输入服务端地址" />
+        </Form.Item>
+        {isLogin ? (
+          <>
+            <Form.Item
+              name="username"
+              rules={[{ required: true, message: "请输入用户名!" }]}
             >
-              Remember me
-            </Checkbox>
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button
-              type="primary"
-              onClick={async () => {
-                const values = await loginForm.validateFields();
-                handleFinish(values);
-              }}
-              block
-              loading={loading}
-              className={styles.submitButton}
+              <Input prefix={<UserOutlined />} placeholder="请输入用户名" />
+            </Form.Item>
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: "请输入密码!" }]}
             >
-              Login
-            </Button>
-          </Form.Item>
-        </Form>
-      ) : (
-        <Form
-          form={loginForm}
-          layout="vertical"
-          size="large"
-          className={styles.form}
-        >
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: "请输入用户名!" }]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="User Name" />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: "请输入密码!" }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
-          </Form.Item>
-          <Form.Item
-            name="confirm"
-            dependencies={["password"]}
-            rules={[
-              { required: true, message: "请确认密码!" },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue("password") === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error("两次输入的密码不一致!"));
-                },
-              }),
-            ]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="Confirm Password"
-            />
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button
-              type="primary"
-              onClick={async () => {
-                const values = await loginForm.validateFields();
-                handleFinish(values);
-              }}
-              block
-              loading={loading}
-              className={styles.submitButton}
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="请输入密码"
+              />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 16 }}>
+              <Checkbox
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ color: themeToken.colorTextSecondary }}
+              >
+                Remember me
+              </Checkbox>
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Button
+                type="primary"
+                onClick={async () => {
+                  const values = await loginForm.validateFields();
+                  handleFinish(values);
+                }}
+                block
+                loading={loading}
+                className={styles.submitButton}
+              >
+                Login
+              </Button>
+            </Form.Item>
+          </>
+        ) : (
+          <>
+            <Form.Item
+              name="username"
+              rules={[{ required: true, message: "请输入用户名!" }]}
             >
-              Sign Up
-            </Button>
-          </Form.Item>
-        </Form>
-      )}
+              <Input prefix={<UserOutlined />} placeholder="User Name" />
+            </Form.Item>
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: "请输入密码!" }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Password"
+              />
+            </Form.Item>
+            <Form.Item
+              name="confirm"
+              dependencies={["password"]}
+              rules={[
+                { required: true, message: "请确认密码!" },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue("password") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error("两次输入的密码不一致!"));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Confirm Password"
+              />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Button
+                type="primary"
+                onClick={async () => {
+                  const values = await loginForm.validateFields();
+                  handleFinish(values);
+                }}
+                block
+                loading={loading}
+                className={styles.submitButton}
+              >
+                Sign Up
+              </Button>
+            </Form.Item>
+          </>
+        )}
+      </Form>
 
       <div
         className={styles.switchText}

@@ -69,7 +69,7 @@ COPY --from=builder /app/apps/desktop/dist      ./apps/desktop/dist
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "cd packages/db && npx prisma migrate deploy && cd ../../services/api && node dist/main.js"]
+CMD ["sh", "-c", "cd packages/db && npx prisma db push && cd ../../services/api && node dist/main.js"]
 
 # ==========================================
 # Stage 4: Frontend Runner（Nginx 承载 web）
@@ -82,5 +82,5 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # 拷贝前端构建产物
 COPY --from=builder /app/apps/desktop/dist /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE 9958
 CMD ["nginx", "-g", "daemon off;"]

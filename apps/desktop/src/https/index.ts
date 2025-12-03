@@ -10,12 +10,9 @@ function getBaseURL(): string {
 
   // In production, use server address from localStorage or default
   try {
-    const savedPaths = localStorage.getItem("importPaths");
-    if (savedPaths) {
-      const paths = JSON.parse(savedPaths);
-      if (paths.serverAddress) {
-        return paths.serverAddress;
-      }
+    const serverAddress = localStorage.getItem("serverAddress");
+    if (serverAddress) {
+      return serverAddress;
     }
   } catch (e) {
     console.error("Failed to get server address from localStorage:", e);

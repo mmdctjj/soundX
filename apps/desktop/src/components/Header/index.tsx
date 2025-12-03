@@ -44,9 +44,7 @@ const Header: React.FC = () => {
   const { mode, toggleTheme } = useTheme();
   const { token } = theme.useToken();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [dataSourceModalOpen, setDataSourceModalOpen] = useState(false);
   const [form] = Form.useForm();
-  const [dataSourceForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const pollTimerRef = useRef<number | null>(null);
 
@@ -61,7 +59,7 @@ const Header: React.FC = () => {
 
   // Mode state: 'music' | 'audiobook'
   const { mode: playMode, setMode: setPlayMode } = usePlayMode();
-  const { token: currToken, logout } = useAuthStore();
+  const { logout } = useAuthStore();
 
   const handleLogout = () => {
     logout();
@@ -81,29 +79,6 @@ const Header: React.FC = () => {
 
   const iconStyle = { color: token.colorTextSecondary };
   const actionIconStyle = { color: token.colorText };
-
-  const handleDataSourceSettingClick = () => {
-    setDataSourceModalOpen(true);
-    // Load saved paths from localStorage
-    const savedPaths = localStorage.getItem("dataSourceOrigin");
-    if (savedPaths) {
-      try {
-        const paths = JSON.parse(savedPaths);
-        dataSourceForm.setFieldsValue(paths);
-      } catch (e) {
-        console.error("Failed to load saved paths:", e);
-      }
-    }
-  };
-
-  const handleDataSourceSettingOk = async () => {
-    const values = await dataSourceForm.validateFields();
-    localStorage.setItem("dataSourceOrigin", JSON.stringify(values));
-    setDataSourceModalOpen(false);
-    if (!currToken) {
-      logout();
-    }
-  };
 
   const handleAudioFileManagementClick = () => {
     setIsModalOpen(true);
@@ -240,9 +215,6 @@ const Header: React.FC = () => {
 
   // Cleanup timer on unmount
   React.useEffect(() => {
-    if (!localStorage.getItem("dataSourceOrigin")) {
-      setDataSourceModalOpen(true);
-    }
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -355,17 +327,6 @@ const Header: React.FC = () => {
                   borderRadius: "4px",
                   backgroundColor: "transparent",
                 }}
-                onClick={handleDataSourceSettingClick}
-              >
-                数据源设置
-              </div>
-              <div
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor: "transparent",
-                }}
                 onClick={handleAudioFileManagementClick}
               >
                 音频文件管理
@@ -408,38 +369,6 @@ const Header: React.FC = () => {
           </Flex>
         </Popover>
       </div>
-      <Modal
-        title="数据源设置"
-        open={dataSourceModalOpen}
-        closable={false}
-        onOk={handleDataSourceSettingOk}
-      >
-        <Form form={dataSourceForm} layout="vertical">
-          <Form.Item
-            name="serverAddress"
-            label="服务端地址"
-            rules={[
-              { required: true, message: "请输入服务端地址" },
-              {
-                validator: (_, value) => {
-                  if (!value) return Promise.resolve();
-                  if (
-                    value.startsWith("http://") ||
-                    value.startsWith("https://")
-                  ) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(
-                    new Error("服务端地址必须以 http:// 或 https:// 开头")
-                  );
-                },
-              },
-            ]}
-          >
-            <Input placeholder="http://localhost:3000" />
-          </Form.Item>
-        </Form>
-      </Modal>
 
       <Modal
         title="音频文件管理"
