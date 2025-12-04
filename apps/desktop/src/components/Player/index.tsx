@@ -211,9 +211,7 @@ const Player: React.FC = () => {
       <audio
         ref={audioRef}
         src={
-          currentTrack?.path
-            ? `${getBaseURL()}/audio/${currentTrack.path}`
-            : undefined
+          currentTrack?.path ? `${getBaseURL()}${currentTrack.path}` : undefined
         }
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
