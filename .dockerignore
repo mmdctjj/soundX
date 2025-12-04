@@ -5,6 +5,7 @@ node_modules
 # 忽略构建产物
 **/dist
 **/build
+**/release
 
 coverage
 *.log

@@ -6,3 +6,5 @@ pnpm-lock.yaml
 .env
 .idea
 .vscode
+/**/dev.db
+**/release

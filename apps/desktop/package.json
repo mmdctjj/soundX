@@ -55,7 +55,7 @@
       "dist-electron/**/*"
     ],
     "directories": {
-      "output": "dist"
+      "output": "release"
     },
     "win": {
       "target": [
