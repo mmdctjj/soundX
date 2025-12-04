@@ -30,7 +30,7 @@ import {
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { getBaseURL } from "../../https";
-import { type Track } from "../../models";
+import { type Track, TrackType } from "../../models";
 import {
   addTrackToPlaylist,
   getPlaylists,
@@ -203,6 +203,90 @@ const Player: React.FC = () => {
     }
   };
 
+  const renderPlayOrderButton = (className: string) => (
+    <Popover
+      content={
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "5px",
+            padding: "0px",
+          }}
+        >
+          <div
+            onClick={() => setMode("sequence")}
+            style={{
+              cursor: "pointer",
+              padding: "8px 12px",
+              borderRadius: "4px",
+              backgroundColor:
+                playMode === "sequence"
+                  ? token.colorFillTertiary
+                  : "transparent",
+            }}
+          >
+            顺序播放
+          </div>
+          <div
+            onClick={() => setMode("shuffle")}
+            style={{
+              cursor: "pointer",
+              padding: "8px 12px",
+              borderRadius: "4px",
+              backgroundColor:
+                playMode === "shuffle"
+                  ? token.colorFillTertiary
+                  : "transparent",
+            }}
+          >
+            随机播放
+          </div>
+          <div
+            onClick={() => setMode("loop")}
+            style={{
+              cursor: "pointer",
+              padding: "8px 12px",
+              borderRadius: "4px",
+              backgroundColor:
+                playMode === "loop" ? token.colorFillTertiary : "transparent",
+            }}
+          >
+            单曲循环
+          </div>
+          <div
+            onClick={() => setMode("single")}
+            style={{
+              cursor: "pointer",
+              padding: "8px 12px",
+              borderRadius: "4px",
+              backgroundColor:
+                playMode === "single" ? token.colorFillTertiary : "transparent",
+            }}
+          >
+            单曲播放
+          </div>
+        </div>
+      }
+      getPopupContainer={(triggerNode) => triggerNode.parentElement!}
+      trigger="click"
+      placement="top"
+    >
+      <Tooltip title="播放顺序">
+        <SwapOutlined className={className} />
+      </Tooltip>
+    </Popover>
+  );
+
+  const renderPlaylistButton = (className: string) => (
+    <Tooltip title="播放列表">
+      <OrderedListOutlined
+        onClick={() => setIsPlaylistOpen(true)}
+        className={className}
+      />
+    </Tooltip>
+  );
+
   return (
     <div
       className={styles.player}
@@ -282,81 +366,7 @@ const Player: React.FC = () => {
       {/* Volume & Settings */}
       <div className={styles.settings}>
         {/* Play Order */}
-        <Popover
-          content={
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "5px",
-                padding: "0px",
-              }}
-            >
-              <div
-                onClick={() => setMode("sequence")}
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor:
-                    playMode === "sequence"
-                      ? token.colorFillTertiary
-                      : "transparent",
-                }}
-              >
-                顺序播放
-              </div>
-              <div
-                onClick={() => setMode("shuffle")}
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor:
-                    playMode === "shuffle"
-                      ? token.colorFillTertiary
-                      : "transparent",
-                }}
-              >
-                随机播放
-              </div>
-              <div
-                onClick={() => setMode("loop")}
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor:
-                    playMode === "loop"
-                      ? token.colorFillTertiary
-                      : "transparent",
-                }}
-              >
-                单曲循环
-              </div>
-              <div
-                onClick={() => setMode("single")}
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor:
-                    playMode === "single"
-                      ? token.colorFillTertiary
-                      : "transparent",
-                }}
-              >
-                单曲播放
-              </div>
-            </div>
-          }
-          trigger="click"
-          placement="top"
-        >
-          <Tooltip title="播放顺序">
-            <SwapOutlined className={styles.settingIcon} />
-          </Tooltip>
-        </Popover>
+        {renderPlayOrderButton(styles.settingIcon)}
 
         {/* Volume */}
         <Popover
@@ -428,12 +438,7 @@ const Player: React.FC = () => {
         </Popover>
 
         {/* Playlist */}
-        <Tooltip title="播放列表">
-          <OrderedListOutlined
-            onClick={() => setIsPlaylistOpen(true)}
-            className={styles.settingIcon}
-          />
-        </Tooltip>
+        {renderPlaylistButton(styles.settingIcon)}
       </div>
 
       {/* Full Screen Player */}
@@ -493,6 +498,8 @@ const Player: React.FC = () => {
             </Flex>
 
             <Flex justify="center" style={{ fontSize: 50 }} gap={30}>
+              {appMode === TrackType.MUSIC &&
+                renderPlayOrderButton(styles.controlIcon)}
               <StepBackwardOutlined
                 className={styles.controlIcon}
                 onClick={prev}
@@ -508,6 +515,8 @@ const Player: React.FC = () => {
                 className={styles.controlIcon}
                 onClick={next}
               />
+              {appMode === TrackType.MUSIC &&
+                renderPlaylistButton(styles.controlIcon)}
             </Flex>
           </Flex>
         </div>
@@ -524,19 +533,19 @@ const Player: React.FC = () => {
             </Text>
           </div>
 
-          {/* Tab Switcher */}
-          <div className={styles.tabHeader}>
-            <Tabs
-              activeKey={activeTab}
-              onChange={(e) => setActiveTab(e as "playlist" | "lyrics")}
-              items={[
-                { key: "lyrics", label: "歌词" },
-                { key: "playlist", label: `播放列表 (${playlist.length})` },
-              ].filter((item) =>
-                appMode === "MUSIC" ? true : item.key !== "lyrics"
-              )}
-            />
-          </div>
+          {/* Tab Switcher - Only for non-MUSIC mode */}
+          {appMode !== TrackType.MUSIC && (
+            <div className={styles.tabHeader}>
+              <Tabs
+                activeKey={activeTab}
+                onChange={(e) => setActiveTab(e as "playlist" | "lyrics")}
+                items={[
+                  { key: "lyrics", label: "歌词" },
+                  { key: "playlist", label: `播放列表 (${playlist.length})` },
+                ].filter((item) => item.key !== "lyrics")}
+              />
+            </div>
+          )}
 
           {/* Content */}
           <div
@@ -547,7 +556,12 @@ const Player: React.FC = () => {
               flexDirection: "column",
             }}
           >
-            {activeTab === "playlist" ? (
+            {appMode === TrackType.MUSIC ? (
+              <Lyrics
+                lyrics={currentTrack?.lyrics || null}
+                currentTime={currentTime}
+              />
+            ) : activeTab === "playlist" ? (
               <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
                 <List
                   itemLayout="horizontal"
