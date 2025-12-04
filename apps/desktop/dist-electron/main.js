@@ -1,10 +1,11 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, nativeImage, Tray, Menu } from "electron";
 import path from "path";
 import { fileURLToPath } from "node:url";
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
 process.env.DIST = path.join(__dirname$1, "../dist");
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
 let win;
+let tray = null;
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 function createWindow() {
   win = new BrowserWindow({
@@ -56,6 +57,25 @@ function createWindow() {
     }
   });
 }
+function createTray() {
+  const iconPath = path.join(process.env.VITE_PUBLIC || "", "Vitejs-logo.png");
+  const trayIcon = nativeImage.createFromPath(iconPath);
+  tray = new Tray(trayIcon);
+  tray.on("click", () => {
+    if (!win) return;
+    const bounds = tray?.getBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
+    const windowBounds = win.getBounds() ?? { width: 0, height: 0 };
+    const x = Math.round(bounds.x + bounds.width / 2 - windowBounds.width / 2);
+    const y = Math.round(bounds.y + bounds.height);
+    win.setBounds({ x, y, width: windowBounds.width, height: windowBounds.height });
+    win.isVisible() ? win.hide() : win.show();
+  });
+  const contextMenu = Menu.buildFromTemplate([
+    { label: "打开播放器", click: () => win?.show() },
+    { label: "退出", click: () => app.quit() }
+  ]);
+  tray.setContextMenu(contextMenu);
+}
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
@@ -67,4 +87,7 @@ app.on("activate", () => {
     createWindow();
   }
 });
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  createTray();
+});

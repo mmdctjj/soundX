@@ -29,6 +29,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
 import { type Track, TrackType } from "../../models";
 import {
@@ -158,6 +159,17 @@ const Player: React.FC = () => {
       setCurrentTime(val);
     }
   };
+
+  // Integrate System Media Controls
+  useMediaSession({
+    currentTrack,
+    isPlaying,
+    play,
+    pause,
+    next,
+    prev,
+    seekTo: handleSeek,
+  });
 
   const togglePlay = () => {
     if (isPlaying) {

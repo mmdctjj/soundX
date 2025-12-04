@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
 import path from 'path'
 
 import { fileURLToPath } from 'node:url'
@@ -12,6 +12,7 @@ process.env.DIST = path.join(__dirname, '../dist')
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public')
 
 let win: BrowserWindow | null
+let tray: Tray | null = null;
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
@@ -67,6 +68,34 @@ function createWindow() {
   })
 }
 
+function createTray() {
+  const iconPath = path.join(process.env.VITE_PUBLIC || '', 'Vitejs-logo.png') // 托盘图标
+  const trayIcon = nativeImage.createFromPath(iconPath)
+  tray = new Tray(trayIcon)
+
+  // 点击托盘显示/隐藏窗口
+  tray.on('click', () => {
+    if (!win) return
+
+    const bounds = tray?.getBounds() ?? { x: 0, y: 0, width: 0, height: 0 } // 托盘位置
+    const windowBounds = win.getBounds() ?? { x: 0, y: 0, width: 0, height: 0 }
+    // macOS 顶栏下方显示
+    const x = Math.round(bounds.x + bounds.width / 2 - windowBounds.width / 2)
+    const y = Math.round(bounds.y + bounds.height)
+
+    win.setBounds({ x, y, width: windowBounds.width, height: windowBounds.height })
+    win.isVisible() ? win.hide() : win.show()
+  })
+
+  // 托盘右键菜单
+  const contextMenu = Menu.buildFromTemplate([
+    { label: '打开播放器', click: () => win?.show() },
+    { label: '退出', click: () => app.quit() },
+  ])
+  tray.setContextMenu(contextMenu)
+}
+
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -80,4 +109,7 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  createWindow()
+  createTray()
+})
