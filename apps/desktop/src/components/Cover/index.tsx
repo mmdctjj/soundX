@@ -5,7 +5,7 @@ import {
   PlayCircleOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Dropdown, message, Skeleton, Typography } from "antd";
+import { Dropdown, message, Skeleton, theme, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getBaseURL } from "../../https";
@@ -136,6 +136,19 @@ const Cover: CoverComponent = ({ item, size, isTrack = false }) => {
           alt={item.name}
           className={styles.image}
         />
+        {!isTrack &&
+          (item as Album).progress !== undefined &&
+          (item as Album).progress! > 0 && (
+            <div className={styles.progressBarWrapper}>
+              <div
+                className={styles.progressBar}
+                style={{
+                  width: `${(item as Album).progress}%`,
+                  backgroundColor: theme.useToken().token.colorBgBase,
+                }}
+              />
+            </div>
+          )}
         {!isTrack && (
           <div className={styles.moreButton}>
             <Dropdown

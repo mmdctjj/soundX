@@ -46,11 +46,17 @@ export class AlbumService {
   }
 
   async loadMoreAlbum(pageSize: number, loadCount: number, type?: any): Promise<Album[]> {
-    return await this.prisma.album.findMany({
+    const result = await this.prisma.album.findMany({
       skip: loadCount * pageSize,
       take: pageSize,
       where: { type },
     });
+
+    if (type === 'AUDIOBOOK') {
+      return await this.attachProgressToAlbums(result, 1); // Default userId 1
+    }
+
+    return result;
   }
 
   async albumCount(): Promise<number> {
@@ -98,11 +104,17 @@ export class AlbumService {
 
   // 新增：最近专辑（按 id 倒序）
   async getLatestAlbums(limit = 8, type?: any): Promise<Album[]> {
-    return await this.prisma.album.findMany({
+    const result = await this.prisma.album.findMany({
       where: type ? { type } : undefined,
       orderBy: { id: 'desc' },
       take: limit,
     });
+
+    if (type === 'AUDIOBOOK') {
+      return await this.attachProgressToAlbums(result, 1); // Default userId 1
+    }
+
+    return result;
   }
 
   // 随机推荐：用户未听过的专辑
@@ -125,7 +137,13 @@ export class AlbumService {
     if (candidates.length <= limit) return candidates;
 
     const shuffled = candidates.sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, limit);
+    const result = shuffled.slice(0, limit);
+
+    if (type === 'AUDIOBOOK') {
+      return await this.attachProgressToAlbums(result, userId);
+    }
+
+    return result;
   }
 
   // 搜索专辑
@@ -141,10 +159,67 @@ export class AlbumService {
       where.type = type;
     }
 
-    return await this.prisma.album.findMany({
+    const albums = await this.prisma.album.findMany({
       where,
       take: limit,
       orderBy: { id: 'desc' },
+    });
+
+    if (type === 'AUDIOBOOK') {
+      return await this.attachProgressToAlbums(albums, 1); // Default userId 1
+    }
+    return albums;
+  }
+
+  // Helper: Attach progress to audiobook albums
+  private async attachProgressToAlbums(albums: Album[], userId: number): Promise<Album[]> {
+    if (albums.length === 0) return albums;
+
+    const albumNames = albums.map(a => a.name);
+    const artists = albums.map(a => a.artist);
+
+    // 1. Fetch all tracks for these albums to calculate total duration
+    const tracks = await this.prisma.track.findMany({
+      where: {
+        album: { in: albumNames },
+        artist: { in: artists },
+        type: 'AUDIOBOOK',
+      },
+      select: {
+        id: true,
+        album: true,
+        artist: true,
+        duration: true,
+      },
+    });
+
+    // 2. Fetch user's listening history for these tracks
+    const trackIds = tracks.map(t => t.id);
+    const history = await this.prisma.userAudiobookHistory.findMany({
+      where: {
+        userId,
+        trackId: { in: trackIds },
+      },
+      select: {
+        trackId: true,
+      },
+    });
+    const listenedTrackIds = new Set(history.map(h => h.trackId));
+
+    // 3. Calculate progress per album
+    return albums.map(album => {
+      const albumTracks = tracks.filter(t => t.album === album.name && t.artist === album.artist);
+      if (albumTracks.length === 0) return { ...album, progress: 0 };
+
+      const totalDuration = albumTracks.reduce((sum, t) => sum + (t.duration || 0), 0);
+      if (totalDuration === 0) return { ...album, progress: 0 };
+
+      const listenedDuration = albumTracks
+        .filter(t => listenedTrackIds.has(t.id))
+        .reduce((sum, t) => sum + (t.duration || 0), 0);
+
+      const progress = Math.min(100, Math.round((listenedDuration / totalDuration) * 100));
+      return { ...album, progress };
     });
   }
 }

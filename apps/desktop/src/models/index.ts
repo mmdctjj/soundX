@@ -71,6 +71,7 @@ export interface Album {
   type: TrackType;
   likedByUsers?: UserAlbumLike[];
   listenedByUsers?: UserAlbumHistory[];
+  progress?: number;
 }
 
 export interface Artist {
