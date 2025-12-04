@@ -3,6 +3,7 @@ import { Avatar, Button, Col, Row, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Cover from "../../components/Cover/index";
+import { getBaseURL } from "../../https";
 import type { Album, Artist, Track } from "../../models";
 import { getRecentAlbums, getRecommendedAlbums } from "../../services/album";
 import { getLatestArtists } from "../../services/artist";
@@ -312,7 +313,7 @@ const Recommended: React.FC = () => {
                     <Avatar
                       src={
                         item.avatar
-                          ? `http://localhost:3000${item.avatar}`
+                          ? `${getBaseURL()}${item.avatar}`
                           : `https://picsum.photos/seed/${item.id}/200/200`
                       }
                       size={120}

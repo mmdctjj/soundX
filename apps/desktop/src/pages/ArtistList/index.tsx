@@ -11,6 +11,7 @@ import {
 } from "antd";
 import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { getBaseURL } from "../../https";
 import { type Artist } from "../../models";
 import { getArtistList } from "../../services/artist";
 import { usePlayMode } from "../../utils/playMode";
@@ -81,7 +82,7 @@ const ArtistList: React.FC = () => {
                   <Avatar
                     src={
                       artist.avatar
-                        ? `http://localhost:3000${artist.avatar}`
+                        ? `${getBaseURL()}${artist.avatar}`
                         : `https://picsum.photos/seed/${artist.id}/300/300`
                     }
                     size={120}

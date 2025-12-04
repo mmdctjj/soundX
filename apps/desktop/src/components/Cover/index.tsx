@@ -8,6 +8,7 @@ import type { MenuProps } from "antd";
 import { Dropdown, message, Skeleton, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getBaseURL } from "../../https";
 import type { Album, Track } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
@@ -129,7 +130,7 @@ const Cover: CoverComponent = ({ item, size, isTrack = false }) => {
         <img
           src={
             item.cover
-              ? `http://localhost:3000${item.cover}`
+              ? `${getBaseURL()}${item.cover}`
               : `https://picsum.photos/seed/${item.id}/300/300`
           }
           alt={item.name}

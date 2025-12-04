@@ -13,6 +13,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Cover from "../../components/Cover";
+import { getBaseURL } from "../../https";
 import { type Album, type Artist, type Track } from "../../models";
 import { getAlbumsByArtist } from "../../services/album";
 import { getArtistById } from "../../services/artist";
@@ -116,7 +117,7 @@ const ArtistDetail: React.FC = () => {
         <Avatar
           src={
             artist.avatar
-              ? `http://localhost:3000${artist.avatar}`
+              ? `${getBaseURL()}${artist.avatar}`
               : `https://picsum.photos/seed/${artist.id}/300/300`
           }
           size={200}

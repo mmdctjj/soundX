@@ -30,6 +30,7 @@ import {
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { getBaseURL } from "../../https";
 import { type Album, type Track } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
 import {
@@ -337,7 +338,7 @@ const Detail: React.FC = () => {
       <div
         className={styles.banner}
         style={{
-          backgroundImage: `url(${album?.cover ? `http://localhost:3000${album.cover}` : "https://picsum.photos/seed/podcast/1200/400"})`,
+          backgroundImage: `url(${album?.cover ? `${getBaseURL()}${album.cover}` : "https://picsum.photos/seed/podcast/1200/400"})`,
         }}
       >
         <div className={styles.bannerOverlay}></div>
@@ -347,7 +348,7 @@ const Detail: React.FC = () => {
             size={50}
             src={
               album?.cover
-                ? `http://localhost:3000${album.cover}`
+                ? `${getBaseURL()}${album.cover}`
                 : "https://api.dicebear.com/7.x/avataaars/svg?seed=Ken"
             }
           />

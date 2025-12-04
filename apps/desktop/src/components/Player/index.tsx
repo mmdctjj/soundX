@@ -29,6 +29,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { getBaseURL } from "../../https";
 import { type Track } from "../../models";
 import {
   addTrackToPlaylist,
@@ -38,8 +39,8 @@ import {
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
-import Lyrics from "./Lyrics";
 import styles from "./index.module.less";
+import Lyrics from "./Lyrics";
 
 const { Text, Title } = Typography;
 
@@ -168,7 +169,7 @@ const Player: React.FC = () => {
 
   const getCoverUrl = (path?: string | null) => {
     return path
-      ? `http://localhost:3000${path}`
+      ? `${getBaseURL()}${path}`
       : "https://picsum.photos/seed/music/300/300";
   };
 
@@ -211,7 +212,7 @@ const Player: React.FC = () => {
         ref={audioRef}
         src={
           currentTrack?.path
-            ? `http://localhost:3000/audio/${currentTrack.path}`
+            ? `${getBaseURL()}/audio/${currentTrack.path}`
             : undefined
         }
         onTimeUpdate={handleTimeUpdate}

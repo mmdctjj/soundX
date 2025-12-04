@@ -2,7 +2,7 @@ import { message } from "antd";
 import axios, { AxiosError, type AxiosResponse } from "axios";
 
 // Get base URL based on environment
-function getBaseURL(): string {
+export function getBaseURL(): string {
   // In development, use proxy
   if (import.meta.env.DEV) {
     return "/api";

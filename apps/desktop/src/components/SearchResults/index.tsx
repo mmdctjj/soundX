@@ -1,6 +1,7 @@
 import { Avatar, Empty } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { getBaseURL } from "../../https";
 import type { SearchResults as SearchResultsType } from "../../services/search";
 import { usePlayerStore } from "../../store/player";
 import styles from "./index.module.less";
@@ -79,7 +80,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, onClose }) => {
               <Avatar
                 src={
                   artist.avatar
-                    ? `http://localhost:3000${artist.avatar}`
+                    ? `${getBaseURL()}${artist.avatar}`
                     : `https://picsum.photos/seed/${artist.id}/48/48`
                 }
                 size={48}
@@ -109,7 +110,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, onClose }) => {
               <img
                 src={
                   album.cover
-                    ? `http://localhost:3000${album.cover}`
+                    ? `${getBaseURL()}${album.cover}`
                     : `https://picsum.photos/seed/${album.id}/48/48`
                 }
                 alt={album.name}

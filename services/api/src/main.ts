@@ -6,6 +6,7 @@ import { AppModule } from './app.module';
 import { Logger } from 'nestjs-pino';
 import * as path from 'path';
 import { ImportService } from './services/import';
+import { TrackService } from './services/track';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
@@ -15,9 +16,9 @@ async function bootstrap() {
   app.enableCors();
 
 
-  const cacheDir = path.resolve(process.env.VITE_CACHE || './');
-  const musicBaseDir = path.resolve(process.env.VITE_MUSIC_BASE_DIR || './');
-  const audioBookDir = path.resolve(process.env.VITE_AUDIO_BOOK || './');
+  const cacheDir = path.resolve(process.env.CACHE_DIR || './');
+  const musicBaseDir = path.resolve(process.env.MUSIC_BASE_DIR || './');
+  const audioBookDir = path.resolve(process.env.AUDIO_BOOK_DIR || './');
 
 
   // Serve static files from cache directory
@@ -28,11 +29,15 @@ async function bootstrap() {
     prefix: '/covers/',
   });
 
-  // Serve audio files from music parent directory
-  // This allows accessing audio via http://localhost:3000/audio/relative/path/to/file.m4a
-  // The music directory contains both 'music' and 'audio' subdirectories
-  console.log(`Serving audio files from: ${musicBaseDir}`);
+  // Serve music files
+  console.log(`Serving music files from: ${musicBaseDir}`);
   app.useStaticAssets(musicBaseDir, {
+    prefix: '/music/',
+  });
+
+  // Serve audiobook files
+  console.log(`Serving audiobook files from: ${audioBookDir}`);
+  app.useStaticAssets(audioBookDir, {
     prefix: '/audio/',
   });
 
@@ -46,8 +51,16 @@ async function bootstrap() {
 
 
   // 启动完成后调用 service
-  const myService = app.get(ImportService); // 替换成你要调用的 service
-  await myService.createTask(musicBaseDir, audioBookDir, cacheDir); // 调用 service 方法
+  const trackService = app.get(TrackService);
+  const count = await trackService.trackCount();
+
+  if (count === 0) {
+    console.log('Database is empty, starting initial import...');
+    const myService = app.get(ImportService); // 替换成你要调用的 service
+    await myService.createTask(musicBaseDir, audioBookDir, cacheDir); // 调用 service 方法
+  } else {
+    console.log(`Database has ${count} tracks, skipping initial import.`);
+  }
 
   await app.listen(process.env.PORT ?? 3000);
 }
