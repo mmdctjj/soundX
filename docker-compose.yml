@@ -16,14 +16,15 @@ services:
       - "3000:3000"
 
     environment:
-      - AUDIO_BOOK_DIR=./music/audio
-      - MUSIC_BASE_DIR=./music/music
-      - CACHE_DIR=./music/cover
+      - AUDIO_BOOK_DIR=/audio
+      - MUSIC_BASE_DIR=/music
+      - CACHE_DIR=/covers
 
     # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:
-      - api-db:/app/data
-      - api-cache:/app/cache
+      - ./audio:/audio
+      - ./music:/music
+      - ./covers:/covers
 
     restart: unless-stopped
     networks:
