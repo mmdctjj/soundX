@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { usePlayer } from "../context/PlayerContext";
@@ -7,6 +8,7 @@ import { getBaseURL } from "../https";
 
 export const MiniPlayer = () => {
   const { colors } = useTheme();
+  const router = useRouter();
   const { currentTrack, isPlaying, pause, resume } = usePlayer();
 
   if (!currentTrack) return null;
@@ -20,10 +22,15 @@ export const MiniPlayer = () => {
   };
 
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => router.push("/player")}
       style={[
         styles.container,
-        { backgroundColor: colors.card, borderTopColor: colors.border },
+        {
+          backgroundColor: colors.background,
+          borderTopColor: colors.background,
+        },
       ]}
     >
       <Image
@@ -55,7 +62,7 @@ export const MiniPlayer = () => {
           color={colors.primary}
         />
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -66,7 +73,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderTopWidth: 1,
     position: "absolute",
-    bottom: 80, // Adjust based on tab bar height
+    bottom: 60, // Adjust based on tab bar height
     left: 0,
     right: 0,
     height: 60,

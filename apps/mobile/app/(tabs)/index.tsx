@@ -1,3 +1,4 @@
+import { usePlayer } from "@/src/context/PlayerContext";
 import { EvilIcons, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -38,6 +39,7 @@ interface Section {
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const { playTrack } = usePlayer();
   const { mode } = usePlayMode();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -305,8 +307,15 @@ export default function HomeScreen() {
                         key={track.id}
                         style={styles.trackCard}
                         onPress={() => {
-                          // TODO: Play track
-                          console.log("Play track", track.id);
+                          playTrack({
+                            id: String(track.id),
+                            url: `${getBaseURL()}${track.path}`,
+                            title: track.name,
+                            artist: track.artist,
+                            artwork: track.cover,
+                            duration: track.duration,
+                            lyrics: track.lyrics,
+                          });
                         }}
                       >
                         <Image

@@ -17,6 +17,7 @@ function RootLayoutNav() {
   const router = useRouter();
 
   useEffect(() => {
+    // AsyncStorage.clear();
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "(tabs)";
@@ -25,7 +26,8 @@ function RootLayoutNav() {
     const isDetailPage =
       segments[0] === "artist" ||
       segments[0] === "album" ||
-      segments[0] === "modal";
+      segments[0] === "modal" ||
+      segments[0] === "player";
 
     if (!token && inAuthGroup) {
       router.replace("/login");
@@ -44,10 +46,16 @@ function RootLayoutNav() {
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
           />
-          <Stack.Screen name="artist/[id]" options={{ title: "Artist" }} />
-          <Stack.Screen name="album/[id]" options={{ title: "Album" }} />
+          <Stack.Screen
+            name="player"
+            options={{
+              presentation: "modal",
+              headerShown: false,
+              animation: "slide_from_bottom",
+            }}
+          />
         </Stack>
-        <MiniPlayer />
+        {segments[0] !== "login" && segments[0] !== "player" && <MiniPlayer />}
       </PlayerProvider>
     </PlayModeProvider>
   );

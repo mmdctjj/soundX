@@ -1,4 +1,10 @@
-import { Stack, useLocalSearchParams } from "expo-router";
+import { usePlayer } from "@/src/context/PlayerContext";
+import { useTheme } from "@/src/context/ThemeContext";
+import { getBaseURL } from "@/src/https";
+import { Album, Track } from "@/src/models";
+import { getAlbumById, getAlbumTracks } from "@/src/services/album";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,14 +15,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "../../src/context/ThemeContext";
-import { getBaseURL } from "../../src/https";
-import { Album, Track } from "../../src/models";
-import { getAlbumById, getAlbumTracks } from "../../src/services/album";
 
 export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const { colors } = useTheme();
+  const { playTrack } = usePlayer();
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,13 +76,16 @@ export default function AlbumDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen
-        options={{
-          title: album.name,
-          headerTintColor: colors.text,
-          headerStyle: { backgroundColor: colors.background },
-        }}
-      />
+      <View
+        style={[styles.customHeader, { backgroundColor: colors.background }]}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+      </View>
       <ScrollView>
         <View style={styles.header}>
           <Image
@@ -102,6 +109,17 @@ export default function AlbumDetailScreen() {
             <TouchableOpacity
               key={track.id}
               style={[styles.trackItem, { borderBottomColor: colors.border }]}
+              onPress={() => {
+                playTrack({
+                  id: String(track.id),
+                  url: `${getBaseURL()}${track.path}`, // Assuming this is the URL pattern or track has a url field
+                  title: track.name,
+                  artist: track.artist,
+                  artwork: album.cover || "",
+                  duration: track.duration || 0,
+                  lyrics: track.lyrics,
+                });
+              }}
             >
               <Text style={[styles.trackIndex, { color: colors.secondary }]}>
                 {index + 1}
@@ -140,6 +158,15 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     padding: 20,
+  },
+  customHeader: {
+    paddingTop: 50, // Adjust for status bar
+    paddingHorizontal: 15,
+    paddingBottom: 10,
+    zIndex: 1,
+  },
+  backButton: {
+    padding: 5,
   },
   cover: {
     width: 200,
