@@ -1,98 +1,639 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { EvilIcons, Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  RenderItemParams,
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../../src/context/ThemeContext";
+import { getBaseURL } from "../../src/https";
+import {
+  getRecentAlbums,
+  getRecommendedAlbums,
+} from "../../src/services/album";
+import { getArtistList, getLatestArtists } from "../../src/services/artist";
+import { getLatestTracks } from "../../src/services/track";
+import { cacheUtils } from "../../src/utils/cache";
+import { usePlayMode } from "../../src/utils/playMode";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+interface Section {
+  id: string;
+  title: string;
+  data: any[];
+  type: "artist" | "album" | "track";
+}
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { colors } = useTheme();
+  const { mode } = usePlayMode();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const [sections, setSections] = useState<Section[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [tempSections, setTempSections] = useState<Section[]>([]);
+
+  const loadData = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        if (!forceRefresh) setLoading(true);
+
+        // Try cache first if not refreshing
+        if (!forceRefresh) {
+          const cachedSections = await cacheUtils.get<Section[]>(
+            `home_sections_${mode}`
+          );
+          if (cachedSections) {
+            setSections(cachedSections);
+            setLoading(false);
+            // Background refresh could happen here if needed, but for now we rely on explicit refresh
+            return;
+          }
+        }
+
+        const promises: Promise<any>[] = [
+          getLatestArtists(mode),
+          getRecentAlbums(mode),
+          getRecommendedAlbums(mode),
+        ];
+
+        if (mode === "MUSIC") {
+          promises.push(getLatestTracks("MUSIC"));
+        }
+
+        const results = await Promise.all(promises);
+        const [artistsRes, recentRes, recommendedRes] = results;
+        const tracksRes = mode === "MUSIC" ? results[3] : null;
+
+        const newSections: Section[] = [
+          {
+            id: "artists",
+            title: "艺术家",
+            data: artistsRes.code === 200 ? artistsRes.data : [],
+            type: "artist",
+          },
+          {
+            id: "recent",
+            title: "最近上新",
+            data: recentRes.code === 200 ? recentRes.data : [],
+            type: "album",
+          },
+          {
+            id: "recommended",
+            title: "为你推荐",
+            data: recommendedRes.code === 200 ? recommendedRes.data : [],
+            type: "album",
+          },
+        ];
+
+        if (mode === "MUSIC" && tracksRes?.code === 200) {
+          newSections.push({
+            id: "tracks",
+            title: "上新单曲",
+            data: tracksRes.data,
+            type: "track",
+          });
+        }
+
+        // Sort sections based on saved order
+        try {
+          const savedOrder = await AsyncStorage.getItem("section_order");
+          if (savedOrder) {
+            const order = JSON.parse(savedOrder);
+            newSections.sort((a, b) => {
+              const indexA = order.indexOf(a.id);
+              const indexB = order.indexOf(b.id);
+              if (indexA === -1) return 1;
+              if (indexB === -1) return -1;
+              return indexA - indexB;
+            });
+          }
+        } catch (e) {
+          console.error("Failed to load section order:", e);
+        }
+
+        setSections(newSections);
+        await cacheUtils.set(`home_sections_${mode}`, newSections);
+      } catch (error) {
+        console.error("Failed to load home data:", error);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [mode]
+  );
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData(true);
+  }, [loadData]);
+
+  const handleReorder = () => {
+    setTempSections([...sections]);
+    setModalVisible(true);
+  };
+
+  const saveOrder = async () => {
+    try {
+      const order = tempSections.map((s) => s.id);
+      await AsyncStorage.setItem("section_order", JSON.stringify(order));
+      setSections(tempSections);
+      setModalVisible(false);
+    } catch (e) {
+      console.error("Failed to save order:", e);
+    }
+  };
+
+  const renderReorderItem = ({
+    item,
+    drag,
+    isActive,
+  }: RenderItemParams<Section>) => {
+    return (
+      <ScaleDecorator>
+        <TouchableOpacity
+          onLongPress={drag}
+          disabled={isActive}
+          style={[
+            styles.modalItem,
+            { backgroundColor: isActive ? colors.card : "transparent" },
+          ]}
+        >
+          <Text style={[styles.modalItemText, { color: colors.text }]}>
+            {item.title}
+          </Text>
+          <Ionicons name="menu" size={24} color={colors.secondary} />
+        </TouchableOpacity>
+      </ScaleDecorator>
+    );
+  };
+
+  const refreshSection = async (sectionId: string) => {
+    try {
+      const sectionIndex = sections.findIndex((s) => s.id === sectionId);
+      if (sectionIndex === -1) return;
+
+      let newData: any[] = [];
+
+      if (sectionId === "artists") {
+        // Random page 1-10
+        const randomPage = Math.floor(Math.random() * 10) + 1;
+        const res = await getArtistList(10, randomPage, mode);
+        if (res.code === 200 && res.data?.list) {
+          newData = res.data.list;
+        }
+      } else if (sectionId === "recommended") {
+        const res = await getRecommendedAlbums(mode);
+        if (res.code === 200) newData = res.data;
+      } else if (sectionId === "recent") {
+        const res = await getRecentAlbums(mode);
+        if (res.code === 200) newData = res.data;
+      } else if (sectionId === "tracks") {
+        const res = await getLatestTracks("MUSIC");
+        if (res.code === 200) newData = res.data;
+      }
+
+      if (newData.length > 0) {
+        setSections((prev) => {
+          const newSections = [...prev];
+          newSections[sectionIndex] = {
+            ...newSections[sectionIndex],
+            data: newData,
+          };
+          return newSections;
+        });
+      }
+    } catch (error) {
+      console.error(`Failed to refresh section ${sectionId}:`, error);
+    }
+  };
+
+  if (loading && !refreshing) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            paddingTop: insets.top,
+            justifyContent: "center",
+          },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, paddingTop: insets.top },
+      ]}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>推荐</Text>
+          <Image
+            source={{ uri: "https://picsum.photos/seed/user/100/100" }}
+            style={styles.userAvatar}
+          />
+        </View>
+
+        <View style={[styles.searchBar, { backgroundColor: colors.card }]}>
+          <Text style={[styles.searchText, { color: colors.secondary }]}>
+            搜索单曲，艺术家，专辑
+          </Text>
+        </View>
+
+        {sections.map((section) => (
+          <View key={section.id}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {section.title}
+              </Text>
+              <TouchableOpacity onPress={() => refreshSection(section.id)}>
+                <EvilIcons name="refresh" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {section.id === "tracks" ? (
+              <FlatList
+                horizontal
+                data={section.data.reduce((resultArray, item, index) => {
+                  const chunkIndex = Math.floor(index / 2);
+                  if (!resultArray[chunkIndex]) {
+                    resultArray[chunkIndex] = [];
+                  }
+                  resultArray[chunkIndex].push(item);
+                  return resultArray;
+                }, [] as any[][])}
+                renderItem={({ item: columnItems }) => (
+                  <View style={styles.trackColumn}>
+                    {columnItems.map((track: any) => (
+                      <TouchableOpacity
+                        key={track.id}
+                        style={styles.trackCard}
+                        onPress={() => {
+                          // TODO: Play track
+                          console.log("Play track", track.id);
+                        }}
+                      >
+                        <Image
+                          source={{
+                            uri: track.cover
+                              ? `${getBaseURL()}${track.cover}`
+                              : `https://picsum.photos/seed/${track.id}/200/200`,
+                          }}
+                          style={styles.trackImage}
+                        />
+                        <View style={styles.trackInfo}>
+                          <Text
+                            style={[styles.trackTitle, { color: colors.text }]}
+                            numberOfLines={1}
+                          >
+                            {track.name}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.trackArtist,
+                              { color: colors.secondary },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {track.artist}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+                keyExtractor={(item, index) => `column-${index}`}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              />
+            ) : (
+              <FlatList
+                horizontal
+                data={section.data}
+                renderItem={({ item }) => {
+                  if (section.type === "artist") {
+                    return (
+                      <TouchableOpacity
+                        style={styles.artistCard}
+                        onPress={() => {
+                          console.log("Navigating to artist:", item.id);
+                          router.push(`/artist/${item.id}`);
+                        }}
+                      >
+                        <Image
+                          source={{
+                            uri: item.avatar
+                              ? `${getBaseURL()}${item.avatar}`
+                              : `https://picsum.photos/seed/${item.id}/200/200`,
+                          }}
+                          style={styles.artistImage}
+                        />
+                        <Text
+                          style={[
+                            styles.artistName,
+                            { color: colors.secondary },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  } else {
+                    // Albums (Recent & Recommended)
+                    return (
+                      <TouchableOpacity
+                        style={styles.albumCard}
+                        onPress={() => {
+                          console.log("Navigating to album:", item.id);
+                          router.push(`/album/${item.id}`);
+                        }}
+                      >
+                        <Image
+                          source={{
+                            uri: item.cover
+                              ? `${getBaseURL()}${item.cover}`
+                              : `https://picsum.photos/seed/${item.id}/200/200`,
+                          }}
+                          style={styles.albumImage}
+                        />
+                        <Text
+                          style={[styles.albumTitle, { color: colors.text }]}
+                          numberOfLines={1}
+                        >
+                          {item.name}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.albumArtist,
+                            { color: colors.secondary },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.artist}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  }
+                }}
+                keyExtractor={(item) => item.id.toString()}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              />
+            )}
+          </View>
+        ))}
+
+        <TouchableOpacity
+          style={styles.reorderButton}
+          onPress={() =>
+            router.push({
+              pathname: "/modal",
+            })
+          }
+        >
+          <Ionicons name="settings-outline" size={20} color={colors.primary} />
+          <Text style={{ color: colors.primary }}>调整顺序</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: "bold",
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  searchBar: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 15,
+    borderRadius: 10,
+  },
+  searchText: {},
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: 25,
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  viewAll: {
+    color: "#00ff00",
+  },
+  horizontalList: {
+    paddingHorizontal: 20,
+  },
+  artistCard: {
+    marginRight: 15,
+    alignItems: "center",
+    width: 100,
+  },
+  artistImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  artistName: {
+    fontSize: 12,
+    textAlign: "center",
+  },
+  albumCard: {
+    marginRight: 15,
+    width: 120,
+  },
+  albumImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 15,
+    marginBottom: 8,
+  },
+  albumTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  albumArtist: {
+    fontSize: 12,
+  },
+  verticalList: {
+    paddingHorizontal: 20,
+  },
+  verticalAlbumCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  verticalAlbumImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+  },
+  verticalAlbumInfo: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  verticalAlbumTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  verticalAlbumArtist: {
+    fontSize: 14,
+  },
+  arrow: {
+    fontSize: 20,
+  },
+  reorderButton: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    padding: 20,
+    gap: 8,
+    marginTop: 20,
+  },
+  trackColumn: {
+    marginRight: 15,
+  },
+  trackCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: 300,
+    marginBottom: 10,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    padding: 10,
+    borderRadius: 8,
+  },
+  trackImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 4,
+  },
+  trackInfo: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  trackTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  trackArtist: {
+    fontSize: 12,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    width: "80%",
+    padding: 20,
+    borderRadius: 10,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  modalItemText: {
+    fontSize: 16,
+  },
+  modalControls: {
+    flexDirection: "row",
+  },
+  controlButton: {
+    padding: 10,
+    marginLeft: 10,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 5,
+  },
+  disabled: {
+    opacity: 0.3,
+  },
+  saveButton: {
+    backgroundColor: "#007AFF",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  closeButton: {
+    padding: 15,
+    alignItems: "center",
+    marginTop: 10,
   },
 });
