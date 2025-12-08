@@ -1,4 +1,3 @@
-import { message } from "antd";
 import axios, { AxiosError, type AxiosResponse } from "axios";
 
 // Get base URL based on environment
@@ -63,7 +62,11 @@ instance.interceptors.response.use(
     // 处理 HTTP 网络错误
     // HTTP 状态码
     const status = error.response?.status ?? 0;
-    message.error(messageContent[status]);
+    // message.error(messageContent[status]);
+    // Note: message.error cannot be used here as it's outside React context
+    // Error handling should be done in components using try-catch
+    console.error(`HTTP Error ${status}:`, messageContent[status]);
+    return Promise.reject(error);
   }
 );
 

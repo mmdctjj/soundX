@@ -7,9 +7,10 @@ import {
   SoundOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
-import { Form, Input, Modal, Typography, message, theme } from "antd";
+import { Form, Input, Modal, theme, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useMessage } from "../../context/MessageContext";
 import {
   createPlaylist,
   getPlaylists,
@@ -21,6 +22,7 @@ import styles from "./index.module.less";
 const { Text, Title } = Typography;
 
 const Sidebar: React.FC = () => {
+  const message = useMessage();
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = theme.useToken();

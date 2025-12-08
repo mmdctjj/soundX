@@ -5,9 +5,10 @@ import {
   PlayCircleOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Dropdown, message, Skeleton, theme, Typography } from "antd";
+import { Dropdown, Skeleton, theme, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMessage } from "../../context/MessageContext";
 import { getBaseURL } from "../../https";
 import type { Album, Track } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
@@ -23,6 +24,7 @@ interface CoverComponent
 }
 
 const Cover: CoverComponent = ({ item, size, isTrack = false }) => {
+  const message = useMessage();
   const navigate = useNavigate();
   const { play, setPlaylist } = usePlayerStore();
   const [isLiked, setIsLiked] = useState(false);

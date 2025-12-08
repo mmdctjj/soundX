@@ -17,7 +17,7 @@ interface LyricLine {
 const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
   const { token } = theme.useToken();
   const [parsedLyrics, setParsedLyrics] = useState<LyricLine[]>([]);
-  const [activeindex, setActiveIndex] = useState(-1);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -77,12 +77,12 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
   // Auto scroll
   useEffect(() => {
     if (
-      activeindex >= 0 &&
-      lineRefs.current[activeindex] &&
+      activeIndex >= 0 &&
+      lineRefs.current[activeIndex] &&
       containerRef.current
     ) {
       const container = containerRef.current;
-      const line = lineRefs.current[activeindex];
+      const line = lineRefs.current[activeIndex];
       if (line) {
         const containerHeight = container.clientHeight;
         const lineHeight = line.clientHeight;
@@ -93,7 +93,7 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
         });
       }
     }
-  }, [activeindex]);
+  }, [activeIndex]);
 
   if (!lyrics || parsedLyrics.length === 0) {
     return (
@@ -115,15 +115,15 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
               lineRefs.current[index] = el;
             }}
             className={`${styles.lyricLine} ${
-              index === activeindex ? styles.activeLyric : ""
+              index === activeIndex ? styles.activeLyric : ""
             }`}
             style={{
               color:
-                index === activeindex
+                index === activeIndex
                   ? token.colorPrimary
                   : token.colorTextSecondary,
-              fontSize: index === activeindex ? "18px" : "16px",
-              fontWeight: index === activeindex ? "bold" : "normal",
+              fontSize: index === activeIndex ? "18px" : "16px",
+              fontWeight: index === activeIndex ? "bold" : "normal",
             }}
           >
             {line.text}

@@ -1,15 +1,7 @@
 import { HddOutlined, LockOutlined, UserOutlined } from "@ant-design/icons";
-import {
-  Button,
-  Checkbox,
-  Form,
-  Input,
-  Modal,
-  Typography,
-  message,
-  theme,
-} from "antd";
+import { Button, Checkbox, Form, Input, Modal, Typography, theme } from "antd";
 import { useEffect, useState } from "react";
+import { useMessage } from "../../context/MessageContext";
 import { login, register } from "../../services/auth";
 import { useAuthStore } from "../../store/auth";
 import styles from "./index.module.less";
@@ -23,7 +15,8 @@ interface RememberedCredentials {
   password: string;
 }
 
-const LoginModal = () => {
+const LoginModal: React.FC = () => {
+  const message = useMessage();
   const { token, login: setLogin } = useAuthStore();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);

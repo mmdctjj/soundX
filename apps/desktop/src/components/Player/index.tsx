@@ -19,7 +19,6 @@ import {
   Dropdown,
   Flex,
   List,
-  message,
   Modal,
   Popover,
   Slider,
@@ -29,6 +28,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useMessage } from "../../context/MessageContext";
 import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
 import { type Track, TrackType } from "../../models";
@@ -46,6 +46,7 @@ import Lyrics from "./Lyrics";
 const { Text, Title } = Typography;
 
 const Player: React.FC = () => {
+  const message = useMessage();
   const {
     currentTrack,
     isPlaying,
@@ -534,7 +535,10 @@ const Player: React.FC = () => {
         </div>
 
         {/* Right Side - Info & Playlist/Lyrics (2/3) */}
-        <div className={styles.fullPlayerRight}>
+        <div
+          className={styles.fullPlayerRight}
+          style={{ textAlign: appMode !== TrackType.MUSIC ? "left" : "center" }}
+        >
           {/* Top: Title */}
           <div style={{ marginBottom: "24px" }}>
             <Title level={3} style={{ margin: "0 0 10px 0" }}>

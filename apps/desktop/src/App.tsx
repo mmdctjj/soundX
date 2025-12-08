@@ -1,4 +1,4 @@
-import { ConfigProvider } from "antd";
+import { ConfigProvider, message } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Detail from "./components/Detail/index";
@@ -7,6 +7,7 @@ import LoginModal from "./components/LoginModal";
 import Player from "./components/Player/index";
 import Sidebar from "./components/Sidebar/index";
 import { getThemeConfig } from "./config/themeConfig";
+import { MessageProvider } from "./context/MessageContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ArtistDetail from "./pages/ArtistDetail";
 import ArtistList from "./pages/ArtistList";
@@ -18,50 +19,54 @@ import Recommended from "./pages/Recommended/index";
 
 const AppContent = () => {
   const { mode } = useTheme();
-  const themeConfig = getThemeConfig(mode);
+  const themeConfig = getThemeConfig(mode === "auto" ? "dark" : mode);
+  const [messageApi, contextHolder] = message.useMessage();
 
   return (
     <ConfigProvider theme={themeConfig} locale={zhCN}>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100vh",
-          width: "100vw",
-          backgroundColor: mode !== "light" ? "#000" : "transparent", // Transparent background
-          color: themeConfig.token?.colorText,
-        }}
-      >
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          <Sidebar />
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-            }}
-          >
-            <Header />
-            <Routes>
-              <Route
-                path="/"
-                element={<Navigate to="/recommended" replace />}
-              />
-              <Route path="/recommended" element={<Recommended />} />
-              <Route path="/detail" element={<Detail />} />
-              <Route path="/artist/:id" element={<ArtistDetail />} />
-              <Route path="/category" element={<Category />} />
-              <Route path="/favorites" element={<Favorites />} />
-              <Route path="/listened" element={<Listened />} />
-              <Route path="/artists" element={<ArtistList />} />
-              <Route path="/playlist/:id" element={<PlaylistDetail />} />
-            </Routes>
+      {contextHolder}
+      <MessageProvider messageApi={messageApi}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100vh",
+            width: "100vw",
+            backgroundColor: mode !== "light" ? "#000" : "transparent", // Transparent background
+            color: themeConfig.token?.colorText,
+          }}
+        >
+          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            <Sidebar />
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              <Header />
+              <Routes>
+                <Route
+                  path="/"
+                  element={<Navigate to="/recommended" replace />}
+                />
+                <Route path="/recommended" element={<Recommended />} />
+                <Route path="/detail" element={<Detail />} />
+                <Route path="/artist/:id" element={<ArtistDetail />} />
+                <Route path="/category" element={<Category />} />
+                <Route path="/favorites" element={<Favorites />} />
+                <Route path="/listened" element={<Listened />} />
+                <Route path="/artists" element={<ArtistList />} />
+                <Route path="/playlist/:id" element={<PlaylistDetail />} />
+              </Routes>
+            </div>
           </div>
+          <Player />
         </div>
-        <Player />
-      </div>
-      <LoginModal />
+        <LoginModal />
+      </MessageProvider>
     </ConfigProvider>
   );
 };

@@ -10,18 +10,10 @@ import {
   SkinOutlined,
   SunOutlined,
 } from "@ant-design/icons";
-import {
-  Flex,
-  Form,
-  Input,
-  message,
-  Modal,
-  Popover,
-  theme,
-  Tooltip,
-} from "antd";
+import { Flex, Form, Input, Modal, Popover, theme, Tooltip } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMessage } from "../../context/MessageContext";
 import { useTheme } from "../../context/ThemeContext";
 import { TrackType } from "../../models";
 import {
@@ -40,6 +32,7 @@ import SearchResults from "../SearchResults";
 import styles from "./index.module.less";
 
 const Header: React.FC = () => {
+  const message = useMessage();
   const navigate = useNavigate();
   const { mode, toggleTheme } = useTheme();
   const { token } = theme.useToken();
@@ -301,13 +294,23 @@ const Header: React.FC = () => {
         <Tooltip title="主题">
           <SkinOutlined className={styles.actionIcon} style={actionIconStyle} />
         </Tooltip>
-        <Tooltip title={mode === "dark" ? "切换至亮色模式" : "切换至暗色模式"}>
-          <div
-            onClick={toggleTheme}
-            className={styles.actionIcon}
-            style={actionIconStyle}
-          >
-            {mode === "dark" ? <SunOutlined /> : <MoonOutlined />}
+        <Tooltip
+          title={
+            mode === "dark"
+              ? "切换至亮色模式"
+              : mode === "light"
+                ? "切换至暗色模式"
+                : "切换至自动模式"
+          }
+        >
+          <div className={styles.actionIcon} style={actionIconStyle}>
+            {mode === "dark" ? (
+              <SunOutlined onClick={() => toggleTheme("light")} />
+            ) : mode === "light" ? (
+              <MoonOutlined onClick={() => toggleTheme("auto")} />
+            ) : (
+              <span onClick={() => toggleTheme("dark")}>Auto</span>
+            )}
           </div>
         </Tooltip>
         <Popover

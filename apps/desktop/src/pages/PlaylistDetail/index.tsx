@@ -17,7 +17,6 @@ import {
   Form,
   Input,
   List,
-  message,
   Modal,
   Popconfirm,
   Row,
@@ -28,6 +27,7 @@ import {
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useMessage } from "../../context/MessageContext";
 import { type Track } from "../../models";
 import {
   addTrackToPlaylist,
@@ -48,6 +48,7 @@ const { Title, Text } = Typography;
 
 const PlaylistDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const message = useMessage();
   const navigate = useNavigate();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [loading, setLoading] = useState(false);

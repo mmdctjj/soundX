@@ -21,7 +21,6 @@ import {
   Input,
   List,
   type MenuProps,
-  message,
   Modal,
   Row,
   Table,
@@ -30,6 +29,7 @@ import {
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useMessage } from "../../context/MessageContext";
 import { getBaseURL } from "../../https";
 import { type Album, type Track } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
@@ -47,6 +47,7 @@ import styles from "./index.module.less";
 const { Title, Text } = Typography;
 
 const Detail: React.FC = () => {
+  const message = useMessage();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
 

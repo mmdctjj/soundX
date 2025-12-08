@@ -8,11 +8,11 @@ import {
   Skeleton,
   Table,
   Typography,
-  message,
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Cover from "../../components/Cover";
+import { useMessage } from "../../context/MessageContext";
 import { getBaseURL } from "../../https";
 import { type Album, type Artist, type Track } from "../../models";
 import { getAlbumsByArtist } from "../../services/album";
@@ -26,6 +26,7 @@ const { Title, Text } = Typography;
 
 const ArtistDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const message = useMessage();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
