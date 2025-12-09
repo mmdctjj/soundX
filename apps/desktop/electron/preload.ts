@@ -1,13 +1,26 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron';
+
+// Store wrapped listeners so we can properly remove them
+const listenerMap = new WeakMap<Function, Function>();
 
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args
-    return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
+    // Create wrapped listener
+    const wrappedListener = (event: any, ...args: any[]) => listener(event, ...args);
+    // Store mapping
+    listenerMap.set(listener, wrappedListener);
+    return ipcRenderer.on(channel, wrappedListener)
   },
   off(...args: Parameters<typeof ipcRenderer.off>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.off(channel, ...omit)
+    const [channel, listener] = args
+    // Get the wrapped listener
+    const wrappedListener = listenerMap.get(listener as Function);
+    if (wrappedListener) {
+      listenerMap.delete(listener as Function);
+      return ipcRenderer.off(channel, wrappedListener as any);
+    }
+    return ipcRenderer.off(channel, listener);
   },
   send(...args: Parameters<typeof ipcRenderer.send>) {
     const [channel, ...omit] = args

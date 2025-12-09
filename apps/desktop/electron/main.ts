@@ -1,115 +1,126 @@
-import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
-import path from 'path'
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from 'electron';
+import { fileURLToPath } from 'node:url';
+import path from 'path';
 
-import { fileURLToPath } from 'node:url'
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+process.env.DIST = path.join(__dirname, '../dist');
+process.env.VITE_PUBLIC = app.isPackaged
+  ? process.env.DIST
+  : path.join(process.env.DIST, '../public');
 
-// In development: __dirname is in electron/, dist is at ../dist
-// In production: __dirname is in dist-electron/, dist is at ../dist (sibling directory)
-// Both cases use the same relative path, but we need to ensure it resolves correctly
-process.env.DIST = path.join(__dirname, '../dist')
-process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public')
+let win: BrowserWindow | null = null;
 
-let win: BrowserWindow | null
-let tray: Tray | null = null;
+let trayPrev: Tray | null = null;
+let trayPlay: Tray | null = null;
+let trayNext: Tray | null = null;
+let trayMain: Tray | null = null;
 
-const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
+// ---- 播放器状态 ----
+let playerState = {
+  isPlaying: false,
+  track: null as null | { name: string; artist: string; album?: string },
+};
 
+// ---------- UI 更新统一入口 ----------
+function updatePlayerUI() {
+  // 1）更新播放按钮图标
+  const playIcon = playerState.isPlaying ? "pause.png" : "play.png";
+  trayPlay?.setImage(path.join(process.env.VITE_PUBLIC!, playIcon));
+
+  // 2）更新右键菜单
+  const menuItems: any[] = [];
+
+  if (playerState.track) {
+    menuItems.push(
+      { label: `♫ ${playerState.track.name}`, enabled: false },
+      { label: `   ${playerState.track.artist}`, enabled: false },
+      { type: 'separator' },
+      { label: "⏮ 上一曲", click: () => win?.webContents.send("player:prev") },
+      {
+        label: playerState.isPlaying ? "⏸ 暂停" : "▶️ 播放",
+        click: () => win?.webContents.send("player:toggle"),
+      },
+      { label: "⏭ 下一曲", click: () => win?.webContents.send("player:next") },
+      { type: "separator" }
+    );
+  }
+
+  menuItems.push(
+    { label: "打开播放器", click: () => win?.show() },
+    { label: "退出", click: () => app.quit() }
+  );
+
+  const menu = Menu.buildFromTemplate(menuItems);
+  trayMain?.setContextMenu(menu);
+}
+
+// ---------- IPC：合并为一个事件 ----------
+ipcMain.on("player:update", (event, payload) => {
+  playerState = { ...playerState, ...payload };
+  updatePlayerUI();
+});
+
+// ---------- 创建窗口 ----------
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC || '', 'logo.png'),
-    titleBarStyle: 'hidden',
-    // Enable native window controls on Windows (Minimize, Maximize, Close)
+    icon: path.join(process.env.VITE_PUBLIC!, 'logo.png'),
+    titleBarStyle: "hidden",
     titleBarOverlay: {
-      color: 'rgba(0,0,0,0)', // Transparent background
-      symbolColor: '#ffffff', // White symbols
-      height: 30
+      color: "rgba(0,0,0,0)",
+      symbolColor: "#ffffff",
+      height: 30,
     },
-    resizable: true,
-    maximizable: true,
-    transparent: process.platform === 'darwin', // Transparency works best on macOS
-    opacity: 0.95, // Window opacity (0.0 - 1.0), adjust as needed
-    vibrancy: 'popover', // macOS vibrancy effect
-    visualEffectState: 'active', // Keep vibrancy always active
+    transparent: process.platform === "darwin",
+    opacity: 0.95,
+    vibrancy: "popover",
+    visualEffectState: "active",
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, "preload.mjs"),
     },
-  })
+  });
 
-  // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', (new Date).toLocaleString())
-  })
-
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
+  if (process.env.VITE_DEV_SERVER_URL) {
+    win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    win.loadFile(path.join(process.env.DIST!, 'index.html'))
+    win.loadFile(path.join(process.env.DIST!, "index.html"));
   }
-
-  // Add keyboard shortcut to open DevTools (Cmd+Option+I on Mac, Ctrl+Shift+I on Windows/Linux)
-  win.webContents.on('before-input-event', (event, input) => {
-    if (input.key === 'i' || input.key === 'I') {
-      if (process.platform === 'darwin') {
-        // Mac: Cmd+Option+I
-        if (input.meta && input.alt) {
-          win?.webContents.toggleDevTools()
-          event.preventDefault()
-        }
-      } else {
-        // Windows/Linux: Ctrl+Shift+I
-        if (input.control && input.shift) {
-          win?.webContents.toggleDevTools()
-          event.preventDefault()
-        }
-      }
-    }
-  })
 }
 
+// ---------- 托盘 ----------
 function createTray() {
-  const iconPath = path.join(process.env.VITE_PUBLIC || '', 'mini_logo.png') // 托盘图标
-  const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 20, height: 20 })
-  tray = new Tray(trayIcon)
+  const img = (name: string, size = 20) =>
+    nativeImage
+      .createFromPath(path.join(process.env.VITE_PUBLIC!, name))
+      .resize({ width: size, height: size });
+  trayNext = new Tray(img("next.png"));
+  trayPlay = new Tray(img("play.png"));
+  trayPrev = new Tray(img("previous.png"));
+  trayMain = new Tray(img("mini_logo.png"));
 
-  // 点击托盘显示/隐藏窗口
-  tray.on('click', () => {
-    if (!win) return
+  trayNext.on("click", () => {
+    win?.webContents.send("player:next");
+  });
+  trayPlay.on("click", () => {
+    win?.webContents.send("player:toggle");
+  });
+  trayPrev.on("click", () => {
+    win?.webContents.send("player:prev");
+  });
 
-    const bounds = tray?.getBounds() ?? { x: 0, y: 0, width: 0, height: 0 } // 托盘位置
-    const windowBounds = win.getBounds() ?? { x: 0, y: 0, width: 0, height: 0 }
-    // macOS 顶栏下方显示
-    const x = Math.round(bounds.x + bounds.width / 2 - windowBounds.width / 2)
-    const y = Math.round(bounds.y + bounds.height)
-
-    win.setBounds({ x, y, width: windowBounds.width, height: windowBounds.height })
-    win.isVisible() ? win.hide() : win.show()
-  })
-
-  // 托盘右键菜单
-  const contextMenu = Menu.buildFromTemplate([
-    { label: '打开播放器', click: () => win?.show() },
-    { label: '退出', click: () => app.quit() },
-  ])
-  tray.setContextMenu(contextMenu)
+  updatePlayerUI();
 }
 
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-    win = null
-  }
-})
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  }
-})
-
+// ---------- APP 生命周期 ----------
 app.whenReady().then(() => {
-  createWindow()
-  createTray()
-})
+  createWindow();
+  createTray();
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
+
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});

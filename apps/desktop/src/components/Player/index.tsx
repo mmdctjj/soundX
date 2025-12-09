@@ -1,6 +1,5 @@
 import {
   BackwardOutlined,
-  ClockCircleOutlined,
   DeliveredProcedureOutlined,
   DownOutlined,
   ForwardOutlined,
@@ -177,6 +176,67 @@ const Player: React.FC = () => {
     prev,
     seekTo: handleSeek,
   });
+
+  // Send track info to main process for tray display
+  useEffect(() => {
+    if (window.ipcRenderer) {
+      window.ipcRenderer.send("player:update", {
+        track: currentTrack
+          ? {
+              name: currentTrack.name,
+              artist: currentTrack.artist,
+              album: currentTrack.album,
+            }
+          : null,
+        isPlaying,
+      });
+    }
+  }, [currentTrack, isPlaying]);
+
+  // // Create refs for control functions to use in IPC handlers
+  // const togglePlayRef = useRef<(() => void) | undefined>(undefined);
+  // const nextRef = useRef<(() => void) | undefined>(undefined);
+  // const prevRef = useRef<(() => void) | undefined>(undefined);
+
+  // // Update refs when functions change
+  // useEffect(() => {
+  //   togglePlayRef.current = () => {
+  //     const state = usePlayerStore.getState();
+  //     if (state.isPlaying) {
+  //       state.pause();
+  //     } else {
+  //       state.play();
+  //     }
+  //   };
+  //   nextRef.current = () => usePlayerStore.getState().next();
+  //   prevRef.current = () => usePlayerStore.getState().prev();
+  // }, []);
+
+  // Listen for playback control commands from main process
+  useEffect(() => {
+    if (!window.ipcRenderer) return;
+
+    const handleToggle = () => {
+      const state = usePlayerStore.getState();
+      if (state.isPlaying) {
+        state.pause();
+      } else {
+        state.play();
+      }
+    };
+    const handleNext = () => usePlayerStore.getState().next();
+    const handlePrev = () => usePlayerStore.getState().prev();
+
+    window.ipcRenderer.on("player:toggle", handleToggle);
+    window.ipcRenderer.on("player:next", handleNext);
+    window.ipcRenderer.on("player:prev", handlePrev);
+
+    return () => {
+      window.ipcRenderer.off("player:toggle", handleToggle);
+      window.ipcRenderer.off("player:next", handleNext);
+      window.ipcRenderer.off("player:prev", handlePrev);
+    };
+  }, []); // 空依赖数组，只在组件挂载时注册一次
 
   const togglePlay = () => {
     if (isPlaying) {
@@ -550,16 +610,8 @@ const Player: React.FC = () => {
             </Flex>
 
             <Flex justify="center" style={{ fontSize: 50 }} gap={30}>
-              {appMode === TrackType.MUSIC &&
-                renderPlayOrderButton(styles.controlIcon)}
-
-              {/* Timer */}
-              <Tooltip title="定时关闭">
-                <ClockCircleOutlined
-                  className={styles.controlIcon}
-                  onClick={() => setIsTimerModalOpen(true)}
-                />
-              </Tooltip>
+              {/* {appMode === TrackType.MUSIC &&
+                renderPlayOrderButton(styles.controlIcon)} */}
 
               {/* Skip Backward 15s */}
               <Tooltip title="后退 15 秒">
@@ -593,34 +645,8 @@ const Player: React.FC = () => {
                 />
               </Tooltip>
 
-              {/* Like Button */}
-              <Tooltip
-                title={
-                  currentTrack?.likedByUsers?.some((like) => like === 1)
-                    ? "取消喜欢"
-                    : "喜欢"
-                }
-              >
-                {currentTrack?.likedByUsers?.some((like) => like === 1) ? (
-                  <HeartFilled
-                    className={styles.controlIcon}
-                    onClick={() =>
-                      currentTrack && toggleLike(currentTrack.id, "unlike")
-                    }
-                    style={{ color: token.colorError }}
-                  />
-                ) : (
-                  <HeartOutlined
-                    className={styles.controlIcon}
-                    onClick={() =>
-                      currentTrack && toggleLike(currentTrack.id, "like")
-                    }
-                  />
-                )}
-              </Tooltip>
-
-              {appMode === TrackType.MUSIC &&
-                renderPlaylistButton(styles.controlIcon)}
+              {/* {appMode === TrackType.MUSIC &&
+                renderPlaylistButton(styles.controlIcon)} */}
             </Flex>
           </Flex>
         </div>
