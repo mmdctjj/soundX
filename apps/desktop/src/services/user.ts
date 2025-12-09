@@ -41,6 +41,12 @@ export const toggleLike = (trackId: number) => {
   });
 };
 
+export const toggleUnLike = (trackId: number) => {
+  return request.delete<any, ISuccessResponse<any>>("/user-track-likes/unlike", {
+    params: { trackId, userId: 1 },
+  });
+};
+
 export const toggleAlbumLike = (albumId: number) => {
   return request.post<any, ISuccessResponse<any>>("/user-album-likes", {
     albumId,

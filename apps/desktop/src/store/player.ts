@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { type Track } from "../models";
-import { addAlbumToHistory, addToHistory, toggleLike } from "../services/user";
+import { addAlbumToHistory, addToHistory, toggleLike, toggleUnLike } from "../services/user";
 
 interface PlayerState {
   currentTrack: Track | null;
@@ -22,7 +22,7 @@ interface PlayerState {
   setVolume: (volume: number) => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
-  toggleLike: (trackId: number) => Promise<void>;
+  toggleLike: (trackId: number, type: "like" | "unlike") => Promise<void>;
 }
 
 // Load cached track from localStorage
@@ -147,11 +147,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setVolume: (volume: number) => set({ volume }),
   setCurrentTime: (time: number) => set({ currentTime: time }),
   setDuration: (duration: number) => set({ duration }),
-  toggleLike: async (trackId: number) => {
+  toggleLike: async (trackId: number, type: "like" | "unlike") => {
     // Optimistic update could be implemented here if we tracked like status in the store
     // For now, just call the API
     try {
-      await toggleLike(trackId);
+      await (type === "like" ? toggleLike(trackId) : toggleUnLike(trackId));
+      const { currentTrack } = get();
+      if (currentTrack?.id === trackId) {
+        set({ currentTrack: { ...currentTrack, likedByUsers: type === "like" ? [...(currentTrack?.likedByUsers ?? []), 1] : (currentTrack?.likedByUsers ?? []).filter((id) => id !== 1) } });
+      }
     } catch (e) {
       console.error("Failed to toggle like", e);
     }

@@ -186,9 +186,13 @@ const Detail: React.FC = () => {
     }
   };
 
-  const handleToggleLike = async (e: React.MouseEvent, track: Track) => {
+  const handleToggleLike = async (
+    e: React.MouseEvent,
+    track: Track,
+    type: "like" | "unlike"
+  ) => {
     e.stopPropagation();
-    await toggleLike(track.id);
+    await toggleLike(track.id, type);
   };
 
   const openAddToPlaylistModal = async (e: React.MouseEvent, track: Track) => {
@@ -303,7 +307,15 @@ const Detail: React.FC = () => {
             ),
             onClick: (info) => {
               info.domEvent.stopPropagation();
-              handleToggleLike(info.domEvent as any, record);
+              handleToggleLike(
+                info.domEvent as any,
+                record,
+                (record as any).likedByUsers?.some(
+                  (like: any) => like.userId === 1
+                )
+                  ? "unlike"
+                  : "like"
+              );
             },
           },
           {

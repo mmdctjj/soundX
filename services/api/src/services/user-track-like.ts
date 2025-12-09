@@ -56,4 +56,13 @@ export class UserTrackLikeService {
   async userTrackLikeCount(): Promise<number> {
     return await this.prisma.userTrackLike.count();
   }
+
+  async removeByUserAndTrack(userId: number, trackId: number) {
+    return await this.prisma.userTrackLike.deleteMany({
+      where: {
+        userId,
+        trackId,
+      },
+    });
+  }
 }

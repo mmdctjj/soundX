@@ -150,9 +150,34 @@ export class UserTrackLikeController {
     }
   }
 
+
+  @Delete('/unlike')
+  async removeByUserAndTrack(
+    @Query('userId') userId: string,
+    @Query('trackId') trackId: string,
+  ): Promise<ISuccessResponse<{ count: number }> | IErrorResponse> {
+    try {
+      const data = await this.userTrackLikeService.removeByUserAndTrack(
+        +userId,
+        +trackId,
+      );
+      return {
+        code: 200,
+        message: 'success',
+        data,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
   @Delete(':id')
   async remove(
     @Param('id') id: string,
+    @Param('userId') userId: string,
   ): Promise<ISuccessResponse<UserTrackLike> | IErrorResponse> {
     try {
       const data = await this.userTrackLikeService.remove(+id);

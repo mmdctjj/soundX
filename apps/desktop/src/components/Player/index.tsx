@@ -1,6 +1,9 @@
 import {
+  BackwardOutlined,
+  ClockCircleOutlined,
   DeliveredProcedureOutlined,
   DownOutlined,
+  ForwardOutlined,
   HeartFilled,
   HeartOutlined,
   MoreOutlined,
@@ -18,6 +21,7 @@ import {
   Drawer,
   Dropdown,
   Flex,
+  InputNumber,
   List,
   Modal,
   Popover,
@@ -81,6 +85,8 @@ const Player: React.FC = () => {
     return saved ? Number(saved) : 0;
   });
   const [activeTab, setActiveTab] = useState<"playlist" | "lyrics">("playlist");
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
+  const [timerMinutes, setTimerMinutes] = useState(30);
 
   // Playlist Modal State
   const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] =
@@ -184,6 +190,39 @@ const Player: React.FC = () => {
     return path
       ? `${getBaseURL()}${path}`
       : "https://picsum.photos/seed/music/300/300";
+  };
+
+  // Skip forward 15 seconds
+  const skipForward = () => {
+    if (audioRef.current) {
+      const newTime = Math.min(audioRef.current.currentTime + 15, duration);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  // Skip backward 15 seconds
+  const skipBackward = () => {
+    if (audioRef.current) {
+      const newTime = Math.max(audioRef.current.currentTime - 15, 0);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  // Set sleep timer
+  const setSleepTimer = () => {
+    if (timerMinutes > 0) {
+      setTimeout(
+        () => {
+          pause();
+          message.success("定时关闭已触发");
+        },
+        timerMinutes * 60 * 1000
+      );
+      message.success(`已设置 ${timerMinutes} 分钟后自动暂停`);
+      setIsTimerModalOpen(false);
+    }
   };
 
   const openAddToPlaylistModal = async (e: React.MouseEvent, track: Track) => {
@@ -513,6 +552,23 @@ const Player: React.FC = () => {
             <Flex justify="center" style={{ fontSize: 50 }} gap={30}>
               {appMode === TrackType.MUSIC &&
                 renderPlayOrderButton(styles.controlIcon)}
+
+              {/* Timer */}
+              <Tooltip title="定时关闭">
+                <ClockCircleOutlined
+                  className={styles.controlIcon}
+                  onClick={() => setIsTimerModalOpen(true)}
+                />
+              </Tooltip>
+
+              {/* Skip Backward 15s */}
+              <Tooltip title="后退 15 秒">
+                <BackwardOutlined
+                  className={styles.controlIcon}
+                  onClick={skipBackward}
+                />
+              </Tooltip>
+
               <StepBackwardOutlined
                 className={styles.controlIcon}
                 onClick={prev}
@@ -528,6 +584,41 @@ const Player: React.FC = () => {
                 className={styles.controlIcon}
                 onClick={next}
               />
+
+              {/* Skip Forward 15s */}
+              <Tooltip title="前进 15 秒">
+                <ForwardOutlined
+                  className={styles.controlIcon}
+                  onClick={skipForward}
+                />
+              </Tooltip>
+
+              {/* Like Button */}
+              <Tooltip
+                title={
+                  currentTrack?.likedByUsers?.some((like) => like === 1)
+                    ? "取消喜欢"
+                    : "喜欢"
+                }
+              >
+                {currentTrack?.likedByUsers?.some((like) => like === 1) ? (
+                  <HeartFilled
+                    className={styles.controlIcon}
+                    onClick={() =>
+                      currentTrack && toggleLike(currentTrack.id, "unlike")
+                    }
+                    style={{ color: token.colorError }}
+                  />
+                ) : (
+                  <HeartOutlined
+                    className={styles.controlIcon}
+                    onClick={() =>
+                      currentTrack && toggleLike(currentTrack.id, "like")
+                    }
+                  />
+                )}
+              </Tooltip>
+
               {appMode === TrackType.MUSIC &&
                 renderPlaylistButton(styles.controlIcon)}
             </Flex>
@@ -622,7 +713,14 @@ const Player: React.FC = () => {
                                   <HeartOutlined />
                                 ),
                                 onClick: () => {
-                                  toggleLike(item.id);
+                                  toggleLike(
+                                    item.id,
+                                    (item as any).likedByUsers?.some(
+                                      (like: any) => like.userId === 1
+                                    )
+                                      ? "unlike"
+                                      : "like"
+                                  );
                                 },
                               },
                               {
@@ -651,17 +749,28 @@ const Player: React.FC = () => {
                       ]}
                     >
                       <List.Item.Meta
+                        className={styles.listCover}
                         avatar={
-                          <img
-                            src={getCoverUrl(item.cover)}
-                            alt={item.name}
-                            style={{
-                              width: "50px",
-                              height: "50px",
-                              objectFit: "cover",
-                              borderRadius: "8px",
-                            }}
-                          />
+                          <div style={{ position: "relative" }}>
+                            <img
+                              src={getCoverUrl(item.cover)}
+                              alt={item.name}
+                              style={{
+                                width: "50px",
+                                height: "50px",
+                                objectFit: "cover",
+                              }}
+                            />
+                            {currentTrack?.id === item.id ? (
+                              <PauseCircleFilled
+                                className={styles.listPlayIcon}
+                              />
+                            ) : (
+                              <PlayCircleFilled
+                                className={styles.listPlayIcon}
+                              />
+                            )}
+                          </div>
                         }
                         title={
                           <Text
@@ -743,7 +852,14 @@ const Player: React.FC = () => {
                           <HeartOutlined />
                         ),
                         onClick: () => {
-                          toggleLike(item.id);
+                          toggleLike(
+                            item.id,
+                            (item as any).likedByUsers?.some(
+                              (like: any) => like.userId === 1
+                            )
+                              ? "unlike"
+                              : "like"
+                          );
                         },
                       },
                       {
@@ -769,16 +885,24 @@ const Player: React.FC = () => {
               ]}
             >
               <List.Item.Meta
+                className={styles.listCover}
                 avatar={
-                  <img
-                    src={getCoverUrl(item.cover)}
-                    alt={item.name}
-                    style={{
-                      width: "25px",
-                      height: "25px",
-                      objectFit: "cover",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <img
+                      src={getCoverUrl(item.cover)}
+                      alt={item.name}
+                      style={{
+                        width: "50px",
+                        height: "50px",
+                        objectFit: "cover",
+                      }}
+                    />
+                    {currentTrack?.id === item.id ? (
+                      <PauseCircleFilled className={styles.listPlayIcon} />
+                    ) : (
+                      <PlayCircleFilled className={styles.listPlayIcon} />
+                    )}
+                  </div>
                 }
                 title={
                   <Text
@@ -798,6 +922,28 @@ const Player: React.FC = () => {
           )}
         />
       </Drawer>
+
+      {/* Timer Modal */}
+      <Modal
+        title="定时关闭"
+        open={isTimerModalOpen}
+        onCancel={() => setIsTimerModalOpen(false)}
+        onOk={setSleepTimer}
+        okText="确定"
+        cancelText="取消"
+      >
+        <Flex vertical gap={16} style={{ padding: "20px 0" }}>
+          <Text>设置多少分钟后自动暂停播放：</Text>
+          <InputNumber
+            min={1}
+            max={180}
+            value={timerMinutes}
+            onChange={(value: number | null) => setTimerMinutes(value || 30)}
+            addonAfter="分钟"
+            style={{ width: "100%" }}
+          />
+        </Flex>
+      </Modal>
 
       <Modal
         title="添加到播放列表"
