@@ -63,9 +63,15 @@ const Header: React.FC = () => {
 
   // ... inside component
   const togglePlayMode = () => {
-    const newMode =
-      playMode === TrackType.MUSIC ? TrackType.AUDIOBOOK : TrackType.MUSIC;
-    setPlayMode(newMode);
+    document.body.style.transition = "transform 0.25s ease";
+    document.body.style.transform = "scaleX(-1)"; // 开启
+    setTimeout(() => {
+      const newMode =
+        playMode === TrackType.MUSIC ? TrackType.AUDIOBOOK : TrackType.MUSIC;
+      setPlayMode(newMode);
+      document.body.style.transform = ""; // 关闭
+    }, 250);
+
     // Reload to apply changes globally if needed, though usePlayMode handles reactivity
     // window.location.reload(); // Removed reload as we now have reactive state
   };

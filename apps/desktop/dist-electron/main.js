@@ -9,7 +9,7 @@ let tray = null;
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC || "", "electron-vite.svg"),
+    icon: path.join(process.env.VITE_PUBLIC || "", "logo.png"),
     titleBarStyle: "hidden",
     // Enable native window controls on Windows (Minimize, Maximize, Close)
     titleBarOverlay: {
@@ -58,8 +58,8 @@ function createWindow() {
   });
 }
 function createTray() {
-  const iconPath = path.join(process.env.VITE_PUBLIC || "", "Vitejs-logo.png");
-  const trayIcon = nativeImage.createFromPath(iconPath);
+  const iconPath = path.join(process.env.VITE_PUBLIC || "", "mini_logo.png");
+  const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 20, height: 20 });
   tray = new Tray(trayIcon);
   tray.on("click", () => {
     if (!win) return;
