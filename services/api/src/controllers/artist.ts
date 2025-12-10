@@ -49,13 +49,14 @@ export class ArtistController {
   async getArtistTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
+    @Query('type') type?: TrackType,
   ): Promise<ISuccessResponse<ITableData<Artist[]>> | IErrorResponse> {
     try {
       const artistList = await this.artistService.getArtistTableList(
         pageSize,
         current,
       );
-      const total = await this.artistService.artistCount();
+      const total = await this.artistService.artistCount(type);
       return {
         code: 200,
         message: 'success',
@@ -79,7 +80,7 @@ export class ArtistController {
   async loadMoreArtist(
     @Query('pageSize') pageSize: string,
     @Query('loadCount') loadCount: string,
-    @Query('type') type?: string,
+    @Query('type') type?: TrackType,
   ): Promise<ISuccessResponse<ILoadMoreData<Artist[]>> | IErrorResponse> {
     try {
       const size = parseInt(pageSize, 10);
@@ -89,7 +90,7 @@ export class ArtistController {
         count,
         type,
       );
-      const total = await this.artistService.artistCount();
+      const total = await this.artistService.artistCount(type);
       return {
         code: 200,
         message: 'success',

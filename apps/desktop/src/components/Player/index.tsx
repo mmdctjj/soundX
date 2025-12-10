@@ -67,10 +67,28 @@ const Player: React.FC = () => {
     setCurrentTime,
     setDuration,
     toggleLike,
+    syncActiveMode,
   } = usePlayerStore();
   const { mode: appMode } = usePlayMode();
 
+  // Sync store active mode with app mode
+  useEffect(() => {
+    syncActiveMode(appMode);
+  }, [appMode, syncActiveMode]);
+
   const audioRef = useRef<HTMLAudioElement>(null);
+  const ignoreTimeUpdate = useRef(false);
+
+  // Determine if we need to ignore initial time updates (restoring state)
+  useEffect(() => {
+    if (currentTrack) {
+      const state = usePlayerStore.getState();
+      if (state.currentTime > 0.5) {
+        // Use slight threshold to be safe
+        ignoreTimeUpdate.current = true;
+      }
+    }
+  }, [currentTrack?.id]);
 
   // Local state for UI interactions
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
@@ -135,6 +153,8 @@ const Player: React.FC = () => {
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
+      if (ignoreTimeUpdate.current) return;
+
       const time = audioRef.current.currentTime;
       setCurrentTime(time);
 
@@ -148,10 +168,15 @@ const Player: React.FC = () => {
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
-      // Handle skip start
-      if (skipStart > 0) {
+      // Restore saved progress if meaningful
+      if (currentTime > 0) {
+        audioRef.current.currentTime = currentTime;
+      } else if (skipStart > 0) {
         audioRef.current.currentTime = skipStart;
       }
+
+      // Allow updates again after metadata loaded and potential seek performed
+      ignoreTimeUpdate.current = false;
     }
   };
 

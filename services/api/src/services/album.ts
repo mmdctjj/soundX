@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Album, PrismaClient } from '@soundx/db';
+import { Album, PrismaClient, TrackType } from '@soundx/db';
 
 @Injectable()
 export class AlbumService {
@@ -59,8 +59,8 @@ export class AlbumService {
     return result;
   }
 
-  async albumCount(): Promise<number> {
-    return await this.prisma.album.count();
+  async albumCount(type?: TrackType): Promise<number> {
+    return await this.prisma.album.count({ where: { type } });
   }
 
   async createAlbum(album: Omit<Album, 'id'>): Promise<Album> {

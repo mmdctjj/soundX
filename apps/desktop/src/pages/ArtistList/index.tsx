@@ -9,7 +9,7 @@ import {
   theme,
   Typography,
 } from "antd";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getBaseURL } from "../../https";
 import { type Artist } from "../../models";
@@ -23,6 +23,7 @@ interface Result {
   list: Artist[];
   hasMore: boolean;
   total: number;
+  loadCount: number;
 }
 
 const ArtistList: React.FC = () => {
@@ -32,7 +33,7 @@ const ArtistList: React.FC = () => {
   const { token } = theme.useToken();
 
   const loadMoreArtists = async (d: Result | undefined): Promise<Result> => {
-    const current = d ? Math.ceil(d.list.length / 20) + 1 : 0;
+    const current = d?.loadCount || d?.loadCount === 0 ? d?.loadCount + 1 : 0; // 当前已经加载的页数
     const pageSize = 20;
 
     try {
@@ -43,28 +44,43 @@ const ArtistList: React.FC = () => {
 
       if (res.code === 200 && res.data) {
         const { list, total } = res.data;
-        const newList = d ? [...d.list, ...list] : list;
         return {
-          list: newList as any,
-          hasMore: newList.length < total,
+          list,
+          hasMore: (d?.list?.length || 0) < Number(total),
           total,
+          loadCount: res?.data?.loadCount,
         };
       }
     } catch (error) {
       console.error("Failed to fetch artists:", error);
     }
 
-    return {
-      list: d?.list || [],
-      hasMore: false,
-      total: d?.total || 0,
-    };
+    return (
+      d || {
+        list: [],
+        hasMore: false,
+        total: 0,
+        loadCount: current,
+      }
+    );
   };
 
-  const { data, loading, loadingMore } = useInfiniteScroll(loadMoreArtists, {
-    target: scrollRef,
-    isNoMore: (d) => !d?.hasMore,
-  });
+  const { data, loading, loadingMore, reload } = useInfiniteScroll(
+    loadMoreArtists,
+    {
+      target: scrollRef,
+      isNoMore: (d) => !d?.hasMore,
+      reloadDeps: [mode],
+      manual: true,
+    }
+  );
+
+  useEffect(() => {
+    let timeId = setTimeout(() => {
+      reload();
+    });
+    return () => clearTimeout(timeId);
+  }, []);
 
   return (
     <div ref={scrollRef} className={styles.container}>
@@ -99,7 +115,7 @@ const ArtistList: React.FC = () => {
           ))}
         </Row>
 
-        {(loading || loadingMore) && (
+        {loadingMore && (
           <Row gutter={[24, 24]}>
             {Array.from({ length: 6 }).map((_, index) => (
               <Col

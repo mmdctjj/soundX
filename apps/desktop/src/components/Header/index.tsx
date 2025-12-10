@@ -12,7 +12,7 @@ import {
 } from "@ant-design/icons";
 import { Flex, Form, Input, Modal, Popover, theme, Tooltip } from "antd";
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import { useTheme } from "../../context/ThemeContext";
 import { TrackType } from "../../models";
@@ -34,6 +34,7 @@ import styles from "./index.module.less";
 const Header: React.FC = () => {
   const message = useMessage();
   const navigate = useNavigate();
+  const location = useLocation();
   const { mode, toggleTheme } = useTheme();
   const { token } = theme.useToken();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,9 +67,22 @@ const Header: React.FC = () => {
     document.body.style.transition = "transform 0.25s ease";
     document.body.style.transform = "scaleX(-1)"; // 开启
     setTimeout(() => {
+      // 1. Save current path for the current mode
+      const currentPath = location.pathname + location.search + location.hash;
+      localStorage.setItem(`route_history_${playMode}`, currentPath);
+
+      // 2. Determine new mode
       const newMode =
         playMode === TrackType.MUSIC ? TrackType.AUDIOBOOK : TrackType.MUSIC;
+
+      // 3. Restore path for the new mode
+      const savedPath = localStorage.getItem(`route_history_${newMode}`);
+      // Default to root if no history, or maybe we want specific defaults per mode
+      const targetPath = savedPath || "/";
+
+      navigate(targetPath);
       setPlayMode(newMode);
+
       document.body.style.transform = ""; // 关闭
     }, 250);
 

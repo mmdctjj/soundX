@@ -1,6 +1,6 @@
 import { useInfiniteScroll } from "ahooks";
 import { Col, Row, theme } from "antd";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import Cover from "../../components/Cover/index";
 import type { Album } from "../../models";
 import { loadMoreAlbum } from "../../services/album";
@@ -10,6 +10,8 @@ import styles from "./index.module.less";
 interface Result {
   list: Album[];
   hasMore: boolean;
+  total: number;
+  loadCount: number;
 }
 
 const Category: React.FC = () => {
@@ -20,34 +22,46 @@ const Category: React.FC = () => {
 
   const loadMoreAlbums = async (d: Result | undefined): Promise<Result> => {
     const pageSize = 12;
-    const loadCount = d ? Math.floor(d.list.length / pageSize) : 0;
-    const type = mode;
-
+    const loadCount = d?.loadCount || d?.loadCount === 0 ? d?.loadCount + 1 : 0; // 当前已经加载的页数
     try {
-      const res = await loadMoreAlbum({ pageSize, loadCount, type });
+      const res = await loadMoreAlbum({
+        pageSize,
+        loadCount: loadCount, // 使用 nextPage，不用试图从已有数据推算
+        type: mode,
+      });
 
       if (res.code === 200 && res.data) {
-        const { list } = res.data;
-        const newList = d ? [...d.list, ...list] : list;
+        const { list, total } = res.data;
         return {
-          list: newList,
-          hasMore: list.length === pageSize,
+          list,
+          hasMore: (d?.list?.length || 0) < Number(total),
+          total,
+          loadCount: res?.data?.loadCount, // 关键：正确更新 loadCount
         };
       }
-    } catch (error) {
-      console.error("Failed to fetch albums:", error);
-    }
+    } catch (err) {}
 
-    return {
-      list: d?.list || [],
-      hasMore: false,
-    };
+    return { list: [], hasMore: false, total: 0, loadCount: 0 };
   };
 
-  const { data, loading, loadingMore } = useInfiniteScroll(loadMoreAlbums, {
-    target: scrollRef,
-    isNoMore: (d) => !d?.hasMore,
-  });
+  const { data, loading, loadingMore, reload } = useInfiniteScroll(
+    loadMoreAlbums,
+    {
+      target: scrollRef,
+      isNoMore: (d) => !d?.hasMore,
+      reloadDeps: [mode],
+      direction: "bottom",
+      threshold: 100,
+      manual: true,
+    }
+  );
+
+  useEffect(() => {
+    let timeId = setTimeout(() => {
+      reload();
+    });
+    return () => clearTimeout(timeId);
+  }, []);
 
   // const tabItems = categoryTabs.map((tab) => ({
   //   key: String(tab.value),
@@ -55,7 +69,7 @@ const Category: React.FC = () => {
   // }));
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} ref={scrollRef}>
       {/* Tabs */}
       <div>
         {/* <Tabs
@@ -70,7 +84,7 @@ const Category: React.FC = () => {
       </div>
 
       {/* Cover Grid with Infinite Scroll */}
-      <div ref={scrollRef} className={styles.grid}>
+      <div className={styles.grid}>
         <Row gutter={[24, 24]}>
           {data?.list?.map((item) => (
             <Col key={item.id}>

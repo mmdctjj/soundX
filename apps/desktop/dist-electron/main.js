@@ -18,9 +18,9 @@ function updatePlayerUI() {
   trayPlay?.setImage(path.join(process.env.VITE_PUBLIC, playIcon));
   if (process.platform === "darwin") {
     if (playerState.track) {
-      trayMain?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
+      trayNext?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
     } else {
-      trayMain?.setTitle("");
+      trayNext?.setTitle("");
     }
   }
   const menuItems = [];
@@ -52,7 +52,7 @@ ipcMain.on("player:update", (event, payload) => {
 ipcMain.on("lyric:update", (event, payload) => {
   const { currentLyric } = payload;
   if (process.platform === "darwin") {
-    trayMain?.setTitle(currentLyric || "");
+    trayNext?.setTitle(currentLyric || "");
   }
 });
 function createWindow() {

@@ -76,8 +76,12 @@ export class TrackService {
     });
   }
 
-  async trackCount(): Promise<number> {
-    return await this.prisma.track.count();
+  async trackCount(type?: TrackType): Promise<number> {
+    const where: any = {};
+    if (type) {
+      where.type = type;
+    }
+    return await this.prisma.track.count({ where });
   }
 
   async createTrack(track: Omit<Track, 'id'>): Promise<Track> {

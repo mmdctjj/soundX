@@ -55,8 +55,12 @@ export class ArtistService {
     });
   }
 
-  async artistCount(): Promise<number> {
-    return await this.prisma.artist.count();
+  async artistCount(type?: TrackType): Promise<number> {
+    const where: any = {};
+    if (type) {
+      where.type = type;
+    }
+    return await this.prisma.artist.count({ where });
   }
 
   async createArtist(artist: Omit<Artist, 'id'>): Promise<Artist> {

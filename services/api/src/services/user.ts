@@ -34,6 +34,10 @@ export class UserService {
     return await this.prisma.user.count();
   }
   async createUser(user: Omit<User, 'id'>): Promise<User> {
+    const count = await this.prisma.user.count();
+    if (count === 0) {
+      user.is_admin = true;
+    }
     return await this.prisma.user.create({
       data: user,
     });

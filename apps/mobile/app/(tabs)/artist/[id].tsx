@@ -113,7 +113,7 @@ export default function ArtistDetailScreen() {
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Albums
+            所有专辑 ({albums.length})
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {albums.map((album) => (
@@ -141,11 +141,11 @@ export default function ArtistDetailScreen() {
           </ScrollView>
         </View>
 
-        <View style={styles.section}>
+        <View style={[styles.section, styles.trackList]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Top Tracks
+            所有单曲 ({tracks.length})
           </Text>
-          {tracks.slice(0, 5).map((track, index) => (
+          {tracks.map((track, index) => (
             <TouchableOpacity
               key={track.id}
               style={[styles.trackItem, { borderBottomColor: colors.border }]}
@@ -155,7 +155,7 @@ export default function ArtistDetailScreen() {
                   url: `${getBaseURL()}${track.path}`,
                   title: track.name,
                   artist: track.artist,
-                  artwork: artist.avatar || "", // Use artist avatar as fallback/artwork
+                  artwork: track.cover || "", // Use artist avatar as fallback/artwork
                   duration: track.duration || 0,
                   lyrics: track.lyrics,
                 });
@@ -165,6 +165,15 @@ export default function ArtistDetailScreen() {
                 {index + 1}
               </Text>
               <View style={styles.trackInfo}>
+                <Image
+                  source={{
+                    uri: track.cover
+                      ? `${getBaseURL()}${track.cover}`
+                      : `https://picsum.photos/seed/${track.id}/20/20`,
+                  }}
+                  alt=""
+                  style={{ width: 20, height: 20 }}
+                />
                 <Text
                   style={[styles.trackName, { color: colors.text }]}
                   numberOfLines={1}
@@ -216,6 +225,10 @@ const styles = StyleSheet.create({
   section: {
     padding: 20,
   },
+  trackList: {
+    marginBottom: 60,
+    paddingBottom: 70,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
@@ -242,11 +255,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   trackIndex: {
-    width: 30,
+    width: 20,
     fontSize: 14,
   },
   trackInfo: {
     flex: 1,
+    display: "flex",
+    gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: 10,
   },
   trackName: {

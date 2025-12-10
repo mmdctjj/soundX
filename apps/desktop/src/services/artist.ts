@@ -11,7 +11,7 @@ export const getArtistList = (
   loadCount: number,
   type?: string
 ) => {
-  return request.get<any, ISuccessResponse<ILoadMoreData<Artist[]>>>(
+  return request.get<any, ISuccessResponse<ILoadMoreData<Artist>>>(
     "/artist/load-more",
     {
       params: {

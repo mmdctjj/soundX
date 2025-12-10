@@ -166,7 +166,7 @@ const Favorites: React.FC = () => {
     {
       target: scrollRef,
       isNoMore: (d) => !d?.hasMore,
-      reloadDeps: [viewMode],
+      reloadDeps: [viewMode, type],
     }
   );
 

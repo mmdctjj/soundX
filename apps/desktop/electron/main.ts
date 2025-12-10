@@ -31,9 +31,9 @@ function updatePlayerUI() {
   // 2）更新导航栏歌词标题（macOS 专用）
   if (process.platform === "darwin") {
     if (playerState.track) {
-      trayMain?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
+      trayNext?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
     } else {
-      trayMain?.setTitle(""); // 未播放时清空
+      trayNext?.setTitle(""); // 未播放时清空
     }
   }
 
@@ -74,7 +74,7 @@ ipcMain.on("lyric:update", (event, payload) => {
 
   // macOS 托盘标题更新
   if (process.platform === "darwin") {
-    trayMain?.setTitle(currentLyric || "");
+    trayNext?.setTitle(currentLyric || "");
   }
 });
 

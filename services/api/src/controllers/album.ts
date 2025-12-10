@@ -10,7 +10,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { Album } from '@soundx/db';
+import { Album, TrackType } from '@soundx/db';
 import { Request } from 'express';
 import {
   IErrorResponse,
@@ -106,7 +106,7 @@ export class AlbumController {
   async loadMoreAlbum(
     @Query('pageSize') pageSize: number,
     @Query('loadCount') loadCount: number,
-    @Query('type') type?: string,
+    @Query('type') type?: TrackType,
   ): Promise<ISuccessResponse<ILoadMoreData<Album[]>> | IErrorResponse> {
     try {
       const albumList = await this.albumService.loadMoreAlbum(
@@ -114,7 +114,7 @@ export class AlbumController {
         Number(loadCount),
         type,
       );
-      const total = await this.albumService.albumCount();
+      const total = await this.albumService.albumCount(type);
       return {
         code: 200,
         message: 'success',

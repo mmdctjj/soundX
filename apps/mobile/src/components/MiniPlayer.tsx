@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderTopWidth: 1,
     position: "absolute",
-    bottom: 60, // Adjust based on tab bar height
+    bottom: 80, // Adjust based on tab bar height
     left: 0,
     right: 0,
     height: 60,
@@ -97,5 +97,6 @@ const styles = StyleSheet.create({
   },
   control: {
     padding: 10,
+    height: 40,
   },
 });

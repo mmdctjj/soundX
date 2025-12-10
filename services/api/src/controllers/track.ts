@@ -43,13 +43,14 @@ export class TrackController {
   async getTrackTableList(
     @Param('pageSize') pageSize: number,
     @Param('current') current: number,
+    @Query('type') type?: TrackType,
   ): Promise<ISuccessResponse<ITableData<Track[]>> | IErrorResponse> {
     try {
       const trackList = await this.trackService.getTrackTableList(
         pageSize,
         current,
       );
-      const total = await this.trackService.trackCount();
+      const total = await this.trackService.trackCount(type);
       return {
         code: 200,
         message: 'success',
@@ -72,13 +73,14 @@ export class TrackController {
   async loadMoreTrack(
     @Param('pageSize') pageSize: number,
     @Param('loadCount') loadCount: number,
+    @Query('type') type?: TrackType,
   ): Promise<ISuccessResponse<ILoadMoreData<Track[]>> | IErrorResponse> {
     try {
       const trackList = await this.trackService.loadMoreTrack(
         pageSize,
         loadCount,
       );
-      const total = await this.trackService.trackCount();
+      const total = await this.trackService.trackCount(type);
       return {
         code: 200,
         message: 'success',
