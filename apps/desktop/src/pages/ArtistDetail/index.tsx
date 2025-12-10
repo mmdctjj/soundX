@@ -1,4 +1,4 @@
-import { PlayCircleOutlined } from "@ant-design/icons";
+import { PauseCircleFilled, PlayCircleFilled } from "@ant-design/icons";
 import {
   Avatar,
   Col,
@@ -12,6 +12,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Cover from "../../components/Cover";
+import { getCoverUrl } from "../../components/Detail";
 import { useMessage } from "../../context/MessageContext";
 import { getBaseURL } from "../../https";
 import { type Album, type Artist, type Track } from "../../models";
@@ -155,12 +156,38 @@ const ArtistDetail: React.FC = () => {
               title: "#",
               key: "index",
               width: 80,
+              render: (_: number, __: Track, idx: number) => {
+                return <Text>{idx + 1}</Text>;
+              },
+            },
+            {
+              title: "封面",
+              key: "cover",
+              width: 80,
               render: (_: number, record: Track) => {
-                const isPlaying = currentTrack?.id === record.id;
-                return isPlaying ? (
-                  <PlayCircleOutlined style={{ fontSize: 16 }} />
-                ) : (
-                  <Text>{record?.index?.toString()}</Text>
+                return (
+                  <div
+                    style={{ position: "relative" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePlayTrack(record);
+                    }}
+                  >
+                    <img
+                      src={getCoverUrl(record.cover)}
+                      alt={record.name}
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        objectFit: "cover",
+                      }}
+                    />
+                    {currentTrack?.id === record.id ? (
+                      <PauseCircleFilled className={styles.listPlayIcon} />
+                    ) : (
+                      <PlayCircleFilled className={styles.listPlayIcon} />
+                    )}
+                  </div>
                 );
               },
             },
@@ -187,7 +214,7 @@ const ArtistDetail: React.FC = () => {
             style: { cursor: "pointer" },
           })}
           rowClassName={(record) =>
-            currentTrack?.id === record.id ? styles.activeRow : ""
+            currentTrack?.id === record.id ? styles.listCover : styles.listCover
           }
         />
       </div>

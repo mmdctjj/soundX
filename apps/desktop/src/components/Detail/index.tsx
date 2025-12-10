@@ -4,7 +4,8 @@ import {
   HeartFilled,
   HeartOutlined,
   MoreOutlined,
-  PauseOutlined,
+  PauseCircleFilled,
+  PlayCircleFilled,
   PlayCircleOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -27,6 +28,7 @@ import {
   theme,
   Typography,
 } from "antd";
+import type { ColumnProps } from "antd/es/table";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
@@ -43,6 +45,12 @@ import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
+
+export const getCoverUrl = (path?: string | null) => {
+  return path
+    ? `${getBaseURL()}${path}`
+    : "https://picsum.photos/seed/music/300/300";
+};
 
 const { Title, Text } = Typography;
 
@@ -69,8 +77,7 @@ const Detail: React.FC = () => {
 
   const { token } = theme.useToken();
 
-  const { play, setPlaylist, currentTrack, isPlaying, toggleLike } =
-    usePlayerStore();
+  const { play, setPlaylist, currentTrack, toggleLike } = usePlayerStore();
 
   const { mode } = usePlayMode();
 
@@ -224,36 +231,42 @@ const Detail: React.FC = () => {
     }
   };
 
-  const columns = [
+  const columns: ColumnProps<Track>[] = [
     {
       title: "#",
       key: "index",
       width: 100,
-      render: (_: number, record: Track) => {
-        return <Text>{record?.index?.toString()}</Text>;
+      render: (_: any, __: Track, index: number) => {
+        return <Text>{index + 1}</Text>;
       },
     },
     {
-      title: " ",
-      key: "play",
+      title: "封面",
+      key: "cover",
       width: 100,
       render: (_: any, record: Track) => {
-        const isCurrent = currentTrack?.id === record.id;
         return (
           <div
+            style={{ position: "relative" }}
             onClick={(e) => {
               e.stopPropagation();
               handlePlayTrack(record);
             }}
-            style={{ cursor: "pointer" }}
           >
-            <Text strong={currentTrack?.id === record.id}>
-              {isCurrent && isPlaying ? (
-                <PauseOutlined />
-              ) : (
-                <PlayCircleOutlined />
-              )}
-            </Text>
+            <img
+              src={getCoverUrl(record.cover)}
+              alt={record.name}
+              style={{
+                width: "30px",
+                height: "30px",
+                objectFit: "cover",
+              }}
+            />
+            {currentTrack?.id === record.id ? (
+              <PauseCircleFilled className={styles.listPlayIcon} />
+            ) : (
+              <PlayCircleFilled className={styles.listPlayIcon} />
+            )}
           </div>
         );
       },
@@ -455,11 +468,11 @@ const Detail: React.FC = () => {
               pagination={false}
               rowKey="id"
               loading={loading}
+              rowClassName={styles.listCover}
               onRow={(record) => ({
-                onDoubleClick: () => handlePlayTrack(record),
+                onClick: () => handlePlayTrack(record),
                 style: { cursor: "pointer" },
               })}
-              rowClassName="episode-row"
             />
           </Col>
         </Row>

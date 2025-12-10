@@ -16,6 +16,13 @@ let playerState = {
 function updatePlayerUI() {
   const playIcon = playerState.isPlaying ? "pause.png" : "play.png";
   trayPlay?.setImage(path.join(process.env.VITE_PUBLIC, playIcon));
+  if (process.platform === "darwin") {
+    if (playerState.track) {
+      trayMain?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
+    } else {
+      trayMain?.setTitle("");
+    }
+  }
   const menuItems = [];
   if (playerState.track) {
     menuItems.push(
@@ -41,6 +48,12 @@ function updatePlayerUI() {
 ipcMain.on("player:update", (event, payload) => {
   playerState = { ...playerState, ...payload };
   updatePlayerUI();
+});
+ipcMain.on("lyric:update", (event, payload) => {
+  const { currentLyric } = payload;
+  if (process.platform === "darwin") {
+    trayMain?.setTitle(currentLyric || "");
+  }
 });
 function createWindow() {
   win = new BrowserWindow({

@@ -28,7 +28,16 @@ function updatePlayerUI() {
   const playIcon = playerState.isPlaying ? "pause.png" : "play.png";
   trayPlay?.setImage(path.join(process.env.VITE_PUBLIC!, playIcon));
 
-  // 2）更新右键菜单
+  // 2）更新导航栏歌词标题（macOS 专用）
+  if (process.platform === "darwin") {
+    if (playerState.track) {
+      trayMain?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
+    } else {
+      trayMain?.setTitle(""); // 未播放时清空
+    }
+  }
+
+  // 3）更新右键菜单
   const menuItems: any[] = [];
 
   if (playerState.track) {
@@ -54,11 +63,19 @@ function updatePlayerUI() {
   const menu = Menu.buildFromTemplate(menuItems);
   trayMain?.setContextMenu(menu);
 }
-
 // ---------- IPC：合并为一个事件 ----------
 ipcMain.on("player:update", (event, payload) => {
   playerState = { ...playerState, ...payload };
   updatePlayerUI();
+});
+
+ipcMain.on("lyric:update", (event, payload) => {
+  const { currentLyric } = payload;
+
+  // macOS 托盘标题更新
+  if (process.platform === "darwin") {
+    trayMain?.setTitle(currentLyric || "");
+  }
 });
 
 // ---------- 创建窗口 ----------
