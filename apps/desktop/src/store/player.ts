@@ -29,7 +29,7 @@ interface PlayerState {
   modes: Record<TrackType, PlayerModeState>;
 
   // Actions
-  play: (track?: Track, albumId?: number) => void;
+  play: (track?: Track, albumId?: number, startTime?: number) => void;
   pause: () => void;
   setPlaylist: (tracks: Track[]) => void;
   next: () => void;
@@ -126,9 +126,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       state._saveCurrentStateToMode(); // Valid because we called it, but we need to update state
 
       // Re-get updated modes (though _save returned them, simpler to just access properly if we were updating, but here we manually do it)
-      // Actually _saveCurrentStateToMode above didn't set(); it just returned data or side-effected?? 
-      // Let's refactor _save to just return the object to avoid side-effect confusion in 'set'
-
       const currentModeStateProxy: PlayerModeState = {
         currentTrack: state.currentTrack,
         playlist: state.playlist,
@@ -159,22 +156,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       });
     },
 
-    play: async (track, albumId) => {
+    play: async (track, albumId, startTime) => {
       const { currentTrack, currentAlbumId, activeMode } = get();
 
       // If passing a track, logic is complex
       if (track) {
         if (currentTrack?.id !== track.id) {
-          set({ currentTrack: track, isPlaying: true, currentTime: 0 });
-          // Note: We don't explicitly save to modes[...] here on every frame, 
-          // we rely on syncActiveMode or unmount to save, OR we should save on significant changes?
-          // The request implies "store corresponding current audio", so persistence is key.
-          // Let's persist currentTrack change immediately.
+          set({ currentTrack: track, isPlaying: true, currentTime: startTime || 0 });
+          // Persist currentTrack change immediately.
           const state = get();
           persistModeState(activeMode, {
             currentTrack: track,
             playlist: state.playlist,
-            currentTime: 0,
+            currentTime: startTime || 0,
             duration: 0,
             currentAlbumId: albumId || state.currentAlbumId
           });
@@ -196,6 +190,27 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
           }
         } else {
           set({ isPlaying: true });
+          // If resuming same track, should we jump to startTime?
+          // Usually play() on same track just resumes. 
+          // But if startTime is provided and > 0, we might want to seek?
+          // For now, let's assume if track is same, we respect existing currentTime unless startTime is explicit?
+          if (startTime !== undefined) {
+            set({ currentTime: startTime });
+            // And audio element will pick it up via useEffect if we implement it there? 
+            // Currently store just sets state. Player component needs to react to currentTime change if it's a seek.
+            // But existing logic: setCurrentTime doesn't seek audio element directly, handleSeek does.
+            // However, handleLoadedMetadata restores it.
+            // Converting this to a seek is hard without ref. 
+            // But if we change track, currentTime resets to 0 (or startTime). 
+            // If track is same, we might need a way to force seek.
+            // But "Resume" implies we are loading the track. 
+            // If track is same, we probably don't need to do anything if it's already there. 
+            // If it's paused, we just play. 
+            // If user clicked "Continue", and we are at 0:00, but history says 10:00, we should jump.
+            if (startTime > 0) {
+              set({ currentTime: startTime });
+            }
+          }
         }
       } else {
         if (currentTrack) {

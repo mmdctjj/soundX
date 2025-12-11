@@ -127,6 +127,7 @@ model UserAudiobookHistory {
   trackId   Int
   /// 用户收听该有声书的时间
   listenedAt DateTime @default(now())
+  progress   Int      @default(0)
 }
 
 model User {

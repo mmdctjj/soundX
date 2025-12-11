@@ -202,24 +202,58 @@ export class AlbumService {
       },
       select: {
         trackId: true,
+        progress: true,
+        listenedAt: true,
+      },
+      orderBy: {
+        listenedAt: 'desc',
       },
     });
+
+    // Create a map for quick lookup of track history, though we need "latest in album"
+    const historyMap = new Map();
+    history.forEach(h => {
+      // Since we ordered by desc, the first one encountered for a track is the latest?
+      // Actually we want latest *per album*.
+      // We can just filter the list in the album loop.
+    });
+
     const listenedTrackIds = new Set(history.map(h => h.trackId));
 
-    // 3. Calculate progress per album
+    // 3. Calculate progress per album and find resume point
     return albums.map(album => {
       const albumTracks = tracks.filter(t => t.album === album.name && t.artist === album.artist);
       if (albumTracks.length === 0) return { ...album, progress: 0 };
 
       const totalDuration = albumTracks.reduce((sum, t) => sum + (t.duration || 0), 0);
-      if (totalDuration === 0) return { ...album, progress: 0 };
+
+      // Calculate total listened duration (progress percentage)
+      // Note: This logic assumes if track is in history, it's fully listened? 
+      // Or should we use the progress? 
+      // The previous logic was: count duration of all tracks in history.
+      // Now we have progress, we *could* be more precise, but "sum of duration" implies "finished tracks".
+      // If we want "progress", maybe we should sum (track.duration if finished else progress)?
+      // For now let's keep the user's previous logic for "Album Progress" (likely count/duration based) strict to "has history = touched".
+      // Actually, if I listen to 10s of a 1hr book, does it count as entire duration in progress? Probably yes in the old logic.
+      // Let's refine: The user wants "record the time point".
+      // Let's keep the percentage logic as "touched tracks duration / total", but we can maybe improve it later.
 
       const listenedDuration = albumTracks
         .filter(t => listenedTrackIds.has(t.id))
         .reduce((sum, t) => sum + (t.duration || 0), 0);
 
-      const progress = Math.min(100, Math.round((listenedDuration / totalDuration) * 100));
-      return { ...album, progress };
+      const progressPercent = totalDuration === 0 ? 0 : Math.min(100, Math.round((listenedDuration / totalDuration) * 100));
+
+      // Find resume point (latest history entry for any track in this album)
+      const albumTrackIds = new Set(albumTracks.map(t => t.id));
+      const latestHistory = history.find(h => albumTrackIds.has(h.trackId)); // Since history is ordered by listenedAt desc
+
+      return {
+        ...album,
+        progress: progressPercent,
+        resumeTrackId: latestHistory ? latestHistory.trackId : null,
+        resumeProgress: latestHistory ? latestHistory.progress : 0
+      };
     });
   }
 }

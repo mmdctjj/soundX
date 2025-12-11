@@ -71,11 +71,29 @@ const Cover: CoverComponent = ({ item, size, isTrack = false }) => {
       try {
         const res = await getAlbumTracks((item as Album).id, 100, 0);
         if (res.code === 200 && res.data.list.length > 0) {
-          setPlaylist(res.data.list);
-          play(res.data.list[0], (item as Album).id);
-          message.success("开始播放");
+          const tracks = res.data.list;
+          setPlaylist(tracks);
+
+          // Check for resume info
+          const resumeTrackId = (item as any).resumeTrackId;
+          const resumeProgress = (item as any).resumeProgress;
+
+          let targetTrack = tracks[0];
+          let startTime = 0;
+
+          if (resumeTrackId) {
+            const found = tracks.find((t) => t.id === resumeTrackId);
+            if (found) {
+              targetTrack = found;
+              startTime = resumeProgress || 0;
+            }
+          }
+
+          play(targetTrack, (item as Album).id, startTime);
+          message.success(startTime > 0 ? "继续播放" : "开始播放");
         }
       } catch (error) {
+        console.error(error);
         message.error("播放失败");
       }
     }

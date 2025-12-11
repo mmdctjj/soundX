@@ -40,6 +40,7 @@ import {
   getPlaylists,
   type Playlist,
 } from "../../services/playlist";
+import { reportAudiobookProgress } from "../../services/userAudiobookHistory";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
@@ -131,6 +132,32 @@ const Player: React.FC = () => {
       }
     }
   }, [isPlaying, currentTrack]);
+
+  // Report progress for Audiobooks
+  useEffect(() => {
+    let interval: any;
+    if (isPlaying && currentTrack?.type === TrackType.AUDIOBOOK) {
+      interval = setInterval(() => {
+        reportAudiobookProgress({
+          userId: 1, // Default user
+          trackId: currentTrack.id,
+          progress: Math.floor(currentTime),
+        });
+      }, 10000); // Report every 10s
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, currentTrack, currentTime]);
+
+  // Report on pause/change
+  useEffect(() => {
+    if (currentTrack?.type === TrackType.AUDIOBOOK && currentTime > 0) {
+      reportAudiobookProgress({
+        userId: 1,
+        trackId: currentTrack.id,
+        progress: Math.floor(currentTime),
+      });
+    }
+  }, [isPlaying]); // When pausing (isPlaying becomes false)
 
   // Save settings
   useEffect(() => {
