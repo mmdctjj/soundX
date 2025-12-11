@@ -17,10 +17,11 @@ export interface ImportTask {
 }
 
 export interface CreateTaskParams {
-  serverAddress: string;
-  musicPath: string;
-  audiobookPath: string;
-  cachePath: string;
+  serverAddress?: string;
+  musicPath?: string;
+  audiobookPath?: string;
+  cachePath?: string;
+  mode?: 'incremental' | 'full';
 }
 
 export interface CreateTaskResponse {

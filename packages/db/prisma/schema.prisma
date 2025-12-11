@@ -29,6 +29,8 @@ model Track {
   index     Int?      // Track order within the album
   type      TrackType @default(MUSIC)
   createdAt DateTime @default(now())
+  fileModifiedAt DateTime?
+  episodeNumber Int? @default(0)
   /// 🔁 反向关系
   likedByUsers    UserTrackLike[]
   listenedByUsers UserTrackHistory[]

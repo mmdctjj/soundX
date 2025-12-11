@@ -10,7 +10,7 @@ import {
   SkinOutlined,
   SunOutlined,
 } from "@ant-design/icons";
-import { Flex, Form, Input, Modal, Popover, theme, Tooltip } from "antd";
+import { Flex, Input, Modal, Popover, theme, Tooltip } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
@@ -37,10 +37,8 @@ const Header: React.FC = () => {
   const location = useLocation();
   const { mode, toggleTheme } = useTheme();
   const { token } = theme.useToken();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const pollTimerRef = useRef<number | null>(null);
+  const [modal, contextHolder] = Modal.useModal();
 
   // Search state
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -93,51 +91,43 @@ const Header: React.FC = () => {
   const iconStyle = { color: token.colorTextSecondary };
   const actionIconStyle = { color: token.colorText };
 
-  const handleAudioFileManagementClick = () => {
-    setIsModalOpen(true);
-    // Load saved paths from localStorage
-    const savedPaths = localStorage.getItem("importPaths");
-    if (savedPaths) {
-      try {
-        const paths = JSON.parse(savedPaths);
-        form.setFieldsValue(paths);
-      } catch (e) {
-        console.error("Failed to load saved paths:", e);
-      }
-    }
-  };
+  const handleUpdateLibrary = async (mode: "incremental" | "full") => {
+    message.loading(
+      `${mode === "incremental" ? "增量" : "全量"}更新任务创建中...`
+    );
 
-  const handleCancel = () => {
-    setIsModalOpen(false);
-    // Don't reset fields to keep the values
+    try {
+      const res = await createImportTask({ mode });
+      if (res.code === 200 && res.data) {
+        const taskId = res.data.id;
+        message.success("任务创建成功，开始更新...");
+
+        // Clear previous timer if any
+        if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+
+        pollTimerRef.current = setInterval(() => {
+          pollTaskStatus(taskId);
+        }, 2000);
+      } else {
+        message.error(res.message || "任务创建失败");
+      }
+    } catch (error) {
+      console.error("Task creation error:", error);
+      message.error("创建任务失败，请检查网络或后端服务");
+    }
   };
 
   const pollTaskStatus = async (taskId: string) => {
     try {
-      // Get serverAddress from localStorage
-      const savedPaths = localStorage.getItem("importPaths");
-      let serverAddress: string | undefined;
-      if (savedPaths) {
-        try {
-          const paths = JSON.parse(savedPaths);
-          serverAddress = paths.serverAddress;
-        } catch (e) {
-          console.error("Failed to parse saved paths:", e);
-        }
-      }
-
-      const res = await getImportTask(taskId, serverAddress);
+      const res = await getImportTask(taskId);
       if (res.code === 200 && res.data) {
         const { status, message: taskMsg, total } = res.data;
         if (status === TaskStatus.SUCCESS) {
           message.success(`导入成功！共导入 ${total} 首歌曲`);
-          setLoading(false);
-          setIsModalOpen(false);
           // Don't reset fields to keep the saved paths
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
         } else if (status === TaskStatus.FAILED) {
           message.error(`导入失败: ${taskMsg}`);
-          setLoading(false);
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
         } else {
           // Continue polling
@@ -149,33 +139,6 @@ const Header: React.FC = () => {
       console.error("Poll error:", error);
       // Don't stop polling on transient network errors, but maybe limit retries?
       // For simplicity, we just log.
-    }
-  };
-
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-      setLoading(true);
-
-      const res = await createImportTask(values);
-      if (res.code === 200 && res.data) {
-        const taskId = res.data.id;
-        message.success("任务创建成功，开始导入...");
-
-        // Save paths to localStorage
-        localStorage.setItem("importPaths", JSON.stringify(values));
-
-        // Start polling
-        pollTimerRef.current = setInterval(() => {
-          pollTaskStatus(taskId);
-        }, 2000);
-      } else {
-        message.error(res.message || "任务创建失败");
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Submit error:", error);
-      setLoading(false);
     }
   };
 
@@ -350,9 +313,37 @@ const Header: React.FC = () => {
                   borderRadius: "4px",
                   backgroundColor: "transparent",
                 }}
-                onClick={handleAudioFileManagementClick}
+                onClick={() => {
+                  modal.confirm({
+                    title: "确认增量更新？",
+                    content: "增量更新只增加新数据，不删除旧数据",
+                    okText: "确认更新",
+                    cancelText: "取消",
+                    onOk: () => handleUpdateLibrary("incremental"),
+                  });
+                }}
               >
-                音频文件管理
+                增量更新音频文件
+              </div>
+              <div
+                style={{
+                  cursor: "pointer",
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  backgroundColor: "transparent",
+                }}
+                onClick={() => {
+                  modal.confirm({
+                    title: "确认全量更新？",
+                    content:
+                      "全量更新将清空所有歌曲、专辑、艺术家、播放列表以及您的播放历史和收藏记录！此操作不可恢复。",
+                    okText: "确认清空并更新",
+                    cancelText: "取消",
+                    onOk: () => handleUpdateLibrary("full"),
+                  });
+                }}
+              >
+                全量更新音频文件
               </div>
               <div
                 style={{
@@ -392,38 +383,7 @@ const Header: React.FC = () => {
           </Flex>
         </Popover>
       </div>
-
-      <Modal
-        title="音频文件管理"
-        open={isModalOpen}
-        onOk={handleOk}
-        onCancel={handleCancel}
-        confirmLoading={loading}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="musicPath"
-            label="音乐目录 (绝对路径)"
-            rules={[{ required: true, message: "请输入音乐目录路径" }]}
-          >
-            <Input placeholder="/Users/username/Music" />
-          </Form.Item>
-          <Form.Item
-            name="audiobookPath"
-            label="有声书目录 (绝对路径)"
-            rules={[{ required: true, message: "请输入有声书目录路径" }]}
-          >
-            <Input placeholder="/Users/username/Audiobooks" />
-          </Form.Item>
-          <Form.Item
-            name="cachePath"
-            label="缓存目录 (绝对路径)"
-            rules={[{ required: true, message: "请输入缓存目录路径" }]}
-          >
-            <Input placeholder="/Users/username/.soundx/cache" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {contextHolder}
     </div>
   );
 };

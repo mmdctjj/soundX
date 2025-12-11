@@ -11,6 +11,7 @@ export interface ScanResult {
   duration?: number;
   coverPath?: string;
   lyrics?: string;
+  mtime: Date;
   [key: string]: any;
 }
 
@@ -135,6 +136,7 @@ export class LocalMusicScanner {
       return {
         path: filePath,
         size: fs.statSync(filePath).size,
+        mtime: fs.statSync(filePath).mtime,
         title: common.title,
         artist: common.artist,
         album: common.album,

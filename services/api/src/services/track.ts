@@ -13,6 +13,12 @@ export class TrackService {
     return await this.prisma.track.findMany();
   }
 
+  async findByPath(path: string): Promise<Track | null> {
+    return await this.prisma.track.findFirst({
+      where: { path },
+    });
+  }
+
   async getTracksByAlbum(
     albumName: string,
     artist: string,
@@ -30,13 +36,12 @@ export class TrackService {
       where.name = { contains: keyword };
     }
 
+    console.log("getTracksByAlbum", sort);
+
     return await this.prisma.track.findMany({
       where,
       orderBy: [
-        { index: sort }, // Primary sort by track index
-        {
-          id: sort,
-        }
+        { episodeNumber: sort },
       ],
       skip: skip,
       take: pageSize,

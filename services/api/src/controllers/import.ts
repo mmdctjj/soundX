@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Logger, Param, Post } from '@nestjs/common';
+import * as path from 'path';
 import { LogMethod } from '../common/log-method.decorator';
 import { ImportService } from '../services/import';
 
@@ -9,21 +10,22 @@ export class ImportController {
 
   @Post('task')
   @LogMethod()
-  createTask(@Body() body: any) {
-    const { musicPath, audiobookPath, cachePath } = body;
-    // Basic validation
-    if (!cachePath) {
-      return { code: 400, message: 'cachePath is required' };
-    }
+  async createTask(@Body() body: any) {
+    let { musicPath, audiobookPath, cachePath, mode } = body;
 
-    const id = this.importService.createTask(musicPath || '', audiobookPath || '', cachePath);
+    // Use server-side defaults from environment variables checks
+    if (!musicPath) musicPath = path.resolve(process.env.MUSIC_BASE_DIR || './');
+    if (!audiobookPath) audiobookPath = path.resolve(process.env.AUDIO_BOOK_DIR || './');
+    if (!cachePath) cachePath = path.resolve(process.env.CACHE_DIR || './');
+
+    const id = await this.importService.createTask(musicPath, audiobookPath, cachePath, mode || 'incremental');
     return { code: 200, message: 'success', data: { id } };
   }
 
   @Get('task/:id')
   @LogMethod()
-  getTask(@Param('id') id: string) {
-    const task = this.importService.getTask(id);
+  async getTask(@Param('id') id: string) {
+    const task = await this.importService.getTask(id);
     if (!task) {
       return { code: 404, message: 'Task not found' };
     }

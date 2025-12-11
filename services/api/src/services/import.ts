@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TrackType } from '@soundx/db';
+import { PrismaClient, TrackType } from '@soundx/db'; // Import PrismaClient
 import { LocalMusicScanner } from '@soundx/utils';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
@@ -21,25 +21,29 @@ export interface ImportTask {
   message?: string;
   total?: number;
   current?: number;
+  mode?: 'incremental' | 'full';
 }
 
 @Injectable()
 export class ImportService {
   private readonly logger = new Logger(ImportService.name);
   private tasks: Map<string, ImportTask> = new Map();
+  private prisma: PrismaClient;
 
   constructor(
     private readonly trackService: TrackService,
     private readonly albumService: AlbumService,
     private readonly artistService: ArtistService,
-  ) { }
+  ) {
+    this.prisma = new PrismaClient();
+  }
 
   @LogMethod()
-  createTask(musicPath: string, audiobookPath: string, cachePath: string): string {
+  createTask(musicPath: string, audiobookPath: string, cachePath: string, mode: 'incremental' | 'full' = 'incremental'): string {
     const id = randomUUID();
-    this.tasks.set(id, { id, status: TaskStatus.INITIALIZING });
+    this.tasks.set(id, { id, status: TaskStatus.INITIALIZING, mode });
 
-    this.startImport(id, musicPath, audiobookPath, cachePath).catch(err => {
+    this.startImport(id, musicPath, audiobookPath, cachePath, mode).catch(err => {
       console.error("Unhandled import error", err);
     });
 
@@ -65,22 +69,50 @@ export class ImportService {
     }
   }
 
-  private async startImport(id: string, musicPath: string, audiobookPath: string, cachePath: string) {
+  private async clearLibraryData() {
+    this.logger.log('Starting full library cleanup...');
+
+    // 1. Clear User Relations (dependent on Tracks/Albums)
+    await this.prisma.userTrackHistory.deleteMany();
+    await this.prisma.userTrackLike.deleteMany();
+    await this.prisma.userAudiobookHistory.deleteMany();
+    await this.prisma.userAudiobookLike.deleteMany();
+    await this.prisma.userAlbumHistory.deleteMany();
+    await this.prisma.userAlbumLike.deleteMany();
+
+    // 2. Clear Playlists (dependent on Users and Tracks, but we delete only playlists for now)
+    // Note: Implicit m-n relation table `_PlaylistToTrack` is cleaned up automatically by Prisma cascades usually,
+    // but explicit `Playlist` records need deletion.
+    await this.prisma.playlist.deleteMany();
+
+    // 3. Clear Core Data
+    await this.prisma.track.deleteMany();
+    await this.prisma.album.deleteMany();
+    await this.prisma.artist.deleteMany();
+
+    this.logger.log('Full library cleanup completed.');
+  }
+
+  private async startImport(id: string, musicPath: string, audiobookPath: string, cachePath: string, mode: 'incremental' | 'full') {
     const task = this.tasks.get(id);
     if (!task) return;
 
     try {
-      console.log("startImport", id, musicPath, audiobookPath, cachePath);
+      console.log("startImport", id, musicPath, audiobookPath, cachePath, mode);
+
+      if (mode === 'full') {
+        await this.clearLibraryData();
+      }
+
       const scanner = new LocalMusicScanner(cachePath);
+      // ... (rest of scanner initialization)
 
       task.status = TaskStatus.PARSING;
 
       // Scan Music
       const musicResults = await scanner.scanMusic(musicPath);
-      console.log("musicResults", musicResults);
       // Scan Audiobooks
       const audiobookResults = await scanner.scanAudiobook(audiobookPath);
-      console.log("audiobookResults", audiobookResults);
 
       task.total = musicResults.length + audiobookResults.length;
       task.current = 0;
@@ -92,8 +124,17 @@ export class ImportService {
         // Convert local cover path to HTTP URL
         const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
 
+
         // Convert local audio path to HTTP URL, preserving relative path from base directory
         const audioUrl = this.convertToHttpUrl(item.path, type === TrackType.AUDIOBOOK ? 'audio' : 'music', audioBasePath);
+
+        // CHECK EXISTENCE (Incremental Mode Logic)
+        const existingTrack = await this.trackService.findByPath(audioUrl);
+        if (existingTrack) {
+          // If track exists, skip creation
+          // We could update metadata here if we wanted to be smarter, but for now just skip
+          return;
+        }
 
         // 1. Handle Artist
         let artist = await this.artistService.findByName(artistName, type);
@@ -131,17 +172,21 @@ export class ImportService {
           index: index + 1 || 1, // Track number/index from metadata
           type: type,
           createdAt: new Date(),
+          fileModifiedAt: item.mtime ? new Date(item.mtime) : null,
+          episodeNumber: extractEpisodeNumber(item.title),
         });
         task.current = (task.current || 0) + 1;
       };
 
       // Save Music (sequential to avoid duplicate creation)
       for (const [index, item] of musicResults.entries()) {
+        console.log("music", item);
         await processItem(item, TrackType.MUSIC, musicPath, index);
       }
 
       // Save Audiobooks (sequential to avoid duplicate creation)
       for (const [index, item] of audiobookResults.entries()) {
+        console.log("audiobook", item);
         await processItem(item, TrackType.AUDIOBOOK, audiobookPath, index);
       }
 
@@ -152,4 +197,55 @@ export class ImportService {
       task.message = error instanceof Error ? error.message : String(error);
     }
   }
+}
+
+
+
+// 将中文数字转为阿拉伯数字
+function chineseToNumber(chinese: string): number {
+  const map: Record<string, number> = {
+    "零": 0, "〇": 0,
+    "一": 1, "二": 2, "两": 2, "三": 3, "四": 4,
+    "五": 5, "六": 6, "七": 7, "八": 8, "九": 9,
+    "十": 10, "百": 100, "千": 1000, "万": 10000,
+  };
+
+  let num = 0;
+  let unit = 1;
+  let lastUnit = 1;
+
+  for (let i = chinese.length - 1; i >= 0; i--) {
+    const char = chinese[i];
+    const value = map[char];
+
+    if (value === undefined) continue;
+
+    if (value >= 10) {
+      if (value > lastUnit) {
+        lastUnit = value;
+        unit = value;
+      } else {
+        unit = unit * value;
+      }
+    } else {
+      num += value * unit;
+    }
+  }
+  return num || 0;
+}
+
+export function extractEpisodeNumber(title: string): number {
+  // 1. 优先匹配阿拉伯数字（如：1集、第12章、13）
+  let match = title.match(/(\d{1,4})\s*(集|章|节|话)?/);
+  if (match) {
+    return Number(match[1]);
+  }
+
+  // 2. 匹配中文数字（如：第一集、第二十章、第五十五话）
+  match = title.match(/第?([零〇一二三四五六七八九十百千万两]{1,})[集章节话]?/);
+  if (match) {
+    return chineseToNumber(match[1]);
+  }
+
+  return 0;
 }
