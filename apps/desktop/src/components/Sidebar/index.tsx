@@ -78,7 +78,7 @@ const Sidebar: React.FC = () => {
     >
       <div className={styles.header}>
         <Title level={4} style={{ margin: 0, color: token.colorText }}>
-          Sond X
+          AudioDock
         </Title>
       </div>
 

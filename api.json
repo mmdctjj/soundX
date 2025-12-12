@@ -319,8 +319,8 @@
         }
     },
     "info": {
-        "title": "SoundX API",
-        "description": "SoundX API documentation",
+        "title": "AudioDock API",
+        "description": "AudioDock API documentation",
         "version": "1.0",
         "contact": {}
     },

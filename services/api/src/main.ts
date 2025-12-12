@@ -42,8 +42,8 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle('SoundX API')
-    .setDescription('SoundX API documentation')
+    .setTitle('AudioDock API')
+    .setDescription('AudioDock API documentation')
     .setVersion('1.0')
     .build();
   const document = SwaggerModule.createDocument(app, config);

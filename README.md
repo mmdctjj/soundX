@@ -1,6 +1,22 @@
-# SoundX
+## License
 
-SoundX 是一个基于现代 Web 技术构建的音乐和有声书一体的本地化播放器，包含桌面端、移动端、web端、小程序。以及本地化后端服务
+This project is licensed under a **Personal-Use Only License**.
+
+- 个人免费、可修改、可分发
+- 商业使用需获得作者授权
+
+查看完整协议请见：**[LICENSE](./LICENSE)**。
+
+# AudioDock
+
+AudioDock（声仓） 是一个基于现代 Web 技术构建的音乐和有声书一体的本地化播放器，包含桌面端、移动端、web端、小程序。以及本地化后端服务
+
+<p>
+<img src="./images/desktop.png" width="500" />
+<img src="./images/mobile.png" width="177" />
+</p>
+
+> 代码编号：soundx
 
 ## 开发进度
 
@@ -21,7 +37,7 @@ SoundX 是一个基于现代 Web 技术构建的音乐和有声书一体的本�
 | 专辑、艺术家         | ✅           | ✅     | ❌     | ❌     |
 | 聚合搜索             | ✅           | ❌     | ❌     | ❌     |
 | 边听边存             | ❌           | ❌     | ❌     | ❌     |
-| 多端同步             | ❌           | ❌     | ❌     | ❌     |
+| 多端同步             | ✅           | ❌     | ❌     | ❌     |
 | 迷你播放器           | ❌           | ❌     | ❌     | ❌     |
 | 我的耳机分你一半     | ❌           | ❌     | ❌     | ❌     |
 | 播放记录             | ✅           | ❌     | ❌     | ❌     |
@@ -94,6 +110,16 @@ pnpm --filter @soundx/db exec prisma db push
 ```
 
 ### 3. 启动开发环境
+
+> 本地开发时，音乐文件路径在：services/api/music 这么设置是为了防止 mac 系统路径长度检测过长报错
+
+首先新建 .env 文件，内容如下：参考 .example.env 文件
+
+```
+AUDIO_BOOK_DIR=./music/audio
+MUSIC_BASE_DIR=./music/music
+CACHE_DIR=./music/cover
+```
 
 在根目录下运行以下命令，将同时启动后端 API 和桌面端应用：
 

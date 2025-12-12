@@ -160,7 +160,7 @@ const LoginModal: React.FC = () => {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 style={{ color: themeToken.colorTextSecondary }}
               >
-                Remember me
+                记住我
               </Checkbox>
             </Form.Item>
             <Form.Item style={{ marginBottom: 0 }}>
@@ -174,7 +174,7 @@ const LoginModal: React.FC = () => {
                 loading={loading}
                 className={styles.submitButton}
               >
-                Login
+                登录
               </Button>
             </Form.Item>
           </>
@@ -226,7 +226,7 @@ const LoginModal: React.FC = () => {
                 loading={loading}
                 className={styles.submitButton}
               >
-                Sign Up
+                注册并登录
               </Button>
             </Form.Item>
           </>
@@ -239,24 +239,24 @@ const LoginModal: React.FC = () => {
       >
         {isLogin ? (
           <>
-            Don't have an account?{" "}
+            没有账号？
             <span
               className={styles.switchLink}
               onClick={() => setIsLogin(false)}
               style={{ color: themeToken.colorPrimary }}
             >
-              Signup
+              注册
             </span>
           </>
         ) : (
           <>
-            Already have an account?{" "}
+            已有账号？
             <span
               className={styles.switchLink}
               onClick={() => setIsLogin(true)}
               style={{ color: themeToken.colorPrimary }}
             >
-              Login
+              登陆
             </span>
           </>
         )}
@@ -266,7 +266,7 @@ const LoginModal: React.FC = () => {
         className={styles.footer}
         style={{ color: themeToken.colorTextTertiary }}
       >
-        Created by SoundX
+        Created by AudioDock
       </div>
     </Modal>
   );
