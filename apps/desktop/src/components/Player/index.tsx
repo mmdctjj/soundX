@@ -179,10 +179,17 @@ const Player: React.FC = () => {
     next();
   };
 
-  const handleSeek = (val: number) => {
+  // Handle play with resume
+  const handlePlay = (track: Track) => {
+    const shouldResume =
+      appMode === TrackType.AUDIOBOOK && track.progress && track.progress > 0;
+    play(track, undefined, shouldResume ? track.progress : 0);
+  };
+
+  const handleSeek = (value: number) => {
     if (audioRef.current) {
-      audioRef.current.currentTime = val;
-      setCurrentTime(val);
+      audioRef.current.currentTime = value;
+      setCurrentTime(value);
     }
   };
 
@@ -310,12 +317,12 @@ const Player: React.FC = () => {
     setSelectedTrack(track);
     setIsAddToPlaylistModalOpen(true);
     try {
-      const { mode } = usePlayMode();
-      const res = await getPlaylists(mode);
+      const res = await getPlaylists(appMode);
       if (res.code === 200) {
         setPlaylists(res.data);
       }
     } catch (error) {
+      console.error(error);
       message.error("获取播放列表失败");
     }
   };
@@ -720,7 +727,7 @@ const Player: React.FC = () => {
                   tracks={playlist}
                   currentTrack={currentTrack}
                   isPlaying={isPlaying}
-                  onPlay={play}
+                  onPlay={handlePlay}
                   onAddToPlaylist={openAddToPlaylistModal}
                   onToggleLike={(_, track, type) => toggleLike(track.id, type)}
                 />
@@ -745,7 +752,7 @@ const Player: React.FC = () => {
           tracks={playlist}
           currentTrack={currentTrack}
           isPlaying={isPlaying}
-          onPlay={play}
+          onPlay={handlePlay}
           onAddToPlaylist={openAddToPlaylistModal}
           onToggleLike={(_, track, type) => toggleLike(track.id, type)}
         />

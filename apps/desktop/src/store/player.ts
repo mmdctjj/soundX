@@ -106,6 +106,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         progress: roundedTime
       }).catch(e => console.error("Failed to report progress", e));
       lastReportTime = roundedTime;
+
+      // Sync progress to local playlist and currentTrack
+      const updatedPlaylist = state.playlist.map(t =>
+        t.id === currentTrack.id ? { ...t, progress: roundedTime } : t
+      );
+      const updatedCurrentTrack = { ...currentTrack, progress: roundedTime };
+
+      set({ playlist: updatedPlaylist, currentTrack: updatedCurrentTrack });
     }
   };
 
