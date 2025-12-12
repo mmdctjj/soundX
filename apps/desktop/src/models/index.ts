@@ -60,6 +60,7 @@ export interface Track {
   likedAsAudiobookByUsers?: UserAudiobookLike[];
   listenedAsAudiobookByUsers?: UserAudiobookHistory[];
   playlists?: Playlist[];
+  progress?: number;
 }
 
 export interface Album {

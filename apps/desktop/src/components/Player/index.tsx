@@ -1,16 +1,11 @@
 import {
-  BackwardOutlined,
+  BackwardOutlined, // Added as per instruction
   DeliveredProcedureOutlined,
   DownOutlined,
   ForwardOutlined,
-  HeartFilled,
-  HeartOutlined,
-  MoreOutlined,
   OrderedListOutlined,
   PauseCircleFilled,
   PlayCircleFilled,
-  PlayCircleOutlined,
-  PlusOutlined,
   SoundOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
@@ -18,10 +13,9 @@ import {
 } from "@ant-design/icons";
 import {
   Drawer,
-  Dropdown,
   Flex,
   InputNumber,
-  List,
+  List, // Keep List for the AddToPlaylistModal
   Modal,
   Popover,
   Slider,
@@ -40,12 +34,12 @@ import {
   getPlaylists,
   type Playlist,
 } from "../../services/playlist";
-import { reportAudiobookProgress } from "../../services/userAudiobookHistory";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 import Lyrics from "./Lyrics";
+import { QueueList } from "./QueueList"; // Added as per instruction
 
 const { Text, Title } = Typography;
 
@@ -132,32 +126,6 @@ const Player: React.FC = () => {
       }
     }
   }, [isPlaying, currentTrack]);
-
-  // Report progress for Audiobooks
-  useEffect(() => {
-    let interval: any;
-    if (isPlaying && currentTrack?.type === TrackType.AUDIOBOOK) {
-      interval = setInterval(() => {
-        reportAudiobookProgress({
-          userId: 1, // Default user
-          trackId: currentTrack.id,
-          progress: Math.floor(currentTime),
-        });
-      }, 10000); // Report every 10s
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying, currentTrack, currentTime]);
-
-  // Report on pause/change
-  useEffect(() => {
-    if (currentTrack?.type === TrackType.AUDIOBOOK && currentTime > 0) {
-      reportAudiobookProgress({
-        userId: 1,
-        trackId: currentTrack.id,
-        progress: Math.floor(currentTime),
-      });
-    }
-  }, [isPlaying]); // When pausing (isPlaying becomes false)
 
   // Save settings
   useEffect(() => {
@@ -748,127 +716,13 @@ const Player: React.FC = () => {
               />
             ) : activeTab === "playlist" ? (
               <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
-                <List
-                  itemLayout="horizontal"
-                  dataSource={playlist}
-                  renderItem={(item: Track) => (
-                    <List.Item
-                      className={styles.playlistItem}
-                      onClick={() => play(item)}
-                      style={{
-                        cursor: "pointer",
-                        backgroundColor:
-                          currentTrack?.id === item.id
-                            ? "rgba(255,255,255,0.1)"
-                            : "transparent",
-                      }}
-                      actions={[
-                        <Dropdown
-                          key="more"
-                          trigger={["click"]}
-                          menu={{
-                            items: [
-                              {
-                                key: "play",
-                                label: "播放",
-                                icon: <PlayCircleOutlined />,
-                                onClick: () => {
-                                  play(item);
-                                },
-                              },
-                              {
-                                key: "like",
-                                label: (item as any).likedByUsers?.some(
-                                  (like: any) => like.userId === 1
-                                )
-                                  ? "取消收藏"
-                                  : "收藏",
-                                icon: (item as any).likedByUsers?.some(
-                                  (like: any) => like.userId === 1
-                                ) ? (
-                                  <HeartFilled style={{ color: "#ff4d4f" }} />
-                                ) : (
-                                  <HeartOutlined />
-                                ),
-                                onClick: () => {
-                                  toggleLike(
-                                    item.id,
-                                    (item as any).likedByUsers?.some(
-                                      (like: any) => like.userId === 1
-                                    )
-                                      ? "unlike"
-                                      : "like"
-                                  );
-                                },
-                              },
-                              {
-                                key: "add",
-                                label: "添加到播放列表",
-                                icon: <PlusOutlined />,
-                                onClick: (info) => {
-                                  info.domEvent.stopPropagation();
-                                  openAddToPlaylistModal(
-                                    info.domEvent as any,
-                                    item
-                                  );
-                                },
-                              },
-                            ],
-                          }}
-                        >
-                          <MoreOutlined
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              color: token.colorTextSecondary,
-                              cursor: "pointer",
-                            }}
-                          />
-                        </Dropdown>,
-                      ]}
-                    >
-                      <List.Item.Meta
-                        className={styles.listCover}
-                        avatar={
-                          <div style={{ position: "relative" }}>
-                            <img
-                              src={getCoverUrl(item.cover)}
-                              alt={item.name}
-                              style={{
-                                width: "50px",
-                                height: "50px",
-                                objectFit: "cover",
-                              }}
-                            />
-                            {currentTrack?.id === item.id ? (
-                              <PauseCircleFilled
-                                className={styles.listPlayIcon}
-                              />
-                            ) : (
-                              <PlayCircleFilled
-                                className={styles.listPlayIcon}
-                              />
-                            )}
-                          </div>
-                        }
-                        title={
-                          <Text
-                            style={{
-                              fontSize: "16px",
-                              color:
-                                currentTrack?.id === item.id
-                                  ? token.colorPrimary
-                                  : undefined,
-                            }}
-                          >
-                            {item.name}
-                          </Text>
-                        }
-                        description={
-                          <Text type="secondary">{item.artist}</Text>
-                        }
-                      />
-                    </List.Item>
-                  )}
+                <QueueList
+                  tracks={playlist}
+                  currentTrack={currentTrack}
+                  isPlaying={isPlaying}
+                  onPlay={play}
+                  onAddToPlaylist={openAddToPlaylistModal}
+                  onToggleLike={(_, track, type) => toggleLike(track.id, type)}
                 />
               </div>
             ) : (
@@ -887,117 +741,13 @@ const Player: React.FC = () => {
         open={isPlaylistOpen}
         onClose={() => setIsPlaylistOpen(false)}
       >
-        <List
-          style={{ width: "100%" }}
-          itemLayout="horizontal"
-          dataSource={playlist}
-          renderItem={(item: Track) => (
-            <List.Item
-              onClick={() => play(item)}
-              style={{
-                cursor: "pointer",
-                backgroundColor:
-                  currentTrack?.id === item.id
-                    ? token.colorFillTertiary
-                    : "transparent",
-              }}
-              actions={[
-                <Dropdown
-                  key="more"
-                  trigger={["click"]}
-                  menu={{
-                    items: [
-                      {
-                        key: "play",
-                        label: "播放",
-                        icon: <PlayCircleOutlined />,
-                        onClick: () => {
-                          play(item);
-                        },
-                      },
-                      {
-                        key: "like",
-                        label: (item as any).likedByUsers?.some(
-                          (like: any) => like.userId === 1
-                        )
-                          ? "取消收藏"
-                          : "收藏",
-                        icon: (item as any).likedByUsers?.some(
-                          (like: any) => like.userId === 1
-                        ) ? (
-                          <HeartFilled style={{ color: "#ff4d4f" }} />
-                        ) : (
-                          <HeartOutlined />
-                        ),
-                        onClick: () => {
-                          toggleLike(
-                            item.id,
-                            (item as any).likedByUsers?.some(
-                              (like: any) => like.userId === 1
-                            )
-                              ? "unlike"
-                              : "like"
-                          );
-                        },
-                      },
-                      {
-                        key: "add",
-                        label: "添加到播放列表",
-                        icon: <PlusOutlined />,
-                        onClick: (info) => {
-                          info.domEvent.stopPropagation();
-                          openAddToPlaylistModal(info.domEvent as any, item);
-                        },
-                      },
-                    ],
-                  }}
-                >
-                  <MoreOutlined
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      color: token.colorTextSecondary,
-                      cursor: "pointer",
-                    }}
-                  />
-                </Dropdown>,
-              ]}
-            >
-              <List.Item.Meta
-                className={styles.listCover}
-                avatar={
-                  <div style={{ position: "relative" }}>
-                    <img
-                      src={getCoverUrl(item.cover)}
-                      alt={item.name}
-                      style={{
-                        width: "50px",
-                        height: "50px",
-                        objectFit: "cover",
-                      }}
-                    />
-                    {currentTrack?.id === item.id ? (
-                      <PauseCircleFilled className={styles.listPlayIcon} />
-                    ) : (
-                      <PlayCircleFilled className={styles.listPlayIcon} />
-                    )}
-                  </div>
-                }
-                title={
-                  <Text
-                    style={{
-                      color:
-                        currentTrack?.id === item.id
-                          ? token.colorPrimary
-                          : undefined,
-                    }}
-                  >
-                    {item.name}
-                  </Text>
-                }
-                description={item.artist}
-              />
-            </List.Item>
-          )}
+        <QueueList
+          tracks={playlist}
+          currentTrack={currentTrack}
+          isPlaying={isPlaying}
+          onPlay={play}
+          onAddToPlaylist={openAddToPlaylistModal}
+          onToggleLike={(_, track, type) => toggleLike(track.id, type)}
         />
       </Drawer>
 

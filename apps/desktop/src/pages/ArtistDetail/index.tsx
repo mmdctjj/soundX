@@ -15,7 +15,7 @@ import Cover from "../../components/Cover";
 import { getCoverUrl } from "../../components/Detail";
 import { useMessage } from "../../context/MessageContext";
 import { getBaseURL } from "../../https";
-import { type Album, type Artist, type Track } from "../../models";
+import { type Album, type Artist, type Track, TrackType } from "../../models";
 import { getAlbumsByArtist } from "../../services/album";
 import { getArtistById } from "../../services/artist";
 import { getTracksByArtist } from "../../services/track";
@@ -67,8 +67,12 @@ const ArtistDetail: React.FC = () => {
   }, [id]);
 
   const handlePlayTrack = (track: Track) => {
-    play(track);
     setPlaylist(tracks);
+    const shouldResume =
+      track.type === TrackType.AUDIOBOOK &&
+      track.progress &&
+      track.progress > 0;
+    play(track, undefined, shouldResume ? track.progress : 0);
   };
 
   if (loading) {
@@ -197,6 +201,28 @@ const ArtistDetail: React.FC = () => {
               key: "name",
               ellipsis: true,
             },
+            ...(artist?.type === TrackType.AUDIOBOOK
+              ? [
+                  {
+                    title: "进度",
+                    dataIndex: "progress",
+                    key: "progress",
+                    width: 100,
+                    render: (progress: number | undefined, record: Track) => {
+                      if (!progress) return <Text type="secondary">-</Text>;
+                      const percentage =
+                        record.duration && record.duration > 0
+                          ? Math.round((progress / record.duration) * 100)
+                          : 0;
+                      return (
+                        <Text type="secondary" style={{ fontSize: "10px" }}>
+                          {percentage}%
+                        </Text>
+                      );
+                    },
+                  } as unknown as any,
+                ]
+              : []),
             {
               title: "时长",
               dataIndex: "duration",

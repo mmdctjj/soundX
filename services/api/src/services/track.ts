@@ -38,7 +38,7 @@ export class TrackService {
 
     console.log("getTracksByAlbum", sort);
 
-    return await this.prisma.track.findMany({
+    const tracks = await this.prisma.track.findMany({
       where,
       orderBy: [
         { episodeNumber: sort },
@@ -46,6 +46,8 @@ export class TrackService {
       skip: skip,
       take: pageSize,
     });
+
+    return await this.attachProgressToTracks(tracks, 1);
   }
 
   async getTrackCountByAlbum(
@@ -159,9 +161,41 @@ export class TrackService {
 
   // 根据艺术家获取单曲
   async getTracksByArtist(artist: string): Promise<Track[]> {
-    return await this.prisma.track.findMany({
+    const tracks = await this.prisma.track.findMany({
       where: { artist },
       orderBy: { id: 'desc' },
+    });
+    return await this.attachProgressToTracks(tracks, 1);
+  }
+
+  // Helper: Attach progress to tracks
+  private async attachProgressToTracks(tracks: Track[], userId: number): Promise<Track[]> {
+    if (tracks.length === 0) return tracks;
+
+    // Filter for audiobooks only to save DB calls?
+    // Or just look up all? Only Audiobooks have UserAudiobookHistory.
+    const audiobookTracks = tracks.filter(t => t.type === 'AUDIOBOOK');
+    if (audiobookTracks.length === 0) return tracks;
+
+    const trackIds = audiobookTracks.map(t => t.id);
+    const history = await this.prisma.userAudiobookHistory.findMany({
+      where: {
+        userId,
+        trackId: { in: trackIds },
+      },
+      select: {
+        trackId: true,
+        progress: true,
+      },
+    });
+
+    const historyMap = new Map(history.map(h => [h.trackId, h.progress]));
+
+    return tracks.map(t => {
+      if (t.type === 'AUDIOBOOK' && historyMap.has(t.id)) {
+        return { ...t, progress: historyMap.get(t.id) };
+      }
+      return t;
     });
   }
 }

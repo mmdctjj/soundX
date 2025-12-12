@@ -10,6 +10,23 @@ export class UserAudiobookHistoryService {
   }
 
   async create(data: UserAudiobookHistory) {
+    const existing = await this.prisma.userAudiobookHistory.findFirst({
+      where: {
+        userId: data.userId,
+        trackId: data.trackId,
+      }
+    });
+
+    if (existing) {
+      return await this.prisma.userAudiobookHistory.update({
+        where: { id: existing.id },
+        data: {
+          progress: data.progress,
+          listenedAt: new Date(),
+        }
+      });
+    }
+
     return await this.prisma.userAudiobookHistory.create({
       data,
     });

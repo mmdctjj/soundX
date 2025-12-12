@@ -210,13 +210,8 @@ export class AlbumService {
       },
     });
 
-    // Create a map for quick lookup of track history, though we need "latest in album"
-    const historyMap = new Map();
-    history.forEach(h => {
-      // Since we ordered by desc, the first one encountered for a track is the latest?
-      // Actually we want latest *per album*.
-      // We can just filter the list in the album loop.
-    });
+    // Create a map for quick lookup of track progress
+    const historyMap = new Map(history.map(h => [h.trackId, h.progress]));
 
     const listenedTrackIds = new Set(history.map(h => h.trackId));
 
@@ -227,20 +222,15 @@ export class AlbumService {
 
       const totalDuration = albumTracks.reduce((sum, t) => sum + (t.duration || 0), 0);
 
-      // Calculate total listened duration (progress percentage)
-      // Note: This logic assumes if track is in history, it's fully listened? 
-      // Or should we use the progress? 
-      // The previous logic was: count duration of all tracks in history.
-      // Now we have progress, we *could* be more precise, but "sum of duration" implies "finished tracks".
-      // If we want "progress", maybe we should sum (track.duration if finished else progress)?
-      // For now let's keep the user's previous logic for "Album Progress" (likely count/duration based) strict to "has history = touched".
-      // Actually, if I listen to 10s of a 1hr book, does it count as entire duration in progress? Probably yes in the old logic.
-      // Let's refine: The user wants "record the time point".
-      // Let's keep the percentage logic as "touched tracks duration / total", but we can maybe improve it later.
-
-      const listenedDuration = albumTracks
-        .filter(t => listenedTrackIds.has(t.id))
-        .reduce((sum, t) => sum + (t.duration || 0), 0);
+      const listenedDuration = albumTracks.reduce((sum, t) => {
+        const progress = historyMap.get(t.id) || 0;
+        // Cap progress at track duration to avoid anomalies (e.g. if duration metadata is wrong or progress overshot)
+        // But if duration is 0, progress might be valid.
+        // Let's just trust progress, but maybe cap if duration exists and is > 0
+        const trackDuration = t.duration || 0;
+        const effectiveProgress = trackDuration > 0 ? Math.min(progress, trackDuration) : progress;
+        return sum + effectiveProgress;
+      }, 0);
 
       const progressPercent = totalDuration === 0 ? 0 : Math.min(100, Math.round((listenedDuration / totalDuration) * 100));
 

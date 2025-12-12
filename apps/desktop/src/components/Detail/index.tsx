@@ -33,7 +33,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import { getBaseURL } from "../../https";
-import { type Album, type Track } from "../../models";
+import { type Album, type Track, TrackType } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
 import {
   addTrackToPlaylist,
@@ -189,7 +189,11 @@ const Detail: React.FC = () => {
     // For simplicity, we can just set the current visible tracks as playlist
     if (album) {
       setPlaylist(tracks);
-      play(track, album.id);
+      const shouldResume =
+        album.type === TrackType.AUDIOBOOK &&
+        track.progress &&
+        track.progress > 0;
+      play(track, album.id, shouldResume ? track.progress : 0);
     }
   };
 
@@ -277,9 +281,42 @@ const Detail: React.FC = () => {
       key: "name",
       ellipsis: true,
       render: (text: string, record: Track) => (
-        <Text strong={currentTrack?.id === record.id}>{text}</Text>
+        <Text
+          type={
+            album?.type === TrackType.AUDIOBOOK
+              ? Number(record?.progress) > 0
+                ? "secondary"
+                : undefined
+              : undefined
+          }
+          strong={currentTrack?.id === record.id}
+        >
+          {text}
+        </Text>
       ),
     },
+    ...(album?.type === TrackType.AUDIOBOOK
+      ? [
+          {
+            title: "进度",
+            dataIndex: "progress",
+            key: "progress",
+            width: 100,
+            render: (progress: number | undefined, record: Track) => {
+              if (!progress) return <Text type="secondary">-</Text>;
+              const percentage =
+                record.duration && record.duration > 0
+                  ? Math.round((progress / record.duration) * 100)
+                  : 0;
+              return (
+                <Text type="secondary" style={{ fontSize: "10px" }}>
+                  {percentage}%
+                </Text>
+              );
+            },
+          } as ColumnProps<Track>,
+        ]
+      : []),
     {
       title: "时长",
       dataIndex: "duration",

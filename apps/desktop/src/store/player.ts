@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { TrackType, type Track } from "../models";
 import { addAlbumToHistory, addToHistory, toggleLike, toggleUnLike } from "../services/user";
+import { reportAudiobookProgress } from "../services/userAudiobookHistory";
 import { getPlayMode } from "../utils/playMode";
 
 interface PlayerModeState {
@@ -85,6 +86,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
   const activeState = initialMode === TrackType.AUDIOBOOK ? initialAudiobookState : initialMusicState;
 
+  // Progress Reporting Helper
+  let lastReportTime = 0;
+  const ATTEMPT_REPORT_INTERVAL = 10; // Seconds
+
+  const reportProgress = (state: PlayerState, force = false) => {
+    const { currentTrack, currentTime, isPlaying, activeMode } = state;
+
+    if (activeMode !== TrackType.AUDIOBOOK || !currentTrack) return;
+
+    const roundedTime = Math.floor(currentTime);
+    if (roundedTime <= 0) return;
+
+    // Report if forced (e.g. pause/change) or interval met
+    if (force || (isPlaying && Math.abs(roundedTime - lastReportTime) >= ATTEMPT_REPORT_INTERVAL)) {
+      reportAudiobookProgress({
+        userId: 1, // Default user
+        trackId: currentTrack.id,
+        progress: roundedTime
+      }).catch(e => console.error("Failed to report progress", e));
+      lastReportTime = roundedTime;
+    }
+  };
+
   return {
     // Spread active state properties to top level
     ...activeState,
@@ -162,6 +186,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       // If passing a track, logic is complex
       if (track) {
         if (currentTrack?.id !== track.id) {
+          // Report progress of previous track before switching
+          reportProgress(get(), true);
+          lastReportTime = 0; // Reset for new track
+
           set({ currentTrack: track, isPlaying: true, currentTime: startTime || 0 });
           // Persist currentTrack change immediately.
           const state = get();
@@ -220,6 +248,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     pause: () => {
+      reportProgress(get(), true); // Report immediately on pause
       set({ isPlaying: false });
       // Good time to save progress
       const s = get();
@@ -262,6 +291,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         if (nextIndex >= playlist.length) return;
       }
 
+      // Report previous track
+      reportProgress(get(), true);
+      lastReportTime = 0;
+
       const nextTrack = playlist[nextIndex];
       set({ currentTrack: nextTrack, isPlaying: true, currentTime: 0 });
 
@@ -287,6 +320,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
       if (prevIndex < 0) return;
 
+      // Report previous track
+      reportProgress(get(), true);
+      lastReportTime = 0;
+
       const prevTrack = playlist[prevIndex];
       set({ currentTrack: prevTrack, isPlaying: true, currentTime: 0 });
 
@@ -308,6 +345,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
     setCurrentTime: (time) => {
       set({ currentTime: time });
+      // Check for progress reporting (throttled by reportProgress logic)
+      reportProgress(get());
       // Don't persist on every second, pointless & heavy. Persist on pause/change/unload.
     },
 
