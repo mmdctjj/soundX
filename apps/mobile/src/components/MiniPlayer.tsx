@@ -71,11 +71,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
-    borderTopWidth: 1,
-    position: "absolute",
-    bottom: 80, // Adjust based on tab bar height
-    left: 0,
-    right: 0,
+    width: "100%",
     height: 60,
   },
   artwork: {
@@ -91,12 +87,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: "600",
+    marginBottom: 5,
   },
   artist: {
     fontSize: 12,
   },
   control: {
     padding: 10,
-    height: 40,
+    height: 60,
   },
 });

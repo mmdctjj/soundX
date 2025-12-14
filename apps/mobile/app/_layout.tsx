@@ -1,7 +1,6 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { MiniPlayer } from "../src/components/MiniPlayer";
 import { AuthProvider, useAuth } from "../src/context/AuthContext";
 import { PlayerProvider } from "../src/context/PlayerContext";
 import { ThemeProvider } from "../src/context/ThemeContext";
@@ -49,13 +48,12 @@ function RootLayoutNav() {
           <Stack.Screen
             name="player"
             options={{
-              presentation: "modal",
+              presentation: "fullScreenModal",
               headerShown: false,
               animation: "slide_from_bottom",
             }}
           />
         </Stack>
-        {segments[0] !== "login" && segments[0] !== "player" && <MiniPlayer />}
       </PlayerProvider>
     </PlayModeProvider>
   );

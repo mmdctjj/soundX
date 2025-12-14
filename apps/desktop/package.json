@@ -49,7 +49,7 @@
   },
   "build": {
     "appId": "com.soundx.app",
-    "productName": "Sound X",
+    "productName": "AudioDock",
     "files": [
       "dist/**/*",
       "dist-electron/**/*"
@@ -76,6 +76,7 @@
       "shortcutName": "Sound X"
     },
     "mac": {
+      "icon": "dist/logo.icns",
       "target": [
         {
           "target": "dmg",

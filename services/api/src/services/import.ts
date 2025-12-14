@@ -118,8 +118,8 @@ export class ImportService {
       task.current = 0;
 
       const processItem = async (item: any, type: TrackType, audioBasePath: string, index: number) => {
-        const artistName = item.artist || null;
-        const albumName = item.album || null;
+        const artistName = item.artist || '未知';
+        const albumName = item.album || '未知';
 
         // Convert local cover path to HTTP URL
         const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;

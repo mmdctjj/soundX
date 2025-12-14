@@ -131,6 +131,7 @@ export interface UserAudiobookHistory {
   userId: number;
   trackId: number;
   listenedAt: string | Date;
+  progress?: number;
   user?: User;
   track?: Track;
 }

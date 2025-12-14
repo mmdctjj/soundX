@@ -20,7 +20,7 @@ export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { colors } = useTheme();
-  const { playTrack } = usePlayer();
+  const { playTrack, playTrackList } = usePlayer();
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,15 +110,18 @@ export default function AlbumDetailScreen() {
               key={track.id}
               style={[styles.trackItem, { borderBottomColor: colors.border }]}
               onPress={() => {
-                playTrack({
-                  id: String(track.id),
-                  url: `${getBaseURL()}${track.path}`, // Assuming this is the URL pattern or track has a url field
-                  title: track.name,
-                  artist: track.artist,
+                const mappedTracks = tracks.map((t) => ({
+                  id: String(t.id),
+                  url: `${getBaseURL()}${t.path}`,
+                  title: t.name,
+                  artist: t.artist,
                   artwork: album.cover || "",
-                  duration: track.duration || 0,
-                  lyrics: track.lyrics,
-                });
+                  duration: t.duration || 0,
+                  lyrics: t.lyrics,
+                  type: album.type,
+                  progress: t.listenedAsAudiobookByUsers?.[0]?.progress || 0,
+                }));
+                playTrackList(mappedTracks, index);
               }}
             >
               <Text style={[styles.trackIndex, { color: colors.secondary }]}>
@@ -138,6 +141,19 @@ export default function AlbumDetailScreen() {
                   {track.artist}
                 </Text>
               </View>
+              {album.type === "AUDIOBOOK" &&
+              track.listenedAsAudiobookByUsers?.[0]?.progress ? (
+                <View style={{ marginRight: 10 }}>
+                  <Text style={{ fontSize: 10, color: colors.primary }}>
+                    {Math.floor(
+                      ((track.listenedAsAudiobookByUsers[0].progress || 0) /
+                        (track.duration || 1)) *
+                        100
+                    )}
+                    %
+                  </Text>
+                </View>
+              ) : null}
               <Text style={[styles.trackDuration, { color: colors.secondary }]}>
                 {track.duration
                   ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, "0")}`

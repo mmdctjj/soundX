@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BottomTabBar } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
+import { MiniPlayer } from "../../src/components/MiniPlayer";
 import { useTheme } from "../../src/context/ThemeContext";
 
 export default function TabLayout() {
@@ -9,6 +11,12 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      tabBar={(props) => (
+        <View>
+          <MiniPlayer />
+          <BottomTabBar {...props} />
+        </View>
+      )}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -16,7 +24,7 @@ export default function TabLayout() {
           borderTopColor: colors.border,
           ...Platform.select({
             ios: {
-              position: "absolute",
+              // position: "absolute", // Removed absolute to ensure stacking with MiniPlayer
             },
             default: {},
           }),

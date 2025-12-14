@@ -10,6 +10,16 @@ export interface Track {
   artwork?: string;
   duration?: number;
   lyrics?: string | null;
+  type?: string;
+  progress?: number;
+}
+
+export enum PlayMode {
+  SEQUENCE = "SEQUENCE",
+  LOOP_LIST = "LOOP_LIST",
+  SHUFFLE = "SHUFFLE",
+  LOOP_SINGLE = "LOOP_SINGLE",
+  SINGLE_ONCE = "SINGLE_ONCE",
 }
 
 interface PlayerContextType {
@@ -21,6 +31,12 @@ interface PlayerContextType {
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   seekTo: (position: number) => Promise<void>;
+  trackList: Track[];
+  playTrackList: (tracks: Track[], index: number) => Promise<void>;
+  playMode: PlayMode;
+  togglePlayMode: () => void;
+  playNext: () => Promise<void>;
+  playPrevious: () => Promise<void>;
 }
 
 const PlayerContext = createContext<PlayerContextType>({
@@ -32,6 +48,12 @@ const PlayerContext = createContext<PlayerContextType>({
   pause: async () => {},
   resume: async () => {},
   seekTo: async () => {},
+  trackList: [],
+  playTrackList: async () => {},
+  playMode: PlayMode.SEQUENCE,
+  togglePlayMode: () => {},
+  playNext: async () => {},
+  playPrevious: async () => {},
 });
 
 export const usePlayer = () => useContext(PlayerContext);
@@ -44,6 +66,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [trackList, setTrackList] = useState<Track[]>([]);
+  const [playMode, setPlayMode] = useState<PlayMode>(PlayMode.SEQUENCE);
+
+  // Refs for accessing latest state in callbacks
+  const playModeRef = React.useRef(playMode);
+  const trackListRef = React.useRef(trackList);
+  const currentTrackRef = React.useRef(currentTrack);
+
+  useEffect(() => {
+    playModeRef.current = playMode;
+  }, [playMode]);
+
+  useEffect(() => {
+    trackListRef.current = trackList;
+  }, [trackList]);
+
+  useEffect(() => {
+    currentTrackRef.current = currentTrack;
+  }, [currentTrack]);
 
   useEffect(() => {
     return () => {
@@ -53,6 +94,78 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [sound]);
 
+  const getNextIndex = (
+    currentIndex: number,
+    mode: PlayMode,
+    list: Track[]
+  ) => {
+    if (list.length === 0) return -1;
+    switch (mode) {
+      case PlayMode.SEQUENCE:
+        return currentIndex + 1 < list.length ? currentIndex + 1 : -1;
+      case PlayMode.LOOP_LIST:
+        return (currentIndex + 1) % list.length;
+      case PlayMode.SHUFFLE:
+        return Math.floor(Math.random() * list.length);
+      case PlayMode.LOOP_SINGLE:
+        return currentIndex;
+      case PlayMode.SINGLE_ONCE:
+        return -1;
+      default:
+        return currentIndex + 1 < list.length ? currentIndex + 1 : -1;
+    }
+  };
+
+  const getPreviousIndex = (
+    currentIndex: number,
+    mode: PlayMode,
+    list: Track[]
+  ) => {
+    if (list.length === 0) return -1;
+    // For simplicity, previous just goes back in list order, or loops if in list loop.
+    // Shuffle typically uses a history stack, but simple previous in list is often acceptable fallback.
+    if (currentIndex > 0) return currentIndex - 1;
+    return list.length - 1; // Wrap to end
+  };
+
+  const playNext = async () => {
+    const list = trackListRef.current;
+    const current = currentTrackRef.current;
+    if (!current || list.length === 0) return;
+
+    const currentIndex = list.findIndex((t) => t.id === current.id);
+    if (currentIndex === -1) return;
+
+    const nextIndex = getNextIndex(currentIndex, playModeRef.current, list);
+    if (nextIndex !== -1) {
+      await playTrack(list[nextIndex]);
+    } else {
+      // Stop playback
+      if (sound) await sound.stopAsync();
+    }
+  };
+
+  const playPrevious = async () => {
+    const list = trackListRef.current;
+    const current = currentTrackRef.current;
+    if (!current || list.length === 0) return;
+
+    const currentIndex = list.findIndex((t) => t.id === current.id);
+    if (currentIndex === -1) return;
+
+    const prevIndex = getPreviousIndex(currentIndex, playModeRef.current, list);
+    if (prevIndex !== -1) {
+      await playTrack(list[prevIndex]);
+    }
+  };
+
+  const togglePlayMode = () => {
+    const modes = Object.values(PlayMode);
+    const currentIndex = modes.indexOf(playMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    setPlayMode(nextMode);
+  };
+
   const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (status.isLoaded) {
       setIsPlaying(status.isPlaying);
@@ -61,6 +174,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       if (status.didJustFinish) {
         setIsPlaying(false);
         setPosition(0);
+        playNext();
       }
     }
   };
@@ -85,6 +199,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       setCurrentTrack(track);
     } catch (error) {
       console.error("Failed to play track:", error);
+    }
+  };
+
+  const playTrackList = async (tracks: Track[], index: number) => {
+    setTrackList(tracks);
+    if (tracks[index]) {
+      await playTrack(tracks[index]);
     }
   };
 
@@ -117,6 +238,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         pause,
         resume,
         seekTo,
+        trackList,
+        playTrackList,
+        playMode,
+        togglePlayMode,
+        playNext,
+        playPrevious,
       }}
     >
       {children}

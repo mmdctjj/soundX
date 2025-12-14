@@ -1,50 +1,63 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
   Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { getBaseURL } from "../../src/https";
-import { Artist } from "../../src/models";
+import { Album, Artist } from "../../src/models";
+import { loadMoreAlbum } from "../../src/services/album";
 import { getArtistList } from "../../src/services/artist";
 
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../src/context/ThemeContext";
+import { usePlayMode } from "../../src/utils/playMode";
 
-const { width } = Dimensions.get("window");
-const COLUMN_COUNT = 3;
-const ITEM_WIDTH = (width - 40 - (COLUMN_COUNT - 1) * 15) / COLUMN_COUNT;
+const GAP = 15;
+const SCREEN_PADDING = 40; // 20 horizontal padding * 2
+const TARGET_WIDTH = 120; // Target width similar to Recommended section
 
-export default function LibraryScreen() {
+const ArtistList = () => {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { mode } = usePlayMode();
+  const { width } = useWindowDimensions();
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
 
+  // Calculate columns dynamically
+  const availableWidth = width - SCREEN_PADDING;
+  // min columns 2
+  const numColumns = Math.max(
+    2,
+    Math.floor((availableWidth + GAP) / (TARGET_WIDTH + GAP))
+  );
+  const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
+
   useEffect(() => {
-    loadArtists(1);
-  }, []);
+    loadArtists(0);
+  }, [mode]);
 
   const loadArtists = async (pageNum: number) => {
     try {
-      if (pageNum === 1) setLoading(true);
+      if (pageNum === 0) setLoading(true);
 
-      // Load 20 items per page
-      const res = await getArtistList(20, pageNum, "MUSIC");
+      const res = await getArtistList(20, pageNum, mode);
 
       if (res.code === 200 && res.data) {
         const { list, total } = res.data;
-        if (pageNum === 1) {
+        if (pageNum === 0) {
           setArtists(list);
         } else {
-          setArtists((prev: Artist[]) => [...prev, ...list]);
+          setArtists((prev) => [...prev, ...list]);
         }
         setHasMore(artists.length + list.length < total);
         setPage(pageNum);
@@ -61,19 +74,183 @@ export default function LibraryScreen() {
       loadArtists(page + 1);
     }
   };
-
-  if (loading && page === 1) {
+  // ... rest of ArtistList
+  if (loading && page === 0) {
     return (
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: colors.background, paddingTop: insets.top },
-        ]}
-      >
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <ActivityIndicator
+        size="large"
+        color={colors.primary}
+        style={{ marginTop: 20 }}
+      />
     );
   }
+
+  return (
+    <FlatList
+      data={artists}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={{ width: itemWidth }}
+          onPress={() => router.push(`/artist/${item.id}`)}
+        >
+          <Image
+            source={{
+              uri: item.avatar
+                ? `${getBaseURL()}${item.avatar}`
+                : `https://picsum.photos/seed/${item.id}/200/200`,
+            }}
+            style={[
+              styles.image,
+              {
+                width: itemWidth,
+                height: itemWidth,
+                backgroundColor: colors.card,
+              },
+            ]}
+          />
+          <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+            {item.name}
+          </Text>
+        </TouchableOpacity>
+      )}
+      keyExtractor={(item) => item.id.toString()}
+      key={numColumns} // Force re-render when columns change
+      numColumns={numColumns}
+      columnWrapperStyle={[styles.row, { gap: GAP }]}
+      contentContainerStyle={styles.listContent}
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={
+        hasMore ? (
+          <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />
+        ) : null
+      }
+    />
+  );
+};
+
+const AlbumList = () => {
+  const { colors } = useTheme();
+  const router = useRouter();
+  const { mode } = usePlayMode();
+  const { width } = useWindowDimensions();
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+
+  // Calculate columns dynamically
+  const availableWidth = width - SCREEN_PADDING;
+  const numColumns = Math.max(
+    2,
+    Math.floor((availableWidth + GAP) / (TARGET_WIDTH + GAP))
+  );
+  const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
+
+  useEffect(() => {
+    loadAlbums(0);
+  }, [mode]);
+
+  const loadAlbums = async (pageNum: number) => {
+    try {
+      if (pageNum === 0) setLoading(true);
+
+      const res = await loadMoreAlbum({
+        pageSize: 20,
+        loadCount: pageNum,
+        type: mode,
+      });
+
+      if (res.code === 200 && res.data) {
+        const { list, total } = res.data;
+        if (pageNum === 0) {
+          setAlbums(list);
+        } else {
+          setAlbums((prev) => [...prev, ...list]);
+        }
+        setHasMore(albums.length + list.length < total);
+        setPage(pageNum);
+      }
+    } catch (error) {
+      console.error("Failed to load albums:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!loading && hasMore) {
+      loadAlbums(page + 1);
+    }
+  };
+
+  if (loading && page === 0) {
+    return (
+      <ActivityIndicator
+        size="large"
+        color={colors.primary}
+        style={{ marginTop: 20 }}
+      />
+    );
+  }
+
+  return (
+    <FlatList
+      data={albums}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={{ width: itemWidth }}
+          onPress={() => router.push(`/album/${item.id}`)}
+        >
+          <Image
+            source={{
+              uri: item.cover
+                ? `${getBaseURL()}${item.cover}`
+                : `https://picsum.photos/seed/${item.id}/200/200`,
+            }}
+            style={[
+              styles.albumImage,
+              {
+                width: itemWidth,
+                height: itemWidth,
+                backgroundColor: colors.card,
+              },
+            ]}
+          />
+          <Text
+            style={[styles.albumTitle, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+          <Text
+            style={[styles.albumArtist, { color: colors.secondary }]}
+            numberOfLines={1}
+          >
+            {item.artist}
+          </Text>
+        </TouchableOpacity>
+      )}
+      keyExtractor={(item) => item.id.toString()}
+      key={numColumns}
+      numColumns={numColumns}
+      columnWrapperStyle={[styles.row, { gap: GAP }]}
+      contentContainerStyle={styles.listContent}
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={
+        hasMore ? (
+          <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />
+        ) : null
+      }
+    />
+  );
+};
+
+export default function LibraryScreen() {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<"artists" | "albums">("artists");
 
   return (
     <View
@@ -83,43 +260,49 @@ export default function LibraryScreen() {
       ]}
     >
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Library
-        </Text>
-      </View>
-
-      <FlatList
-        data={artists}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card}>
-            <Image
-              source={{
-                uri: item.avatar
-                  ? `${getBaseURL()}${item.avatar}`
-                  : `https://picsum.photos/seed/${item.id}/200/200`,
-              }}
-              style={[styles.image, { backgroundColor: colors.card }]}
-            />
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[
+              styles.tabItem,
+              activeTab === "artists" && { borderBottomColor: colors.primary },
+            ]}
+            onPress={() => setActiveTab("artists")}
+          >
             <Text
-              style={[styles.name, { color: colors.text }]}
-              numberOfLines={1}
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    activeTab === "artists" ? colors.primary : colors.secondary,
+                },
+              ]}
             >
-              {item.name}
+              艺术家
             </Text>
           </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.id.toString()}
-        numColumns={COLUMN_COUNT}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={
-          hasMore ? (
-            <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />
-          ) : null
-        }
-      />
+          <TouchableOpacity
+            style={[
+              styles.tabItem,
+              activeTab === "albums" && { borderBottomColor: colors.primary },
+            ]}
+            onPress={() => setActiveTab("albums")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color:
+                    activeTab === "albums" ? colors.primary : colors.secondary,
+                },
+              ]}
+            >
+              专辑
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {activeTab === "artists" ? <ArtistList /> : <AlbumList />}
     </View>
   );
 }
@@ -130,36 +313,61 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
+  headerTop: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+  },
+  tabItem: {
+    marginRight: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   listContent: {
     padding: 20,
   },
   row: {
-    justifyContent: "space-between",
+    // justifyContent: "space-between", // removed for gap support
     marginBottom: 20,
   },
-  card: {
-    width: ITEM_WIDTH,
-    alignItems: "center",
-  },
+  // Removed fixed Width styles
   image: {
-    width: ITEM_WIDTH,
-    height: ITEM_WIDTH,
-    borderRadius: ITEM_WIDTH / 2,
+    borderRadius: 999, // circle
     marginBottom: 8,
     backgroundColor: "#f0f0f0",
+    alignSelf: "center",
   },
   name: {
     fontSize: 14,
     textAlign: "center",
     color: "#333",
+  },
+  albumImage: {
+    borderRadius: 15,
+    marginBottom: 8,
+    backgroundColor: "#f0f0f0",
+  },
+  albumTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  albumArtist: {
+    fontSize: 12,
   },
 });

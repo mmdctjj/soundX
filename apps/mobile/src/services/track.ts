@@ -67,3 +67,13 @@ export const getTracksByArtist = (artist: string) => {
     params: { artist },
   });
 };
+
+export const likeTrack = (data: { userId: number; trackId: number }) => {
+  return request.post<any, ISuccessResponse<any>>("/user-track-likes/create", data);
+};
+
+export const unlikeTrack = (userId: number, trackId: number) => {
+  return request.delete<any, ISuccessResponse<any>>("/user-track-likes/unlike", {
+    params: { userId, trackId },
+  });
+};

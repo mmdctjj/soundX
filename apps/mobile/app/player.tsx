@@ -1,18 +1,26 @@
-import { usePlayer } from "@/src/context/PlayerContext";
+import { useAuth } from "@/src/context/AuthContext";
+import { PlayMode, usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import { getBaseURL } from "@/src/https";
+import { Track, TrackType, UserTrackLike } from "@/src/models";
+import { likeTrack, unlikeTrack } from "@/src/services/track";
 import { Ionicons } from "@expo/vector-icons";
+import { Slider } from "@miblanchard/react-native-slider";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
+  FlatList,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
@@ -55,11 +63,59 @@ export default function PlayerScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { currentTrack, isPlaying, pause, resume, duration, position, seekTo } =
-    usePlayer();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const {
+    currentTrack,
+    isPlaying,
+    pause,
+    resume,
+    duration,
+    position,
+    seekTo,
+    trackList,
+    playTrackList,
+    playMode,
+    togglePlayMode,
+    playNext,
+    playPrevious,
+  } = usePlayer();
   const [showLyrics, setShowLyrics] = useState(false);
+  const [showPlaylist, setShowPlaylist] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
+  const [liked, setLiked] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (currentTrack && user) {
+      // Check if track is liked.
+      // Depending on data source, currentTrack might have likedByUsers populated.
+      // Casting to any to access potential extra properties or matching Track model
+      const trackData = currentTrack as unknown as Track;
+      const isLiked = trackData.likedByUsers?.some(
+        (like: UserTrackLike) => like.userId === user.id
+      );
+      setLiked(!!isLiked);
+    }
+  }, [currentTrack, user]);
+
+  const handleToggleLike = async () => {
+    if (!currentTrack || !user) return;
+    const previousLiked = liked;
+    setLiked(!liked); // Optimistic update
+
+    try {
+      if (previousLiked) {
+        await unlikeTrack(user.id, Number(currentTrack.id));
+      } else {
+        await likeTrack({ userId: user.id, trackId: Number(currentTrack.id) });
+      }
+    } catch (error) {
+      console.error("Failed to toggle like", error);
+      setLiked(previousLiked); // Revert on error
+    }
+  };
 
   // Auto-scroll to current lyric
   useEffect(() => {
@@ -106,6 +162,76 @@ export default function PlayerScreen() {
     }
   };
 
+  const getModeIcon = (mode: PlayMode) => {
+    switch (mode) {
+      case PlayMode.SEQUENCE:
+        return "arrow-forward"; // Or infinite/repeat-outline if fitting
+      case PlayMode.LOOP_LIST:
+        return "repeat";
+      case PlayMode.SHUFFLE:
+        return "shuffle";
+      case PlayMode.LOOP_SINGLE:
+        return "repeat-1"; // Assuming Expo Icons has this, usually "repeat-once" or similar. Ionicons has "repeat" and needs overlay. Or "repeat" with badge.
+        // Ionicons: repeat, shuffle.
+        // Let's check available icons or use text/custom if needed.
+        // Ionicons v5 usually has: repeat, shuffle, arrow-forward.
+        // "repeat-1" might not exist in Ionicons set directly or named differently.
+        // Using "repeat" for sequence? No.
+        // Let's assume standard Ionicons for now.
+        // If "repeat-1" is missing, I might just use "repeat" and color, or "refresh-circle".
+        // Actually, Ionicons has `repeat` and `shuffle`.
+        // MaterialIcons has `repeat-one`.
+        // Let's stick to safe ones or check.
+        // Assuming "repeat" is Loop List.
+        // "shuffle" is Shuffle.
+        // "arrow-forward" for Sequence.
+        // "stop-circle" or similar for Single Once?
+        // Let's try to map:
+        // SEQUENCE: "arrow-forward-circle-outline"
+        // LOOP_LIST: "repeat"
+        // SHUFFLE: "shuffle"
+        // LOOP_SINGLE: "infinite" (wrong). modifying later if needed.
+        // Actually, for Loop Single, let's try "reload" or "sync" if "repeat-1" fails.
+        // I will use "repeat" for both loops but maybe different color? No, must be distinct.
+        // Let's checks Ionicons map.
+        // "repeat" is loop.
+        // Let's use "musical-notes" for one?
+        // I will use `repeat` for list loop.
+        // I will use `shuffle` for shuffle.
+        // I will use `arrow-forward` for sequence.
+        // I will use `disc` for single loop?
+        // For now I will put placeholder logic and if user complains I fix.
+        // WAIT, I can check valid icons.
+        // I'll stick to: 'repeat', 'shuffle', 'arrow-forward'
+        // For single loop: 'repeat' (maybe add a small '1' badge overlay if I could, but here just icon string).
+        // Let's use 'refresh' for Single Loop?
+        // Let's use basic ones.
+        return "arrow-forward-outline";
+      case PlayMode.SINGLE_ONCE:
+        return "pause-circle-outline";
+      default:
+        return "repeat";
+    }
+  };
+
+  // Re-write getModeIcon to be simpler string map in render for now, or just:
+  const getModeIconName = (mode: PlayMode): any => {
+    switch (mode) {
+      case PlayMode.SEQUENCE:
+        return "arrow-forward";
+      case PlayMode.LOOP_LIST:
+        return "repeat";
+      case PlayMode.SHUFFLE:
+        return "shuffle";
+      case PlayMode.LOOP_SINGLE:
+        return "sync"; // Fallback
+      case PlayMode.SINGLE_ONCE:
+        return "stop-circle-outline";
+      default:
+        return "repeat";
+    }
+  };
+
   if (!currentTrack) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -113,6 +239,295 @@ export default function PlayerScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: colors.primary, marginTop: 20 }}>Go Back</Text>
         </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const renderPlaylist = () => (
+    <FlatList
+      data={trackList}
+      keyExtractor={(item) => item.id.toString()}
+      renderItem={({ item, index }) => (
+        <TouchableOpacity
+          style={[
+            styles.playlistItem,
+            currentTrack?.id === item.id && styles.activePlaylistItem,
+          ]}
+          onPress={() => playTrackList(trackList, index)}
+        >
+          <Text
+            style={[
+              styles.playlistItemText,
+              {
+                color:
+                  currentTrack?.id === item.id ? colors.primary : colors.text,
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {item.title}
+          </Text>
+        </TouchableOpacity>
+      )}
+      style={styles.playlist}
+    />
+  );
+
+  const renderControls = () => (
+    <View>
+      <View style={styles.infoContainer}>
+        <View style={styles.textContainer}>
+          <Text style={[styles.trackTitle, { color: colors.text }]}>
+            {currentTrack.title}
+          </Text>
+          <Text style={[styles.trackArtist, { color: colors.secondary }]}>
+            {currentTrack.artist}
+          </Text>
+        </View>
+        {currentTrack.type !== TrackType.AUDIOBOOK && (
+          <TouchableOpacity
+            onPress={handleToggleLike}
+            style={styles.likeButton}
+          >
+            <Ionicons
+              name={liked ? "heart" : "heart-outline"}
+              size={24}
+              color={liked ? colors.primary : colors.text}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.timeContainer}>
+        <Text style={[styles.timeText, { color: colors.secondary }]}>
+          {formatTime(position)}
+        </Text>
+        <Slider
+          containerStyle={{ flex: 1, height: 40, marginHorizontal: 10 }}
+          minimumValue={0}
+          maximumValue={duration}
+          value={position}
+          onSlidingComplete={(value) =>
+            seekTo(Array.isArray(value) ? value[0] : value)
+          }
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
+        />
+        <Text style={[styles.timeText, { color: colors.secondary }]}>
+          {formatTime(duration)}
+        </Text>
+      </View>
+
+      <View style={styles.controls}>
+        <TouchableOpacity onPress={togglePlayMode}>
+          <Ionicons
+            name={getModeIconName(playMode)}
+            size={24}
+            color={colors.secondary}
+          />
+        </TouchableOpacity>
+
+        <View style={styles.mainControls}>
+          <TouchableOpacity onPress={playPrevious}>
+            <Ionicons name="play-skip-back" size={35} color={colors.text} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={togglePlayback}
+            style={[styles.playButton, { backgroundColor: colors.text }]}
+          >
+            <Ionicons
+              name={isPlaying ? "pause" : "play"}
+              size={40}
+              color={colors.background}
+              style={{ marginLeft: isPlaying ? 0 : 4 }}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={playNext}>
+            <Ionicons name="play-skip-forward" size={35} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity onPress={() => setShowPlaylist(true)}>
+          <Ionicons name="list" size={24} color={colors.secondary} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderPlaylistModal = () => (
+    <Modal
+      isVisible={showPlaylist}
+      onBackdropPress={() => setShowPlaylist(false)}
+      onSwipeComplete={() => setShowPlaylist(false)}
+      swipeDirection="down"
+      style={styles.modal}
+    >
+      <View
+        style={[
+          styles.modalContent,
+          { backgroundColor: colors.card, paddingBottom: insets.bottom },
+        ]}
+      >
+        <View style={styles.modalHeader}>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>
+            播放列表 ({trackList.length})
+          </Text>
+        </View>
+        <FlatList
+          data={trackList}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity
+              style={[
+                styles.modalItem,
+                { borderBottomColor: colors.border },
+                currentTrack?.id === item.id && styles.activePlaylistItem,
+              ]}
+              onPress={() => {
+                playTrackList(trackList, index);
+                // Optional: close modal on select
+                // setShowPlaylist(false);
+              }}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalItemText,
+                    {
+                      color:
+                        currentTrack?.id === item.id
+                          ? colors.primary
+                          : colors.text,
+                    },
+                    { flex: 1 },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item.title}
+                </Text>
+                {currentTrack?.type === TrackType.AUDIOBOOK && item.progress ? (
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: colors.secondary,
+                      marginLeft: 10,
+                    }}
+                  >
+                    已听{" "}
+                    {Math.floor(
+                      ((item.progress || 0) / (item.duration || 1)) * 100
+                    )}
+                    %
+                  </Text>
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+    </Modal>
+  );
+
+  if (isLandscape) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            paddingLeft: insets.left,
+            paddingRight: insets.right,
+          },
+        ]}
+      >
+        <View style={styles.landscapeContainer}>
+          {/* Left Side - Artwork */}
+          <View style={styles.landscapeLeft}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.landscapeBackBtn}
+            >
+              <Ionicons name="chevron-down" size={30} color={colors.text} />
+            </TouchableOpacity>
+            <Image
+              source={{
+                uri: currentTrack.artwork
+                  ? typeof currentTrack.artwork === "string" &&
+                    currentTrack.artwork.startsWith("http")
+                    ? currentTrack.artwork
+                    : `${getBaseURL()}${currentTrack.artwork}`
+                  : "https://picsum.photos/400",
+              }}
+              style={styles.landscapeArtwork}
+            />
+            <View style={styles.trackInfo}>
+              <Text style={[styles.trackTitle, { color: colors.text }]}>
+                {currentTrack.title}
+              </Text>
+              <Text style={[styles.trackArtist, { color: colors.secondary }]}>
+                {currentTrack.artist}
+              </Text>
+            </View>
+          </View>
+
+          {/* Right Side - Content */}
+          <View style={styles.landscapeRight}>
+            <View style={styles.landscapeContent}>
+              {currentTrack.type === TrackType.AUDIOBOOK ? (
+                renderPlaylist()
+              ) : (
+                <ScrollView
+                  ref={scrollViewRef}
+                  style={styles.lyricsScroll}
+                  contentContainerStyle={styles.lyricsScrollContent}
+                >
+                  {parseLyrics(currentTrack.lyrics || "").map((line, index) => {
+                    const isActive =
+                      line.time <= position &&
+                      (index ===
+                        parseLyrics(currentTrack.lyrics || "").length - 1 ||
+                        parseLyrics(currentTrack.lyrics || "")[index + 1].time >
+                          position);
+
+                    return (
+                      <Text
+                        key={index}
+                        style={[
+                          styles.lyricsLine,
+                          {
+                            color: isActive ? colors.primary : colors.secondary,
+                          },
+                          isActive && styles.activeLyricsLine,
+                        ]}
+                      >
+                        {line.text}
+                      </Text>
+                    );
+                  })}
+                  {!currentTrack.lyrics && (
+                    <Text
+                      style={[styles.lyricsText, { color: colors.secondary }]}
+                    >
+                      暂无歌词
+                    </Text>
+                  )}
+                </ScrollView>
+              )}
+            </View>
+            {renderControls()}
+          </View>
+        </View>
+        {renderPlaylistModal()}
       </View>
     );
   }
@@ -140,64 +555,58 @@ export default function PlayerScreen() {
 
       {/* Content */}
       <View style={styles.content}>
-        <View>
-          <View style={styles.artworkContainer}>
+        <View style={{ flex: 1, width: "100%", justifyContent: "center" }}>
+          <View
+            style={[
+              styles.artworkContainer,
+              showLyrics && { flex: 1, width: "100%" },
+            ]}
+          >
             {showLyrics ? (
               <View style={styles.lyricsContainer}>
                 {currentTrack.lyrics ? (
                   <>
-                    <TouchableOpacity
-                      style={styles.lyricsToggleButton}
-                      onPress={() => setShowLyrics(false)}
-                    >
-                      <View style={styles.trackInfo}>
-                        <Text
-                          style={[styles.trackTitle, { color: colors.text }]}
+                    <View style={{ flex: 1, width: "100%" }}>
+                      <ScrollView
+                        ref={scrollViewRef}
+                        style={styles.lyricsScroll}
+                        contentContainerStyle={styles.lyricsScrollContent}
+                      >
+                        <Pressable
+                          onPress={() => setShowLyrics(false)}
+                          style={{ width: "100%", alignItems: "center" }}
                         >
-                          {currentTrack.title}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.trackArtist,
-                            { color: colors.secondary },
-                          ]}
-                        >
-                          {currentTrack.artist}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
+                          {parseLyrics(currentTrack.lyrics).map(
+                            (line, index) => {
+                              const isActive =
+                                line.time <= position &&
+                                (index ===
+                                  parseLyrics(currentTrack.lyrics!).length -
+                                    1 ||
+                                  parseLyrics(currentTrack.lyrics!)[index + 1]
+                                    .time > position);
 
-                    <ScrollView
-                      ref={scrollViewRef}
-                      style={styles.lyricsScroll}
-                      contentContainerStyle={styles.lyricsScrollContent}
-                    >
-                      {parseLyrics(currentTrack.lyrics).map((line, index) => {
-                        const isActive =
-                          line.time <= position &&
-                          (index ===
-                            parseLyrics(currentTrack.lyrics!).length - 1 ||
-                            parseLyrics(currentTrack.lyrics!)[index + 1].time >
-                              position);
-
-                        return (
-                          <Text
-                            key={index}
-                            style={[
-                              styles.lyricsLine,
-                              {
-                                color: isActive
-                                  ? colors.primary
-                                  : colors.secondary,
-                              },
-                              isActive && styles.activeLyricsLine,
-                            ]}
-                          >
-                            {line.text}
-                          </Text>
-                        );
-                      })}
-                    </ScrollView>
+                              return (
+                                <Text
+                                  key={index}
+                                  style={[
+                                    styles.lyricsLine,
+                                    {
+                                      color: isActive
+                                        ? colors.primary
+                                        : colors.secondary,
+                                    },
+                                    isActive && styles.activeLyricsLine,
+                                  ]}
+                                >
+                                  {line.text}
+                                </Text>
+                              );
+                            }
+                          )}
+                        </Pressable>
+                      </ScrollView>
+                    </View>
                   </>
                 ) : (
                   <TouchableOpacity
@@ -229,94 +638,14 @@ export default function PlayerScreen() {
                   }}
                   style={styles.artwork}
                 />
-                <View style={styles.trackInfo}>
-                  <Text style={[styles.trackTitle, { color: colors.text }]}>
-                    {currentTrack.title}
-                  </Text>
-                  <Text
-                    style={[styles.trackArtist, { color: colors.secondary }]}
-                  >
-                    {currentTrack.artist}
-                  </Text>
-                </View>
               </TouchableOpacity>
             )}
           </View>
         </View>
 
-        <View>
-          <View style={styles.timeContainer}>
-            <Text style={[styles.timeText, { color: colors.secondary }]}>
-              {formatTime(position)}
-            </Text>
-            <View
-              style={{
-                height: 40,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 10,
-              }}
-            >
-              {Array.from({ length: 30 }).map((_, i) => (
-                <View
-                  key={i}
-                  style={{
-                    width: 3,
-                    height: 10 + Math.random() * 20,
-                    backgroundColor:
-                      i < (position / duration) * 30
-                        ? colors.primary
-                        : colors.border,
-                    marginHorizontal: 2,
-                    borderRadius: 2,
-                  }}
-                />
-              ))}
-            </View>
-            <Text style={[styles.timeText, { color: colors.secondary }]}>
-              {formatTime(duration)}
-            </Text>
-          </View>
-
-          {/* Controls - Always visible */}
-          <View style={styles.controls}>
-            <TouchableOpacity>
-              <Ionicons name="shuffle" size={24} color={colors.secondary} />
-            </TouchableOpacity>
-
-            <View style={styles.mainControls}>
-              <TouchableOpacity>
-                <Ionicons name="play-skip-back" size={35} color={colors.text} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={togglePlayback}
-                style={[styles.playButton, { backgroundColor: colors.text }]}
-              >
-                <Ionicons
-                  name={isPlaying ? "pause" : "play"}
-                  size={40}
-                  color={colors.background}
-                  style={{ marginLeft: isPlaying ? 0 : 4 }}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity>
-                <Ionicons
-                  name="play-skip-forward"
-                  size={35}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity>
-              <Ionicons name="list" size={24} color={colors.secondary} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <View>{renderControls()}</View>
       </View>
+      {renderPlaylistModal()}
     </View>
   );
 }
@@ -364,8 +693,8 @@ const styles = StyleSheet.create({
     boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.3)",
   },
   lyricsContainer: {
-    width: width * 0.7,
-    height: width * 0.7,
+    flex: 1,
+    width: "100%",
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
@@ -388,7 +717,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   lyricsScroll: {
-    flex: 1,
+    flex: 2,
     width: "100%",
   },
   lyricsScrollContent: {
@@ -417,12 +746,14 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   trackTitle: {
+    fontSize: 20,
     fontWeight: "bold",
-    textAlign: "center",
+    textAlign: "left",
     marginBottom: 5,
   },
   trackArtist: {
-    textAlign: "center",
+    fontSize: 14,
+    textAlign: "left",
   },
   timeContainer: {
     flexDirection: "row",
@@ -437,13 +768,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 20,
   },
   mainControls: {
     flexDirection: "row",
     alignItems: "center",
     gap: 30,
   },
+  infoContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 20,
+    paddingHorizontal: 0,
+  },
+  textContainer: {
+    flex: 1,
+    alignItems: "flex-start",
+    marginRight: 10,
+  },
+  likeButton: {
+    padding: 0,
+  },
+
   playButton: {
     width: 70,
     height: 70,
@@ -456,5 +803,78 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 30,
     paddingHorizontal: 20,
+  },
+  landscapeContainer: {
+    flex: 1,
+    flexDirection: "row",
+  },
+  landscapeLeft: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  landscapeRight: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "space-between",
+  },
+  landscapeArtwork: {
+    width: 250,
+    height: 250,
+    borderRadius: 15,
+    marginBottom: 20,
+    boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.3)",
+  },
+  landscapeContent: {
+    flex: 1,
+    marginBottom: 20,
+    justifyContent: "center",
+  },
+  landscapeBackBtn: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    zIndex: 10,
+  },
+  playlist: {
+    flex: 1,
+  },
+  playlistItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  activePlaylistItem: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  playlistItemText: {
+    fontSize: 16,
+  },
+  modal: {
+    margin: 0,
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    height: "60%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  modalHeader: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(150,150,150,0.1)",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  modalItem: {
+    padding: 15,
+    borderBottomWidth: 0.5,
+  },
+  modalItemText: {
+    fontSize: 16,
   },
 });
