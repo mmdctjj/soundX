@@ -82,12 +82,13 @@ export const getAlbumTracks = (
   pageSize: number,
   skip: number,
   sort: "asc" | "desc" = "asc",
-  keyword?: string
+  keyword?: string,
+  userId?: number,
 ) => {
   return request.get<any, ISuccessResponse<{ list: any[]; total: number }>>(
     `/album/${id}/tracks`,
     {
-      params: { pageSize, skip, sort, keyword },
+      params: { pageSize, skip, sort, keyword, userId },
     }
   );
 };

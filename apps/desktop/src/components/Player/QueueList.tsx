@@ -11,6 +11,7 @@ import { Dropdown, List, theme, Typography } from "antd";
 import React from "react";
 import { getBaseURL } from "../../https";
 import { TrackType, type Track } from "../../models";
+import { useAuthStore } from "../../store/auth";
 import styles from "./index.module.less";
 
 const { Text } = Typography;
@@ -47,6 +48,7 @@ export const QueueList: React.FC<QueueListProps> = ({
   style,
 }) => {
   const { token } = theme.useToken();
+  const { user } = useAuthStore();
 
   return (
     <List
@@ -58,7 +60,7 @@ export const QueueList: React.FC<QueueListProps> = ({
         const isCurrent = currentTrack?.id === item.id;
         // @ts-ignore
         const isLiked = item.likedByUsers?.some(
-          (like: any) => like.userId === 1
+          (like: any) => like.userId === user?.id
         );
 
         return (

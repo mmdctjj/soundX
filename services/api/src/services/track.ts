@@ -26,6 +26,7 @@ export class TrackService {
     skip: number,
     sort: 'asc' | 'desc' = 'asc',
     keyword?: string,
+    userId?: number,
   ): Promise<Track[]> {
     const where: any = {
       album: albumName,
@@ -47,7 +48,7 @@ export class TrackService {
       take: pageSize,
     });
 
-    return await this.attachProgressToTracks(tracks, 1);
+    return await this.attachProgressToTracks(tracks, userId || 1);
   }
 
   async getTrackCountByAlbum(
@@ -178,6 +179,7 @@ export class TrackService {
     if (audiobookTracks.length === 0) return tracks;
 
     const trackIds = audiobookTracks.map(t => t.id);
+    console.log('trackIds', trackIds), userId;
     const history = await this.prisma.userAudiobookHistory.findMany({
       where: {
         userId,

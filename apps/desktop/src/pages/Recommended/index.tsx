@@ -1,5 +1,5 @@
 import { SettingOutlined, SyncOutlined } from "@ant-design/icons";
-import { Avatar, Button, Col, Row, Typography } from "antd";
+import { Avatar, Button, Col, Row, Skeleton, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Cover from "../../components/Cover/index";
@@ -269,7 +269,7 @@ const Recommended: React.FC = () => {
           <div key={sectionIndex} className={styles.section}>
             <div className={styles.sectionHeader}>
               <Title level={3} className={styles.sectionTitle}>
-                加载中...
+                <Skeleton.Node />
               </Title>
             </div>
             <div className={styles.grid}>

@@ -426,6 +426,10 @@ const Player: React.FC = () => {
     </Tooltip>
   );
 
+  if (!currentTrack?.id) {
+    return <></>;
+  }
+
   return (
     <div
       className={styles.player}

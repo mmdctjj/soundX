@@ -64,6 +64,14 @@ function createWindow() {
       symbolColor: "#ffffff",
       height: 30
     },
+    width: 1020,
+    // 初始宽度
+    height: 700,
+    // 初始高度
+    minWidth: 1020,
+    // 🔧 设置窗口最小宽度
+    minHeight: 700,
+    // 🔧 设置窗口最小高度
     transparent: process.platform === "darwin",
     opacity: 0.95,
     vibrancy: "popover",

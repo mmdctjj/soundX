@@ -346,6 +346,7 @@ export class AlbumController {
     @Query('skip') skip: number,
     @Query('sort') sort: 'asc' | 'desc',
     @Query('keyword') keyword: string,
+    @Query('userId') userId: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
       if (isNaN(Number(id))) {
@@ -362,6 +363,7 @@ export class AlbumController {
         Number(skip) || 0,
         sort,
         keyword,
+        Number(userId)
       );
       const total = await this.trackService.getTrackCountByAlbum(
         album.name,

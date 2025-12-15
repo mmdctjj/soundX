@@ -79,6 +79,7 @@ const LoginModal: React.FC = () => {
       console.error(error);
     } finally {
       setLoading(false);
+      window.location.reload();
     }
   };
 

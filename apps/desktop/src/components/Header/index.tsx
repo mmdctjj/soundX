@@ -51,7 +51,7 @@ const Header: React.FC = () => {
 
   // Mode state: 'music' | 'audiobook'
   const { mode: playMode, setMode: setPlayMode } = usePlayMode();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
 
   const handleLogout = () => {
     logout();
@@ -306,6 +306,16 @@ const Header: React.FC = () => {
                 padding: "0px",
               }}
             >
+              <div
+                style={{
+                  cursor: "pointer",
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  backgroundColor: "transparent",
+                }}
+              >
+                嗨！{user?.username || "未知"}
+              </div>
               <div
                 style={{
                   cursor: "pointer",

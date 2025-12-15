@@ -3,6 +3,7 @@ import { TrackType, type Track } from "../models";
 import { addAlbumToHistory, addToHistory, toggleLike, toggleUnLike } from "../services/user";
 import { reportAudiobookProgress } from "../services/userAudiobookHistory";
 import { getPlayMode } from "../utils/playMode";
+import { useAuthStore } from "./auth";
 
 interface PlayerModeState {
   currentTrack: Track | null;
@@ -100,8 +101,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
     // Report if forced (e.g. pause/change) or interval met
     if (force || (isPlaying && Math.abs(roundedTime - lastReportTime) >= ATTEMPT_REPORT_INTERVAL)) {
+      const userId = useAuthStore.getState().user?.id;
+      if (!userId) return;
+
       reportAudiobookProgress({
-        userId: 1, // Default user
+        userId,
         trackId: currentTrack.id,
         progress: roundedTime
       }).catch(e => console.error("Failed to report progress", e));
@@ -365,12 +369,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         await (type === "like" ? toggleLike(trackId) : toggleUnLike(trackId));
         const { currentTrack } = get();
         if (currentTrack?.id === trackId) {
+          const userId = useAuthStore.getState().user?.id;
+          if (!userId) return; // Should probably handle this better, but consistent with requirement
           set({
             currentTrack: {
               ...currentTrack,
               likedByUsers: type === "like"
-                ? [...(currentTrack?.likedByUsers ?? []), 1]
-                : (currentTrack?.likedByUsers ?? []).filter((id) => id !== 1)
+                ? [...(currentTrack?.likedByUsers ?? []), userId]
+                : (currentTrack?.likedByUsers ?? []).filter((id) => id !== userId)
             }
           });
         }

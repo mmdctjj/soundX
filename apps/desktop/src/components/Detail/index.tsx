@@ -41,6 +41,7 @@ import {
   type Playlist,
 } from "../../services/playlist";
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
+import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
@@ -58,6 +59,7 @@ const Detail: React.FC = () => {
   const message = useMessage();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
+  const { user } = useAuthStore();
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -119,11 +121,11 @@ const Detail: React.FC = () => {
       const res = await getAlbumById(albumId);
       if (res.code === 200) {
         setAlbum(res.data);
-        // Check if liked by current user (userId: 1)
+        // Check if liked by current user
         // @ts-ignore - likedByUsers is included in response but might not be in type definition yet
         const likedByUsers = res.data.likedByUsers || [];
         const isLikedByCurrentUser = likedByUsers.some(
-          (like: any) => like.userId === 1
+          (like: any) => like.userId === user?.id
         );
         setIsLiked(isLikedByCurrentUser);
       }
@@ -146,7 +148,8 @@ const Detail: React.FC = () => {
         pageSize,
         currentPage * pageSize,
         currentSort,
-        currentKeyword
+        currentKeyword,
+        user?.id
       );
       if (res.code === 200) {
         const newTracks = res.data.list;
@@ -344,12 +347,12 @@ const Detail: React.FC = () => {
           {
             key: "like",
             label: (record as any).likedByUsers?.some(
-              (like: any) => like.userId === 1
+              (like: any) => like.userId === user?.id
             )
               ? "取消收藏"
               : "收藏",
             icon: (record as any).likedByUsers?.some(
-              (like: any) => like.userId === 1
+              (like: any) => like.userId === user?.id
             ) ? (
               <HeartFilled style={{ color: "#ff4d4f" }} />
             ) : (
@@ -361,7 +364,7 @@ const Detail: React.FC = () => {
                 info.domEvent as any,
                 record,
                 (record as any).likedByUsers?.some(
-                  (like: any) => like.userId === 1
+                  (like: any) => like.userId === user?.id
                 )
                   ? "unlike"
                   : "like"

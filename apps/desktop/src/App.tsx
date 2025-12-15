@@ -1,7 +1,8 @@
-import { ConfigProvider, message } from "antd";
+import { ConfigProvider, Flex, message, Skeleton } from "antd";
 import zhCN from "antd/locale/zh_CN";
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import Detail from "./components/Detail/index";
+import Cover from "./components/Cover";
 import Header from "./components/Header/index";
 import LoginModal from "./components/LoginModal";
 import Player from "./components/Player/index";
@@ -9,13 +10,15 @@ import Sidebar from "./components/Sidebar/index";
 import { getThemeConfig } from "./config/themeConfig";
 import { MessageProvider } from "./context/MessageContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
-import ArtistDetail from "./pages/ArtistDetail";
-import ArtistList from "./pages/ArtistList";
-import Category from "./pages/Category/index";
-import Favorites from "./pages/Favorites/index";
-import Listened from "./pages/Listened/index";
-import PlaylistDetail from "./pages/PlaylistDetail";
-import Recommended from "./pages/Recommended/index";
+import Recommended from "./pages/Recommended";
+
+const ArtistDetail = lazy(() => import("./pages/ArtistDetail"));
+const ArtistList = lazy(() => import("./pages/ArtistList"));
+const Category = lazy(() => import("./pages/Category"));
+const Favorites = lazy(() => import("./pages/Favorites"));
+const Listened = lazy(() => import("./pages/Listened"));
+const PlaylistDetail = lazy(() => import("./pages/PlaylistDetail"));
+const Detail = lazy(() => import("./components/Detail/index"));
 
 const AppContent = () => {
   const { mode } = useTheme();
@@ -47,20 +50,45 @@ const AppContent = () => {
               }}
             >
               <Header />
-              <Routes>
-                <Route
-                  path="/"
-                  element={<Navigate to="/recommended" replace />}
-                />
-                <Route path="/recommended" element={<Recommended />} />
-                <Route path="/detail" element={<Detail />} />
-                <Route path="/artist/:id" element={<ArtistDetail />} />
-                <Route path="/category" element={<Category />} />
-                <Route path="/favorites" element={<Favorites />} />
-                <Route path="/listened" element={<Listened />} />
-                <Route path="/artists" element={<ArtistList />} />
-                <Route path="/playlist/:id" element={<PlaylistDetail />} />
-              </Routes>
+              <Suspense
+                fallback={
+                  <Flex vertical style={{ width: "100%" }} gap={16}>
+                    {[1, 2, 3].map((sectionIndex) => (
+                      <Flex
+                        vertical
+                        style={{ width: "100%" }}
+                        key={sectionIndex}
+                      >
+                        <div>
+                          <Skeleton.Node />
+                        </div>
+                        <div>
+                          {Array.from({ length: 8 }).map((_, index) => (
+                            <Cover.Skeleton
+                              key={`skeleton-${sectionIndex}-${index}`}
+                            />
+                          ))}
+                        </div>
+                      </Flex>
+                    ))}
+                  </Flex>
+                }
+              >
+                <Routes>
+                  <Route
+                    path="/"
+                    element={<Navigate to="/recommended" replace />}
+                  />
+                  <Route path="/recommended" element={<Recommended />} />
+                  <Route path="/detail" element={<Detail />} />
+                  <Route path="/artist/:id" element={<ArtistDetail />} />
+                  <Route path="/category" element={<Category />} />
+                  <Route path="/favorites" element={<Favorites />} />
+                  <Route path="/listened" element={<Listened />} />
+                  <Route path="/artists" element={<ArtistList />} />
+                  <Route path="/playlist/:id" element={<PlaylistDetail />} />
+                </Routes>
+              </Suspense>
             </div>
           </div>
           <Player />

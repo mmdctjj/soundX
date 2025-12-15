@@ -13,6 +13,7 @@ import { getBaseURL } from "../../https";
 import type { Album, Track } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
+import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import styles from "./index.module.less";
 
@@ -28,6 +29,7 @@ const Cover: CoverComponent = ({ item, size, isTrack = false }) => {
   const navigate = useNavigate();
   const { play, setPlaylist } = usePlayerStore();
   const [isLiked, setIsLiked] = useState(false);
+  const { user } = useAuthStore();
 
   useEffect(() => {
     // Check if album is liked
@@ -43,7 +45,7 @@ const Cover: CoverComponent = ({ item, size, isTrack = false }) => {
         // @ts-ignore - likedByUsers is included in response
         const likedByUsers = res.data.likedByUsers || [];
         const isLikedByCurrentUser = likedByUsers.some(
-          (like: any) => like.userId === 1
+          (like: any) => like.userId === user?.id
         );
         setIsLiked(isLikedByCurrentUser);
       }
