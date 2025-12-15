@@ -1,28 +1,28 @@
 import {
-  BackwardOutlined, // Added as per instruction
-  DeliveredProcedureOutlined,
-  DownOutlined,
-  ForwardOutlined,
-  OrderedListOutlined,
-  PauseCircleFilled,
-  PlayCircleFilled,
-  SoundOutlined,
-  StepBackwardOutlined,
-  StepForwardOutlined,
-  SwapOutlined,
+    BackwardOutlined, // Added as per instruction
+    DeliveredProcedureOutlined,
+    DownOutlined,
+    ForwardOutlined,
+    OrderedListOutlined,
+    PauseCircleFilled,
+    PlayCircleFilled,
+    SoundOutlined,
+    StepBackwardOutlined,
+    StepForwardOutlined,
+    SwapOutlined,
 } from "@ant-design/icons";
 import {
-  Drawer,
-  Flex,
-  InputNumber,
-  List, // Keep List for the AddToPlaylistModal
-  Modal,
-  Popover,
-  Slider,
-  Tabs,
-  theme,
-  Tooltip,
-  Typography,
+    Drawer,
+    Flex,
+    InputNumber,
+    List, // Keep List for the AddToPlaylistModal
+    Modal,
+    Popover,
+    Slider,
+    Tabs,
+    theme,
+    Tooltip,
+    Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useMessage } from "../../context/MessageContext";
@@ -30,9 +30,9 @@ import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
 import { type Track, TrackType } from "../../models";
 import {
-  addTrackToPlaylist,
-  getPlaylists,
-  type Playlist,
+    addTrackToPlaylist,
+    getPlaylists,
+    type Playlist,
 } from "../../services/playlist";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
@@ -153,8 +153,13 @@ const Player: React.FC = () => {
       const time = audioRef.current.currentTime;
       setCurrentTime(time);
 
-      // Handle skip end
-      if (skipEnd > 0 && duration > 0 && time >= duration - skipEnd) {
+      // Handle skip end - ONLY in Audiobook mode
+      if (
+        appMode === TrackType.AUDIOBOOK &&
+        skipEnd > 0 &&
+        duration > 0 &&
+        time >= duration - skipEnd
+      ) {
         next();
       }
     }
@@ -166,7 +171,7 @@ const Player: React.FC = () => {
       // Restore saved progress if meaningful
       if (currentTime > 0) {
         audioRef.current.currentTime = currentTime;
-      } else if (skipStart > 0) {
+      } else if (appMode === TrackType.AUDIOBOOK && skipStart > 0) {
         audioRef.current.currentTime = skipStart;
       }
 
@@ -532,53 +537,55 @@ const Player: React.FC = () => {
           </Tooltip>
         </Popover>
 
-        {/* Skip Intro */}
-        <Popover
-          content={
-            <div style={{ width: "250px", padding: "10px" }}>
-              <div style={{ marginBottom: "15px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "5px",
-                  }}
-                >
-                  <span>跳过片头</span>
+        {/* Skip Intro - Only in Audiobook mode */}
+        {appMode === TrackType.AUDIOBOOK && (
+          <Popover
+            content={
+              <div style={{ width: "250px", padding: "10px" }}>
+                <div style={{ marginBottom: "15px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    <span>跳过片头</span>
+                  </div>
+                  <Slider
+                    value={skipStart}
+                    onChange={setSkipStart}
+                    max={90}
+                    tooltip={{ formatter: (value) => `${value}s` }}
+                  />
                 </div>
-                <Slider
-                  value={skipStart}
-                  onChange={setSkipStart}
-                  max={90}
-                  tooltip={{ formatter: (value) => `${value}s` }}
-                />
-              </div>
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "5px",
-                  }}
-                >
-                  <span>跳过片尾</span>
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    <span>跳过片尾</span>
+                  </div>
+                  <Slider
+                    value={skipEnd}
+                    onChange={setSkipEnd}
+                    max={90}
+                    tooltip={{ formatter: (value) => `${value}s` }}
+                  />
                 </div>
-                <Slider
-                  value={skipEnd}
-                  onChange={setSkipEnd}
-                  max={90}
-                  tooltip={{ formatter: (value) => `${value}s` }}
-                />
               </div>
-            </div>
-          }
-          trigger="click"
-          placement="top"
-        >
-          <Tooltip title="跳过片头/片尾">
-            <DeliveredProcedureOutlined className={styles.settingIcon} />
-          </Tooltip>
-        </Popover>
+            }
+            trigger="click"
+            placement="top"
+          >
+            <Tooltip title="跳过片头/片尾">
+              <DeliveredProcedureOutlined className={styles.settingIcon} />
+            </Tooltip>
+          </Popover>
+        )}
 
         {/* Playlist */}
         {renderPlaylistButton(styles.settingIcon)}
