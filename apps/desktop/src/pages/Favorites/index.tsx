@@ -258,7 +258,7 @@ const Favorites: React.FC = () => {
             {formatTimeLabel(item.time)}
           </Title>
           {viewMode === "album" ? (
-            <Row gutter={[24, 24]} className={styles.grid}>
+            <Row gutter={16}>
               {item.items.map((album) => (
                 <Col key={album.id}>
                   <Cover item={album as Album} />

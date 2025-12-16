@@ -1,9 +1,10 @@
 import { useInfiniteScroll } from "ahooks";
 import { Col, Row, theme } from "antd";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 import Cover from "../../components/Cover/index";
 import type { Album } from "../../models";
 import { loadMoreAlbum } from "../../services/album";
+import { useAlbumListCache } from "../../store/category";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
@@ -14,15 +15,20 @@ interface Result {
   loadCount: number;
 }
 
+const CACHE_KEY = "category_albums";
+
 const Category: React.FC = () => {
   // const [activeTab, setActiveTab] = useState<string>("1");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { mode } = usePlayMode();
   const { token } = theme.useToken();
+  const { setList, listMap, loadCountMap, scrollMap, setLoadCount, setScroll } = useAlbumListCache();
+  const key = `${CACHE_KEY}_${mode}`;
 
   const loadMoreAlbums = async (d: Result | undefined): Promise<Result> => {
     const pageSize = 12;
     const loadCount = d?.loadCount || d?.loadCount === 0 ? d?.loadCount + 1 : 0; // 当前已经加载的页数
+    setLoadCount(key, loadCount);
     try {
       const res = await loadMoreAlbum({
         pageSize,
@@ -32,11 +38,14 @@ const Category: React.FC = () => {
 
       if (res.code === 200 && res.data) {
         const { list, total } = res.data;
+        const newList = d?.list ? [...d.list, ...list] : list;
+        setList(key, newList);
+        setLoadCount(key, res?.data?.loadCount);
         return {
-          list,
-          hasMore: (d?.list?.length || 0) < Number(total),
+          list: list, // ahooks automatically appends if we return list, wait.
+          hasMore: (d?.list?.length || 0) + list.length < Number(total), // Fixed logic: existing + new < total
           total,
-          loadCount: res?.data?.loadCount, // 关键：正确更新 loadCount
+          loadCount: res?.data?.loadCount,
         };
       }
     } catch (err) {}
@@ -44,7 +53,7 @@ const Category: React.FC = () => {
     return { list: [], hasMore: false, total: 0, loadCount: 0 };
   };
 
-  const { data, loading, loadingMore, reload } = useInfiniteScroll(
+  const { data, loading, loadingMore, reload, mutate } = useInfiniteScroll(
     loadMoreAlbums,
     {
       target: scrollRef,
@@ -56,12 +65,49 @@ const Category: React.FC = () => {
     }
   );
 
-  useEffect(() => {
-    let timeId = setTimeout(() => {
+  // Restore cache or reload
+  useLayoutEffect(() => {
+    const cachedList = listMap[key];
+    const cachedLoadCount = loadCountMap[key];
+    
+    if (cachedList && cachedList.length > 0) {
+      mutate({
+        list: cachedList,
+        hasMore: true, // Optimistically assume true or check logic
+        total: 9999, // Hack: we might not have total in cache unless we added it. But it's fine.
+        loadCount: cachedLoadCount || 0,
+      });
+      // Restore scroll
+      if (scrollRef.current) {
+        console.log(scrollMap[key])
+         // Need a slight delay for render
+         setTimeout(() => {
+            if(scrollRef.current) scrollRef.current.scrollTop = scrollMap[key];
+         }, 0);
+      }
+    } else {
       reload();
-    });
-    return () => clearTimeout(timeId);
-  }, []);
+    }
+  }, [mode]); // Re-run when mode changes (key changes)
+
+  // Save scroll on unmount or key change
+  useEffect(() => {
+    return () => {
+      if (scrollRef.current) {
+        setScroll(key, scrollRef.current.scrollTop);
+      }
+    };
+  }, [key]);
+
+  useEffect(() => {
+    const cb = () => {
+      const el = scrollRef.current;
+      if (!el || !el.scrollTop) return;
+      setScroll(key, scrollRef?.current?.scrollTop || 0)
+    }
+    scrollRef?.current?.addEventListener("scroll", cb);
+    return () => scrollRef?.current?.removeEventListener("scroll", cb)
+  },[])
 
   // const tabItems = categoryTabs.map((tab) => ({
   //   key: String(tab.value),

@@ -48,10 +48,10 @@ import { usePlayMode } from "../../utils/playMode";
 import PlayingIndicator from "../PlayingIndicator";
 import styles from "./index.module.less";
 
-export const getCoverUrl = (path?: string | null) => {
+export const getCoverUrl = (path?: string | null, id?: number) => {
   return path
     ? `${getBaseURL()}${path}`
-    : "https://picsum.photos/seed/music/300/300";
+    : `https://picsum.photos/seed/${id}/300/300`;
 };
 
 const { Title, Text } = Typography;
@@ -248,7 +248,7 @@ const Detail: React.FC = () => {
     {
       title: "#",
       key: "index",
-      width: 100,
+      width: 50,
       render: (_: any, __: Track, index: number) => {
         return <Text>{index + 1}</Text>;
       },
@@ -256,7 +256,7 @@ const Detail: React.FC = () => {
     {
       title: "封面",
       key: "cover",
-      width: 100,
+      width: 60,
       render: (_: any, record: Track) => {
         return (
           <div
@@ -267,7 +267,7 @@ const Detail: React.FC = () => {
             }}
           >
             <img
-              src={getCoverUrl(record.cover)}
+              src={getCoverUrl(record.cover, record.id)}
               alt={record.name}
               style={{
                 width: "30px",
@@ -315,7 +315,7 @@ const Detail: React.FC = () => {
             title: "进度",
             dataIndex: "progress",
             key: "progress",
-            width: 100,
+            width: 70,
             render: (progress: number | undefined, record: Track) => {
               if (!progress) return <Text type="secondary">-</Text>;
               const percentage =
@@ -335,7 +335,7 @@ const Detail: React.FC = () => {
       title: "时长",
       dataIndex: "duration",
       key: "duration",
-      width: 100,
+      width: 80,
       render: (duration: number) => (
         <Text type="secondary">{formatDuration(duration)}</Text>
       ),
@@ -343,7 +343,7 @@ const Detail: React.FC = () => {
     {
       title: <MoreOutlined />,
       key: "actions",
-      width: 100,
+      width: 30,
       render: (_: any, record: Track) => {
         const items: MenuProps["items"] = [
           {

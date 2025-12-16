@@ -164,7 +164,7 @@ const ArtistDetail: React.FC = () => {
               {
                 title: "#",
                 key: "index",
-                width: 80,
+                width: 50,
                 render: (_: number, __: Track, idx: number) => {
                   return <Text>{idx + 1}</Text>;
                 },
@@ -172,7 +172,7 @@ const ArtistDetail: React.FC = () => {
               {
                 title: "封面",
                 key: "cover",
-                width: 80,
+                width: 60,
                 render: (_: number, record: Track) => {
                   return (
                     <div
@@ -237,7 +237,7 @@ const ArtistDetail: React.FC = () => {
                 title: "时长",
                 dataIndex: "duration",
                 key: "duration",
-                width: 100,
+                width: 80,
                 render: (duration: number) => (
                   <Text type="secondary">{formatDuration(duration)}</Text>
                 ),

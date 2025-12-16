@@ -9,16 +9,17 @@ import {
   theme,
   Typography,
 } from "antd";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getBaseURL } from "../../https";
 import { type Artist } from "../../models";
 import { getArtistList } from "../../services/artist";
+import { useArtistListCache } from "../../store/artist";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
 const { Text } = Typography;
-
+const CACHE_KEY = "artist_list";
 interface Result {
   list: Artist[];
   hasMore: boolean;
@@ -32,6 +33,10 @@ const ArtistList: React.FC = () => {
   const { mode } = usePlayMode();
   const { token } = theme.useToken();
 
+  const { listMap, loadCountMap, scrollMap, setList, setLoadCount, setScroll } =
+    useArtistListCache();
+  const key = `${CACHE_KEY}_${mode}`;
+
   const loadMoreArtists = async (d: Result | undefined): Promise<Result> => {
     const current = d?.loadCount || d?.loadCount === 0 ? d?.loadCount + 1 : 0; // 当前已经加载的页数
     const pageSize = 20;
@@ -41,6 +46,10 @@ const ArtistList: React.FC = () => {
       // For now, we might need to fetch all or use existing API
       // Assuming we will update the service to support these params
       const res = await getArtistList(pageSize, current, mode);
+      const { list } = res.data;
+      const newList = d?.list ? [...d.list, ...list] : list;
+      setList(key, newList);
+      setLoadCount(key, res?.data?.loadCount);
 
       if (res.code === 200 && res.data) {
         const { list, total } = res.data;
@@ -65,7 +74,7 @@ const ArtistList: React.FC = () => {
     );
   };
 
-  const { data, loading, loadingMore, reload } = useInfiniteScroll(
+  const { data, loading, loadingMore, reload, mutate } = useInfiniteScroll(
     loadMoreArtists,
     {
       target: scrollRef,
@@ -75,11 +84,49 @@ const ArtistList: React.FC = () => {
     }
   );
 
-  useEffect(() => {
-    let timeId = setTimeout(() => {
+  // Restore cache or reload
+  useLayoutEffect(() => {
+    const cachedList = listMap[key];
+    const cachedLoadCount = loadCountMap[key];
+
+    if (cachedList && cachedList.length > 0) {
+      mutate({
+        list: cachedList,
+        hasMore: true, // Optimistically assume true or check logic
+        total: 9999, // Hack: we might not have total in cache unless we added it. But it's fine.
+        loadCount: cachedLoadCount || 0,
+      });
+      // Restore scroll
+      if (scrollMap[key] && scrollRef.current) {
+        // Need a slight delay for render
+        setTimeout(() => {
+          if (scrollRef.current) scrollRef.current.scrollTop = scrollMap[key];
+        }, 0);
+      }
+    } else {
       reload();
-    });
-    return () => clearTimeout(timeId);
+    }
+  }, [mode]); // Re-run when mode changes (key changes)
+
+  // Save scroll on unmount or key change
+  useEffect(() => {
+    return () => {
+      const el = scrollRef.current;
+      if (!el) return;
+      if (scrollRef.current) {
+        setScroll(key, scrollRef.current.scrollTop);
+      }
+    };
+  }, [key]);
+
+  useEffect(() => {
+    const cb = () => {
+      const el = scrollRef.current;
+      if (!el || !el.scrollTop) return;
+      setScroll(key, scrollRef?.current?.scrollTop || 0);
+    };
+    scrollRef?.current?.addEventListener("scroll", cb);
+    return () => scrollRef?.current?.removeEventListener("scroll", cb);
   }, []);
 
   return (

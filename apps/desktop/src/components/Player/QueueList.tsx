@@ -33,10 +33,10 @@ interface QueueListProps {
   style?: React.CSSProperties;
 }
 
-const getCoverUrl = (path?: string | null) => {
+const getCoverUrl = (path?: string | null, id?: number) => {
   return path
     ? `${getBaseURL()}${path}`
-    : "https://picsum.photos/seed/music/300/300";
+    : `https://picsum.photos/seed/${id}/300/300`;
 };
 
 export const QueueList: React.FC<QueueListProps> = ({
@@ -136,7 +136,7 @@ export const QueueList: React.FC<QueueListProps> = ({
               avatar={
                 <div style={{ position: "relative" }}>
                   <img
-                    src={getCoverUrl(item.cover)}
+                    src={getCoverUrl(item.cover, item.id)}
                     alt={item.name}
                     style={{
                       width: "50px",

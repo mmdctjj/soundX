@@ -208,6 +208,7 @@ const Player: React.FC = () => {
           setSleepTimerMode("off");
           setSleepTimerEndTime(null);
           message.success("定时关闭已触发");
+          setDuration(0);
         } else {
           setSleepTimerEndTime(sleepTimerEndTime - 1000);
         }
@@ -335,10 +336,10 @@ const Player: React.FC = () => {
     }
   };
 
-  const getCoverUrl = (path?: string | null) => {
+  const getCoverUrl = (path?: string | null, id?: number) => {
     return path
       ? `${getBaseURL()}${path}`
-      : "https://picsum.photos/seed/music/300/300";
+      : `https://picsum.photos/seed/${id}/300/300`;
   };
 
   // Skip forward 15 seconds
@@ -558,7 +559,7 @@ const Player: React.FC = () => {
       >
         <div className={styles.coverWrapper}>
           <img
-            src={getCoverUrl(currentTrack?.cover)}
+            src={getCoverUrl(currentTrack?.cover, currentTrack?.id)}
             alt="cover"
             className={styles.coverImage}
           />
@@ -830,7 +831,7 @@ const Player: React.FC = () => {
 
           <Flex vertical align="center" gap={20}>
             <img
-              src={getCoverUrl(currentTrack?.cover)}
+              src={getCoverUrl(currentTrack?.cover, currentTrack?.id)}
               alt="Current Cover"
               className={styles.fullPlayerCover}
             />
