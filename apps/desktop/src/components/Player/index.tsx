@@ -1,38 +1,43 @@
-import {
-    BackwardOutlined, // Added as per instruction
-    DeliveredProcedureOutlined,
-    DownOutlined,
-    ForwardOutlined,
-    OrderedListOutlined,
-    PauseCircleFilled,
-    PlayCircleFilled,
-    SoundOutlined,
-    StepBackwardOutlined,
-    StepForwardOutlined,
-    SwapOutlined,
+import Icon, {
+  BackwardOutlined, // Added as per instruction
+  DeliveredProcedureOutlined,
+  DownOutlined,
+  ForwardOutlined,
+  OrderedListOutlined,
+  PauseCircleFilled,
+  PlayCircleFilled,
+  SoundOutlined,
+  StepBackwardOutlined,
+  StepForwardOutlined,
 } from "@ant-design/icons";
 import {
-    Drawer,
-    Flex,
-    InputNumber,
-    List, // Keep List for the AddToPlaylistModal
-    Modal,
-    Popover,
-    Slider,
-    Tabs,
-    theme,
-    Tooltip,
-    Typography,
+  Button,
+  Drawer,
+  Flex,
+  InputNumber,
+  List, // Rename to avoid conflict if needed, though useMessage is typically context. Context is safer.
+  Modal,
+  Popover,
+  Slider,
+  Tabs,
+  theme,
+  Tooltip,
+  Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import ClockOutlined from "../../assets/clock.svg?react";
+import LoopOutlined from "../../assets/loop.svg?react";
+import MusiclistOutlined from "../../assets/musiclist.svg?react";
+import RandomOutlined from "../../assets/random.svg?react";
+import SinglecycleOutlined from "../../assets/singlecycle.svg?react";
 import { useMessage } from "../../context/MessageContext";
 import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
 import { type Track, TrackType } from "../../models";
 import {
-    addTrackToPlaylist,
-    getPlaylists,
-    type Playlist,
+  addTrackToPlaylist,
+  getPlaylists,
+  type Playlist,
 } from "../../services/playlist";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
@@ -97,6 +102,17 @@ const Player: React.FC = () => {
     return saved ? Number(saved) : 0;
   });
   const [activeTab, setActiveTab] = useState<"playlist" | "lyrics">("playlist");
+
+  // Sleep Timer State
+  const [sleepTimerMode, setSleepTimerMode] = useState<
+    "off" | "time" | "count" | "current"
+  >("off");
+  const [sleepTimerEndTime, setSleepTimerEndTime] = useState<number | null>(
+    null
+  ); // Timestamp
+  const [sleepTimerCount, setSleepTimerCount] = useState<number>(0); // Remaining episodes
+  const [timerDuration, setTimerDuration] = useState<number>(0); // Store the minutes set by slider for UI display
+
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(30);
 
@@ -180,7 +196,48 @@ const Player: React.FC = () => {
     }
   };
 
+  // Timer Effect
+  useEffect(() => {
+    let interval: number;
+
+    if (sleepTimerMode === "time" && sleepTimerEndTime) {
+      interval = setInterval(() => {
+        const now = Date.now();
+        if (now >= sleepTimerEndTime) {
+          pause();
+          setSleepTimerMode("off");
+          setSleepTimerEndTime(null);
+          message.success("定时关闭已触发");
+        } else {
+          setSleepTimerEndTime(sleepTimerEndTime - 1000);
+        }
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [sleepTimerMode, sleepTimerEndTime, pause, message]);
+
   const handleEnded = () => {
+    // Sleep Timer Logic
+    if (sleepTimerMode === "current") {
+      pause();
+      setSleepTimerMode("off");
+      message.success("播放已结束 (定时关闭)");
+      return;
+    }
+
+    if (sleepTimerMode === "count") {
+      if (sleepTimerCount <= 1) {
+        pause();
+        setSleepTimerMode("off");
+        setSleepTimerCount(0);
+        message.success("定时关闭已触发");
+        return;
+      } else {
+        setSleepTimerCount((prev) => prev - 1);
+      }
+    }
+
     next();
   };
 
@@ -347,7 +404,7 @@ const Player: React.FC = () => {
     }
   };
 
-  const renderPlayOrderButton = (className: string) => (
+  const renderPlayOrderButton = () => (
     <Popover
       content={
         <div
@@ -370,7 +427,13 @@ const Player: React.FC = () => {
                   : "transparent",
             }}
           >
-            顺序播放
+            <Flex align="center">
+              <Icon
+                component={MusiclistOutlined}
+                style={{ fontSize: "24px", fontWeight: "bold" }}
+              />
+              顺序播放
+            </Flex>
           </div>
           <div
             onClick={() => setMode("shuffle")}
@@ -384,7 +447,13 @@ const Player: React.FC = () => {
                   : "transparent",
             }}
           >
-            随机播放
+            <Flex align="center">
+              <Icon
+                component={RandomOutlined}
+                style={{ fontSize: "24px", fontWeight: "bold" }}
+              />
+              随机播放
+            </Flex>
           </div>
           <div
             onClick={() => setMode("loop")}
@@ -396,7 +465,13 @@ const Player: React.FC = () => {
                 playMode === "loop" ? token.colorFillTertiary : "transparent",
             }}
           >
-            单曲循环
+            <Flex align="center">
+              <Icon
+                component={LoopOutlined}
+                style={{ fontSize: "24px", fontWeight: "bold" }}
+              />
+              列表循环
+            </Flex>
           </div>
           <div
             onClick={() => setMode("single")}
@@ -408,7 +483,13 @@ const Player: React.FC = () => {
                 playMode === "single" ? token.colorFillTertiary : "transparent",
             }}
           >
-            单曲播放
+            <Flex align="center">
+              <Icon
+                component={SinglecycleOutlined}
+                style={{ fontSize: "24px", fontWeight: "bold" }}
+              />
+              单曲循环
+            </Flex>
           </div>
         </div>
       }
@@ -417,7 +498,27 @@ const Player: React.FC = () => {
       placement="top"
     >
       <Tooltip title="播放顺序">
-        <SwapOutlined className={className} />
+        {playMode === "sequence" ? (
+          <Icon
+            component={MusiclistOutlined}
+            style={{ fontSize: "24px", fontWeight: "bold" }}
+          />
+        ) : playMode === "shuffle" ? (
+          <Icon
+            component={RandomOutlined}
+            style={{ fontSize: "24px", fontWeight: "bold" }}
+          />
+        ) : playMode === "loop" ? (
+          <Icon
+            component={LoopOutlined}
+            style={{ fontSize: "24px", fontWeight: "bold" }}
+          />
+        ) : playMode === "single" ? (
+          <Icon
+            component={SinglecycleOutlined}
+            style={{ fontSize: "24px", fontWeight: "bold" }}
+          />
+        ) : null}
       </Tooltip>
     </Popover>
   );
@@ -514,7 +615,115 @@ const Player: React.FC = () => {
       {/* Volume & Settings */}
       <div className={styles.settings}>
         {/* Play Order */}
-        {renderPlayOrderButton(styles.settingIcon)}
+        {renderPlayOrderButton()}
+
+        {appMode === TrackType.AUDIOBOOK && (
+          <Popover
+            content={
+              <Flex vertical justify="center" gap="16px">
+                <Flex align="center" justify="space-between">
+                  <Flex align="center" gap={8}>
+                    <Icon
+                      component={ClockOutlined}
+                      style={{ fontSize: "24px", fontWeight: "bold" }}
+                    />
+                    <Text>定时关闭</Text>
+                    {sleepTimerMode === "time" && (
+                      <Text>
+                        剩余
+                        {formatDuration(
+                          (sleepTimerEndTime! - Date.now()) / 1000
+                        )}
+                      </Text>
+                    )}
+                    {sleepTimerMode === "time" && (
+                      <Button
+                        onClick={() => {
+                          setSleepTimerMode("off");
+                          setTimerDuration(0);
+                        }}
+                        size="small"
+                      >
+                        取消定时
+                      </Button>
+                    )}
+                  </Flex>
+                </Flex>
+                <Flex>
+                  <Slider
+                    style={{ width: "300px" }}
+                    min={0}
+                    max={150}
+                    step={1}
+                    value={timerDuration}
+                    onChange={(val) => setTimerDuration(val)}
+                    onChangeComplete={(val) => {
+                      if (val > 0) {
+                        setSleepTimerMode("time");
+                        setSleepTimerEndTime(Date.now() + val * 60 * 1000);
+                      } else {
+                        setSleepTimerMode("off");
+                      }
+                    }}
+                    tooltip={{ formatter: (val) => `${val} 分钟` }}
+                  />
+                </Flex>
+
+                {/* <Flex align="center" justify="space-between">
+                  <Flex align="center">
+                    <Icon
+                      component={MusiclistOutlined}
+                      style={{ fontSize: "24px", fontWeight: "bold" }}
+                    />
+                    <Text style={{ marginLeft: 8 }}>集数定时</Text>
+                    {sleepTimerMode === "count" && <Text>定时中</Text>}
+                  </Flex>
+                </Flex>
+                <Flex>
+                  <Slider
+                    style={{ width: "200px" }}
+                    min={0}
+                    max={10}
+                    step={1}
+                    value={sleepTimerCount}
+                    onChangeComplete={(val) => {
+                      console.log(val);
+                        setSleepTimerMode("count");
+                        setSleepTimerCount(val);
+                    }}
+                    tooltip={{ formatter: (val) => `${val} 集` }}
+                  />
+                </Flex>
+                <Button
+                  block
+                  type={sleepTimerMode === "current" ? "primary" : "default"}
+                  onClick={() => {
+                    if (sleepTimerMode === "current") {
+                      setSleepTimerMode("off");
+                    } else {
+                      setSleepTimerMode("current");
+                      message.success("将在当前播放结束后停止");
+                    }
+                  }}
+                >
+                  {sleepTimerMode === "current"
+                    ? "取消播放完当前"
+                    : "播放完当前"}
+                </Button> */}
+              </Flex>
+            }
+            trigger="click"
+            placement="top"
+          >
+            <Tooltip title="定时关闭">
+              <Icon
+                component={ClockOutlined}
+                className={styles.settingIcon}
+                style={{ fontSize: "24px", fontWeight: "bold" }}
+              />
+            </Tooltip>
+          </Popover>
+        )}
 
         {/* Volume */}
         <Popover
@@ -550,7 +759,7 @@ const Player: React.FC = () => {
                       marginBottom: "5px",
                     }}
                   >
-                    <span>跳过片头</span>
+                    <span>跳过片头：{skipStart}s</span>
                   </div>
                   <Slider
                     value={skipStart}
@@ -567,7 +776,7 @@ const Player: React.FC = () => {
                       marginBottom: "5px",
                     }}
                   >
-                    <span>跳过片尾</span>
+                    <span>跳过片尾：{skipEnd}s</span>
                   </div>
                   <Slider
                     value={skipEnd}
@@ -738,6 +947,7 @@ const Player: React.FC = () => {
                   tracks={playlist}
                   currentTrack={currentTrack}
                   isPlaying={isPlaying}
+                  onPuse={pause}
                   onPlay={handlePlay}
                   onAddToPlaylist={openAddToPlaylistModal}
                   onToggleLike={(_, track, type) => toggleLike(track.id, type)}
@@ -763,6 +973,7 @@ const Player: React.FC = () => {
           tracks={playlist}
           currentTrack={currentTrack}
           isPlaying={isPlaying}
+          onPuse={pause}
           onPlay={handlePlay}
           onAddToPlaylist={openAddToPlaylistModal}
           onToggleLike={(_, track, type) => toggleLike(track.id, type)}

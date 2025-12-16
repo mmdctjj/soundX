@@ -12,6 +12,7 @@ import React from "react";
 import { getBaseURL } from "../../https";
 import { TrackType, type Track } from "../../models";
 import { useAuthStore } from "../../store/auth";
+import PlayingIndicator from "../PlayingIndicator";
 import styles from "./index.module.less";
 
 const { Text } = Typography;
@@ -21,6 +22,7 @@ interface QueueListProps {
   currentTrack: Track | null;
   isPlaying: boolean;
   onPlay: (track: Track) => void;
+  onPuse: (track: Track) => void;
   onToggleLike: (
     e: React.MouseEvent,
     track: Track,
@@ -42,6 +44,7 @@ export const QueueList: React.FC<QueueListProps> = ({
   currentTrack,
   isPlaying,
   onPlay,
+  onPuse,
   onToggleLike,
   onAddToPlaylist,
   className,
@@ -66,7 +69,7 @@ export const QueueList: React.FC<QueueListProps> = ({
         return (
           <List.Item
             className={styles.playlistItem}
-            onClick={() => onPlay(item)}
+            onClick={() => item.id === currentTrack?.id && isPlaying ? onPuse(item) : onPlay(item)}
             style={{
               cursor: "pointer",
               backgroundColor: isCurrent
@@ -142,6 +145,11 @@ export const QueueList: React.FC<QueueListProps> = ({
                       borderRadius: "4px",
                     }}
                   />
+                  {isCurrent && isPlaying && (
+                    <div className={styles.playIconStatus}>
+                      <PlayingIndicator />
+                    </div>
+                  )}
                   <div className={styles.playIconOverlay}>
                     {isCurrent && isPlaying ? (
                       <PauseCircleFilled className={styles.listPlayIcon} />

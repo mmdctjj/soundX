@@ -45,6 +45,7 @@ import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
+import PlayingIndicator from "../PlayingIndicator";
 import styles from "./index.module.less";
 
 export const getCoverUrl = (path?: string | null) => {
@@ -79,7 +80,8 @@ const Detail: React.FC = () => {
 
   const { token } = theme.useToken();
 
-  const { play, setPlaylist, currentTrack, toggleLike } = usePlayerStore();
+  const { play, setPlaylist, currentTrack, toggleLike, pause, isPlaying } =
+    usePlayerStore();
 
   const { mode } = usePlayMode();
 
@@ -188,6 +190,10 @@ const Detail: React.FC = () => {
   };
 
   const handlePlayTrack = (track: Track) => {
+    if (track.id === currentTrack?.id && isPlaying) {
+      pause();
+      return;
+    }
     // If track is not in current playlist (or playlist is empty), set it
     // For simplicity, we can just set the current visible tracks as playlist
     if (album) {
@@ -269,7 +275,12 @@ const Detail: React.FC = () => {
                 objectFit: "cover",
               }}
             />
-            {currentTrack?.id === record.id ? (
+            {currentTrack?.id === record.id && isPlaying && (
+              <div className={styles.playIconStatus}>
+                <PlayingIndicator />
+              </div>
+            )}
+            {currentTrack?.id === record.id && isPlaying ? (
               <PauseCircleFilled className={styles.listPlayIcon} />
             ) : (
               <PlayCircleFilled className={styles.listPlayIcon} />

@@ -25,6 +25,7 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",
     "sass": "^1.94.2",
+    "vite-plugin-svgr": "^4.5.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

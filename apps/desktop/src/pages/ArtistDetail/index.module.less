@@ -105,9 +105,23 @@
     transform: translate(-50%, -50%);
     color: aliceblue;
   }
+ .playIconStatus {
+    opacity: 0;
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    transform: translate(-50%, -50%);
+    background: aliceblue;
+    padding: 8px;
+    border-radius: 50%;
+    opacity: 0.8;
+  }
   &:hover {
     .listPlayIcon {
       opacity: 0.8;
+    }
+    .playIconStatus {
+      opacity: 0;
     }
   }
 }

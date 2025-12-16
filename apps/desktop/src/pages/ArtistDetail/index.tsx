@@ -13,6 +13,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Cover from "../../components/Cover";
 import { getCoverUrl } from "../../components/Detail";
+import PlayingIndicator from "../../components/PlayingIndicator";
 import { useMessage } from "../../context/MessageContext";
 import { getBaseURL } from "../../https";
 import { type Album, type Artist, type Track, TrackType } from "../../models";
@@ -21,6 +22,7 @@ import { getArtistById } from "../../services/artist";
 import { getTracksByArtist } from "../../services/track";
 import { usePlayerStore } from "../../store/player";
 import { formatDuration } from "../../utils/formatDuration";
+import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -32,7 +34,9 @@ const ArtistDetail: React.FC = () => {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
-  const { play, setPlaylist, currentTrack } = usePlayerStore();
+  const { mode } = usePlayMode();
+  const { play, setPlaylist, currentTrack, isPlaying, pause } =
+    usePlayerStore();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -150,100 +154,109 @@ const ArtistDetail: React.FC = () => {
         {albums.length === 0 && <Empty description="暂无专辑" />}
       </div>
 
-      <div style={{ marginTop: "48px" }}>
-        <Title level={4} className={styles.sectionTitle}>
-          所有单曲 ({tracks.length})
-        </Title>
-        <Table
-          columns={[
-            {
-              title: "#",
-              key: "index",
-              width: 80,
-              render: (_: number, __: Track, idx: number) => {
-                return <Text>{idx + 1}</Text>;
+      {mode === TrackType.MUSIC && (
+        <div style={{ marginTop: "48px" }}>
+          <Title level={4} className={styles.sectionTitle}>
+            所有单曲 ({tracks.length})
+          </Title>
+          <Table
+            columns={[
+              {
+                title: "#",
+                key: "index",
+                width: 80,
+                render: (_: number, __: Track, idx: number) => {
+                  return <Text>{idx + 1}</Text>;
+                },
               },
-            },
-            {
-              title: "封面",
-              key: "cover",
-              width: 80,
-              render: (_: number, record: Track) => {
-                return (
-                  <div
-                    style={{ position: "relative" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePlayTrack(record);
-                    }}
-                  >
-                    <img
-                      src={getCoverUrl(record.cover)}
-                      alt={record.name}
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        objectFit: "cover",
+              {
+                title: "封面",
+                key: "cover",
+                width: 80,
+                render: (_: number, record: Track) => {
+                  return (
+                    <div
+                      style={{ position: "relative" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlayTrack(record);
                       }}
-                    />
-                    {currentTrack?.id === record.id ? (
-                      <PauseCircleFilled className={styles.listPlayIcon} />
-                    ) : (
-                      <PlayCircleFilled className={styles.listPlayIcon} />
-                    )}
-                  </div>
-                );
+                    >
+                      <img
+                        src={getCoverUrl(record.cover)}
+                        alt={record.name}
+                        style={{
+                          width: "30px",
+                          height: "30px",
+                          objectFit: "cover",
+                        }}
+                      />
+                      {currentTrack?.id === record.id && isPlaying && (
+                        <div className={styles.playIconStatus}>
+                          <PlayingIndicator />
+                        </div>
+                      )}
+                      {currentTrack?.id === record.id && isPlaying ? (
+                        <PauseCircleFilled className={styles.listPlayIcon} />
+                      ) : (
+                        <PlayCircleFilled className={styles.listPlayIcon} />
+                      )}
+                    </div>
+                  );
+                },
               },
-            },
-            {
-              title: "标题",
-              dataIndex: "name",
-              key: "name",
-              ellipsis: true,
-            },
-            ...(artist?.type === TrackType.AUDIOBOOK
-              ? [
-                  {
-                    title: "进度",
-                    dataIndex: "progress",
-                    key: "progress",
-                    width: 100,
-                    render: (progress: number | undefined, record: Track) => {
-                      if (!progress) return <Text type="secondary">-</Text>;
-                      const percentage =
-                        record.duration && record.duration > 0
-                          ? Math.round((progress / record.duration) * 100)
-                          : 0;
-                      return (
-                        <Text type="secondary" style={{ fontSize: "10px" }}>
-                          {percentage}%
-                        </Text>
-                      );
-                    },
-                  } as unknown as any,
-                ]
-              : []),
-            {
-              title: "时长",
-              dataIndex: "duration",
-              key: "duration",
-              width: 100,
-              render: (duration: number) => (
-                <Text type="secondary">{formatDuration(duration)}</Text>
-              ),
-            },
-          ]}
-          dataSource={tracks}
-          pagination={false}
-          onRow={(record) => ({
-            onClick: () => handlePlayTrack(record),
-            style: { cursor: "pointer" },
-          })}
-          rowClassName={(record) =>
-            currentTrack?.id === record.id ? styles.listCover : styles.listCover
-          }
-        />
-      </div>
+              {
+                title: "标题",
+                dataIndex: "name",
+                key: "name",
+                ellipsis: true,
+              },
+              ...(artist?.type === TrackType.AUDIOBOOK
+                ? [
+                    {
+                      title: "进度",
+                      dataIndex: "progress",
+                      key: "progress",
+                      width: 100,
+                      render: (progress: number | undefined, record: Track) => {
+                        if (!progress) return <Text type="secondary">-</Text>;
+                        const percentage =
+                          record.duration && record.duration > 0
+                            ? Math.round((progress / record.duration) * 100)
+                            : 0;
+                        return (
+                          <Text type="secondary" style={{ fontSize: "10px" }}>
+                            {percentage}%
+                          </Text>
+                        );
+                      },
+                    } as unknown as any,
+                  ]
+                : []),
+              {
+                title: "时长",
+                dataIndex: "duration",
+                key: "duration",
+                width: 100,
+                render: (duration: number) => (
+                  <Text type="secondary">{formatDuration(duration)}</Text>
+                ),
+              },
+            ]}
+            dataSource={tracks}
+            pagination={false}
+            onRow={(record) => ({
+              onClick: () => (isPlaying ? pause() : handlePlayTrack(record)),
+              style: { cursor: "pointer" },
+            })}
+            rowClassName={(record) =>
+              currentTrack?.id === record.id
+                ? styles.listCover
+                : styles.listCover
+            }
+          />
+        </div>
+      )}
     </div>
   );
 };
