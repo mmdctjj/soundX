@@ -16,6 +16,10 @@ export class TrackService {
   async findByPath(path: string): Promise<Track | null> {
     return await this.prisma.track.findFirst({
       where: { path },
+      include: {
+        artistEntity: true,
+        albumEntity: true,
+      },
     });
   }
 
@@ -46,6 +50,10 @@ export class TrackService {
       ],
       skip: skip,
       take: pageSize,
+      include: {
+        artistEntity: true,
+        albumEntity: true,
+      },
     });
 
     return await this.attachProgressToTracks(tracks, userId || 1);
@@ -74,6 +82,10 @@ export class TrackService {
     return await this.prisma.track.findMany({
       skip: (current - 1) * pageSize,
       take: pageSize,
+      include: {
+        artistEntity: true,
+        albumEntity: true,
+      },
     });
   }
 
@@ -81,6 +93,10 @@ export class TrackService {
     return await this.prisma.track.findMany({
       skip: loadCount * pageSize,
       take: pageSize,
+      include: {
+        artistEntity: true,
+        albumEntity: true,
+      },
     });
   }
 
@@ -148,6 +164,10 @@ export class TrackService {
       },
       take: limit,
       orderBy: { id: 'desc' },
+      include: {
+        artistEntity: true,
+        albumEntity: true,
+      },
     });
   }
 
@@ -157,6 +177,10 @@ export class TrackService {
       where: type ? { type } : {},
       take: limit,
       orderBy: { id: 'desc' },
+      include: {
+        artistEntity: true,
+        albumEntity: true,
+      },
     });
   }
 
@@ -165,6 +189,10 @@ export class TrackService {
     const tracks = await this.prisma.track.findMany({
       where: { artist },
       orderBy: { id: 'desc' },
+      include: {
+        artistEntity: true,
+        albumEntity: true,
+      },
     });
     return await this.attachProgressToTracks(tracks, 1);
   }

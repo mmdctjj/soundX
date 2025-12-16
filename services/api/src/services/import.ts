@@ -174,6 +174,8 @@ export class ImportService {
           createdAt: new Date(),
           fileModifiedAt: item.mtime ? new Date(item.mtime) : null,
           episodeNumber: extractEpisodeNumber(item.title),
+          artistId: artist.id,
+          albumId: album.id,
         });
         task.current = (task.current || 0) + 1;
       };

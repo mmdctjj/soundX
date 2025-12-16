@@ -31,6 +31,13 @@ model Track {
   createdAt DateTime @default(now())
   fileModifiedAt DateTime?
   episodeNumber Int? @default(0)
+  
+  // Relations to entity tables (Optional for compatibility with existing string fields)
+  artistId  Int?
+  artistEntity Artist? @relation(fields: [artistId], references: [id])
+  albumId   Int?
+  albumEntity Album? @relation(fields: [albumId], references: [id])
+
   /// 🔁 反向关系
   likedByUsers    UserTrackLike[]
   listenedByUsers UserTrackHistory[]
@@ -46,6 +53,9 @@ model Album {
   cover  String?
   year   String?
   type   TrackType @default(MUSIC)
+  
+  tracks Track[] 
+
   /// 🔁 反向关系
   likedByUsers    UserAlbumLike[]
   listenedByUsers UserAlbumHistory[]
@@ -56,6 +66,8 @@ model Artist {
   name   String
   avatar String?
   type   TrackType @default(MUSIC)
+
+  tracks Track[]
 }
 
 model UserTrackLike {
