@@ -26,6 +26,11 @@ const LoginModal: React.FC = () => {
 
   // Load saved credentials on mount
   useEffect(() => {
+    const savedAddress = localStorage.getItem("serverAddress");
+    if (savedAddress) {
+      loginForm.setFieldsValue({ serverAddress: savedAddress });
+    }
+
     const savedCredentials = localStorage.getItem(REMEMBER_ME_KEY);
     if (savedCredentials) {
       try {

@@ -1,6 +1,20 @@
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from 'electron';
 import { fileURLToPath } from 'node:url';
+import os from "os";
 import path from 'path';
+
+function getDeviceName() {
+  const hostname = os.hostname().replace(/\.local$/, "");
+  const platform = process.platform;
+
+  if (platform === "darwin") return `${hostname}（Mac）`;
+  if (platform === "win32") return `${hostname}（Windows）`;
+  return hostname;
+}
+
+ipcMain.handle("get-device-name", () => {
+    return getDeviceName();
+  });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -97,6 +111,8 @@ function createWindow() {
     vibrancy: "popover",
     visualEffectState: "active",
     webPreferences: {
+      contextIsolation: true,   // 明确开启
+      nodeIntegration: false,  // 保持安全
       preload: path.join(__dirname, "preload.mjs"),
     },
   });

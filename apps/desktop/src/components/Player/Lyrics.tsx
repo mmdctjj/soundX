@@ -84,7 +84,7 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
       const container = containerRef.current;
       const line = lineRefs.current[activeIndex];
 
-      if (line) {
+      if (line && window?.ipcRenderer) {
         window?.ipcRenderer.send("lyric:update", {
           currentLyric: parsedLyrics[activeIndex]?.text || "",
         });

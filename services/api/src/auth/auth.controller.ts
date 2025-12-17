@@ -4,20 +4,30 @@ import { IErrorResponse, IParamsErrorResponse, ISuccessResponse } from 'src/comm
 import { Public } from '../common/public.decorator';
 import { AuthService } from './auth.service';
 
+import { UserService } from '../services/user';
+
 @Controller()
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) { }
 
   @Public()
   @Post('/auth/login')
   async login(
-    @Body() user: User,
+    @Body() body: User & { deviceName?: string },
   ): Promise<ISuccessResponse<User & { token: string }> | IErrorResponse> {
     const userInfo = await this.authService.validateUser(
-      user.username,
-      user.password,
+      body.username,
+      body.password,
     );
     if (userInfo) {
+      // 如果提供了设备名称，保存设备信息
+      if (body.deviceName) {
+        await this.userService.saveDevice(userInfo.id, body.deviceName);
+      }
+
       // 生成token
       const token = this.authService.login(userInfo);
       return {

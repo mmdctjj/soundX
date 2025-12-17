@@ -33,4 +33,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
 
   // You can expose other APTs you need here.
   platform: process.platform,
+  getName: async () => {
+    console.log("getName");
+    return await ipcRenderer.invoke("get-device-name")
+  },
 })

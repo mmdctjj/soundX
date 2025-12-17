@@ -20,10 +20,26 @@ const Listened = lazy(() => import("./pages/Listened"));
 const PlaylistDetail = lazy(() => import("./pages/PlaylistDetail"));
 const Detail = lazy(() => import("./components/Detail/index"));
 
+import { useEffect } from "react";
+import InviteListener from "./components/InviteListener";
+import { socketService } from "./services/socket";
+import { useAuthStore } from "./store/auth";
+
+// ... existing imports
+
 const AppContent = () => {
   const { mode } = useTheme();
   const themeConfig = getThemeConfig(mode === "auto" ? "dark" : mode);
   const [messageApi, contextHolder] = message.useMessage();
+  const { token, user } = useAuthStore();
+
+  useEffect(() => {
+    if (token && user) {
+      socketService.connect();
+    } else {
+      socketService.disconnect();
+    }
+  }, [token, user]);
 
   return (
     <ConfigProvider theme={themeConfig} locale={zhCN}>
@@ -94,6 +110,7 @@ const AppContent = () => {
           <Player />
         </div>
         <LoginModal />
+        <InviteListener />
       </MessageProvider>
     </ConfigProvider>
   );

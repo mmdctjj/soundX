@@ -9,6 +9,7 @@ import Icon, {
   SoundOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -25,6 +26,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ClockOutlined from "../../assets/clock.svg?react";
 import LoopOutlined from "../../assets/loop.svg?react";
 import MusiclistOutlined from "../../assets/musiclist.svg?react";
@@ -39,12 +41,16 @@ import {
   getPlaylists,
   type Playlist,
 } from "../../services/playlist";
+import { socketService } from "../../services/socket";
+import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
+import { useSyncStore } from "../../store/sync";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
+import UserSelectModal from "../UserSelectModal";
 import styles from "./index.module.less";
 import Lyrics from "./Lyrics";
-import { QueueList } from "./QueueList"; // Added as per instruction
+import { QueueList } from "./QueueList";
 
 const { Text, Title } = Typography;
 
@@ -103,6 +109,10 @@ const Player: React.FC = () => {
   });
   const [activeTab, setActiveTab] = useState<"playlist" | "lyrics">("playlist");
 
+  const navigator = useNavigate();
+
+  const [modalApi, modalContextHolder] = Modal.useModal();
+
   // Sleep Timer State
   const [sleepTimerMode, setSleepTimerMode] = useState<
     "off" | "time" | "count" | "current"
@@ -122,6 +132,132 @@ const Player: React.FC = () => {
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
+  // Upgrade: Invite User Modal
+  const [isUserSelectModalOpen, setIsUserSelectModalOpen] = useState(false);
+
+  // Sync Logic
+  const { isSynced, sessionId, setSynced } = useSyncStore();
+  const isProcessingSync = useRef(false);
+
+  useEffect(() => {
+    // Listen for sync session start
+    const handleSessionStarted = (payload: any) => {
+      message.success("同步播放已开启");
+      setSynced(true, payload.sessionId);
+      
+      // Block broadcast temporarily to allow local state (like play) to settle
+      // preventing the "Sender is paused -> Broadcast Pause -> Receiver Pauses" race condition.
+      isProcessingSync.current = true;
+      setTimeout(() => {
+          isProcessingSync.current = false;
+      }, 500);
+    };
+
+    const handleSessionEnded = (payload: any) => {
+      console.log("handleSessionEnded", payload);
+      message.info("对方已结束一起听");
+      setSynced(false, null);
+      // Optionally pause or continue? Usually continue is fine.
+    };
+
+    const handleSyncEvent = (payload: any) => {
+      if (payload.senderId === useAuthStore.getState().user?.id) return;
+
+      isProcessingSync.current = true;
+      //  type: 'play' | 'pause' | 'seek' | 'track_change'
+      switch (payload.type) {
+        case "play":
+          if (!usePlayerStore.getState().isPlaying) play();
+          break;
+        case "pause":
+          if (usePlayerStore.getState().isPlaying) pause();
+          break;
+        case "seek":
+          if (
+            audioRef.current &&
+            Math.abs(audioRef.current.currentTime - payload.data) > 1
+          ) {
+            audioRef.current.currentTime = payload.data;
+            setCurrentTime(payload.data);
+          }
+          break;
+        case "track_change":
+          // This is complex. We need track object.
+          // Simplified: payload.data should be track object
+          if (currentTrack?.id !== payload.data.id) {
+            play(payload.data);
+          }
+          break;
+      }
+
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isProcessingSync.current = false;
+      }, 300);
+    };
+
+    socketService.on("sync_session_started", handleSessionStarted);
+    socketService.on("session_ended", handleSessionEnded);
+    socketService.on("sync_event", handleSyncEvent);
+
+    return () => {
+      socketService.off("sync_session_started", handleSessionStarted);
+      socketService.off("session_ended", handleSessionEnded);
+      socketService.off("sync_event", handleSyncEvent);
+    };
+  }, [play, pause, setCurrentTime, setSynced, currentTrack]);
+
+  const handleDisconnect = () => {
+    modalApi.confirm({
+      title: "结束一起听",
+      content: "确定要断开连接吗？对方将收到断开提示。",
+      okText: "确定",
+      cancelText: "取消",
+      onOk: () => {
+        if (sessionId) {
+          socketService.emit("leave_session", { sessionId });
+          setSynced(false, null);
+          message.success("已结束一起听");
+        }
+      },
+    });
+  };
+
+  // Broadcast adjustments
+  useEffect(() => {
+    // Avoid broadcasting immediately after sync event reception or initial load
+    if (isSynced && sessionId && !isProcessingSync.current) {
+        
+        // Also, ensuring we don't spam.
+        const emit = () => {
+             if (isPlaying) {
+                socketService.emit("sync_command", {
+                  sessionId,
+                  type: "play",
+                  data: null,
+                });
+              } else {
+                socketService.emit("sync_command", {
+                  sessionId,
+                  type: "pause",
+                  data: null,
+                });
+              }
+        };
+        emit();
+    }
+  }, [isPlaying, isSynced, sessionId]);
+
+  useEffect(() => {
+    if (isSynced && sessionId && !isProcessingSync.current && currentTrack) {
+      socketService.emit("sync_command", {
+        sessionId,
+        type: "track_change",
+        data: currentTrack,
+      });
+    }
+  }, [currentTrack?.id, isSynced, sessionId]);
+
   // Sync volume with audio element
   useEffect(() => {
     if (audioRef.current) {
@@ -129,7 +265,7 @@ const Player: React.FC = () => {
     }
   }, [volume]);
 
-  // Handle play/pause
+  // Handle play/pause and initial seek
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -140,8 +276,20 @@ const Player: React.FC = () => {
       } else {
         audioRef.current.pause();
       }
+      
+      if (Math.abs(audioRef.current.currentTime - currentTime) > 2) {
+          audioRef.current.currentTime = currentTime;
+      }
     }
   }, [isPlaying, currentTrack]);
+  
+  useEffect(() => {
+      if (audioRef.current && currentTrack && currentTime > 0 && Math.abs(audioRef.current.currentTime - currentTime) > 1) {
+          // This handles the case where we start a track with a specific progress
+           audioRef.current.currentTime = currentTime;
+      }
+  }, [currentTrack?.id]);
+
 
   // Save settings
   useEffect(() => {
@@ -184,10 +332,13 @@ const Player: React.FC = () => {
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
-      // Restore saved progress if meaningful
+      
+      // Critical for Sync: If store has a specific currentTime (set by play or sync), apply it now.
+      // We prioritize valid currentTime > 0.
       if (currentTime > 0) {
         audioRef.current.currentTime = currentTime;
       } else if (appMode === TrackType.AUDIOBOOK && skipStart > 0) {
+        // Fallback to skipStart for audiobooks if no specific time
         audioRef.current.currentTime = skipStart;
       }
 
@@ -577,6 +728,18 @@ const Player: React.FC = () => {
       {/* Controls */}
       <div className={styles.controls}>
         <div className={styles.controlButtons}>
+          <TeamOutlined
+            className={styles.controlIcon}
+            onClick={() => {
+              if (isSynced) {
+                handleDisconnect();
+              } else {
+                if (isPlaying) pause();
+                setIsUserSelectModalOpen(true);
+              }
+            }}
+            style={{ color: isSynced ? token.colorPrimary : undefined }}
+          />
           <StepBackwardOutlined className={styles.controlIcon} onClick={prev} />
           <div onClick={togglePlay} style={{ cursor: "pointer" }}>
             {isPlaying ? (
@@ -797,6 +960,17 @@ const Player: React.FC = () => {
           </Popover>
         )}
 
+        <UserSelectModal
+          visible={isUserSelectModalOpen}
+          onCancel={() => setIsUserSelectModalOpen(false)}
+          onSessionStart={() => {
+            setIsUserSelectModalOpen(false);
+            play();
+          }}
+        />
+
+        {/* Playlist Modal */}
+
         {/* Playlist */}
         {renderPlaylistButton(styles.settingIcon)}
       </div>
@@ -910,7 +1084,61 @@ const Player: React.FC = () => {
               {currentTrack?.name || "No Track"}
             </Title>
             <Text type="secondary">
-              {currentTrack?.artist || "Unknown Artist"}
+              <Flex
+                justify={appMode !== TrackType.MUSIC ? "start" : "center"}
+                gap={16}
+              >
+                <Flex
+                  align="center"
+                  justify={appMode !== TrackType.MUSIC ? "start" : "center"}
+                  gap={8}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setIsFullPlayerVisible(false);
+                    navigator(`/artist/${currentTrack?.artistEntity?.id}`);
+                  }}
+                >
+                  <img
+                    src={getCoverUrl(
+                      currentTrack?.artistEntity?.avatar,
+                      currentTrack?.id
+                    )}
+                    alt="Current Cover"
+                    style={{
+                      width: "15px",
+                      height: "15px",
+                      borderRadius: "50%",
+                    }}
+                  />
+                  <Text ellipsis>
+                    {currentTrack?.artist || "Unknown Artist"}
+                  </Text>
+                </Flex>
+                <Flex
+                  align="center"
+                  justify={appMode !== TrackType.MUSIC ? "start" : "center"}
+                  gap={8}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setIsFullPlayerVisible(false);
+                    navigator(`/detail?id=${currentTrack?.albumEntity?.id}`);
+                  }}
+                >
+                  <img
+                    src={getCoverUrl(
+                      currentTrack?.albumEntity?.cover,
+                      currentTrack?.id
+                    )}
+                    alt="Current Cover"
+                    style={{
+                      width: "15px",
+                      height: "15px",
+                      borderRadius: "1px",
+                    }}
+                  />
+                  <Text ellipsis>{currentTrack?.album || "Unknown Album"}</Text>
+                </Flex>
+              </Flex>
             </Text>
           </div>
 
@@ -963,6 +1191,8 @@ const Player: React.FC = () => {
           </div>
         </div>
       </Drawer>
+
+      {modalContextHolder}
 
       <Drawer
         title={`播放列表 (${playlist.length})`}

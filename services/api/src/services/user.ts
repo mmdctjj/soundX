@@ -62,4 +62,31 @@ export class UserService {
       where: { username },
     });
   }
+
+  async saveDevice(userId: number, deviceName: string) {
+    // 查找当前用户的该设备是否存在
+    const device = await this.prisma.device.findFirst({
+      where: {
+        userId,
+        name: deviceName,
+      },
+    });
+
+    if (device) {
+      // 如果存在，更新在线状态
+      return await this.prisma.device.update({
+        where: { id: device.id },
+        data: { isOnline: true },
+      });
+    } else {
+      // 如果不存在，创建新设备
+      return await this.prisma.device.create({
+        data: {
+          userId,
+          name: deviceName,
+          isOnline: true,
+        },
+      });
+    }
+  }
 }

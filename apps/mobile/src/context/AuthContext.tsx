@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Device from 'expo-device';
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { initBaseURL } from "../https";
 import { User } from "../models";
@@ -56,7 +57,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = async (credentials: Partial<User>) => {
     try {
-      const res = await loginApi(credentials);
+      const deviceName = Device.modelName || 'Mobile Device';
+      const res = await loginApi({ ...credentials, deviceName });
       if (res.code === 200 && res.data) {
         const { token: newToken, ...userData } = res.data;
         setToken(newToken);

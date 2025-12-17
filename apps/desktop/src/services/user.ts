@@ -67,3 +67,7 @@ export const getTrackHistory = (loadCount: number, pageSize: number) => {
     params: { pageSize, loadCount: loadCount, userId: getUserId() },
   });
 };
+
+export const getUserList = () => {
+  return request.get<any, ISuccessResponse<any[]>>("/user/list");
+};

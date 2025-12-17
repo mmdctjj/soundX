@@ -21,6 +21,7 @@ import { UserAudiobookHistoryController } from './controllers/user-audiobook-his
 import { UserAudiobookLikeController } from './controllers/user-audiobook-like';
 import { UserTrackHistoryController } from './controllers/user-track-history';
 import { UserTrackLikeController } from './controllers/user-track-like';
+import { SyncGateway } from './gateways/sync.gateway';
 import { ResponseInterceptor } from './interceptors/response.interceptor';
 import { AlbumService } from './services/album';
 import { ArtistService } from './services/artist';
@@ -101,6 +102,7 @@ import { UserTrackLikeService } from './services/user-track-like';
     },
     AudiobookService,
     PlaylistService,
+    SyncGateway,
   ],
 })
 export class AppModule { }

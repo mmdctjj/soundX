@@ -26,5 +26,9 @@ electron.contextBridge.exposeInMainWorld("ipcRenderer", {
     return electron.ipcRenderer.invoke(channel, ...omit);
   },
   // You can expose other APTs you need here.
-  platform: process.platform
+  platform: process.platform,
+  getName: async () => {
+    console.log("getName");
+    return await electron.ipcRenderer.invoke("get-device-name");
+  }
 });

@@ -48,7 +48,9 @@ export interface Track {
   name: string;
   path: string;
   artist: string;
+  artistEntity: Artist;
   album: string;
+  albumEntity: Album;
   cover: string | null;
   duration: number | null;
   lyrics: string | null;

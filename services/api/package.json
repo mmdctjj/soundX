@@ -27,7 +27,9 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-socket.io": "^11.1.9",
     "@nestjs/swagger": "^11.1.5",
+    "@nestjs/websockets": "^11.1.9",
     "@soundx/db": "workspace:*",
     "@soundx/utils": "workspace:*",
     "nestjs-pino": "^4.5.0",
@@ -35,7 +37,8 @@
     "passport-jwt": "^4.0.1",
     "pino-http": "^11.0.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

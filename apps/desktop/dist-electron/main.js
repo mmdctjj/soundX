@@ -1,6 +1,17 @@
-import { app, ipcMain, BrowserWindow, Menu, Tray, nativeImage } from "electron";
+import { ipcMain, app, BrowserWindow, Menu, Tray, nativeImage } from "electron";
 import { fileURLToPath } from "node:url";
+import os from "os";
 import path from "path";
+function getDeviceName() {
+  const hostname = os.hostname().replace(/\.local$/, "");
+  const platform = process.platform;
+  if (platform === "darwin") return `${hostname}（Mac）`;
+  if (platform === "win32") return `${hostname}（Windows）`;
+  return hostname;
+}
+ipcMain.handle("get-device-name", () => {
+  return getDeviceName();
+});
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
 process.env.DIST = path.join(__dirname$1, "../dist");
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
@@ -77,6 +88,10 @@ function createWindow() {
     vibrancy: "popover",
     visualEffectState: "active",
     webPreferences: {
+      contextIsolation: true,
+      // 明确开启
+      nodeIntegration: false,
+      // 保持安全
       preload: path.join(__dirname$1, "preload.mjs")
     }
   });
