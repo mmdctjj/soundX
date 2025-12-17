@@ -63,6 +63,12 @@ export class UserService {
     });
   }
 
+  async getUserById(id: number): Promise<User | null> {
+    return await this.prisma.user.findUnique({
+      where: { id },
+    });
+  }
+
   async saveDevice(userId: number, deviceName: string) {
     // 查找当前用户的该设备是否存在
     const device = await this.prisma.device.findFirst({

@@ -9,12 +9,14 @@ const { Text } = Typography;
 
 const InviteContent: React.FC<{
   fromUserId: number;
+  fromUsername?: string;
+  fromDeviceName?: string;
   currentTrack?: Track;
-}> = ({ fromUserId, currentTrack }) => {
+}> = ({ fromUserId, fromUsername, fromDeviceName, currentTrack }) => {
   return (
     <div>
       <div style={{ marginBottom: 12 }}>
-        <Text strong>用户 {fromUserId}</Text> 邀请你一同听歌
+        <Text strong>{fromUsername || `用户 ${fromUserId}`} {fromDeviceName ? `(${fromDeviceName})` : ''}</Text> 邀请你一同听歌
       </div>
       {currentTrack && (
         <div
@@ -76,16 +78,20 @@ const InviteListener: React.FC = () => {
   useEffect(() => {
     const handleInviteReceived = (payload: {
       fromUserId: number;
+      fromUsername?: string;
+      fromDeviceName?: string;
+      fromSocketId?: string;
       currentTrack?: Track;
       playlist?: Track[];
       progress?: number;
     }) => {
       console.log("InviteListener", payload);
-      const key = `invite-${payload.fromUserId}-${Date.now()}`;
+      const key = `invite-${payload.fromUserId}`; // Fixed key to prevent duplicates
 
       const handleRespond = (accept: boolean) => {
         socketService.emit("respond_invite", {
           fromUserId: payload.fromUserId,
+          fromSocketId: payload.fromSocketId,
           accept,
         });
         api.destroy(key);
@@ -103,6 +109,16 @@ const InviteListener: React.FC = () => {
           }
         }
       };
+      
+      // Auto-close if handled elsewhere
+      const handleInviteHandled = (evtPayload: { fromUserId: number }) => {
+           if (evtPayload.fromUserId === payload.fromUserId) {
+               api.destroy(key);
+               // socketService.off logic handled in cleanup? 
+               // This is a one-time listener per notification, effectively.
+           }
+      };
+      socketService.on("invite_handled", handleInviteHandled);
 
       const btn = (
         <Space>
@@ -124,6 +140,8 @@ const InviteListener: React.FC = () => {
         description: (
           <InviteContent
             fromUserId={payload.fromUserId}
+            fromUsername={payload.fromUsername}
+            fromDeviceName={payload.fromDeviceName}
             currentTrack={payload.currentTrack}
           />
         ),
@@ -133,6 +151,9 @@ const InviteListener: React.FC = () => {
         duration: 60, // Keep open until user interacts or manually closed by timer
         btn,
         placement: "topRight",
+        onClose: () => {
+            socketService.off("invite_handled", handleInviteHandled);
+        }
       });
     };
 
