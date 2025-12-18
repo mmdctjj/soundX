@@ -58,13 +58,14 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       const handleSessionStarted = (payload: { sessionId: string }) => {
+        console.log("Session started:", payload.sessionId);
         setIsSynced(true);
         setSessionId(payload.sessionId);
       };
 
-      const handleInviteHandled = (payload: { sessionId: string }) => {
+      const handleInviteHandled = (payload: { fromUserId: number }) => {
           // If another device handled this invite, remove it locally
-          setInvites(prev => prev.filter(i => i.sessionId !== payload.sessionId));
+          setInvites(prev => prev.filter(i => i.fromUserId !== payload.fromUserId));
       };
 
       socketService.on('invite_received', handleInviteReceived);

@@ -287,20 +287,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   // Sync Event Handlers - only active when synced
   useEffect(() => {
     if (isSynced && sessionId) {
-        isProcessingSync.current = true;
-        
-        const handleSessionStarted = () => {
-          if (lastAcceptedInvite) {
-            console.log("Recieved session started, applying invite context");
-            if (lastAcceptedInvite.playlist) {
-              setTrackList(lastAcceptedInvite.playlist);
-            }
-            if (lastAcceptedInvite.currentTrack) {
-              playTrack(lastAcceptedInvite.currentTrack, lastAcceptedInvite.progress);
-            }
-          }
-        };
-
         const handleSyncEvent = (payload: { type: string; data: any; fromUserId: number }) => {
           if (payload.fromUserId === user?.id) return;
           
@@ -355,15 +341,26 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
       socketService.on('sync_event', handleSyncEvent);
       socketService.on('request_initial_state', handleRequestInitialState);
-      socketService.on('sync_session_started', handleSessionStarted);
 
       return () => {
         socketService.off('sync_event', handleSyncEvent);
         socketService.off('request_initial_state', handleRequestInitialState);
-        socketService.off('sync_session_started', handleSessionStarted);
       };
     }
   }, [isSynced, sessionId, currentTrack, isPlaying, position]);
+
+  // Handle initial playback when session starts (for invited users)
+  useEffect(() => {
+    if (isSynced && lastAcceptedInvite && !currentTrack) {
+      console.log("Applying invite context: playlist and track");
+      if (lastAcceptedInvite.playlist) {
+        setTrackList(lastAcceptedInvite.playlist);
+      }
+      if (lastAcceptedInvite.currentTrack) {
+        playTrack(lastAcceptedInvite.currentTrack, lastAcceptedInvite.progress);
+      }
+    }
+  }, [isSynced, lastAcceptedInvite]);
 
   // Global session event handlers - always active
   useEffect(() => {
