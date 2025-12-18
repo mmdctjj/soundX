@@ -17,6 +17,7 @@ interface SyncInvite {
   fromSocketId: string;
   sessionId: string;
   currentTrack?: Track;
+  playlist?: Track[];
   progress?: number;
   timestamp: Date;
 }
@@ -26,6 +27,7 @@ interface SyncContextType {
   sessionId: string | null;
   participants: Participant[];
   invites: SyncInvite[];
+  lastAcceptedInvite: SyncInvite | null;
   setSynced: (synced: boolean, sessionId: string | null) => void;
   setParticipants: (participants: Participant[]) => void;
   removeInvite: (sessionId: string) => void;
@@ -41,6 +43,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [invites, setInvites] = useState<SyncInvite[]>([]);
+  const [lastAcceptedInvite, setLastAcceptedInvite] = useState<SyncInvite | null>(null);
 
   useEffect(() => {
     if (user && token) {
@@ -96,7 +99,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sessionId: invite.sessionId,
         accept: true
     });
-    removeInvite(invite.sessionId);
+    setLastAcceptedInvite(invite);
     setSynced(true, invite.sessionId);
   };
 
@@ -116,6 +119,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sessionId, 
         participants, 
         invites, 
+        lastAcceptedInvite,
         setSynced, 
         setParticipants, 
         removeInvite,

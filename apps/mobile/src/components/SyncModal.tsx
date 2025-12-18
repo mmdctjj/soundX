@@ -28,7 +28,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const { user: currentUser } = useAuth();
-  const { currentTrack, position } = usePlayer();
+  const { currentTrack, position, trackList } = usePlayer();
   const { isSynced, sessionId } = useSync();
   const { colors } = useTheme();
 
@@ -68,6 +68,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
     socketService.emit('invite', {
       targetUserIds: Array.from(selectedUserIds),
       currentTrack,
+      playlist: trackList,
       progress: position,
       sessionId: sessionId || `sync_${currentUser?.id}_${Date.now()}`
     });

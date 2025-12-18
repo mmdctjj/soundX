@@ -1,9 +1,11 @@
 import { Audio, AVPlaybackStatus } from "expo-av";
+import * as Device from "expo-device";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import { getBaseURL } from "../https";
 import type { Track } from "../models";
 import { socketService } from "../services/socket";
+import { addToHistory, getLatestHistory } from "../services/user";
 import { useAuth } from "./AuthContext";
 import { useSync } from "./SyncContext";
 
@@ -179,7 +181,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const playTrack = async (track: Track) => {
+  const playTrack = async (track: Track, initialPosition?: number) => {
     try {
       if (sound) {
         await sound.unloadAsync();
@@ -198,7 +200,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setSound(newSound);
       setCurrentTrack(track);
-      broadcastSync('track_change', track);
+      if (initialPosition) {
+        await newSound.setPositionAsync(initialPosition * 1000);
+      }
     } catch (error) {
       console.error("Failed to play track:", error);
     }
@@ -224,14 +228,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const pause = async () => {
     if (sound) {
       await sound.pauseAsync();
-      broadcastSync('pause');
     }
   };
 
   const resume = async () => {
     if (sound) {
       await sound.playAsync();
-      broadcastSync('play');
     }
   };
 
@@ -251,31 +253,55 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const recordHistory = async () => {
+    if (currentTrack && user) {
+      const deviceName = Device.modelName || "Mobile Device";
+      await addToHistory(currentTrack.id, user.id, position, deviceName, isSynced);
+    }
+  };
+
   const isProcessingSync = useRef(false);
-  const { isSynced, sessionId, setSynced, setParticipants } = useSync();
+  const { isSynced, sessionId, setSynced, setParticipants, lastAcceptedInvite } = useSync();
 
   // Sync Event Handlers
   useEffect(() => {
     if (isSynced && sessionId) {
-      const handleSyncEvent = (payload: { type: string; data: any; fromUserId: number }) => {
-        if (payload.fromUserId === user?.id) return;
-        
         isProcessingSync.current = true;
         
-        switch (payload.type) {
-          case 'play':
-            resume();
-            break;
-          case 'pause':
-            pause();
-            break;
-          case 'seek':
-            seekTo(payload.data);
-            break;
-          case 'track_change':
-            playTrack(payload.data);
-            break;
-          case 'leave':
+        const handleSessionStarted = () => {
+          if (lastAcceptedInvite) {
+            console.log("Recieved session started, applying invite context");
+            if (lastAcceptedInvite.playlist) {
+              setTrackList(lastAcceptedInvite.playlist);
+            }
+            if (lastAcceptedInvite.currentTrack) {
+              playTrack(lastAcceptedInvite.currentTrack, lastAcceptedInvite.progress);
+            }
+          }
+        };
+
+        const handleSyncEvent = (payload: { type: string; data: any; fromUserId: number }) => {
+          if (payload.fromUserId === user?.id) return;
+          
+          isProcessingSync.current = true;
+          
+          switch (payload.type) {
+            case 'play':
+              resume();
+              break;
+            case 'pause':
+              pause();
+              break;
+            case 'seek':
+              seekTo(payload.data);
+              break;
+            case 'track_change':
+              playTrack(payload.data);
+              break;
+            case 'playlist':
+              setTrackList(payload.data);
+              break;
+            case 'leave':
             console.log("Participant left the session");
             Alert.alert("同步状态", "对方已断开同步连接");
             // Optionally: if the last participant left, end session?
@@ -321,12 +347,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       socketService.on('request_initial_state', handleRequestInitialState);
       socketService.on('session_ended', handleSessionEnded);
       socketService.on('player_left', handlePlayerLeft);
+      socketService.on('sync_session_started', handleSessionStarted);
 
       return () => {
         socketService.off('sync_event', handleSyncEvent);
         socketService.off('request_initial_state', handleRequestInitialState);
         socketService.off('session_ended', handleSessionEnded);
         socketService.off('player_left', handlePlayerLeft);
+        socketService.off('sync_session_started', handleSessionStarted);
       };
     }
   }, [isSynced, sessionId, currentTrack, isPlaying, position]);
@@ -351,6 +379,64 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     }
   }, [currentTrack?.id, isSynced, sessionId]);
+
+  useEffect(() => {
+    if (isSynced && sessionId && !isProcessingSync.current && trackList.length > 0) {
+      socketService.emit('sync_command', {
+        sessionId,
+        type: 'playlist',
+        data: trackList
+      });
+    }
+  }, [trackList, isSynced, sessionId]);
+
+  // History Recording
+  useEffect(() => {
+    if (currentTrack) {
+        recordHistory();
+    }
+  }, [currentTrack?.id]);
+
+  useEffect(() => {
+    if (!isPlaying && isLoaded) {
+        recordHistory();
+    }
+  }, [isPlaying]);
+
+  // Check Resume on mount
+  useEffect(() => {
+    if (user) {
+        const checkResume = async () => {
+            try {
+                const res = await getLatestHistory(user.id);
+                if (res.code === 200 && res.data) {
+                    const history = res.data;
+                    const deviceName = Device.modelName || "Mobile Device";
+                    
+                    const diff = new Date().getTime() - new Date(history.listenedAt).getTime();
+                    const isRecent = diff < 24 * 60 * 60 * 1000;
+                    const isOtherDevice = history.deviceName !== deviceName;
+
+                    if (isRecent && isOtherDevice && history.track) {
+                        Alert.alert(
+                            "继续播放",
+                            `发现在设备 ${history.deviceName} 上的播放记录，是否从 ${Math.floor(history.progress / 60)}:${Math.floor(history.progress % 60).toString().padStart(2, '0')} 继续播放 ${history.track.name}?`,
+                            [
+                                { text: "取消", style: "cancel" },
+                                { text: "确定", onPress: () => playTrack(history.track, history.progress) }
+                            ]
+                        );
+                    }
+                }
+            } catch (e) {
+                console.error("Check resume error", e);
+            }
+        };
+        checkResume();
+    }
+  }, [user?.id]);
+
+  const isLoaded = !!sound;
 
   return (
     <PlayerContext.Provider
