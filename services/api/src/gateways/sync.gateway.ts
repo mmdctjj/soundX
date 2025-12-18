@@ -203,6 +203,44 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  @SubscribeMessage('player_left')
+  async handlePlayerLeft(client: Socket, payload: { sessionId: string }) {
+    const userId = parseInt(client.handshake.query.userId as string, 10);
+    const meta = this.socketMetadata.get(client.id);
+    const deviceName = meta?.deviceName || 'Unknown Device';
+    
+    // Get username
+    let username = `User ${userId}`;
+    try {
+      const user = await this.userService.getUserById(userId);
+      username = user?.username || username;
+    } catch (e) {
+      console.error('Failed to get username:', e);
+    }
+
+    console.log(`Player ${username} (${deviceName}) left session ${payload.sessionId}`);
+    
+    // Leave the room
+    client.leave(payload.sessionId);
+    
+    // Notify other participants
+    this.server.to(payload.sessionId).emit('player_left', {
+      userId,
+      username,
+      deviceName
+    });
+    
+    // Check if session is empty and end it
+    const room = this.server.sockets.adapter.rooms.get(payload.sessionId);
+    if (!room || room.size === 0) {
+      console.log(`Session ${payload.sessionId} is now empty, ending session`);
+      this.server.to(payload.sessionId).emit('session_ended', { sessionId: payload.sessionId });
+    } else {
+      // Update participants list for remaining users
+      await this.broadcastParticipants(payload.sessionId);
+    }
+  }
+
   // Helper to get and broadcast participants
   private async broadcastParticipants(sessionId: string) {
       const room = this.server.sockets.adapter.rooms.get(sessionId);

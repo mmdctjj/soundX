@@ -398,7 +398,7 @@ const Player: React.FC = () => {
       cancelText: "取消",
       onOk: () => {
         if (sessionId) {
-          socketService.emit("leave_session", { sessionId });
+          socketService.emit("player_left", { sessionId });
           setSynced(false, null);
           setParticipants([]);
           message.success("已结束同步播放");

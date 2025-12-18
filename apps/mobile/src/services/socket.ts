@@ -1,6 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SharedSocketService } from "@soundx/ws";
 import * as Device from "expo-device";
-import { getBaseURL } from "../https";
 
 class MobileSocketService extends SharedSocketService {
   async connectWithContext(userId: number, token: string) {
@@ -9,10 +9,10 @@ class MobileSocketService extends SharedSocketService {
     let deviceName = Device.modelName || "Mobile Device";
     
     // Attempt to get cached device info if needed, but expo-device is usually good
-    const url = getBaseURL();
+    const savedAddress = await AsyncStorage.getItem("serverAddress");
 
     super.connect({
-      url,
+      url: savedAddress || "http://localhost:3000",
       token,
       userId,
       deviceName,

@@ -8,14 +8,14 @@ class SocketService extends SharedSocketService {
     if (!token || !user || this.connected) return;
 
     // 2. Get Device Name (Desktop Specific)
-    let deviceName = "Desktop Client";
+    let deviceName = window.navigator.userAgent;
     const device = JSON.parse(localStorage.getItem("device") || "{}");
     if (device?.name) {
         deviceName = device.name;
     } else {
         try {
-            if ((window as any).ipcRenderer?.getName) {
-                deviceName = await (window as any).ipcRenderer.getName();
+            if (window.ipcRenderer?.getName) {
+                deviceName = await window.ipcRenderer.getName();
             }
         } catch (e) {
             console.error("Failed to get device name", e);

@@ -227,27 +227,48 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const pause = async () => {
     if (sound) {
-      await sound.pauseAsync();
+      try {
+        const status = await sound.getStatusAsync();
+        if (status.isLoaded && status.isPlaying) {
+          await sound.pauseAsync();
+        }
+      } catch (error) {
+        console.error("Failed to pause:", error);
+      }
     }
   };
 
   const resume = async () => {
     if (sound) {
-      await sound.playAsync();
+      try {
+        const status = await sound.getStatusAsync();
+        if (status.isLoaded && !status.isPlaying) {
+          await sound.playAsync();
+        }
+      } catch (error) {
+        console.error("Failed to resume:", error);
+      }
     }
   };
 
   const seekTo = async (pos: number) => {
     if (sound) {
-      await sound.setPositionAsync(pos * 1000);
-      broadcastSync('seek', pos);
+      try {
+        const status = await sound.getStatusAsync();
+        if (status.isLoaded) {
+          await sound.setPositionAsync(pos * 1000);
+          broadcastSync('seek', pos);
+        }
+      } catch (error) {
+        console.error("Failed to seek:", error);
+      }
     }
   };
 
   const handleDisconnect = () => {
+    console.log("handleDisconnect", sessionId, isSynced);
     if (sessionId) {
-      broadcastSync('leave');
-      socketService.emit('leave_session', { sessionId });
+      socketService.emit('player_left', { sessionId });
       setSynced(false, null);
       setParticipants([]);
     }
@@ -263,7 +284,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const isProcessingSync = useRef(false);
   const { isSynced, sessionId, setSynced, setParticipants, lastAcceptedInvite } = useSync();
 
-  // Sync Event Handlers
+  // Sync Event Handlers - only active when synced
   useEffect(() => {
     if (isSynced && sessionId) {
         isProcessingSync.current = true;
@@ -304,7 +325,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
             case 'leave':
             console.log("Participant left the session");
             Alert.alert("同步状态", "对方已断开同步连接");
-            // Optionally: if the last participant left, end session?
             break;
         }
 
@@ -319,7 +339,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
             sessionId: payload.sessionId,
             type: 'track_change',
             data: currentTrack,
-            targetSocketId: payload.fromSocketId // Optional: gateway can handle routing
+            targetSocketId: payload.fromSocketId
           });
           
           setTimeout(() => {
@@ -333,31 +353,39 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       };
 
-      const handleSessionEnded = () => {
-        setSynced(false, null);
-        setParticipants([]);
-        console.log("Sync session ended");
-      };
-
-      const handlePlayerLeft = (payload: { username: string }) => {
-        Alert.alert("同步状态", `${payload.username} 已断开同步连接`);
-      };
-
       socketService.on('sync_event', handleSyncEvent);
       socketService.on('request_initial_state', handleRequestInitialState);
-      socketService.on('session_ended', handleSessionEnded);
-      socketService.on('player_left', handlePlayerLeft);
       socketService.on('sync_session_started', handleSessionStarted);
 
       return () => {
         socketService.off('sync_event', handleSyncEvent);
         socketService.off('request_initial_state', handleRequestInitialState);
-        socketService.off('session_ended', handleSessionEnded);
-        socketService.off('player_left', handlePlayerLeft);
         socketService.off('sync_session_started', handleSessionStarted);
       };
     }
   }, [isSynced, sessionId, currentTrack, isPlaying, position]);
+
+  // Global session event handlers - always active
+  useEffect(() => {
+    const handleSessionEnded = () => {
+      Alert.alert("同步状态", "同步播放已结束");
+      setSynced(false, null);
+      setParticipants([]);
+      console.log("Sync session ended");
+    };
+
+    const handlePlayerLeft = (payload: { username: string; deviceName: string }) => {
+      Alert.alert("同步状态", `${payload.username} (${payload.deviceName}) 已断开同步连接`);
+    };
+
+    socketService.on('session_ended', handleSessionEnded);
+    socketService.on('player_left', handlePlayerLeft);
+
+    return () => {
+      socketService.off('session_ended', handleSessionEnded);
+      socketService.off('player_left', handlePlayerLeft);
+    };
+  }, [setSynced, setParticipants]);
 
   // Broadcast local changes
   useEffect(() => {
