@@ -35,18 +35,18 @@ export const MiniPlayer = () => {
     >
       <Image
         source={{
-          uri: currentTrack.artwork
-            ? typeof currentTrack.artwork === "string" &&
-              currentTrack.artwork.startsWith("http")
-              ? currentTrack.artwork
-              : `${getBaseURL()}${currentTrack.artwork}`
+          uri: currentTrack.cover
+            ? typeof currentTrack.cover === "string" &&
+              currentTrack.cover.startsWith("http")
+              ? currentTrack.cover
+              : `${getBaseURL()}${currentTrack.cover}`
             : "https://picsum.photos/100",
         }}
         style={styles.artwork}
       />
       <View style={styles.info}>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {currentTrack.title}
+          {currentTrack.name}
         </Text>
         <Text
           style={[styles.artist, { color: colors.secondary }]}

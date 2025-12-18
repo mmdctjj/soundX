@@ -306,15 +306,7 @@ export default function HomeScreen() {
                         key={track.id}
                         style={styles.trackCard}
                         onPress={() => {
-                          playTrack({
-                            id: String(track.id),
-                            url: `${getBaseURL()}${track.path}`,
-                            title: track.name,
-                            artist: track.artist,
-                            artwork: track.cover,
-                            duration: track.duration,
-                            lyrics: track.lyrics,
-                          });
+                          playTrack(track);
                         }}
                       >
                         <Image

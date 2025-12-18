@@ -10,6 +10,8 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+import { SyncProvider } from "../src/context/SyncContext";
+
 function RootLayoutNav() {
   const { token, isLoading } = useAuth();
   const segments = useSegments();
@@ -39,36 +41,43 @@ function RootLayoutNav() {
     <PlayModeProvider>
       <PlayerProvider>
         <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: "modal", title: "Modal" }}
-          />
-          <Stack.Screen
-            name="player"
-            options={{
-              presentation: "fullScreenModal",
-              headerShown: false,
-              animation: "slide_from_bottom",
-            }}
-          />
-        </Stack>
-      </PlayerProvider>
-    </PlayModeProvider>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="modal"
+              options={{ presentation: "modal", title: "Modal" }}
+            />
+            <Stack.Screen
+              name="player"
+              options={{
+                presentation: "fullScreenModal",
+                headerShown: false,
+                animation: "slide_from_bottom",
+              }}
+            />
+          </Stack>
+        </PlayerProvider>
+      </PlayModeProvider>
   );
 }
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+import InviteNotification from "../src/components/InviteNotification";
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AuthProvider>
-          <RootLayoutNav />
+          <SyncProvider>
+            <RootLayoutNav />
+            <InviteNotification />
+          </SyncProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
+
+

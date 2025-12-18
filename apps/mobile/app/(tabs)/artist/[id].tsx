@@ -150,15 +150,7 @@ export default function ArtistDetailScreen() {
               key={track.id}
               style={[styles.trackItem, { borderBottomColor: colors.border }]}
               onPress={() => {
-                playTrack({
-                  id: String(track.id),
-                  url: `${getBaseURL()}${track.path}`,
-                  title: track.name,
-                  artist: track.artist,
-                  artwork: track.cover || "", // Use artist avatar as fallback/artwork
-                  duration: track.duration || 0,
-                  lyrics: track.lyrics,
-                });
+                playTrack(track);
               }}
             >
               <Text style={[styles.trackIndex, { color: colors.secondary }]}>

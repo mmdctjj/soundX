@@ -4,7 +4,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { getBaseURL } from "@/src/https";
 import { Track, TrackType, UserTrackLike } from "@/src/models";
 import { likeTrack, unlikeTrack } from "@/src/services/track";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import SyncModal from "../src/components/SyncModal";
 
 const { width } = Dimensions.get("window");
 
@@ -79,8 +80,12 @@ export default function PlayerScreen() {
     togglePlayMode,
     playNext,
     playPrevious,
+    isSynced,
+    handleDisconnect,
   } = usePlayer();
+  const [syncModalVisible, setSyncModalVisible] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
+
   const [showPlaylist, setShowPlaylist] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
@@ -265,7 +270,7 @@ export default function PlayerScreen() {
             ]}
             numberOfLines={1}
           >
-            {item.title}
+            {item.name}
           </Text>
         </TouchableOpacity>
       )}
@@ -278,12 +283,30 @@ export default function PlayerScreen() {
       <View style={styles.infoContainer}>
         <View style={styles.textContainer}>
           <Text style={[styles.trackTitle, { color: colors.text }]}>
-            {currentTrack.title}
+            {currentTrack.name}
           </Text>
           <Text style={[styles.trackArtist, { color: colors.secondary }]}>
             {currentTrack.artist}
           </Text>
         </View>
+        <View style={styles.syncContainer}>
+          <TouchableOpacity 
+            onPress={isSynced ? handleDisconnect : () => setSyncModalVisible(true)}
+            style={[styles.syncButton, isSynced && styles.syncButtonActive]}
+          >
+            <MaterialCommunityIcons 
+              name={isSynced ? "account-multiple" : "account-multiple-outline"} 
+              size={24} 
+              color={isSynced ? colors.primary : colors.text} 
+            />
+          </TouchableOpacity>
+          {isSynced && <Text style={[styles.syncText, { color: colors.primary }]}>同步中</Text>}
+        </View>
+
+        <SyncModal 
+          visible={syncModalVisible} 
+          onClose={() => setSyncModalVisible(false)} 
+        />
         {currentTrack.type !== TrackType.AUDIOBOOK && (
           <TouchableOpacity
             onPress={handleToggleLike}
@@ -413,7 +436,7 @@ export default function PlayerScreen() {
                   ]}
                   numberOfLines={1}
                 >
-                  {item.title}
+                  {item.name}
                 </Text>
                 {currentTrack?.type === TrackType.AUDIOBOOK && item.progress ? (
                   <Text
@@ -423,7 +446,7 @@ export default function PlayerScreen() {
                       marginLeft: 10,
                     }}
                   >
-                    已听{" "}
+                    已听
                     {Math.floor(
                       ((item.progress || 0) / (item.duration || 1)) * 100
                     )}
@@ -461,18 +484,18 @@ export default function PlayerScreen() {
             </TouchableOpacity>
             <Image
               source={{
-                uri: currentTrack.artwork
-                  ? typeof currentTrack.artwork === "string" &&
-                    currentTrack.artwork.startsWith("http")
-                    ? currentTrack.artwork
-                    : `${getBaseURL()}${currentTrack.artwork}`
+                uri: currentTrack.cover
+                  ? typeof currentTrack.cover === "string" &&
+                    currentTrack.cover.startsWith("http")
+                    ? currentTrack.cover
+                    : `${getBaseURL()}${currentTrack.cover}`
                   : "https://picsum.photos/400",
               }}
               style={styles.landscapeArtwork}
             />
             <View style={styles.trackInfo}>
               <Text style={[styles.trackTitle, { color: colors.text }]}>
-                {currentTrack.title}
+                {currentTrack.name}
               </Text>
               <Text style={[styles.trackArtist, { color: colors.secondary }]}>
                 {currentTrack.artist}
@@ -629,11 +652,11 @@ export default function PlayerScreen() {
               >
                 <Image
                   source={{
-                    uri: currentTrack.artwork
-                      ? typeof currentTrack.artwork === "string" &&
-                        currentTrack.artwork.startsWith("http")
-                        ? currentTrack.artwork
-                        : `${getBaseURL()}${currentTrack.artwork}`
+                    uri: currentTrack.cover
+                      ? typeof currentTrack.cover === "string" &&
+                        currentTrack.cover.startsWith("http")
+                        ? currentTrack.cover
+                        : `${getBaseURL()}${currentTrack.cover}`
                       : "https://picsum.photos/400",
                   }}
                   style={styles.artwork}
@@ -777,10 +800,24 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
-    paddingHorizontal: 0,
+    gap: 16
+  },
+  syncContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  syncButton: {
+    padding: 5,
+  },
+  syncButtonActive: {
+    // Optional active style
+  },
+  syncText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   textContainer: {
     flex: 1,

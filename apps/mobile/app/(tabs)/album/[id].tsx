@@ -110,18 +110,7 @@ export default function AlbumDetailScreen() {
               key={track.id}
               style={[styles.trackItem, { borderBottomColor: colors.border }]}
               onPress={() => {
-                const mappedTracks = tracks.map((t) => ({
-                  id: String(t.id),
-                  url: `${getBaseURL()}${t.path}`,
-                  title: t.name,
-                  artist: t.artist,
-                  artwork: album.cover || "",
-                  duration: t.duration || 0,
-                  lyrics: t.lyrics,
-                  type: album.type,
-                  progress: t.listenedAsAudiobookByUsers?.[0]?.progress || 0,
-                }));
-                playTrackList(mappedTracks, index);
+                playTrackList(tracks, index);
               }}
             >
               <Text style={[styles.trackIndex, { color: colors.secondary }]}>
