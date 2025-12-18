@@ -5,6 +5,7 @@ import { socketService } from "../../services/socket";
 import { getUserList } from "../../services/user";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
+import { useSyncStore } from "../../store/sync";
 
 interface UserSelectModalProps {
   visible: boolean;
@@ -27,6 +28,8 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
   const [inviteStatuses, setInviteStatuses] = useState<
     Map<number, "waiting" | "accepted" | "rejected" | "timeout">
   >(new Map());
+
+  const { isSynced, sessionId } = useSyncStore();
 
   useEffect(() => {
     if (visible) {
@@ -109,11 +112,15 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
 
     console.log("Inviting users:", currentTime);
 
+    // Determine Session ID: Reuse if synced, else create new unique one
+    const currentSessionId = isSynced && sessionId ? sessionId : `sync_session_${currentUser?.id}_${Date.now()}`;
+    
     socketService.emit("invite", {
       targetUserIds: selectedUserIds,
       currentTrack,
       playlist,
       progress: currentTime,
+      sessionId: currentSessionId, // Send Session ID
     });
     // messageApi.success("邀请已发送"); // Don't show success yet, wait for response
 

@@ -81,6 +81,7 @@ const InviteListener: React.FC = () => {
       fromUsername?: string;
       fromDeviceName?: string;
       fromSocketId?: string;
+      sessionId?: string;
       currentTrack?: Track;
       playlist?: Track[];
       progress?: number;
@@ -92,6 +93,7 @@ const InviteListener: React.FC = () => {
         socketService.emit("respond_invite", {
           fromUserId: payload.fromUserId,
           fromSocketId: payload.fromSocketId,
+          sessionId: payload.sessionId,
           accept,
         });
         api.destroy(key);

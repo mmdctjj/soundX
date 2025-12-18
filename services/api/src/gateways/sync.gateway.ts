@@ -82,7 +82,7 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('invite')
-  async handleInvite(client: Socket, payload: { targetUserIds: number[]; currentTrack?: any; playlist?: any; progress?: number }) {
+  async handleInvite(client: Socket, payload: { targetUserIds: number[]; currentTrack?: any; playlist?: any; progress?: number; sessionId?: string }) {
     const senderId = parseInt(client.handshake.query.userId as string, 10);
     const senderResult = this.socketMetadata.get(client.id);
     const senderDeviceName = senderResult?.deviceName || 'Unknown Device';
@@ -90,15 +90,19 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const senderUser = await this.userService.getUserById(senderId);
     const senderUsername = senderUser?.username || `User ${senderId}`;
     
-    console.log(`User ${senderId} (${senderDeviceName}) inviting users: ${payload.targetUserIds}`);
+    // Use provided sessionId or generate fallback (though frontend should provide it)
+    const sessionId = payload.sessionId || `sync_session_${senderId}_${Date.now()}`;
+
+    console.log(`User ${senderId} (${senderDeviceName}) inviting users: ${payload.targetUserIds} to session ${sessionId}`);
     
     payload.targetUserIds.forEach(targetId => {
       // Emit 'invite_received' to all devices of the target user
       this.server.to(`user_${targetId}`).emit('invite_received', {
         fromUserId: senderId,
         fromUsername: senderUsername,
-        fromDeviceName: senderDeviceName, // Pass sender device name
-        fromSocketId: client.id, // Pass sender socket ID to target specific device later
+        fromDeviceName: senderDeviceName,
+        fromSocketId: client.id,
+        sessionId: sessionId, // Pass session ID
         currentTrack: payload.currentTrack,
         playlist: payload.playlist,
         progress: payload.progress,
@@ -108,9 +112,10 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('respond_invite')
-  handleRespondInvite(client: Socket, payload: { fromUserId: number, fromSocketId?: string, accept: boolean }) {
+  handleRespondInvite(client: Socket, payload: { fromUserId: number, fromSocketId?: string, sessionId?: string, accept: boolean }) {
     const responderId = parseInt(client.handshake.query.userId as string, 10);
-    const targetRoom = `sync_session_${payload.fromUserId}_${responderId}_${Date.now()}`; // Unique session ID
+    // Use passed sessionId if available, else fallback (legacy behavior)
+    const targetRoom = payload.sessionId || `sync_session_${payload.fromUserId}_${responderId}_${Date.now()}`;
 
     // Broadcast manually to other devices of the responder to close their invites
     const responderSockets = this.userSockets.get(responderId) || [];
@@ -124,23 +129,18 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     if (payload.accept) {
-      console.log(`User ${responderId} accepted invite from ${payload.fromUserId}`);
+      console.log(`User ${responderId} accepted invite from ${payload.fromUserId} for session ${targetRoom}`);
       
-       // Join both users to a shared sync room
        // Join Sender (Specific Socket)
        if (payload.fromSocketId) {
            const senderSocket = this.server.sockets.sockets.get(payload.fromSocketId);
            if (senderSocket) {
                senderSocket.join(targetRoom);
            } else {
-               // Fallback: If socket ID is missing/invalid (disconnect?), try to find ANY socket for user?
-               // Or fail? For now, let's fall back to all sockets just to be safe OR strictly fail.
-               // Given requirements, strict is better, but fallback prevents total failure if reconnected.
-               // Let's stick to strict logic for "Device 2 should not sync".
                console.warn(`Sender socket ${payload.fromSocketId} not found, sync might fail for sender.`);
            }
        } else {
-           // Legacy fallback (shouldn't happen with updated client)
+           // Fallback logic
            const senderSockets = this.userSockets.get(Number(payload.fromUserId)) || [];
            senderSockets.forEach(sid => {
                 const s = this.server.sockets.sockets.get(sid);
@@ -153,21 +153,20 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server.to(targetRoom).emit('sync_session_started', {
         sessionId: targetRoom,
-        users: [payload.fromUserId, responderId],
+        users: [payload.fromUserId, responderId], // Note: this list might need to accumulate? For now, just notifying triggers sync.
       });
       
-      // Request initial state from the inviter
-       this.server.to(`user_${payload.fromUserId}`).emit('request_initial_state', { targetRoom });
-       // Note: request_initial_state also goes to `user_...` room which hits ALL devices.
-       // We should target the specific socket too?
-       // `this.server.to(payload.fromSocketId).emit(...)`
+      // Request initial state from the inviter (SENDER)
+      // We send this to the specific sender socket if possible
        if (payload.fromSocketId) {
            this.server.to(payload.fromSocketId).emit('request_initial_state', { targetRoom });
+       } else {
+           this.server.to(`user_${payload.fromUserId}`).emit('request_initial_state', { targetRoom });
        }
 
     } else {
+        // ... rejection logic remains same ...
        console.log(`User ${responderId} rejected invite from ${payload.fromUserId}`);
-       // Notify the sender that the invite was rejected
        if (payload.fromSocketId) {
            this.server.to(payload.fromSocketId).emit('invite_rejected', { fromUserId: responderId });
        } else {

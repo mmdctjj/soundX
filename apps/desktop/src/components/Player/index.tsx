@@ -144,12 +144,12 @@ const Player: React.FC = () => {
     const handleSessionStarted = (payload: any) => {
       message.success("同步播放已开启");
       setSynced(true, payload.sessionId);
-      
+
       // Block broadcast temporarily to allow local state (like play) to settle
       // preventing the "Sender is paused -> Broadcast Pause -> Receiver Pauses" race condition.
       isProcessingSync.current = true;
       setTimeout(() => {
-          isProcessingSync.current = false;
+        isProcessingSync.current = false;
       }, 500);
     };
 
@@ -196,16 +196,47 @@ const Player: React.FC = () => {
       }, 300);
     };
 
+    const handleRequestInitialState = () => {
+      // Only the host (or sender) should respond, but logic targets specific socket anyway.
+      // If we receive this, we share our current state.
+      if (!sessionId) return;
+
+      const state = usePlayerStore.getState();
+      const commandType = state.isPlaying ? "play" : "pause";
+
+      // Broadcast current state to the room (so the new joiner gets it)
+      // We can just emit a sync_command.
+      // Note: New joiner will receive it. Existing users will ignore if close.
+      if (state.currentTrack) {
+        socketService.emit("sync_command", {
+          sessionId,
+          type: "track_change",
+          data: state.currentTrack,
+        });
+      }
+
+      // Small delay to let track change settle if needed?
+      setTimeout(() => {
+        socketService.emit("sync_command", {
+          sessionId,
+          type: commandType,
+          data: usePlayerStore?.getState()?.currentTime,
+        });
+      }, 100);
+    };
+
     socketService.on("sync_session_started", handleSessionStarted);
     socketService.on("session_ended", handleSessionEnded);
     socketService.on("sync_event", handleSyncEvent);
+    socketService.on("request_initial_state", handleRequestInitialState);
 
     return () => {
       socketService.off("sync_session_started", handleSessionStarted);
       socketService.off("session_ended", handleSessionEnded);
       socketService.off("sync_event", handleSyncEvent);
+      socketService.off("request_initial_state", handleRequestInitialState);
     };
-  }, [play, pause, setCurrentTime, setSynced, currentTrack]);
+  }, [play, pause, setCurrentTime, setSynced, currentTrack, sessionId]); // Added sessionId dependency
 
   const handleDisconnect = () => {
     modalApi.confirm({
@@ -227,24 +258,23 @@ const Player: React.FC = () => {
   useEffect(() => {
     // Avoid broadcasting immediately after sync event reception or initial load
     if (isSynced && sessionId && !isProcessingSync.current) {
-        
-        // Also, ensuring we don't spam.
-        const emit = () => {
-             if (isPlaying) {
-                socketService.emit("sync_command", {
-                  sessionId,
-                  type: "play",
-                  data: null,
-                });
-              } else {
-                socketService.emit("sync_command", {
-                  sessionId,
-                  type: "pause",
-                  data: null,
-                });
-              }
-        };
-        emit();
+      // Also, ensuring we don't spam.
+      const emit = () => {
+        if (isPlaying) {
+          socketService.emit("sync_command", {
+            sessionId,
+            type: "play",
+            data: null,
+          });
+        } else {
+          socketService.emit("sync_command", {
+            sessionId,
+            type: "pause",
+            data: null,
+          });
+        }
+      };
+      emit();
     }
   }, [isPlaying, isSynced, sessionId]);
 
@@ -276,20 +306,24 @@ const Player: React.FC = () => {
       } else {
         audioRef.current.pause();
       }
-      
+
       if (Math.abs(audioRef.current.currentTime - currentTime) > 2) {
-          audioRef.current.currentTime = currentTime;
+        audioRef.current.currentTime = currentTime;
       }
     }
   }, [isPlaying, currentTrack]);
-  
-  useEffect(() => {
-      if (audioRef.current && currentTrack && currentTime > 0 && Math.abs(audioRef.current.currentTime - currentTime) > 1) {
-          // This handles the case where we start a track with a specific progress
-           audioRef.current.currentTime = currentTime;
-      }
-  }, [currentTrack?.id]);
 
+  useEffect(() => {
+    if (
+      audioRef.current &&
+      currentTrack &&
+      currentTime > 0 &&
+      Math.abs(audioRef.current.currentTime - currentTime) > 1
+    ) {
+      // This handles the case where we start a track with a specific progress
+      audioRef.current.currentTime = currentTime;
+    }
+  }, [currentTrack?.id]);
 
   // Save settings
   useEffect(() => {
@@ -332,7 +366,7 @@ const Player: React.FC = () => {
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
-      
+
       // Critical for Sync: If store has a specific currentTime (set by play or sync), apply it now.
       // We prioritize valid currentTime > 0.
       if (currentTime > 0) {
