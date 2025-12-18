@@ -183,7 +183,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
 
   return (
     <Modal
-      title="选择好友一同听歌"
+      title="选择好友同步播放"
       open={visible}
       onCancel={() => {
         setSelectedUserIds([]);

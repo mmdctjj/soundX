@@ -137,13 +137,12 @@ const Player: React.FC = () => {
   const [isUserSelectModalOpen, setIsUserSelectModalOpen] = useState(false);
 
   // Sync Logic
-  const { isSynced, sessionId, setSynced } = useSyncStore();
+  const { isSynced, sessionId, setSynced, setParticipants } = useSyncStore();
   const isProcessingSync = useRef(false);
 
   useEffect(() => {
     // Listen for sync session start
     const handleSessionStarted = (payload: any) => {
-      message.success("同步播放已开启");
       setSynced(true, payload.sessionId);
 
       // Block broadcast temporarily to allow local state (like play) to settle
@@ -156,7 +155,7 @@ const Player: React.FC = () => {
 
     const handleSessionEnded = (payload: any) => {
       console.log("handleSessionEnded", payload);
-      message.info("对方已结束一起听");
+      message.info("对方已结束同步播放");
       setSynced(false, null);
       // Optionally pause or continue? Usually continue is fine.
     };
@@ -232,7 +231,7 @@ const Player: React.FC = () => {
     };
 
     const handlePlayerLeft = (payload: { userId: number; username: string; deviceName: string }) => {
-         message.info(`${payload.username} (${payload.deviceName}) 离开了听歌房`);
+         message.info(`${payload.username} (${payload.deviceName}) 离开了同步播放`);
          // We might want to remove them from list locally too, though update usually follows
     };
 
@@ -255,7 +254,7 @@ const Player: React.FC = () => {
 
   const handleDisconnect = () => {
     modalApi.confirm({
-      title: "结束一起听",
+      title: "结束同步播放",
       content: "确定要断开连接吗？对方将收到断开提示。",
       okText: "确定",
       cancelText: "取消",
@@ -263,7 +262,8 @@ const Player: React.FC = () => {
         if (sessionId) {
           socketService.emit("leave_session", { sessionId });
           setSynced(false, null);
-          message.success("已结束一起听");
+          setParticipants([]);
+          message.success("已结束同步播放");
         }
       },
     });
