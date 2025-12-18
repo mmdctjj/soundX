@@ -60,11 +60,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const deviceName = Device.modelName || 'Mobile Device';
       const res = await loginApi({ ...credentials, deviceName });
       if (res.code === 200 && res.data) {
-        const { token: newToken, ...userData } = res.data;
+        const { token: newToken, device, ...userData } = res.data;
         setToken(newToken);
         setUser(userData);
         await AsyncStorage.setItem("token", newToken);
         await AsyncStorage.setItem("user", JSON.stringify(userData));
+        if (device) {
+          await AsyncStorage.setItem("device", JSON.stringify(device));
+        }
       } else {
         throw new Error(res.message || "Login failed");
       }
@@ -75,13 +78,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const register = async (credentials: Partial<User>) => {
     try {
-      const res = await registerApi(credentials);
+      const deviceName = Device.modelName || 'Mobile Device';
+      const res = await registerApi({ ...credentials, deviceName });
       if (res.code === 200 && res.data) {
-        const { token: newToken, ...userData } = res.data;
+        const { token: newToken, device, ...userData } = res.data;
         setToken(newToken);
         setUser(userData);
         await AsyncStorage.setItem("token", newToken);
         await AsyncStorage.setItem("user", JSON.stringify(userData));
+        if (device) {
+          await AsyncStorage.setItem("device", JSON.stringify(device));
+        }
       } else {
         throw new Error(res.message || "Registration failed");
       }
@@ -96,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(null);
       await AsyncStorage.removeItem("token");
       await AsyncStorage.removeItem("user");
+      await AsyncStorage.removeItem("device");
     } catch (error) {
       console.error("Failed to logout:", error);
     }
