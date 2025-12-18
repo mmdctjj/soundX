@@ -10,7 +10,9 @@ class SocketService {
     if (!token || !user || this.socket?.connected) return;
 
     // Desktop hostname retrieval from preload script or fallback
-    let deviceName = "Desktop Client";
+    const device = JSON.parse(localStorage.getItem("device") || "{}");
+    let deviceName = device?.name || "Desktop Client";
+
     try {
       if ((window).ipcRenderer?.getName) {
         deviceName = await (window).ipcRenderer.getName();
@@ -19,7 +21,21 @@ class SocketService {
       console.error("Failed to get device name", e);
     }
 
-    this.socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
+    // Determine connection URL
+    let url = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    
+    // Check localStorage for custom server address (e.g. valid for Production/Targeting specific server)
+    // mirroring getBaseURL logic but avoiding '/api' proxy path for WS unless configured
+    try {
+        const storedAddress = localStorage.getItem("serverAddress");
+        if (storedAddress) {
+            url = storedAddress;
+        }
+    } catch (e) {
+        console.error("Failed to get server address for socket:", e);
+    }
+
+    this.socket = io(url, {
       query: {
         userId: user.id,
         deviceName: deviceName,

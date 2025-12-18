@@ -95,4 +95,20 @@ export class UserService {
       });
     }
   }
+
+  async setDeviceOffline(userId: number, deviceName: string): Promise<void> {
+    const device = await this.prisma.device.findFirst({
+      where: {
+        userId,
+        name: deviceName,
+      },
+    });
+
+    if (device) {
+      await this.prisma.device.update({
+        where: { id: device.id },
+        data: { isOnline: false },
+      });
+    }
+  }
 }

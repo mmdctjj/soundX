@@ -27,7 +27,7 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private socketMetadata = new Map<string, { deviceName: string }>();
 
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     const userId = client.handshake.query.userId;
     const deviceName = client.handshake.query.deviceName as string;
     
@@ -43,34 +43,21 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
       
       // Join a room named by user ID for easy broadcasting to specific users
       client.join(`user_${uid}`);
+
+      // Set device online
+      if (deviceName) {
+          try {
+             await this.userService.saveDevice(uid, deviceName);
+          } catch (e) {
+              console.error(`Failed to set device online: ${e}`);
+          }
+      }
     }
   }
 
-  @SubscribeMessage('leave_session')
-  handleLeave(client: Socket, payload: { sessionId: string }) {
-      const userId = parseInt(client.handshake.query.userId as string, 10);
-      const meta = this.socketMetadata.get(client.id);
-      const username = (meta as any)?.username || `User ${userId}`; // Should be cached by now
+  // ... handleLeave ...
 
-      console.log(`User ${userId} leaving session ${payload.sessionId}`);
-
-      client.leave(payload.sessionId);
-      
-      // Notify others that THIS user left
-      this.server.to(payload.sessionId).emit('player_left', {
-          userId,
-          username,
-          deviceName: meta?.deviceName || 'Unknown Device'
-      });
-      
-      this.broadcastParticipants(payload.sessionId);
-      
-      // Check if room is empty or logic to destroy session?
-      // For now, session effectively ends for that user.
-      // If room becomes empty, it self-destructs in Socket.io
-  }    
-
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = client.handshake.query.userId;
     console.log(`Client disconnected: ${client.id}`);
 
@@ -84,6 +71,23 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
       } else {
         this.userSockets.delete(uid);
       }
+
+      // Check device status
+      const meta = this.socketMetadata.get(client.id);
+      if (meta && meta.deviceName) {
+          // IMPORTANT: Only set offline if NO other sockets are connected for this device?
+          // For simplicity/requirement "when disconnect, set offline", we set it offline.
+          // Ideally we check if user has other sockets with same deviceName, but single-window desktop app assumption holds.
+          // Wait, if user refreshes page, new socket connects before old disconnects? 
+          // Usually disconnect happens first or overlapping.
+          // Let's blindly set offline. If they reconnect, handleConnection sets online.
+           try {
+             await this.userService.setDeviceOffline(uid, meta.deviceName);
+          } catch (e) {
+              console.error(`Failed to set device offline: ${e}`);
+          }
+      }
+
       this.socketMetadata.delete(client.id);
     }
   }

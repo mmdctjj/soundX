@@ -19,7 +19,6 @@ export class UserTrackHistoryController {
     @Body() createUserTrackHistoryDto: UserTrackHistory,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
-      console.log(createUserTrackHistoryDto)
       const data = await this.userTrackHistoryService.create(
         createUserTrackHistoryDto,
       );
