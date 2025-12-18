@@ -300,7 +300,6 @@ export default function PlayerScreen() {
               color={isSynced ? colors.primary : colors.text} 
             />
           </TouchableOpacity>
-          {isSynced && <Text style={[styles.syncText, { color: colors.primary }]}>同步中</Text>}
         </View>
 
         <SyncModal 

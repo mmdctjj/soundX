@@ -266,12 +266,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const handleDisconnect = () => {
-    console.log("handleDisconnect", sessionId, isSynced);
-    if (sessionId) {
-      socketService.emit('player_left', { sessionId });
-      setSynced(false, null);
-      setParticipants([]);
-    }
+    Alert.alert(
+      "结束同步播放",
+      "确定要断开连接吗？",
+      [
+        {
+          text: "取消",
+          style: "cancel"
+        },
+        {
+          text: "确定",
+          onPress: () => {
+            console.log("User confirmed disconnect", sessionId);
+            if (sessionId) {
+              socketService.emit('player_left', { sessionId });
+              setSynced(false, null);
+              setParticipants([]);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const recordHistory = async () => {
