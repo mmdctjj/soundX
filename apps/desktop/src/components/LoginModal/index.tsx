@@ -56,6 +56,7 @@ const LoginModal: React.FC = () => {
         if (res.data) {
           setLogin(res.data.token, res.data);
           localStorage.setItem("token", res.data.token);
+          localStorage.setItem("device", JSON.stringify(res.data.device));
           message.success("登录成功");
 
           // Save or clear credentials based on rememberMe
@@ -76,6 +77,7 @@ const LoginModal: React.FC = () => {
         });
         if (res.data) {
           localStorage.setItem("token", res.data.token);
+          localStorage.setItem("device", JSON.stringify(res.data.device));
           setLogin(res.data.token, res.data);
           message.success("注册成功");
         }

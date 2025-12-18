@@ -19,8 +19,10 @@ import {
   InputNumber,
   List, // Rename to avoid conflict if needed, though useMessage is typically context. Context is safer.
   Modal,
+  notification, // Added
   Popover,
   Slider,
+  Space, // Added
   Tabs,
   theme,
   Tooltip,
@@ -36,18 +38,20 @@ import SinglecycleOutlined from "../../assets/singlecycle.svg?react";
 import { useMessage } from "../../context/MessageContext";
 import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
-import { type Track, TrackType } from "../../models";
+import { type Device, type Track, TrackType } from "../../models";
 import {
   addTrackToPlaylist,
   getPlaylists,
   type Playlist,
 } from "../../services/playlist";
 import { socketService } from "../../services/socket";
+import { addToHistory, getLatestHistory } from "../../services/user"; // Added
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { useSyncStore } from "../../store/sync";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
+import PlayingIndicator from "../PlayingIndicator";
 import UserSelectModal from "../UserSelectModal";
 import styles from "./index.module.less";
 import Lyrics from "./Lyrics";
@@ -113,6 +117,8 @@ const Player: React.FC = () => {
   const navigator = useNavigate();
 
   const [modalApi, modalContextHolder] = Modal.useModal();
+  const [notificationApi, notificationContextHolder] =
+    notification.useNotification();
 
   // Sleep Timer State
   const [sleepTimerMode, setSleepTimerMode] = useState<
@@ -139,6 +145,132 @@ const Player: React.FC = () => {
   // Sync Logic
   const { isSynced, sessionId, setSynced, setParticipants } = useSyncStore();
   const isProcessingSync = useRef(false);
+
+  useEffect(() => {
+    const checkResume = async () => {
+      const user = useAuthStore.getState().user;
+      if (!user) return;
+
+      try {
+        // 获取设备
+        const deviceName =
+          (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+        const res = await getLatestHistory();
+        if (res && res.code === 200 && res.data) {
+          const history = res.data;
+          // 最近 24 小时
+          const diff =
+            new Date().getTime() - new Date(history.listenedAt).getTime();
+          const isRecent = diff < 24 * 60 * 60 * 1000;
+
+          // 不同设备才有必要
+          const isOtherDevice = history.deviceName !== deviceName;
+
+          if (isRecent && isOtherDevice && history.track) {
+            const key = `resume-${Date.now()}`;
+            notificationApi.open({
+              message: "发现其他设备播放记录",
+              description: (
+                <div>
+                  <p>
+                    上次使用设备 <b>{history.deviceName}</b> 播放了
+                  </p>
+                  {history.track && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 12,
+                        padding: 8,
+                        background: "rgba(255,255,255,0.05)",
+                        borderRadius: 4,
+                      }}
+                    >
+                      {history.track.cover && (
+                        <img
+                          src={`${getCoverUrl(history.track.cover)}`}
+                          alt="cover"
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 4,
+                            objectFit: "cover",
+                          }}
+                        />
+                      )}
+                      <div style={{ overflow: "hidden" }}>
+                        <div
+                          style={{
+                            fontWeight: "bold",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {history.track.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            opacity: 0.7,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {history.track.artist}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <p>从 {formatDuration(history.progress)} 继续播放吗？</p>
+                </div>
+              ),
+              key,
+              btn: (
+                <Space style={{ marginTop: 8 }}>
+                  <Button
+                    type="primary"
+                    size="small"
+                    onClick={() => {
+                      // Resume Logic
+                      play(history.track);
+                      // Wait for track to set, then seek.
+                      setTimeout(() => {
+                        setCurrentTime(history.progress);
+                        if (audioRef.current)
+                          audioRef.current.currentTime = history.progress;
+                      }, 500);
+                      notificationApi.destroy(key);
+                    }}
+                  >
+                    继续播放
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={() => notificationApi.destroy(key)}
+                  >
+                    忽略
+                  </Button>
+                </Space>
+              ),
+              showProgress: true,
+              duration: 30,
+              pauseOnHover: true,
+              onClose: () => {
+                notificationApi.destroy(key);
+              },
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to check resume", e);
+      }
+    };
+
+    checkResume();
+  }, []); // Run once on mount
 
   useEffect(() => {
     // Listen for sync session start
@@ -197,42 +329,48 @@ const Player: React.FC = () => {
     };
 
     const handleRequestInitialState = (payload: any) => {
-        // Only the host (or sender) should respond, but logic targets specific socket anyway.
-        // If we receive this, we share our current state.
-        console.log("handleRequestInitialState", payload);
-        if (!sessionId) return;
-        
-        const state = usePlayerStore.getState();
-        const commandType = state.isPlaying ? "play" : "pause";
-        
-        // Broadcast current state to the room (so the new joiner gets it)
-        // We can just emit a sync_command. 
-        // Note: New joiner will receive it. Existing users will ignore if close.
-        if (state.currentTrack) {
-             socketService.emit("sync_command", {
-                sessionId,
-                type: "track_change",
-                data: state.currentTrack,
-              });
-        }
-        
-        // Small delay to let track change settle if needed?
-        setTimeout(() => {
-             socketService.emit("sync_command", {
-                sessionId,
-                type: commandType,
-                data: usePlayerStore?.getState()?.currentTime,
-              });
-        }, 100);
+      // Only the host (or sender) should respond, but logic targets specific socket anyway.
+      // If we receive this, we share our current state.
+      console.log("handleRequestInitialState", payload);
+      if (!sessionId) return;
+
+      const state = usePlayerStore.getState();
+      const commandType = state.isPlaying ? "play" : "pause";
+
+      // Broadcast current state to the room (so the new joiner gets it)
+      // We can just emit a sync_command.
+      // Note: New joiner will receive it. Existing users will ignore if close.
+      if (state.currentTrack) {
+        socketService.emit("sync_command", {
+          sessionId,
+          type: "track_change",
+          data: state.currentTrack,
+        });
+      }
+
+      // Small delay to let track change settle if needed?
+      setTimeout(() => {
+        socketService.emit("sync_command", {
+          sessionId,
+          type: commandType,
+          data: usePlayerStore?.getState()?.currentTime,
+        });
+      }, 100);
     };
 
     const handleParticipantsUpdate = (payload: { participants: any[] }) => {
-        useSyncStore.getState().setParticipants(payload.participants);
+      useSyncStore.getState().setParticipants(payload.participants);
     };
 
-    const handlePlayerLeft = (payload: { userId: number; username: string; deviceName: string }) => {
-         message.info(`${payload.username} (${payload.deviceName}) 离开了同步播放`);
-         // We might want to remove them from list locally too, though update usually follows
+    const handlePlayerLeft = (payload: {
+      userId: number;
+      username: string;
+      deviceName: string;
+    }) => {
+      message.info(
+        `${payload.username} (${payload.deviceName}) 离开了同步播放`
+      );
+      // We might want to remove them from list locally too, though update usually follows
     };
 
     socketService.on("sync_session_started", handleSessionStarted);
@@ -356,6 +494,35 @@ const Player: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("skipEnd", String(skipEnd));
   }, [skipEnd]);
+
+  const device: Device = JSON.parse(localStorage.getItem("device") || "{}");
+
+  useEffect(() => {
+    if (currentTrack) {
+      (async () => {
+        const deviceName =
+          (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+        addToHistory(currentTrack.id, 0, deviceName, device.id, isSynced);
+      })();
+    }
+  }, [currentTrack?.id]);
+
+  // Record on Pause
+  useEffect(() => {
+    if (currentTrack) {
+      (async () => {
+        const deviceName =
+          (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+        addToHistory(
+          currentTrack.id,
+          currentTime,
+          deviceName,
+          device.id,
+          isSynced
+        );
+      })();
+    }
+  }, [isPlaying]);
 
   const { token } = theme.useToken();
 
@@ -777,7 +944,7 @@ const Player: React.FC = () => {
       {/* Controls */}
       <div className={styles.controls}>
         <div className={styles.controlButtons}>
-          <Popover 
+          <Popover
             content={
               <List
                 size="small"
@@ -786,8 +953,20 @@ const Player: React.FC = () => {
                 renderItem={(item: any) => (
                   <List.Item>
                     <List.Item.Meta
-                      avatar={<Avatar size="small" style={{backgroundColor: item.userId === useAuthStore.getState().user?.id ? '#1890ff' : '#87d068'}}>{item.username[0]}</Avatar>}
-                      title={item.username}
+                      avatar={
+                        <Avatar
+                          size={30}
+                          style={{
+                            backgroundColor: token.colorPrimary,
+                          }}
+                        >
+                          {item.username[0]}
+                        </Avatar>
+                      }
+                      title={
+                        item.username +
+                        `${item.userId === useAuthStore.getState().user?.id ? "(你)" : ""}`
+                      }
                       description={item.deviceName}
                     />
                   </List.Item>
@@ -798,18 +977,26 @@ const Player: React.FC = () => {
             trigger="hover"
             placement="top"
           >
-            <TeamOutlined
-              className={styles.controlIcon}
-              onClick={() => {
-                if (isSynced) {
-                  handleDisconnect();
-                } else {
+            {isSynced ? (
+              <div
+                className={styles.controlIcon}
+                onClick={() => {
+                  if (isSynced) {
+                    handleDisconnect();
+                  }
+                }}
+              >
+                <PlayingIndicator />
+              </div>
+            ) : (
+              <TeamOutlined
+                className={styles.controlIcon}
+                onClick={() => {
                   if (isPlaying) pause();
                   setIsUserSelectModalOpen(true);
-                }
-              }}
-              style={{ color: isSynced ? token.colorPrimary : undefined }}
-            />
+                }}
+              />
+            )}
           </Popover>
           <StepBackwardOutlined className={styles.controlIcon} onClick={prev} />
           <div onClick={togglePlay} style={{ cursor: "pointer" }}>
@@ -1264,6 +1451,7 @@ const Player: React.FC = () => {
       </Drawer>
 
       {modalContextHolder}
+      {notificationContextHolder}
 
       <Drawer
         title={`播放列表 (${playlist.length})`}

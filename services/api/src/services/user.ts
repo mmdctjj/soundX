@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient, User } from '@soundx/db';
+import { Device, PrismaClient, User } from '@soundx/db';
 
 @Injectable()
 export class UserService {
@@ -69,7 +69,7 @@ export class UserService {
     });
   }
 
-  async saveDevice(userId: number, deviceName: string) {
+  async saveDevice(userId: number, deviceName: string): Promise<Device> {
     // 查找当前用户的该设备是否存在
     const device = await this.prisma.device.findFirst({
       where: {

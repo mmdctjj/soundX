@@ -1,4 +1,4 @@
-import { Avatar, Checkbox, Col, Flex, Modal, Row, message } from "antd";
+import { Avatar, Checkbox, Col, Flex, Modal, Row, message, theme } from "antd";
 import React, { useEffect, useState } from "react";
 import type { User } from "../../models";
 import { socketService } from "../../services/socket";
@@ -30,6 +30,8 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
   >(new Map());
 
   const { isSynced, sessionId } = useSyncStore();
+
+  const { token } = theme.useToken();
 
   useEffect(() => {
     if (visible) {
@@ -210,7 +212,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
                   disabled={waitingUserIds.has(user.id)}
                 >
                   <Flex gap={8} align="center">
-                    <Avatar size={30}>{user.username[0].toUpperCase()}</Avatar>
+                    <Avatar size={30} style={{ backgroundColor: token.colorPrimary, }}>{user.username[0].toUpperCase()}</Avatar>
                     {user.username}
                   </Flex>
                 </Checkbox>

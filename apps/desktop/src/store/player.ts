@@ -213,9 +213,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
             currentAlbumId: albumId || state.currentAlbumId
           });
 
+          const deviceName =
+            (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+          const device = JSON.parse(localStorage.getItem("device") || "{}");
+
           // History Logic
           try {
-            await addToHistory(track.id);
+            await addToHistory(track.id, startTime, deviceName, device.id, false);
           } catch (e) {
             console.error("Failed to add track to history", e);
           }

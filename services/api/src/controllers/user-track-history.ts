@@ -19,6 +19,7 @@ export class UserTrackHistoryController {
     @Body() createUserTrackHistoryDto: UserTrackHistory,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
+      console.log(createUserTrackHistoryDto)
       const data = await this.userTrackHistoryService.create(
         createUserTrackHistoryDto,
       );
@@ -112,6 +113,25 @@ export class UserTrackHistoryController {
           list,
           total,
         },
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/latest')
+  async getLatest(
+    @Query('userId') userId: number,
+  ): Promise<ISuccessResponse<UserTrackHistory> | IErrorResponse> {
+    try {
+      const data = await this.userTrackHistoryService.getLatest(Number(userId));
+      return {
+        code: 200,
+        message: 'success',
+        data: data as any,
       };
     } catch (error) {
       return {

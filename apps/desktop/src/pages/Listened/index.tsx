@@ -87,26 +87,8 @@ const Listened: React.FC = () => {
             items: albums?.filter((album) => album.type === type),
           }));
 
-          // Merge with existing items if date matches
-          let mergedList = d ? [...d.list] : [];
-          newItems.forEach((newItem) => {
-            const existingItemIndex = mergedList.findIndex(
-              (item) => item.id === newItem.id
-            );
-            if (existingItemIndex > -1) {
-              mergedList[existingItemIndex].items = [
-                ...mergedList[existingItemIndex].items,
-                ...newItem.items,
-              ];
-            } else {
-              mergedList.push(newItem);
-            }
-          });
-
-          if (!d) mergedList = newItems;
-
           return {
-            list: mergedList,
+            list: newItems,
             hasMore: list.length === 20,
             nextId: currentLoadCount + 1,
           };

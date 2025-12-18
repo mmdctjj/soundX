@@ -162,3 +162,11 @@ export interface Playlist {
   user?: User;
   tracks?: Track[];
 }
+export interface Device {
+  id: number;
+  name: string;
+  userId: number;
+  isOnline: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}

@@ -4,11 +4,23 @@ import { useAuthStore } from "../store/auth";
 
 const getUserId = () => useAuthStore.getState().user?.id;
 
-export const addToHistory = (trackId: number) => {
+export const addToHistory = (trackId: number, progress: number = 0, deviceName?: string, deviceId?: number, isSyncMode?: boolean) => {
   return request.post<any, ISuccessResponse<any>>("/user-track-histories", {
     trackId,
     userId: getUserId(),
+    progress,
+    deviceName,
+    deviceId,
+    isSyncMode,
   });
+};
+
+export const getLatestHistory = () => {
+    const userId = getUserId();
+    if (!userId) return Promise.resolve(null);
+    return request.get<any, ISuccessResponse<any>>("/user-track-histories/latest", {
+        params: { userId }
+    });
 };
 
 export const addAlbumToHistory = (albumId: number) => {
