@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "declaration": true,
+    "skipLibCheck": true,
+    "baseUrl": "./",
+    "outDir": "dist",
+    "rootDir": "src",
+    "lib": ["es2015", "dom"]
+  },
+  "include": ["src"]
+}

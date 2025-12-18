@@ -1,0 +1,26 @@
+{
+  "name": "@soundx/ws",
+  "version": "0.0.1",
+  "description": "Shared WebSocket client for SoundX",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "scripts": {
+    "dev": "father dev",
+    "build": "father build",
+    "prepublishOnly": "father doctor && npm run build"
+  },
+  "types": "dist/esm/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "father": "^4.5.3",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+      "socket.io-client": "^4.8.1"
+  }
+}
