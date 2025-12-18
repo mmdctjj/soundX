@@ -48,19 +48,26 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('leave_session')
   handleLeave(client: Socket, payload: { sessionId: string }) {
-      const userId = client.handshake.query.userId;
+      const userId = parseInt(client.handshake.query.userId as string, 10);
+      const meta = this.socketMetadata.get(client.id);
+      const username = (meta as any)?.username || `User ${userId}`; // Should be cached by now
+
       console.log(`User ${userId} leaving session ${payload.sessionId}`);
 
-      // DEBUG: Check room members
-      const room = this.server.sockets.adapter.rooms.get(payload.sessionId);
-      console.log(`Room ${payload.sessionId} has members:`, room ? Array.from(room) : 'empty');
+      client.leave(payload.sessionId);
       
-      this.server.to(payload.sessionId).emit('session_ended', {
-          reason: 'user_left',
-          fromUserId: userId
+      // Notify others that THIS user left
+      this.server.to(payload.sessionId).emit('player_left', {
+          userId,
+          username,
+          deviceName: meta?.deviceName || 'Unknown Device'
       });
       
-      client.leave(payload.sessionId);
+      this.broadcastParticipants(payload.sessionId);
+      
+      // Check if room is empty or logic to destroy session?
+      // For now, session effectively ends for that user.
+      // If room becomes empty, it self-destructs in Socket.io
   }    
 
   handleDisconnect(client: Socket) {
@@ -163,6 +170,9 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
        } else {
            this.server.to(`user_${payload.fromUserId}`).emit('request_initial_state', { targetRoom });
        }
+       
+       // Broadcast updated participant list
+       this.broadcastParticipants(targetRoom);
 
     } else {
         // ... rejection logic remains same ...
@@ -188,4 +198,45 @@ export class SyncGateway implements OnGatewayConnection, OnGatewayDisconnect {
        senderId: client.handshake.query.userId
     });
   }
+
+  // Helper to get and broadcast participants
+  private async broadcastParticipants(sessionId: string) {
+      const room = this.server.sockets.adapter.rooms.get(sessionId);
+      console.log(`Broadcasting participants for session ${sessionId}. Room size: ${room?.size}`);
+      
+      if (!room) return;
+
+      const participants: { socketId: string; userId: number; username: string; deviceName: string }[] = [];
+      
+      for (const socketId of room) {
+          const meta = this.socketMetadata.get(socketId);
+          const socket = this.server.sockets.sockets.get(socketId);
+          
+          if (socket) {
+               const userId = parseInt(socket.handshake.query.userId as string, 10);
+               let username = `User ${userId}`;
+               
+               if (meta && (meta as any).username) {
+                   username = (meta as any).username;
+               } else {
+                   const user = await this.userService.getUserById(userId);
+                   username = user?.username || username;
+                   if (meta) (meta as any).username = username; // Cache it
+               }
+
+               participants.push({
+                   socketId,
+                   userId,
+                   username,
+                   deviceName: meta?.deviceName || 'Unknown Device'
+               });
+          }
+      }
+      
+      console.log('Sending participants update:', participants);
+      this.server.to(sessionId).emit('participants_update', { participants });
+  }
+
+  // Update Metadata storage to be async-friendly if needed or just cache on connect
+  // ... (handleConnection already updated in next block)
 }

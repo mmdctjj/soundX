@@ -12,6 +12,7 @@ import Icon, {
   TeamOutlined,
 } from "@ant-design/icons";
 import {
+  Avatar, // Added
   Button,
   Drawer,
   Flex,
@@ -196,45 +197,59 @@ const Player: React.FC = () => {
       }, 300);
     };
 
-    const handleRequestInitialState = () => {
-      // Only the host (or sender) should respond, but logic targets specific socket anyway.
-      // If we receive this, we share our current state.
-      if (!sessionId) return;
+    const handleRequestInitialState = (payload: any) => {
+        // Only the host (or sender) should respond, but logic targets specific socket anyway.
+        // If we receive this, we share our current state.
+        console.log("handleRequestInitialState", payload);
+        if (!sessionId) return;
+        
+        const state = usePlayerStore.getState();
+        const commandType = state.isPlaying ? "play" : "pause";
+        
+        // Broadcast current state to the room (so the new joiner gets it)
+        // We can just emit a sync_command. 
+        // Note: New joiner will receive it. Existing users will ignore if close.
+        if (state.currentTrack) {
+             socketService.emit("sync_command", {
+                sessionId,
+                type: "track_change",
+                data: state.currentTrack,
+              });
+        }
+        
+        // Small delay to let track change settle if needed?
+        setTimeout(() => {
+             socketService.emit("sync_command", {
+                sessionId,
+                type: commandType,
+                data: usePlayerStore?.getState()?.currentTime,
+              });
+        }, 100);
+    };
 
-      const state = usePlayerStore.getState();
-      const commandType = state.isPlaying ? "play" : "pause";
+    const handleParticipantsUpdate = (payload: { participants: any[] }) => {
+        useSyncStore.getState().setParticipants(payload.participants);
+    };
 
-      // Broadcast current state to the room (so the new joiner gets it)
-      // We can just emit a sync_command.
-      // Note: New joiner will receive it. Existing users will ignore if close.
-      if (state.currentTrack) {
-        socketService.emit("sync_command", {
-          sessionId,
-          type: "track_change",
-          data: state.currentTrack,
-        });
-      }
-
-      // Small delay to let track change settle if needed?
-      setTimeout(() => {
-        socketService.emit("sync_command", {
-          sessionId,
-          type: commandType,
-          data: usePlayerStore?.getState()?.currentTime,
-        });
-      }, 100);
+    const handlePlayerLeft = (payload: { userId: number; username: string; deviceName: string }) => {
+         message.info(`${payload.username} (${payload.deviceName}) 离开了听歌房`);
+         // We might want to remove them from list locally too, though update usually follows
     };
 
     socketService.on("sync_session_started", handleSessionStarted);
     socketService.on("session_ended", handleSessionEnded);
     socketService.on("sync_event", handleSyncEvent);
     socketService.on("request_initial_state", handleRequestInitialState);
+    socketService.on("participants_update", handleParticipantsUpdate);
+    socketService.on("player_left", handlePlayerLeft);
 
     return () => {
       socketService.off("sync_session_started", handleSessionStarted);
       socketService.off("session_ended", handleSessionEnded);
       socketService.off("sync_event", handleSyncEvent);
       socketService.off("request_initial_state", handleRequestInitialState);
+      socketService.off("participants_update", handleParticipantsUpdate);
+      socketService.off("player_left", handlePlayerLeft);
     };
   }, [play, pause, setCurrentTime, setSynced, currentTrack, sessionId]); // Added sessionId dependency
 
@@ -762,18 +777,40 @@ const Player: React.FC = () => {
       {/* Controls */}
       <div className={styles.controls}>
         <div className={styles.controlButtons}>
-          <TeamOutlined
-            className={styles.controlIcon}
-            onClick={() => {
-              if (isSynced) {
-                handleDisconnect();
-              } else {
-                if (isPlaying) pause();
-                setIsUserSelectModalOpen(true);
-              }
-            }}
-            style={{ color: isSynced ? token.colorPrimary : undefined }}
-          />
+          <Popover 
+            content={
+              <List
+                size="small"
+                header={<Text strong>正在同步播放</Text>}
+                dataSource={useSyncStore.getState().participants}
+                renderItem={(item: any) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<Avatar size="small" style={{backgroundColor: item.userId === useAuthStore.getState().user?.id ? '#1890ff' : '#87d068'}}>{item.username[0]}</Avatar>}
+                      title={item.username}
+                      description={item.deviceName}
+                    />
+                  </List.Item>
+                )}
+                style={{ width: 250 }}
+              />
+            }
+            trigger="hover"
+            placement="top"
+          >
+            <TeamOutlined
+              className={styles.controlIcon}
+              onClick={() => {
+                if (isSynced) {
+                  handleDisconnect();
+                } else {
+                  if (isPlaying) pause();
+                  setIsUserSelectModalOpen(true);
+                }
+              }}
+              style={{ color: isSynced ? token.colorPrimary : undefined }}
+            />
+          </Popover>
           <StepBackwardOutlined className={styles.controlIcon} onClick={prev} />
           <div onClick={togglePlay} style={{ cursor: "pointer" }}>
             {isPlaying ? (
