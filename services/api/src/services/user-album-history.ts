@@ -38,9 +38,12 @@ export class UserAlbumHistoryService {
     });
   }
 
-  async loadMoreUserAlbumHistory(pageSize: number, loadCount: number, userId: number) {
+  async loadMoreUserAlbumHistory(pageSize: number, loadCount: number, userId: number, type?: string) {
     const list = await this.prisma.userAlbumHistory.findMany({
-      where: { userId },
+      where: { 
+        userId,
+        album: type ? { type: type as any } : undefined,
+      },
       orderBy: {
         // 按 albumId 分组后，每组按 listenedAt 最大值排序
         listenedAt: 'desc',

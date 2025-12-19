@@ -38,11 +38,14 @@ export class UserTrackLikeService {
     });
   }
 
-  async loadMoreUserTrackLike(loadCount: number, pageSize: number, userId: number) {
+  async loadMoreUserTrackLike(loadCount: number, pageSize: number, userId: number, type?: string) {
     return await this.prisma.userTrackLike.findMany({
       skip: loadCount * pageSize,
       take: pageSize,
-      where: { userId },
+      where: { 
+        userId,
+        track: type ? { type: type as any } : undefined,
+      },
       orderBy: {
         createdAt: 'desc',
       },

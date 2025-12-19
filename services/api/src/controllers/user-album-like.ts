@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { UserAlbumLike } from '@soundx/db';
 import {
-  IErrorResponse,
-  ILoadMoreData,
-  ISuccessResponse,
-  ITableData,
+    IErrorResponse,
+    ILoadMoreData,
+    ISuccessResponse,
+    ITableData,
 } from 'src/common/const';
 import { UserAlbumLikeService } from '../services/user-album-like';
 @Controller('user-album-likes')
@@ -107,6 +107,7 @@ export class UserAlbumLikeController {
     @Query('pageSize') pageSize: string,
     @Query('loadCount') loadCount: string,
     @Query('userId') userId: string,
+    @Query('type') type?: string,
   ): Promise<
     ISuccessResponse<ILoadMoreData<UserAlbumLike[]>> | IErrorResponse
   > {
@@ -119,6 +120,7 @@ export class UserAlbumLikeController {
         pageSizeNum,
         loadCountNum,
         userIdNum,
+        type,
       );
       const total = await this.userAlbumLikeService.userAlbumLikeCount();
       return {

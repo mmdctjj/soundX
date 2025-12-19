@@ -1,45 +1,177 @@
 import { useAuth } from "@/src/context/AuthContext";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
-import { Track, TrackType } from "@/src/models";
-import { getHistoryTracks } from "@/src/services/user";
+import { TrackType } from "@/src/models";
+import { getHistoryAlbums, getLikedAlbums } from "@/src/services/album";
+import { getHistoryTracks, getLikedTracks } from "@/src/services/user";
+import { usePlayMode } from "@/src/utils/playMode";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getBaseURL } from "../https";
+
+type TabType = "current" | "history" | "favorites";
+type SubTabType = "track" | "album";
 
 export const PlaylistModal = () => {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { trackList, currentTrack, playTrackList, showPlaylist, setShowPlaylist } = usePlayer();
+  const { mode } = usePlayMode();
+  const {
+    trackList,
+    currentTrack,
+    playTrackList,
+    showPlaylist,
+    setShowPlaylist,
+    playTrack,
+  } = usePlayer();
 
-  const [activeTab, setActiveTab] = useState<"current" | "history">("current");
-  const [historyTracks, setHistoryTracks] = useState<Track[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("current");
+  const [activeSubTab, setActiveSubTab] = useState<SubTabType>("track");
+  const [listData, setListData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (showPlaylist && activeTab === "history" && user) {
-      loadHistory();
+    if (showPlaylist && user) {
+      if (activeTab === "current") {
+        setListData(trackList);
+      } else {
+        loadTabData();
+      }
     }
-  }, [showPlaylist, activeTab, user]);
+  }, [showPlaylist, activeTab, activeSubTab, user, mode, trackList]);
 
-  const loadHistory = async () => {
+  const loadTabData = async () => {
     if (!user) return;
-    setLoadingHistory(true);
+    setLoading(true);
     try {
-      const res = await getHistoryTracks(user.id, 0, 50);
-      if (res.code === 200) {
-        setHistoryTracks(res.data.list.map((item: any) => item.track));
-      } 
+      let res: any;
+      const isAudiobook = mode === "AUDIOBOOK";
+      const currentSubTab = isAudiobook ? "album" : activeSubTab;
+
+      if (activeTab === "history") {
+        if (currentSubTab === "track") {
+          res = await getHistoryTracks(user.id, 0, 50, "MUSIC");
+          if (res.code === 200) {
+            setListData(res.data.list.map((item: any) => item.track));
+          }
+        } else {
+          res = await getHistoryAlbums(user.id, 0, 50, mode);
+          if (res.code === 200) {
+            setListData(res.data.list.map((item: any) => item.album));
+          }
+        }
+      } else if (activeTab === "favorites") {
+        if (currentSubTab === "track") {
+          res = await getLikedTracks(user.id, 0, 50, "MUSIC");
+          if (res.code === 200) {
+            setListData(res.data.list.map((item: any) => item.track));
+          }
+        } else {
+          res = await getLikedAlbums(user.id, 0, 50, mode);
+          if (res.code === 200) {
+            setListData(res.data.list.map((item: any) => item.album));
+          }
+        }
+      }
     } catch (error) {
-      console.error("Failed to load history in modal:", error);
+      console.error("Failed to load data in modal:", error);
     } finally {
-      setLoadingHistory(false);
+      setLoading(false);
     }
   };
 
-  const data = activeTab === "current" ? trackList : historyTracks;
+  const renderItem = ({ item, index }: { item: any; index: number }) => {
+    const isCurrent = activeTab === "current";
+    const isAlbum = activeSubTab === "album" || mode === "AUDIOBOOK";
+    const isHistoryOrFav = activeTab !== "current";
+
+    // Item could be Track or Album
+    const isActive = !isAlbum && currentTrack?.id === item.id;
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.modalItem,
+          { borderBottomColor: colors.border },
+          isActive && styles.activePlaylistItem,
+        ]}
+        onPress={async () => {
+          if (isAlbum && isHistoryOrFav) {
+            // If it's an album in history/favs, we don't have its tracks yet.
+            // For now, let's keep it simple or maybe play the first track?
+            // Actually, the user might expect navigating to the album detail.
+            // But this is a playlist modal.
+            // Let's just play if it's a track, and maybe ignore for now if it's an album?
+            // Or we could fetch tracks. Let's stick to tracks for now or basic album play if we had a service.
+            // The requirement says "只显示 播放过的专辑列表", suggesting they want to see them.
+            // I'll leave it as a no-op or a simple alert for now if it's an album,
+            // or maybe navigating is better but requires navigation ref.
+            console.log("Album selected:", item.id);
+          } else {
+            if (activeTab === "current") {
+              playTrackList(trackList, index);
+            } else {
+              playTrack(item);
+            }
+          }
+        }}
+      >
+        <View style={styles.itemRow}>
+          <View>
+            <Image
+              style={{ width: 50, height: 50, borderRadius: 4 }}
+              source={{
+                uri: item.cover
+                  ? typeof item.cover === "string" &&
+                    item.cover.startsWith("http")
+                    ? item.cover
+                    : `${getBaseURL()}${item.cover}`
+                  : "https://picsum.photos/100",
+              }}
+            />
+          </View>
+
+          <Text
+            style={[
+              styles.modalItemText,
+              { color: isActive ? colors.primary : colors.text },
+              { flex: 1 },
+            ]}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+          {isAlbum && (
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.secondary}
+            />
+          )}
+          {currentTrack?.type === TrackType.AUDIOBOOK &&
+          item.progress &&
+          !isAlbum ? (
+            <Text style={[styles.progressText, { color: colors.secondary }]}>
+              已听
+              {Math.floor(((item.progress || 0) / (item.duration || 1)) * 100)}%
+            </Text>
+          ) : null}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Modal
@@ -50,6 +182,7 @@ export const PlaylistModal = () => {
       style={styles.modal}
       deviceWidth={undefined}
       deviceHeight={undefined}
+      propagateSwipe
     >
       <View
         style={[
@@ -58,83 +191,87 @@ export const PlaylistModal = () => {
         ]}
       >
         <View style={styles.modalHeader}>
-          <TouchableOpacity 
-            style={[styles.tabItem, activeTab === "current" && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab("current")}
-          >
-            <Text style={[styles.tabText, { color: activeTab === "current" ? colors.primary : colors.secondary }]}>
-              当前列表 ({trackList.length})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tabItem, activeTab === "history" && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab("history")}
-          >
-            <Text style={[styles.tabText, { color: activeTab === "history" ? colors.primary : colors.secondary }]}>
-              近期所听
-            </Text>
-          </TouchableOpacity>
+          {[
+            { id: "current", label: `当前 (${trackList.length})` },
+            { id: "history", label: "听过" },
+            { id: "favorites", label: "收藏" },
+          ].map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[
+                styles.tabItem,
+                activeTab === tab.id && {
+                  borderBottomColor: colors.primary,
+                  borderBottomWidth: 2,
+                },
+              ]}
+              onPress={() => setActiveTab(tab.id as TabType)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  {
+                    color:
+                      activeTab === tab.id ? colors.primary : colors.secondary,
+                  },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        {activeTab === "history" && loadingHistory ? (
+
+        {mode === "MUSIC" && activeTab !== "current" && (
+          <View style={styles.subTabContainer}>
+            {[
+              { id: "album", label: "专辑" },
+              { id: "track", label: "单曲" },
+            ].map((sub) => (
+              <TouchableOpacity
+                key={sub.id}
+                style={[
+                  styles.subTabItem,
+                  activeSubTab === sub.id && {
+                    backgroundColor: "rgba(150,150,150,0.1)",
+                  },
+                ]}
+                onPress={() => setActiveSubTab(sub.id as SubTabType)}
+              >
+                <Text
+                  style={[
+                    styles.subTabText,
+                    {
+                      color:
+                        activeSubTab === sub.id
+                          ? colors.primary
+                          : colors.secondary,
+                    },
+                  ]}
+                >
+                  {sub.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : (
           <FlatList
-            data={data}
+            data={listData}
             keyExtractor={(item, index) => `${item.id}-${index}`}
-            renderItem={({ item, index }) => (
-              <TouchableOpacity
-                style={[
-                  styles.modalItem,
-                  { borderBottomColor: colors.border },
-                  currentTrack?.id === item.id && styles.activePlaylistItem,
-                ]}
-                onPress={() => {
-                  playTrackList(data, index);
-                }}
-              >
-              <View
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalItemText,
-                    {
-                      color:
-                        currentTrack?.id === item.id
-                          ? colors.primary
-                          : colors.text,
-                    },
-                    { flex: 1 },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {item.name}
+            renderItem={renderItem}
+            ListEmptyComponent={
+              <View style={styles.center}>
+                <Text style={{ color: colors.secondary, marginTop: 20 }}>
+                  暂无记录
                 </Text>
-                {currentTrack?.type === TrackType.AUDIOBOOK && item.progress ? (
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: colors.secondary,
-                      marginLeft: 10,
-                    }}
-                  >
-                    已听
-                    {Math.floor(
-                      ((item.progress || 0) / (item.duration || 1)) * 100
-                    )}
-                    %
-                  </Text>
-                ) : null}
               </View>
-            </TouchableOpacity>
-          )}
+            }
           />
         )}
       </View>
@@ -146,12 +283,12 @@ const styles = StyleSheet.create({
   modal: {
     margin: 0,
     justifyContent: "flex-end",
-    alignItems: "flex-end", // Align to right on larger screens
+    alignItems: "flex-end",
   },
   modalContent: {
     width: "100%",
     maxWidth: 600,
-    height: "60%",
+    height: "70%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: "hidden",
@@ -170,9 +307,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+  subTabContainer: {
+    flexDirection: "row",
+    padding: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "rgba(150,150,150,0.1)",
+  },
+  subTabItem: {
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginRight: 10,
+  },
+  subTabText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   center: {
     flex: 1,
@@ -183,8 +332,18 @@ const styles = StyleSheet.create({
     padding: 15,
     borderBottomWidth: 0.5,
   },
+  itemRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8
+  },
   modalItemText: {
     fontSize: 16,
+  },
+  progressText: {
+    fontSize: 11,
+    marginLeft: 10,
   },
   activePlaylistItem: {
     backgroundColor: "rgba(255,255,255,0.05)",

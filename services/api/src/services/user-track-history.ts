@@ -56,11 +56,14 @@ export class UserTrackHistoryService {
     });
   }
 
-  async loadMoreUserTrackHistory(pageSize: number, loadCount: number, userId: number) {
+  async loadMoreUserTrackHistory(pageSize: number, loadCount: number, userId: number, type?: string) {
     return await this.prisma.userTrackHistory.findMany({
       skip: loadCount * pageSize,
       take: pageSize,
-      where: { userId },
+      where: { 
+        userId,
+        track: type ? { type: type as any } : undefined,
+      },
       include: {
         track: true,
       },

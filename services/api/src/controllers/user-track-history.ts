@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { UserTrackHistory } from '@soundx/db';
 import {
-  IErrorResponse,
-  ILoadMoreData,
-  ISuccessResponse,
-  ITableData,
+    IErrorResponse,
+    ILoadMoreData,
+    ISuccessResponse,
+    ITableData,
 } from 'src/common/const';
 import { UserTrackHistoryService } from '../services/user-track-history';
 
@@ -90,6 +90,7 @@ export class UserTrackHistoryController {
     @Query('pageSize') pageSize: number,
     @Query('loadCount') loadCount: number,
     @Query('userId') userId: number,
+    @Query('type') type?: string,
   ): Promise<
     ISuccessResponse<ILoadMoreData<UserTrackHistory[]>> | IErrorResponse
   > {
@@ -101,6 +102,7 @@ export class UserTrackHistoryController {
         pageSizeNum,
         loadCountNum,
         userIdNum,
+        type,
       );
       const total = await this.userTrackHistoryService.userTrackHistoryCount(userIdNum);
       return {

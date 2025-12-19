@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { UserTrackLike } from '@soundx/db';
 import {
-  IErrorResponse,
-  ILoadMoreData,
-  ISuccessResponse,
-  ITableData,
+    IErrorResponse,
+    ILoadMoreData,
+    ISuccessResponse,
+    ITableData,
 } from 'src/common/const';
 import { UserTrackLikeService } from '../services/user-track-like';
 
@@ -82,6 +82,7 @@ export class UserTrackLikeController {
     @Query('userId') userId: string,
     @Query('loadCount') loadCount: string,
     @Query('pageSize') pageSize: string = '10',
+    @Query('type') type?: string,
   ): Promise<
     ISuccessResponse<ILoadMoreData<UserTrackLike[]>> | IErrorResponse
   > {
@@ -90,6 +91,7 @@ export class UserTrackLikeController {
         Number(loadCount),
         Number(pageSize),
         Number(userId),
+        type,
       );
 
       const total = await this.userTrackLikeService.userTrackLikeCount();

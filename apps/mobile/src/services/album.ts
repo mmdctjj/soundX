@@ -102,3 +102,15 @@ export const addAlbumToHistory = (albumId: number, userId: number) => {
     userId,
   });
 };
+
+export const getLikedAlbums = (userId: number, loadCount: number = 0, pageSize: number = 20, type?: string) => {
+  return request.get<any, ISuccessResponse<any>>("/user-album-likes/load-more", {
+    params: { userId, loadCount, pageSize, type }
+  });
+};
+
+export const getHistoryAlbums = (userId: number, loadCount: number = 0, pageSize: number = 20, type?: string) => {
+  return request.get<any, ISuccessResponse<any>>("/user-album-histories/load-more", {
+    params: { userId, loadCount, pageSize, type }
+  });
+};

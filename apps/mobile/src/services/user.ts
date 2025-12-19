@@ -35,14 +35,14 @@ export const toggleUnLike = (trackId: number, userId: number) => {
     });
 };
 
-export const getLikedTracks = (userId: number, loadCount: number = 0, pageSize: number = 20) => {
+export const getLikedTracks = (userId: number, loadCount: number = 0, pageSize: number = 20, type?: string) => {
   return request.get<any, ISuccessResponse<any>>("/user-track-likes/load-more", {
-    params: { userId, loadCount, pageSize }
+    params: { userId, loadCount, pageSize, type }
   });
 };
 
-export const getHistoryTracks = (userId: number, loadCount: number = 0, pageSize: number = 20) => {
+export const getHistoryTracks = (userId: number, loadCount: number = 0, pageSize: number = 20, type?: string) => {
   return request.get<any, ISuccessResponse<any>>("/user-track-histories/load-more", {
-    params: { userId, loadCount, pageSize }
+    params: { userId, loadCount, pageSize, type }
   });
 };

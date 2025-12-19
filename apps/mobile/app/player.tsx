@@ -165,11 +165,11 @@ export default function PlayerScreen() {
   ]);
 
   // Format time (mm:ss)
-  const formatTime = (millis: number) => {
-    if (!millis) return "0:00";
-    const minutes = Math.floor(millis / 60000);
-    const seconds = ((millis % 60000) / 1000).toFixed(0);
-    return `${minutes}:${Number(seconds) < 10 ? "0" : ""}${seconds}`;
+  const formatTime = (seconds: number) => {
+    if (!seconds) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
   const togglePlayback = () => {

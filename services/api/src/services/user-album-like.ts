@@ -38,11 +38,14 @@ export class UserAlbumLikeService {
     });
   }
 
-  async loadMoreUserAlbumLike(pageSize: number, loadCount: number, userId: number) {
+  async loadMoreUserAlbumLike(pageSize: number, loadCount: number, userId: number, type?: string) {
     return await this.prisma.userAlbumLike.findMany({
       skip: loadCount * pageSize,
       take: pageSize,
-      where: { userId },
+      where: { 
+        userId,
+        album: type ? { type: type as any } : undefined,
+      },
       include: {
         album: true,
       },

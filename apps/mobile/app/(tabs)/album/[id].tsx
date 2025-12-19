@@ -116,6 +116,15 @@ export default function AlbumDetailScreen() {
               <Text style={[styles.trackIndex, { color: colors.secondary }]}>
                 {index + 1}
               </Text>
+              <Image
+                source={{
+                  uri: track.cover
+                    ? `${getBaseURL()}${track.cover}`
+                    : `https://picsum.photos/seed/${track.id}/50/50`,
+                }}
+                alt=""
+                style={{ width: 50, height: 50, borderRadius: 5 }}
+              />
               <View style={styles.trackInfo}>
                 <Text
                   style={[styles.trackName, { color: colors.text }]}

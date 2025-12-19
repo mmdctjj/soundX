@@ -108,6 +108,7 @@ export class UserAlbumHistoryController {
     @Query('pageSize') pageSize: string,
     @Query('loadCount') loadCount: string,
     @Query('userId') userId: string,
+    @Query('type') type?: string,
   ): Promise<
     ISuccessResponse<ILoadMoreData<UserAlbumHistory[]>> | IErrorResponse
   > {
@@ -120,6 +121,7 @@ export class UserAlbumHistoryController {
         pageSizeNum,
         loadCountNum,
         userIdNum,
+        type,
       );
       const total = await this.userAlbumHistoryService.userAlbumHistoryCount(userIdNum);
 
