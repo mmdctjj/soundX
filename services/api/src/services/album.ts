@@ -117,6 +117,28 @@ export class AlbumService {
     return result;
   }
 
+  // 新增：获取随机专辑
+  async getRandomAlbums(limit = 8, type?: any): Promise<Album[]> {
+    const count = await this.prisma.album.count({
+      where: type ? { type } : undefined,
+    });
+    const skip = Math.max(0, Math.floor(Math.random() * (count - limit)));
+    const result = await this.prisma.album.findMany({
+      where: type ? { type } : undefined,
+      skip,
+      take: limit,
+    });
+
+    // Shuffle result to be even more random within the window
+    const shuffled = result.sort(() => Math.random() - 0.5);
+
+    if (type === 'AUDIOBOOK') {
+      return await this.attachProgressToAlbums(shuffled, 1); // Default userId 1
+    }
+
+    return shuffled;
+  }
+
   // 随机推荐：用户未听过的专辑
   async getRandomUnlistenedAlbums(userId: number, limit = 8, type?: any): Promise<Album[]> {
     const listened = await this.prisma.userAlbumHistory.findMany({

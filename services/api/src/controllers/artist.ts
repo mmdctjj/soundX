@@ -256,10 +256,15 @@ export class ArtistController {
   async getLatestArtists(
     @Query('type') type: TrackType,
     @Query('limit') limit?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('random') random?: string,
   ): Promise<ISuccessResponse<Artist[]> | IErrorResponse> {
     try {
-      const limitNum = limit ? parseInt(limit, 10) : 10;
-      const artists = await this.artistService.getLatestArtists(limitNum, type);
+      const limitNum = pageSize ? parseInt(pageSize, 10) : (limit ? parseInt(limit, 10) : 10);
+      const isRandom = random === 'true';
+      const artists = isRandom
+        ? await this.artistService.getRandomArtists(limitNum, type)
+        : await this.artistService.getLatestArtists(limitNum, type);
       return {
         code: 200,
         message: 'success',

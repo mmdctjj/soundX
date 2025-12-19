@@ -135,4 +135,18 @@ export class ArtistService {
       orderBy: { id: 'desc' }, // Assuming higher ID means newer, or use createdAt if available
     });
   }
+
+  // 获取随机艺术家
+  async getRandomArtists(limit: number = 8, type: TrackType): Promise<Artist[]> {
+    const count = await this.prisma.artist.count({
+      where: { type },
+    });
+    const skip = Math.max(0, Math.floor(Math.random() * (count - limit)));
+    const artists = await this.prisma.artist.findMany({
+      where: { type },
+      skip,
+      take: limit,
+    });
+    return artists.sort(() => Math.random() - 0.5);
+  }
 }

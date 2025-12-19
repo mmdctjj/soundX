@@ -1,6 +1,7 @@
 import { usePlayer } from "@/src/context/PlayerContext";
 import { EvilIcons, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Device from "expo-device";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -25,7 +26,7 @@ import {
   getRecentAlbums,
   getRecommendedAlbums,
 } from "../../src/services/album";
-import { getArtistList, getLatestArtists } from "../../src/services/artist";
+import { getLatestArtists } from "../../src/services/artist";
 import { getLatestTracks } from "../../src/services/track";
 import { cacheUtils } from "../../src/utils/cache";
 import { usePlayMode } from "../../src/utils/playMode";
@@ -50,6 +51,9 @@ export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [tempSections, setTempSections] = useState<Section[]>([]);
 
+  const isTablet = Device.deviceType === Device.DeviceType.TABLET;
+  const pageSize = !isTablet ? 8 : 16;
+
   const loadData = useCallback(
     async (forceRefresh = false) => {
       try {
@@ -69,13 +73,13 @@ export default function HomeScreen() {
         }
 
         const promises: Promise<any>[] = [
-          getLatestArtists(mode),
-          getRecentAlbums(mode),
-          getRecommendedAlbums(mode),
+          getLatestArtists(mode, true, pageSize),
+          getRecentAlbums(mode, true, pageSize),
+          getRecommendedAlbums(mode, true, pageSize),
         ];
-
+        
         if (mode === "MUSIC") {
-          promises.push(getLatestTracks("MUSIC"));
+          promises.push(getLatestTracks("MUSIC", true, pageSize));
         }
 
         const results = await Promise.all(promises);
@@ -198,19 +202,16 @@ export default function HomeScreen() {
       let newData: any[] = [];
 
       if (sectionId === "artists") {
-        // Random page 1-10
-        const res = await getArtistList(20, 1, mode);
-        if (res.code === 200 && res.data?.list) {
-          newData = res.data.list;
-        }
+        const res = await getLatestArtists(mode, true, pageSize);
+        if (res.code === 200) newData = res.data;
       } else if (sectionId === "recommended") {
-        const res = await getRecommendedAlbums(mode);
+        const res = await getRecommendedAlbums(mode, true, pageSize);
         if (res.code === 200) newData = res.data;
       } else if (sectionId === "recent") {
-        const res = await getRecentAlbums(mode);
+        const res = await getRecentAlbums(mode, true, pageSize);
         if (res.code === 200) newData = res.data;
       } else if (sectionId === "tracks") {
-        const res = await getLatestTracks("MUSIC");
+        const res = await getLatestTracks("MUSIC", true, pageSize);
         if (res.code === 200) newData = res.data;
       }
 

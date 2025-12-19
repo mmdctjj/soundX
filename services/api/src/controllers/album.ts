@@ -1,22 +1,22 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Logger,
-  Param,
-  Post,
-  Put,
-  Query,
-  Req,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Logger,
+    Param,
+    Post,
+    Put,
+    Query,
+    Req,
 } from '@nestjs/common';
 import { Album, TrackType } from '@soundx/db';
 import { Request } from 'express';
 import {
-  IErrorResponse,
-  ILoadMoreData,
-  ISuccessResponse,
-  ITableData,
+    IErrorResponse,
+    ILoadMoreData,
+    ISuccessResponse,
+    ITableData,
 } from 'src/common/const';
 import { LogMethod } from '../common/log-method.decorator';
 import { AlbumService } from '../services/album';
@@ -257,9 +257,15 @@ export class AlbumController {
   @LogMethod()
   async getLatestAlbums(
     @Query('type') type?: string,
+    @Query('random') random?: string,
+    @Query('pageSize') pageSize?: string,
   ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
     try {
-      const list = await this.albumService.getLatestAlbums(8, type);
+      const isRandom = random === 'true';
+      const limit = pageSize ? parseInt(pageSize, 10) : 8;
+      const list = isRandom 
+        ? await this.albumService.getRandomAlbums(limit, type)
+        : await this.albumService.getLatestAlbums(limit, type);
       return { code: 200, message: 'success', data: list };
     } catch (error) {
       return { code: 500, message: String(error) };
@@ -272,15 +278,17 @@ export class AlbumController {
   async getRandomUnlistenedAlbums(
     @Req() req: Request,
     @Query('type') type?: string,
+    @Query('pageSize') pageSize?: string,
   ): Promise<ISuccessResponse<Album[]> | IErrorResponse> {
     try {
       const userId = (req.user as any)?.userId;
       if (!userId) {
         return { code: 500, message: '未认证用户' };
       }
+      const limit = pageSize ? parseInt(pageSize, 10) : 8;
       const list = await this.albumService.getRandomUnlistenedAlbums(
         Number(userId),
-        8,
+        limit,
         type,
       );
       return { code: 200, message: 'success', data: list };

@@ -1,19 +1,19 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Post,
+    Put,
+    Query,
 } from '@nestjs/common';
 import { Track, TrackType } from '@soundx/db';
 import {
-  IErrorResponse,
-  ILoadMoreData,
-  ISuccessResponse,
-  ITableData,
+    IErrorResponse,
+    ILoadMoreData,
+    ISuccessResponse,
+    ITableData,
 } from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
 import { TrackService } from '../services/track';
@@ -237,9 +237,15 @@ export class TrackController {
   @Get('/track/latest')
   async getLatestTracks(
     @Query('type') type?: TrackType,
+    @Query('random') random?: string,
+    @Query('pageSize') pageSize?: string,
   ): Promise<ISuccessResponse<Track[]> | IErrorResponse> {
     try {
-      const tracks = await this.trackService.getLatestTracks(type);
+      const isRandom = random === 'true';
+      const limit = pageSize ? parseInt(pageSize, 10) : 8;
+      const tracks = isRandom
+        ? await this.trackService.getRandomTracks(type, limit)
+        : await this.trackService.getLatestTracks(type, limit);
       return {
         code: 200,
         message: 'success',

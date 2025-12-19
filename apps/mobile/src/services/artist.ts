@@ -73,6 +73,6 @@ export const getArtistById = (id: number) => {
   return request.get<any, ISuccessResponse<Artist>>(`/artist/${id}`);
 };
 
-export const getLatestArtists = (type: string) => {
-  return request.get<any, ISuccessResponse<Artist[]>>("/artist/latest", { params: { type } });
+export const getLatestArtists = (type: string, random: boolean = false, pageSize: number = 8) => {
+  return request.get<any, ISuccessResponse<Artist[]>>("/artist/latest", { params: { type, random, pageSize } });
 };

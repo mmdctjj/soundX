@@ -184,6 +184,24 @@ export class TrackService {
     });
   }
 
+  // 获取随机单曲
+  async getRandomTracks(type?: TrackType, limit: number = 8): Promise<Track[]> {
+    const count = await this.prisma.track.count({
+      where: type ? { type } : {},
+    });
+    const skip = Math.max(0, Math.floor(Math.random() * (count - limit)));
+    const tracks = await this.prisma.track.findMany({
+      where: type ? { type } : {},
+      skip,
+      take: limit,
+      include: {
+        artistEntity: true,
+        albumEntity: true,
+      },
+    });
+    return tracks.sort(() => Math.random() - 0.5);
+  }
+
   // 根据艺术家获取单曲
   async getTracksByArtist(artist: string): Promise<Track[]> {
     const tracks = await this.prisma.track.findMany({
