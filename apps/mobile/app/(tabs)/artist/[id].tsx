@@ -21,7 +21,7 @@ import {
 export default function ArtistDetailScreen() {
   const { id } = useLocalSearchParams();
   const { colors } = useTheme();
-  const { playTrack } = usePlayer();
+  const { playTrackList } = usePlayer();
   const router = useRouter();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -150,7 +150,7 @@ export default function ArtistDetailScreen() {
               key={track.id}
               style={[styles.trackItem, { borderBottomColor: colors.border }]}
               onPress={() => {
-                playTrack(track);
+                playTrackList(tracks, index);
               }}
             >
               <Text style={[styles.trackIndex, { color: colors.secondary }]}>

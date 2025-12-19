@@ -36,7 +36,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "推荐",
           tabBarIcon: ({ color }) => (
             <Ionicons size={28} name="home" color={color} />
           ),
@@ -45,7 +45,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="library"
         options={{
-          title: "Library",
+          title: "声仓",
           tabBarIcon: ({ color }) => (
             <Ionicons size={28} name="musical-notes" color={color} />
           ),
@@ -54,7 +54,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="personal"
         options={{
-          title: "Personal",
+          title: "我的",
           tabBarIcon: ({ color }) => (
             <Ionicons size={28} name="person" color={color} />
           ),

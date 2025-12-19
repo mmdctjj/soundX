@@ -508,7 +508,7 @@ export default function PlayerScreen() {
                       : `${getBaseURL()}${currentTrack.cover}`
                     : "https://picsum.photos/400",
                 }}
-                style={styles.landscapeArtwork}
+                style={styles.artwork}
               />
             </View>
             <View style={styles.landscapeControls}>{renderControls()}</View>
@@ -871,7 +871,6 @@ const styles = StyleSheet.create({
     height: 250,
     borderRadius: 15,
     marginBottom: 20,
-    boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.3)",
   },
   landscapeContent: {
     flex: 1,

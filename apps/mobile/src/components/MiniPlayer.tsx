@@ -9,7 +9,8 @@ import { getBaseURL } from "../https";
 export const MiniPlayer = () => {
   const { colors } = useTheme();
   const router = useRouter();
-  const { currentTrack, isPlaying, pause, resume } = usePlayer();
+  const { currentTrack, isPlaying, pause, resume, playNext, playPrevious } =
+    usePlayer();
 
   if (!currentTrack) return null;
 
@@ -33,35 +34,49 @@ export const MiniPlayer = () => {
         },
       ]}
     >
-      <Image
-        source={{
-          uri: currentTrack.cover
-            ? typeof currentTrack.cover === "string" &&
-              currentTrack.cover.startsWith("http")
-              ? currentTrack.cover
-              : `${getBaseURL()}${currentTrack.cover}`
-            : "https://picsum.photos/100",
-        }}
-        style={styles.artwork}
-      />
-      <View style={styles.info}>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {currentTrack.name}
-        </Text>
-        <Text
-          style={[styles.artist, { color: colors.secondary }]}
-          numberOfLines={1}
-        >
-          {currentTrack.artist}
-        </Text>
-      </View>
-      <TouchableOpacity onPress={togglePlayback} style={styles.control}>
-        <Ionicons
-          name={isPlaying ? "pause" : "play"}
-          size={28}
-          color={colors.primary}
+      <View style={styles.infoContaer}>
+        <Image
+          source={{
+            uri: currentTrack.cover
+              ? typeof currentTrack.cover === "string" &&
+                currentTrack.cover.startsWith("http")
+                ? currentTrack.cover
+                : `${getBaseURL()}${currentTrack.cover}`
+              : "https://picsum.photos/100",
+          }}
+          style={styles.artwork}
         />
-      </TouchableOpacity>
+        <View style={styles.info}>
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {currentTrack.name}
+          </Text>
+          <Text
+            style={[styles.artist, { color: colors.secondary }]}
+            numberOfLines={1}
+          >
+            {currentTrack.artist}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.controls}>
+        <TouchableOpacity onPress={playPrevious}>
+          <Ionicons name="play-skip-back" size={28} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={togglePlayback}>
+          <Ionicons
+            name={isPlaying ? "pause" : "play"}
+            size={28}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={playNext}>
+          <Ionicons name="play-skip-forward" size={28} color={colors.text} />
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -70,9 +85,16 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     padding: 10,
     width: "100%",
     height: 60,
+  },
+  infoContaer: {
+    flex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   artwork: {
     width: 40,
@@ -92,8 +114,10 @@ const styles = StyleSheet.create({
   artist: {
     fontSize: 12,
   },
-  control: {
-    padding: 10,
-    height: 60,
-  },
+  controls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 16,
+  }
 });
