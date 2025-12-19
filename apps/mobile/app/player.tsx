@@ -124,7 +124,12 @@ export default function PlayerScreen() {
 
   // Auto-scroll to current lyric
   useEffect(() => {
-    if (!showLyrics || !currentTrack?.lyrics) return;
+    // In landscape mode, lyrics are always shown if not an audiobook.
+    // In portrait mode, we check showLyrics.
+    const shouldShowLyrics =
+      isLandscape ? currentTrack?.type !== TrackType.AUDIOBOOK : showLyrics;
+
+    if (!shouldShowLyrics || !currentTrack?.lyrics) return;
 
     const lyrics = parseLyrics(currentTrack.lyrics);
     const activeIndex = lyrics.findIndex((line, index) => {
@@ -140,7 +145,8 @@ export default function PlayerScreen() {
       // Scroll to center the active lyric
       // Each lyric line is approximately 40px (16px font + 8px margin top + 8px margin bottom + 8px line spacing)
       const lineHeight = 40;
-      const containerHeight = width * 0.7; // Height of lyrics container
+      // Use appropriate container height based on orientation
+      const containerHeight = isLandscape ? height * 0.8 : width * 0.7;
       const scrollToY =
         activeIndex * lineHeight - containerHeight / 2 + lineHeight / 2;
 
@@ -149,7 +155,16 @@ export default function PlayerScreen() {
         animated: true,
       });
     }
-  }, [position, showLyrics, currentTrack?.lyrics, currentLyricIndex]);
+  }, [
+    position,
+    showLyrics,
+    isLandscape,
+    currentTrack?.lyrics,
+    currentTrack?.type,
+    currentLyricIndex,
+    width,
+    height,
+  ]);
 
   // Format time (mm:ss)
   const formatTime = (millis: number) => {
