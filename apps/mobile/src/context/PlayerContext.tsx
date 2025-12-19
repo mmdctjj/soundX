@@ -66,7 +66,7 @@ export const usePlayer = () => useContext(PlayerContext);
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { user } = useAuth();
+  const { user, device } = useAuth();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
@@ -92,6 +92,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     currentTrackRef.current = currentTrack;
   }, [currentTrack]);
+
+  const positionRef = React.useRef(position);
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
 
   useEffect(() => {
     return () => {
@@ -295,9 +300,17 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const recordHistory = async () => {
-    if (currentTrack && user) {
+    if (currentTrackRef.current && user) {
       const deviceName = Device.modelName || "Mobile Device";
-      await addToHistory(currentTrack.id, user.id, position, deviceName, isSynced);
+      const deviceId = device?.id;
+      await addToHistory(
+        currentTrackRef.current.id, 
+        user.id, 
+        Math.floor(positionRef.current), 
+        deviceName, 
+        deviceId, 
+        isSynced
+      );
     }
   };
 
@@ -446,6 +459,19 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!isPlaying && isLoaded) {
         recordHistory();
     }
+  }, [isPlaying]);
+
+  // Periodic History Sync
+  useEffect(() => {
+    let interval: any;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        recordHistory();
+      }, 15000); // Sync every 15 seconds
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isPlaying]);
 
   // Check Resume on mount

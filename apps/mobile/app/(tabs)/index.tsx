@@ -199,7 +199,7 @@ export default function HomeScreen() {
 
       if (sectionId === "artists") {
         // Random page 1-10
-        const res = await getArtistList(10, 1, mode);
+        const res = await getArtistList(20, 1, mode);
         if (res.code === 200 && res.data?.list) {
           newData = res.data.list;
         }

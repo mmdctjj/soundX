@@ -5,12 +5,13 @@ export const getUserList = () => {
   return request.get<any, ISuccessResponse<User[]>>("/user/list");
 };
 
-export const addToHistory = (trackId: number, userId: number, progress: number = 0, deviceName?: string, isSyncMode?: boolean) => {
+export const addToHistory = (trackId: number, userId: number, progress: number = 0, deviceName?: string, deviceId?: number, isSyncMode?: boolean) => {
   return request.post<any, ISuccessResponse<any>>("/user-track-histories", {
     trackId,
     userId,
     progress,
     deviceName,
+    deviceId,
     isSyncMode,
   });
 };

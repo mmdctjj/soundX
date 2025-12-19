@@ -12,6 +12,7 @@ interface AuthContextType {
   login: (user: Partial<User>) => Promise<void>;
   register: (user: Partial<User>) => Promise<void>;
   logout: () => Promise<void>;
+  device: any | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   register: async () => {},
   logout: async () => {},
+  device: null,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -30,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [device, setDevice] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -47,6 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       if (savedUser) {
         setUser(JSON.parse(savedUser));
+      }
+      const savedDevice = await AsyncStorage.getItem("device");
+      if (savedDevice) {
+        setDevice(JSON.parse(savedDevice));
       }
     } catch (error) {
       console.error("Failed to load auth data:", error);
@@ -66,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await AsyncStorage.setItem("token", newToken);
         await AsyncStorage.setItem("user", JSON.stringify(userData));
         if (device) {
+          setDevice(device);
           await AsyncStorage.setItem("device", JSON.stringify(device));
         }
       } else {
@@ -87,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await AsyncStorage.setItem("token", newToken);
         await AsyncStorage.setItem("user", JSON.stringify(userData));
         if (device) {
+          setDevice(device);
           await AsyncStorage.setItem("device", JSON.stringify(device));
         }
       } else {
@@ -101,6 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setToken(null);
       setUser(null);
+      setDevice(null);
       await AsyncStorage.removeItem("token");
       await AsyncStorage.removeItem("user");
       await AsyncStorage.removeItem("device");
@@ -111,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isLoading, login, register, logout }}
+      value={{ user, token, isLoading, login, register, logout, device }}
     >
       {children}
     </AuthContext.Provider>
