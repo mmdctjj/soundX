@@ -64,17 +64,20 @@ export const MiniPlayer = () => {
 
       <View style={styles.controls}>
         <TouchableOpacity onPress={playPrevious}>
-          <Ionicons name="play-skip-back" size={28} color={colors.text} />
+          <Ionicons name="play-skip-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <TouchableOpacity onPress={togglePlayback}>
           <Ionicons
             name={isPlaying ? "pause" : "play"}
-            size={28}
+            size={20}
             color={colors.primary}
           />
         </TouchableOpacity>
         <TouchableOpacity onPress={playNext}>
-          <Ionicons name="play-skip-forward" size={28} color={colors.text} />
+          <Ionicons name="play-skip-forward" size={20} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity>
+          <Ionicons name="list" size={24} color={colors.secondary} />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -119,5 +122,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-end",
     gap: 16,
-  }
+  },
 });

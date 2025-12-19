@@ -33,3 +33,15 @@ export const toggleUnLike = (trackId: number, userId: number) => {
       params: { trackId, userId },
     });
 };
+
+export const getLikedTracks = (userId: number, loadCount: number = 0, pageSize: number = 20) => {
+  return request.get<any, ISuccessResponse<any>>("/user-track-likes/load-more", {
+    params: { userId, loadCount, pageSize }
+  });
+};
+
+export const getHistoryTracks = (userId: number, loadCount: number = 0, pageSize: number = 20) => {
+  return request.get<any, ISuccessResponse<any>>("/user-track-histories/load-more", {
+    params: { userId, loadCount, pageSize }
+  });
+};
