@@ -289,22 +289,22 @@ export default function PlayerScreen() {
             {currentTrack.artist}
           </Text>
         </View>
-        <View style={styles.syncContainer}>
-          <TouchableOpacity 
-            onPress={isSynced ? handleDisconnect : () => setSyncModalVisible(true)}
-            style={[styles.syncButton, isSynced && styles.syncButtonActive]}
-          >
-            <MaterialCommunityIcons 
-              name={isSynced ? "account-multiple" : "account-multiple-outline"} 
-              size={24} 
-              color={isSynced ? colors.primary : colors.text} 
-            />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={
+            isSynced ? handleDisconnect : () => setSyncModalVisible(true)
+          }
+          style={[styles.syncButton, isSynced && styles.syncButtonActive]}
+        >
+          <MaterialCommunityIcons
+            name={isSynced ? "account-multiple" : "account-multiple-outline"}
+            size={24}
+            color={isSynced ? colors.primary : colors.text}
+          />
+        </TouchableOpacity>
 
-        <SyncModal 
-          visible={syncModalVisible} 
-          onClose={() => setSyncModalVisible(false)} 
+        <SyncModal
+          visible={syncModalVisible}
+          onClose={() => setSyncModalVisible(false)}
         />
         {currentTrack.type !== TrackType.AUDIOBOOK && (
           <TouchableOpacity
@@ -361,7 +361,7 @@ export default function PlayerScreen() {
           >
             <Ionicons
               name={isPlaying ? "pause" : "play"}
-              size={40}
+              size={30}
               color={colors.background}
               style={{ marginLeft: isPlaying ? 0 : 4 }}
             />
@@ -475,31 +475,28 @@ export default function PlayerScreen() {
         <View style={styles.landscapeContainer}>
           {/* Left Side - Artwork */}
           <View style={styles.landscapeLeft}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.landscapeBackBtn}
-            >
-              <Ionicons name="chevron-down" size={30} color={colors.text} />
-            </TouchableOpacity>
-            <Image
-              source={{
-                uri: currentTrack.cover
-                  ? typeof currentTrack.cover === "string" &&
-                    currentTrack.cover.startsWith("http")
-                    ? currentTrack.cover
-                    : `${getBaseURL()}${currentTrack.cover}`
-                  : "https://picsum.photos/400",
-              }}
-              style={styles.landscapeArtwork}
-            />
-            <View style={styles.trackInfo}>
-              <Text style={[styles.trackTitle, { color: colors.text }]}>
-                {currentTrack.name}
-              </Text>
-              <Text style={[styles.trackArtist, { color: colors.secondary }]}>
-                {currentTrack.artist}
-              </Text>
+            <View style={styles.landscapeBackBtn}>
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={styles.landscapeBackBtn}
+              >
+                <Ionicons name="chevron-down" size={30} color={colors.text} />
+              </TouchableOpacity>
             </View>
+            <View style={styles.landscapeArtworkContainer}>
+              <Image
+                source={{
+                  uri: currentTrack.cover
+                    ? typeof currentTrack.cover === "string" &&
+                      currentTrack.cover.startsWith("http")
+                      ? currentTrack.cover
+                      : `${getBaseURL()}${currentTrack.cover}`
+                    : "https://picsum.photos/400",
+                }}
+                style={styles.landscapeArtwork}
+              />
+            </View>
+            <View style={styles.landscapeControls}>{renderControls()}</View>
           </View>
 
           {/* Right Side - Content */}
@@ -546,7 +543,6 @@ export default function PlayerScreen() {
                 </ScrollView>
               )}
             </View>
-            {renderControls()}
           </View>
         </View>
         {renderPlaylistModal()}
@@ -790,7 +786,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 50,
   },
   mainControls: {
     flexDirection: "row",
@@ -801,22 +797,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: 20,
-    gap: 16
+    gap: 16,
   },
   syncContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   syncButton: {
-    padding: 5,
+    padding: 0,
   },
   syncButtonActive: {
     // Optional active style
   },
   syncText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   textContainer: {
     flex: 1,
@@ -828,9 +824,9 @@ const styles = StyleSheet.create({
   },
 
   playButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -846,7 +842,7 @@ const styles = StyleSheet.create({
   },
   landscapeLeft: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
     padding: 20,
   },
@@ -912,5 +908,14 @@ const styles = StyleSheet.create({
   },
   modalItemText: {
     fontSize: 16,
+  },
+  landscapeArtworkContainer: {
+    flex: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  landscapeControls: {
+    width: "80%",
+    justifyContent: "center",
   },
 });
