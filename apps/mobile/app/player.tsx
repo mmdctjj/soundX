@@ -20,7 +20,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SyncModal from "../src/components/SyncModal";
 
@@ -77,16 +76,15 @@ export default function PlayerScreen() {
     trackList,
     playTrackList,
     playMode,
-    togglePlayMode,
     playNext,
     playPrevious,
+    togglePlayMode,
     isSynced,
     handleDisconnect,
+    setShowPlaylist,
   } = usePlayer();
   const [syncModalVisible, setSyncModalVisible] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
-
-  const [showPlaylist, setShowPlaylist] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
   const [liked, setLiked] = useState(false);
@@ -394,87 +392,6 @@ export default function PlayerScreen() {
     </View>
   );
 
-  const renderPlaylistModal = () => (
-    <Modal
-      isVisible={showPlaylist}
-      onBackdropPress={() => setShowPlaylist(false)}
-      onSwipeComplete={() => setShowPlaylist(false)}
-      swipeDirection="down"
-      style={styles.modal}
-    >
-      <View
-        style={[
-          styles.modalContent,
-          { backgroundColor: colors.card, paddingBottom: insets.bottom },
-        ]}
-      >
-        <View style={styles.modalHeader}>
-          <Text style={[styles.modalTitle, { color: colors.text }]}>
-            播放列表 ({trackList.length})
-          </Text>
-        </View>
-        <FlatList
-          data={trackList}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity
-              style={[
-                styles.modalItem,
-                { borderBottomColor: colors.border },
-                currentTrack?.id === item.id && styles.activePlaylistItem,
-              ]}
-              onPress={() => {
-                playTrackList(trackList, index);
-                // Optional: close modal on select
-                // setShowPlaylist(false);
-              }}
-            >
-              <View
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalItemText,
-                    {
-                      color:
-                        currentTrack?.id === item.id
-                          ? colors.primary
-                          : colors.text,
-                    },
-                    { flex: 1 },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {item.name}
-                </Text>
-                {currentTrack?.type === TrackType.AUDIOBOOK && item.progress ? (
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: colors.secondary,
-                      marginLeft: 10,
-                    }}
-                  >
-                    已听
-                    {Math.floor(
-                      ((item.progress || 0) / (item.duration || 1)) * 100
-                    )}
-                    %
-                  </Text>
-                ) : null}
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-    </Modal>
-  );
-
   if (isLandscape) {
     return (
       <View
@@ -560,7 +477,6 @@ export default function PlayerScreen() {
             </View>
           </View>
         </View>
-        {renderPlaylistModal()}
       </View>
     );
   }
@@ -678,7 +594,6 @@ export default function PlayerScreen() {
 
         <View>{renderControls()}</View>
       </View>
-      {renderPlaylistModal()}
     </View>
   );
 }

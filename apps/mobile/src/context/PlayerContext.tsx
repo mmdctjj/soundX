@@ -35,6 +35,8 @@ interface PlayerContextType {
   isSynced: boolean;
   sessionId: string | null;
   handleDisconnect: () => void;
+  showPlaylist: boolean;
+  setShowPlaylist: (show: boolean) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType>({
@@ -55,6 +57,8 @@ const PlayerContext = createContext<PlayerContextType>({
   isSynced: false,
   sessionId: null,
   handleDisconnect: () => {},
+  showPlaylist: false,
+  setShowPlaylist: () => {},
 });
 
 export const usePlayer = () => useContext(PlayerContext);
@@ -70,6 +74,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [duration, setDuration] = useState(0);
   const [trackList, setTrackList] = useState<Track[]>([]);
   const [playMode, setPlayMode] = useState<PlayMode>(PlayMode.SEQUENCE);
+  const [showPlaylist, setShowPlaylist] = useState(false);
 
   // Refs for accessing latest state in callbacks
   const playModeRef = React.useRef(playMode);
@@ -498,6 +503,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         isSynced,
         sessionId,
         handleDisconnect,
+        showPlaylist,
+        setShowPlaylist,
       }}
     >
       {children}

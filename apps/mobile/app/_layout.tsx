@@ -10,6 +10,7 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+import { PlaylistModal } from "../src/components/PlaylistModal";
 import { SyncProvider } from "../src/context/SyncContext";
 
 function RootLayoutNav() {
@@ -56,6 +57,7 @@ function RootLayoutNav() {
               }}
             />
           </Stack>
+          <PlaylistModal />
         </PlayerProvider>
       </PlayModeProvider>
   );
