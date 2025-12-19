@@ -95,3 +95,10 @@ export const getAlbumTracks = (
 export const getAlbumsByArtist = (artist: string) => {
   return request.get<any, ISuccessResponse<Album[]>>(`/album/artist/${artist}`);
 };
+
+export const addAlbumToHistory = (albumId: number, userId: number) => {
+  return request.post<any, ISuccessResponse<any>>("/user-album-histories", {
+    albumId,
+    userId,
+  });
+};

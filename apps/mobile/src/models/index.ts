@@ -56,6 +56,8 @@ export interface Track {
   type: TrackType;
   progress?: number;
   createdAt: string | Date; // DateTime in Prisma maps to Date object or ISO string in JSON
+  artistId?: number;
+  albumId?: number;
   likedByUsers?: UserTrackLike[];
   listenedByUsers?: UserTrackHistory[];
   likedAsAudiobookByUsers?: UserAudiobookLike[];

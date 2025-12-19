@@ -31,7 +31,7 @@ export const PlaylistModal = () => {
       const res = await getHistoryTracks(user.id, 0, 50);
       if (res.code === 200) {
         setHistoryTracks(res.data.list.map((item: any) => item.track));
-      }
+      } 
     } catch (error) {
       console.error("Failed to load history in modal:", error);
     } finally {

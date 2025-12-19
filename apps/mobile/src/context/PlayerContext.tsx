@@ -3,9 +3,11 @@ import * as Device from "expo-device";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import { getBaseURL } from "../https";
-import type { Track } from "../models";
+import { Track, TrackType } from "../models";
+import { addAlbumToHistory } from "../services/album";
 import { socketService } from "../services/socket";
 import { addToHistory, getLatestHistory } from "../services/user";
+import { reportAudiobookProgress } from "../services/userAudiobookHistory";
 import { useAuth } from "./AuthContext";
 import { useSync } from "./SyncContext";
 
@@ -303,6 +305,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (currentTrackRef.current && user) {
       const deviceName = Device.modelName || "Mobile Device";
       const deviceId = device?.id;
+      
+      // 1. Report track history
       await addToHistory(
         currentTrackRef.current.id, 
         user.id, 
@@ -311,6 +315,20 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         deviceId, 
         isSynced
       );
+
+      // 2. Report album history if albumId is available
+      if (currentTrackRef.current.albumId) {
+        await addAlbumToHistory(currentTrackRef.current.albumId, user.id);
+      }
+
+      // 3. Report audiobook progress specifically
+      if (currentTrackRef.current.type === TrackType.AUDIOBOOK) {
+        await reportAudiobookProgress({
+          userId: user.id,
+          trackId: currentTrackRef.current.id,
+          progress: Math.floor(positionRef.current),
+        });
+      }
     }
   };
 
