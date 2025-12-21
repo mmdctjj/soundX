@@ -5,26 +5,26 @@ import * as Device from "expo-device";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import {
-  RenderItemParams,
-  ScaleDecorator,
+    RenderItemParams,
+    ScaleDecorator,
 } from "react-native-draggable-flatlist";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../src/context/ThemeContext";
 import { getBaseURL } from "../../src/https";
 import {
-  getRecentAlbums,
-  getRecommendedAlbums,
+    getRecentAlbums,
+    getRecommendedAlbums,
 } from "../../src/services/album";
 import { getLatestArtists } from "../../src/services/artist";
 import { getLatestTracks } from "../../src/services/track";
@@ -272,11 +272,14 @@ export default function HomeScreen() {
           />
         </View>
 
-        <View style={[styles.searchBar, { backgroundColor: colors.card }]}>
+        <TouchableOpacity
+          style={[styles.searchBar, { backgroundColor: colors.card }]}
+          onPress={() => router.push("/search")}
+        >
           <Text style={[styles.searchText, { color: colors.secondary }]}>
             搜索单曲，艺术家，专辑
           </Text>
-        </View>
+        </TouchableOpacity>
 
         {sections.map((section) => (
           <View key={section.id}>

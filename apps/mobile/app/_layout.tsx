@@ -29,7 +29,8 @@ function RootLayoutNav() {
       segments[0] === "artist" ||
       segments[0] === "album" ||
       segments[0] === "modal" ||
-      segments[0] === "player";
+      segments[0] === "player" ||
+      segments[0] === "search";
 
     if (!token && inAuthGroup) {
       router.replace("/login");
@@ -54,6 +55,13 @@ function RootLayoutNav() {
                 presentation: "fullScreenModal",
                 headerShown: false,
                 animation: "slide_from_bottom",
+              }}
+            />
+            <Stack.Screen
+              name="search"
+              options={{
+                headerShown: false,
+                animation: "fade",
               }}
             />
           </Stack>
