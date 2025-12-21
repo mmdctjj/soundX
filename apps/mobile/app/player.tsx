@@ -21,6 +21,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PlayerMoreModal } from "../src/components/PlayerMoreModal";
+import { PlaylistModal } from "../src/components/PlaylistModal";
 import SyncModal from "../src/components/SyncModal";
 
 const { width } = Dimensions.get("window");
@@ -84,6 +86,7 @@ export default function PlayerScreen() {
     setShowPlaylist,
   } = usePlayer();
   const [syncModalVisible, setSyncModalVisible] = useState(false);
+  const [moreModalVisible, setMoreModalVisible] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
@@ -319,6 +322,14 @@ export default function PlayerScreen() {
           visible={syncModalVisible}
           onClose={() => setSyncModalVisible(false)}
         />
+        <PlaylistModal />
+        <PlayerMoreModal
+          visible={moreModalVisible}
+          setVisible={setMoreModalVisible}
+          onClose={() => setMoreModalVisible(false)}
+          currentTrack={currentTrack}
+          router={router}
+        />
         {currentTrack.type !== TrackType.AUDIOBOOK && (
           <TouchableOpacity
             onPress={handleToggleLike}
@@ -497,7 +508,10 @@ export default function PlayerScreen() {
           <Ionicons name="chevron-down" size={30} color={colors.text} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.headerButton}>
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => setMoreModalVisible(true)}
+        >
           <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>

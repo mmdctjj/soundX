@@ -1,7 +1,14 @@
-import { Audio, AVPlaybackStatus } from "expo-av";
 import * as Device from "expo-device";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
+import TrackPlayer, {
+  AppKilledPlaybackBehavior,
+  Capability,
+  Event,
+  State,
+  useProgress,
+  useTrackPlayerEvents
+} from 'react-native-track-player';
 import { getBaseURL } from "../https";
 import { Track, TrackType } from "../models";
 import { addAlbumToHistory } from "../services/album";
@@ -24,7 +31,7 @@ interface PlayerContextType {
   currentTrack: Track | null;
   position: number;
   duration: number;
-  playTrack: (track: Track) => Promise<void>;
+  playTrack: (track: Track, initialPosition?: number) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   seekTo: (position: number) => Promise<void>;
@@ -39,6 +46,9 @@ interface PlayerContextType {
   handleDisconnect: () => void;
   showPlaylist: boolean;
   setShowPlaylist: (show: boolean) => void;
+  sleepTimer: number | null;
+  setSleepTimer: (minutes: number) => void;
+  clearSleepTimer: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextType>({
@@ -61,6 +71,9 @@ const PlayerContext = createContext<PlayerContextType>({
   handleDisconnect: () => {},
   showPlaylist: false,
   setShowPlaylist: () => {},
+  sleepTimer: null,
+  setSleepTimer: () => {},
+  clearSleepTimer: () => {},
 });
 
 export const usePlayer = () => useContext(PlayerContext);
@@ -69,19 +82,22 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user, device } = useAuth();
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [trackList, setTrackList] = useState<Track[]>([]);
   const [playMode, setPlayMode] = useState<PlayMode>(PlayMode.SEQUENCE);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [isSetup, setIsSetup] = useState(false);
+  const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
+
+  // Hook for progress
+  const { position, duration } = useProgress();
 
   // Refs for accessing latest state in callbacks
   const playModeRef = React.useRef(playMode);
   const trackListRef = React.useRef(trackList);
   const currentTrackRef = React.useRef(currentTrack);
+  const positionRef = React.useRef(position);
 
   useEffect(() => {
     playModeRef.current = playMode;
@@ -95,18 +111,69 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     currentTrackRef.current = currentTrack;
   }, [currentTrack]);
 
-  const positionRef = React.useRef(position);
   useEffect(() => {
     positionRef.current = position;
   }, [position]);
 
+  // Setup Player
   useEffect(() => {
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
+    const setupPlayer = async () => {
+      try {
+        await TrackPlayer.setupPlayer();
+        await TrackPlayer.updateOptions({
+          android: {
+            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+          },
+          capabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.SkipToNext,
+            Capability.SkipToPrevious,
+            Capability.Stop,
+            Capability.SeekTo,
+          ],
+          compactCapabilities: [
+            Capability.Play, 
+            Capability.Pause, 
+            Capability.SkipToNext,
+            Capability.SkipToPrevious,
+          ],
+          progressUpdateEventInterval: 2,
+        } as any);
+        
+        // Separately configure iOS audio session for background playback
+        if (require('react-native').Platform.OS === 'ios') {
+          await TrackPlayer.updateOptions({
+            iosCategory: 'playback',
+            iosCategoryMode: 'default',
+          } as any);
+        }
+        setIsSetup(true);
+      } catch (error) {
+        console.error("Failed to setup player", error);
+        // It might be already setup, so we can ignore or handle accordingly
+        const state = await TrackPlayer.getPlaybackState();
+        if (state.state !== State.None) {
+             setIsSetup(true);
+        }
       }
     };
-  }, [sound]);
+
+    setupPlayer();
+  }, []);
+
+  // Sync isPlaying state with TrackPlayer events
+  useTrackPlayerEvents([Event.PlaybackState, Event.PlaybackError, Event.PlaybackQueueEnded], async (event) => {
+    if (event.type === Event.PlaybackError) {
+        console.error('An error occurred while playing the current track.', event);
+    }
+    if (event.type === Event.PlaybackState) {
+        setIsPlaying(event.state === State.Playing);
+    }
+    if (event.type === Event.PlaybackQueueEnded) {
+        playNext();
+    }
+  });
 
   const getNextIndex = (
     currentIndex: number,
@@ -136,14 +203,19 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     list: Track[]
   ) => {
     if (list.length === 0) return -1;
-    // For simplicity, previous just goes back in list order, or loops if in list loop.
-    // Shuffle typically uses a history stack, but simple previous in list is often acceptable fallback.
     if (currentIndex > 0) return currentIndex - 1;
-    return list.length - 1; // Wrap to end
+    return list.length - 1;
   };
 
   const playNext = async () => {
     const list = trackListRef.current;
+    
+    // If Loop Single, just seek to 0 and play
+    if (playModeRef.current === PlayMode.LOOP_SINGLE) {
+        await seekTo(0);
+        return;
+    }
+
     const current = currentTrackRef.current;
     if (!current || list.length === 0) return;
 
@@ -154,8 +226,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (nextIndex !== -1) {
       await playTrack(list[nextIndex]);
     } else {
-      // Stop playback
-      if (sound) await sound.stopAsync();
+        await TrackPlayer.pause();
     }
   };
 
@@ -180,41 +251,32 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     setPlayMode(nextMode);
   };
 
-  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      setIsPlaying(status.isPlaying);
-      setPosition(status.positionMillis / 1000);
-      setDuration(status.durationMillis ? status.durationMillis / 1000 : 0);
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setPosition(0);
-        playNext();
-      }
-    }
-  };
-
   const playTrack = async (track: Track, initialPosition?: number) => {
+    if (!isSetup) return;
     try {
-      if (sound) {
-        await sound.unloadAsync();
-      }
-      if (!track) return;
-
       const uri = track.path.startsWith("http")
         ? track.path
         : `${getBaseURL()}${track.path}`;
-
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true },
-        onPlaybackStatusUpdate
-      );
-
-      setSound(newSound);
-      setCurrentTrack(track);
+      
+      const artwork = track.cover ? (track.cover.startsWith("http") ? track.cover : `${getBaseURL()}${track.cover}`) : undefined;
+      console.log("Playing track:", track);
+      await TrackPlayer.reset();
+      await TrackPlayer.add({
+        id: String(track.id),
+        url: uri,
+        title: track.name,
+        artist: track.artist,
+        artwork: artwork,
+        duration: track.duration || 0,
+      });
+      
       if (initialPosition) {
-        await newSound.setPositionAsync(initialPosition * 1000);
+          await TrackPlayer.seekTo(initialPosition);
       }
+      
+      await TrackPlayer.play();
+      // Optimistically set current track for UI
+      setCurrentTrack(track);
     } catch (error) {
       console.error("Failed to play track:", error);
     }
@@ -238,12 +300,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const pause = async () => {
-    if (sound) {
+    if (isSetup) {
       try {
-        const status = await sound.getStatusAsync();
-        if (status.isLoaded && status.isPlaying) {
-          await sound.pauseAsync();
-        }
+        await TrackPlayer.pause();
       } catch (error) {
         console.error("Failed to pause:", error);
       }
@@ -251,12 +310,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const resume = async () => {
-    if (sound) {
+    if (isSetup) {
       try {
-        const status = await sound.getStatusAsync();
-        if (status.isLoaded && !status.isPlaying) {
-          await sound.playAsync();
-        }
+        await TrackPlayer.play();
       } catch (error) {
         console.error("Failed to resume:", error);
       }
@@ -264,13 +320,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const seekTo = async (pos: number) => {
-    if (sound) {
+    if (isSetup) {
       try {
-        const status = await sound.getStatusAsync();
-        if (status.isLoaded) {
-          await sound.setPositionAsync(pos * 1000);
-          broadcastSync('seek', pos);
-        }
+        await TrackPlayer.seekTo(pos);
+        broadcastSync('seek', pos);
       } catch (error) {
         console.error("Failed to seek:", error);
       }
@@ -306,7 +359,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       const deviceName = Device.modelName || "Mobile Device";
       const deviceId = device?.id;
       
-      // 1. Report track history
       await addToHistory(
         currentTrackRef.current.id, 
         user.id, 
@@ -316,12 +368,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         isSynced
       );
 
-      // 2. Report album history if albumId is available
       if (currentTrackRef.current.albumId) {
         await addAlbumToHistory(currentTrackRef.current.albumId, user.id);
       }
 
-      // 3. Report audiobook progress specifically
       if (currentTrackRef.current.type === TrackType.AUDIOBOOK) {
         await reportAudiobookProgress({
           userId: user.id,
@@ -408,10 +458,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         setTrackList(lastAcceptedInvite.playlist);
       }
       if (lastAcceptedInvite.currentTrack) {
-        playTrack(lastAcceptedInvite.currentTrack, lastAcceptedInvite.progress);
+        // playTrack(lastAcceptedInvite.currentTrack, lastAcceptedInvite.progress);
+        // Important: Wait for player setup before applying
+        if (isSetup) {
+             playTrack(lastAcceptedInvite.currentTrack, lastAcceptedInvite.progress);
+        }
       }
     }
-  }, [isSynced, lastAcceptedInvite]);
+  }, [isSynced, lastAcceptedInvite, isSetup]);
 
   // Global session event handlers - always active
   useEffect(() => {
@@ -474,7 +528,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [currentTrack?.id]);
 
   useEffect(() => {
-    if (!isPlaying && isLoaded) {
+    if (!isPlaying && currentTrack) {
         recordHistory();
     }
   }, [isPlaying]);
@@ -494,7 +548,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Check Resume on mount
   useEffect(() => {
-    if (user) {
+    if (user && isSetup) {
         const checkResume = async () => {
             try {
                 const res = await getLatestHistory(user.id);
@@ -523,9 +577,31 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         };
         checkResume();
     }
-  }, [user?.id]);
+  }, [user?.id, isSetup]);
 
-  const isLoaded = !!sound;
+  // Sleep Timer Functions
+  const setSleepTimer = (minutes: number) => {
+    const expiryTime = Date.now() + minutes * 60 * 1000;
+    setSleepTimerState(expiryTime);
+  };
+
+  const clearSleepTimer = () => {
+    setSleepTimerState(null);
+  };
+
+  // Monitor Sleep Timer
+  useEffect(() => {
+    if (!sleepTimer || !isPlaying) return;
+
+    const checkTimer = setInterval(() => {
+      if (Date.now() >= sleepTimer) {
+        pause();
+        setSleepTimerState(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(checkTimer);
+  }, [sleepTimer, isPlaying]);
 
   return (
     <PlayerContext.Provider
@@ -549,6 +625,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         handleDisconnect,
         showPlaylist,
         setShowPlaylist,
+        sleepTimer,
+        setSleepTimer,
+        clearSleepTimer,
       }}
     >
       {children}

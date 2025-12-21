@@ -11,12 +11,13 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getBaseURL } from "../https";
 
@@ -175,120 +176,129 @@ export const PlaylistModal = () => {
 
   return (
     <Modal
-      isVisible={showPlaylist}
-      onBackdropPress={() => setShowPlaylist(false)}
-      onSwipeComplete={() => setShowPlaylist(false)}
-      swipeDirection={["down", "right"]}
-      style={styles.modal}
-      deviceWidth={undefined}
-      deviceHeight={undefined}
-      propagateSwipe
+      visible={showPlaylist}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowPlaylist(false)}
     >
-      <View
-        style={[
-          styles.modalContent,
-          { backgroundColor: colors.card, paddingBottom: insets.bottom },
-        ]}
-      >
-        <View style={styles.modalHeader}>
-          {[
-            { id: "current", label: `当前 (${trackList.length})` },
-            { id: "history", label: "听过" },
-            { id: "favorites", label: "收藏" },
-          ].map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              style={[
-                styles.tabItem,
-                activeTab === tab.id && {
-                  borderBottomColor: colors.primary,
-                  borderBottomWidth: 2,
-                },
-              ]}
-              onPress={() => setActiveTab(tab.id as TabType)}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  {
-                    color:
-                      activeTab === tab.id ? colors.primary : colors.secondary,
-                  },
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {mode === "MUSIC" && activeTab !== "current" && (
-          <View style={styles.subTabContainer}>
-            {[
-              { id: "album", label: "专辑" },
-              { id: "track", label: "单曲" },
-            ].map((sub) => (
-              <TouchableOpacity
-                key={sub.id}
-                style={[
-                  styles.subTabItem,
-                  activeSubTab === sub.id && {
-                    backgroundColor: "rgba(150,150,150,0.1)",
-                  },
-                ]}
-                onPress={() => setActiveSubTab(sub.id as SubTabType)}
-              >
-                <Text
+      <Pressable style={styles.backdrop} onPress={() => setShowPlaylist(false)}>
+        <Pressable
+          style={styles.modalWrapper}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: colors.card, paddingBottom: insets.bottom },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              {[
+                { id: "current", label: `当前 (${trackList.length})` },
+                { id: "history", label: "听过" },
+                { id: "favorites", label: "收藏" },
+              ].map((tab) => (
+                <TouchableOpacity
+                  key={tab.id}
                   style={[
-                    styles.subTabText,
-                    {
-                      color:
-                        activeSubTab === sub.id
-                          ? colors.primary
-                          : colors.secondary,
+                    styles.tabItem,
+                    activeTab === tab.id && {
+                      borderBottomColor: colors.primary,
+                      borderBottomWidth: 2,
                     },
                   ]}
+                  onPress={() => setActiveTab(tab.id as TabType)}
                 >
-                  {sub.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+                  <Text
+                    style={[
+                      styles.tabText,
+                      {
+                        color:
+                          activeTab === tab.id
+                            ? colors.primary
+                            : colors.secondary,
+                      },
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={colors.primary} />
-          </View>
-        ) : (
-          <FlatList
-            data={listData}
-            keyExtractor={(item, index) => `${item.id}-${index}`}
-            renderItem={renderItem}
-            ListEmptyComponent={
-              <View style={styles.center}>
-                <Text style={{ color: colors.secondary, marginTop: 20 }}>
-                  暂无记录
-                </Text>
+            {mode === "MUSIC" && activeTab !== "current" && (
+              <View style={styles.subTabContainer}>
+                {[
+                  { id: "album", label: "专辑" },
+                  { id: "track", label: "单曲" },
+                ].map((sub) => (
+                  <TouchableOpacity
+                    key={sub.id}
+                    style={[
+                      styles.subTabItem,
+                      activeSubTab === sub.id && {
+                        backgroundColor: "rgba(150,150,150,0.1)",
+                      },
+                    ]}
+                    onPress={() => setActiveSubTab(sub.id as SubTabType)}
+                  >
+                    <Text
+                      style={[
+                        styles.subTabText,
+                        {
+                          color:
+                            activeSubTab === sub.id
+                              ? colors.primary
+                              : colors.secondary,
+                        },
+                      ]}
+                    >
+                      {sub.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            }
-          />
-        )}
-      </View>
+            )}
+
+            {loading ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={listData}
+                keyExtractor={(item, index) => `${item.id}-${index}`}
+                renderItem={renderItem}
+                ListEmptyComponent={
+                  <View style={styles.center}>
+                    <Text style={{ color: colors.secondary, marginTop: 20 }}>
+                      暂无记录
+                    </Text>
+                  </View>
+                }
+              />
+            )}
+          </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modal: {
-    margin: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
     alignItems: "flex-end",
   },
-  modalContent: {
+  modalWrapper: {
     width: "100%",
+    height: "60%",
     maxWidth: 600,
-    height: "70%",
+  },
+  modalContent: {
+    height: "100%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: "hidden",
@@ -336,7 +346,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 8
+    gap: 8,
   },
   modalItemText: {
     fontSize: 16,

@@ -259,21 +259,26 @@ export default function LibraryScreen() {
         { backgroundColor: colors.background, paddingTop: insets.top },
       ]}
     >
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View style={styles.tabContainer}>
+      <View style={styles.tabContent}>
+        <View
+          style={[
+            styles.segmentedControl,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <TouchableOpacity
             style={[
-              styles.tabItem,
-              activeTab === "artists" && { borderBottomColor: colors.primary },
+              styles.segmentItem,
+              activeTab === "artists" && { backgroundColor: colors.primary },
             ]}
             onPress={() => setActiveTab("artists")}
           >
             <Text
               style={[
-                styles.tabText,
+                styles.segmentText,
                 {
                   color:
-                    activeTab === "artists" ? colors.primary : colors.secondary,
+                    activeTab === "artists" ? "#fff" : colors.secondary,
                 },
               ]}
             >
@@ -282,17 +287,17 @@ export default function LibraryScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[
-              styles.tabItem,
-              activeTab === "albums" && { borderBottomColor: colors.primary },
+              styles.segmentItem,
+              activeTab === "albums" && { backgroundColor: colors.primary },
             ]}
             onPress={() => setActiveTab("albums")}
           >
             <Text
               style={[
-                styles.tabText,
+                styles.segmentText,
                 {
                   color:
-                    activeTab === "albums" ? colors.primary : colors.secondary,
+                    activeTab === "albums" ? "#fff" : colors.secondary,
                 },
               ]}
             >
@@ -324,19 +329,27 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "bold",
   },
-  tabContainer: {
-    flexDirection: "row",
+  tabContent: {
     paddingHorizontal: 20,
+    paddingBottom: 15,
   },
-  tabItem: {
-    marginRight: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
+  segmentedControl: {
+    flexDirection: "row",
+    height: 40,
+    borderRadius: 20,
+    padding: 2,
+    borderWidth: 1,
   },
-  tabText: {
-    fontSize: 16,
-    fontWeight: "600",
+  segmentItem: {
+    flex: 1,
+    height: "100%",
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: "bold",
   },
   listContent: {
     padding: 20,
