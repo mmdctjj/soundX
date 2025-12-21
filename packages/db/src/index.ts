@@ -1,2 +1,2 @@
-// Re-export everything from Prisma Client except TrackType
-export * from "./";
+// Re-export everything from Prisma Client
+export * from "../dist";

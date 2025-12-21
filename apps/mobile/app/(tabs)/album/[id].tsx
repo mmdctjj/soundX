@@ -120,10 +120,10 @@ export default function AlbumDetailScreen() {
                 source={{
                   uri: track.cover
                     ? `${getBaseURL()}${track.cover}`
-                    : `https://picsum.photos/seed/${track.id}/50/50`,
+                    : `https://picsum.photos/seed/${track.id}/20/20`,
                 }}
                 alt=""
-                style={{ width: 50, height: 50, borderRadius: 5 }}
+                style={{ width: 20, height: 20, borderRadius: 2 }}
               />
               <View style={styles.trackInfo}>
                 <Text
@@ -131,12 +131,6 @@ export default function AlbumDetailScreen() {
                   numberOfLines={1}
                 >
                   {track.name}
-                </Text>
-                <Text
-                  style={[styles.trackArtist, { color: colors.secondary }]}
-                  numberOfLines={1}
-                >
-                  {track.artist}
                 </Text>
               </View>
               {album.type === "AUDIOBOOK" &&

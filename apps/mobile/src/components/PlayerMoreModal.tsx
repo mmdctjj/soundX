@@ -64,6 +64,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   }, [sleepTimer]);
 
   const handleArtistDetails = () => {
+    setVisible(false);
     if (currentTrack?.artistId) {
       onClose();
       router.push(`/artist/${currentTrack.artistId}`);
@@ -71,6 +72,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   };
 
   const handleAlbumDetails = () => {
+    setVisible(false);
     if (currentTrack?.albumId) {
       onClose();
       router.push(`/album/${currentTrack.albumId}`);

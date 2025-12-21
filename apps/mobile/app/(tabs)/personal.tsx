@@ -42,20 +42,20 @@ export default function PersonalScreen() {
     if (user) {
       loadData();
     }
-  }, [user, activeTab]);
+  }, [user, activeTab, mode]);
 
   const loadData = async () => {
     if (!user) return;
     setLoading(true);
     try {
       if (activeTab === "playlists") {
-        const res = await getPlaylists(user.id);
+        const res = await getPlaylists(user.id, mode as any); 
         if (res.code === 200) setPlaylists(res.data);
       } else if (activeTab === "favorites") {
-        const res = await getLikedTracks(user.id);
+        const res = await getLikedTracks(user.id, 0, 10000, mode as any);
         if (res.code === 200) setFavorites(res.data.list.map((item: any) => item.track));
       } else if (activeTab === "history") {
-        const res = await getHistoryTracks(user.id);
+        const res = await getHistoryTracks(user.id, 0, 10000, mode as any);
         if (res.code === 200) setHistory(res.data.list.map((item: any) => item.track));
       }
     } catch (error) {

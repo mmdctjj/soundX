@@ -45,7 +45,8 @@
     "react-native-track-player": "^4.1.2",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
-    "@soundx/ws": "workspace:*"
+    "@soundx/ws": "workspace:*",
+    "@soundx/db": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
