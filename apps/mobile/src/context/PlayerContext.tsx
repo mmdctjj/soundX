@@ -1,13 +1,14 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Device from "expo-device";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import TrackPlayer, {
-  AppKilledPlaybackBehavior,
-  Capability,
-  Event,
-  State,
-  useProgress,
-  useTrackPlayerEvents
+    AppKilledPlaybackBehavior,
+    Capability,
+    Event,
+    State,
+    useProgress,
+    useTrackPlayerEvents
 } from 'react-native-track-player';
 import { getBaseURL } from "../https";
 import { Track, TrackType } from "../models";
@@ -15,6 +16,7 @@ import { addAlbumToHistory } from "../services/album";
 import { socketService } from "../services/socket";
 import { addToHistory, getLatestHistory } from "../services/user";
 import { reportAudiobookProgress } from "../services/userAudiobookHistory";
+import { usePlayMode } from "../utils/playMode";
 import { useAuth } from "./AuthContext";
 import { useSync } from "./SyncContext";
 
@@ -82,6 +84,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user, device } = useAuth();
+  const { mode } = usePlayMode();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [trackList, setTrackList] = useState<Track[]>([]);
@@ -89,6 +92,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isSetup, setIsSetup] = useState(false);
   const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
+
+  const prevModeRef = useRef(mode);
+  const isInitialLoadRef = useRef(true);
 
   // Hook for progress
   const { position, duration } = useProgress();
@@ -249,7 +255,94 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     const currentIndex = modes.indexOf(playMode);
     const nextMode = modes[(currentIndex + 1) % modes.length];
     setPlayMode(nextMode);
+    savePlaybackState(mode);
   };
+
+  // Persistence logic
+  const savePlaybackState = async (targetMode: string) => {
+    if (!currentTrackRef.current || !isSetup) return;
+    const state = {
+      currentTrack: currentTrackRef.current,
+      trackList: trackListRef.current,
+      position: positionRef.current,
+      playMode: playModeRef.current,
+    };
+    try {
+      await AsyncStorage.setItem(`playbackState_${targetMode}`, JSON.stringify(state));
+    } catch (e) {
+      console.error("Failed to save playback state", e);
+    }
+  };
+
+  const loadPlaybackState = async (targetMode: string) => {
+    if (!isSetup) return;
+    try {
+      const saved = await AsyncStorage.getItem(`playbackState_${targetMode}`);
+      if (saved) {
+        const state = JSON.parse(saved);
+        setTrackList(state.trackList);
+        setPlayMode(state.playMode);
+        if (state.currentTrack) {
+          const track = state.currentTrack;
+          const uri = track.path.startsWith("http")
+            ? track.path
+            : `${getBaseURL()}${track.path}`;
+          const artwork = track.cover ? (track.cover.startsWith("http") ? track.cover : `${getBaseURL()}${track.cover}`) : undefined;
+          
+          await TrackPlayer.reset();
+          await TrackPlayer.add({
+            id: String(track.id),
+            url: uri,
+            title: track.name,
+            artist: track.artist,
+            artwork: artwork,
+            duration: track.duration || 0,
+          });
+          
+          if (state.position) {
+            await TrackPlayer.seekTo(state.position);
+          }
+          
+          setCurrentTrack(track);
+        }
+      } else {
+        setCurrentTrack(null);
+        setTrackList([]);
+        await TrackPlayer.reset();
+      }
+    } catch (e) {
+      console.error("Failed to load playback state", e);
+    }
+  };
+
+  // Mode switching & Initial Load Persistence
+  useEffect(() => {
+    if (!isSetup) return;
+
+    const handleModeChange = async () => {
+      if (isInitialLoadRef.current) {
+        await loadPlaybackState(mode);
+        isInitialLoadRef.current = false;
+        prevModeRef.current = mode;
+      } else if (prevModeRef.current !== mode) {
+        await savePlaybackState(prevModeRef.current);
+        await loadPlaybackState(mode);
+        prevModeRef.current = mode;
+      }
+    };
+
+    handleModeChange();
+  }, [mode, isSetup]);
+
+  // Periodic persistence
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isPlaying && isSetup) {
+        savePlaybackState(mode);
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [isPlaying, isSetup, mode]);
 
   const playTrack = async (track: Track, initialPosition?: number) => {
     if (!isSetup) return;
@@ -277,6 +370,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       await TrackPlayer.play();
       // Optimistically set current track for UI
       setCurrentTrack(track);
+      savePlaybackState(mode);
     } catch (error) {
       console.error("Failed to play track:", error);
     }
@@ -286,6 +380,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     setTrackList(tracks);
     if (tracks[index]) {
       await playTrack(tracks[index]);
+      savePlaybackState(mode);
     }
   };
 
@@ -303,6 +398,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (isSetup) {
       try {
         await TrackPlayer.pause();
+        savePlaybackState(mode);
       } catch (error) {
         console.error("Failed to pause:", error);
       }
@@ -313,6 +409,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (isSetup) {
       try {
         await TrackPlayer.play();
+        savePlaybackState(mode);
       } catch (error) {
         console.error("Failed to resume:", error);
       }
