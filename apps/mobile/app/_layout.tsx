@@ -65,7 +65,7 @@ function RootLayoutNav() {
               }}
             />
           </Stack>
-          <PlaylistModal />
+          {segments[0] !== "player" && <PlaylistModal />}
         </PlayerProvider>
       </PlayModeProvider>
   );

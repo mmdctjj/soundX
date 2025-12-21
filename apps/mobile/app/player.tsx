@@ -9,16 +9,16 @@ import { Slider } from "@miblanchard/react-native-slider";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
-  FlatList,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    Dimensions,
+    FlatList,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlayerMoreModal } from "../src/components/PlayerMoreModal";
@@ -322,7 +322,6 @@ export default function PlayerScreen() {
           visible={syncModalVisible}
           onClose={() => setSyncModalVisible(false)}
         />
-        <PlaylistModal />
         <PlayerMoreModal
           visible={moreModalVisible}
           setVisible={setMoreModalVisible}
@@ -330,6 +329,7 @@ export default function PlayerScreen() {
           currentTrack={currentTrack}
           router={router}
         />
+        <PlaylistModal />
         {currentTrack.type !== TrackType.AUDIOBOOK && (
           <TouchableOpacity
             onPress={handleToggleLike}
