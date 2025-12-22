@@ -21,6 +21,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # 2. 复制所有子包 package.json
 COPY packages/db/package.json ./packages/db/
 COPY packages/utils/package.json ./packages/utils/
+COPY packages/ws/package.json ./packages/ws/
 COPY services/api/package.json ./services/api/
 COPY apps/desktop/package.json ./apps/desktop/
 
@@ -33,6 +34,8 @@ COPY . .
 # 5. 构建所有 workspace (修改部分开始)
 # 构建 @soundx/utils
 RUN cd packages/utils && pnpm run build
+# 构建 @soundx/ws
+RUN cd packages/ws && pnpm run build
 # 构建 @soundx/db
 RUN cd packages/db && pnpm run build
 # 6. Prisma generate（确保生成到 packages/db/generated/client）

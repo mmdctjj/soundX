@@ -3,7 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../dist"  /// 自定义为源代码目录内的相对路径
+  output   = "../generated"  /// 自定义为源代码目录内的相对路径
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 

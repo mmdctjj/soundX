@@ -10,5 +10,9 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "generated",
+    "dist"
   ]
 }
