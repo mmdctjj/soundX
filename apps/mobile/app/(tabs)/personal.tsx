@@ -1,15 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Modal,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/AuthContext";
@@ -29,9 +28,9 @@ export default function PersonalScreen() {
   const { logout, user } = useAuth();
   const { playTrackList } = usePlayer();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<TabType>("playlists");
-  const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(false);
   
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -120,7 +119,7 @@ export default function PersonalScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={{ width: 40 }} />
-        <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.iconBtn}>
+        <TouchableOpacity onPress={() => router.push("/settings")} style={styles.iconBtn}>
           <Ionicons name="settings-outline" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
@@ -182,42 +181,6 @@ export default function PersonalScreen() {
           }
         />
       )}
-
-      {/* Settings Modal */}
-      <Modal visible={showSettings} animationType="slide" transparent>
-        <View style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card, paddingTop: insets.top }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>设置</Text>
-              <TouchableOpacity onPress={() => setShowSettings(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.settingRow}>
-              <Text style={[styles.settingText, { color: colors.text }]}>深色模式</Text>
-              <Switch
-                value={theme === "dark"}
-                onValueChange={toggleTheme}
-                trackColor={{ false: "#767577", true: colors.primary }}
-              />
-            </View>
-
-            <View style={styles.settingRow}>
-              <Text style={[styles.settingText, { color: colors.text }]}>有声书模式</Text>
-              <Switch
-                value={mode === "AUDIOBOOK"}
-                onValueChange={(val) => setMode(val ? "AUDIOBOOK" : "MUSIC")}
-                trackColor={{ false: "#767577", true: colors.primary }}
-              />
-            </View>
-
-            <TouchableOpacity style={styles.logoutBtn} onPress={() => { setShowSettings(false); logout(); }}>
-              <Text style={styles.logoutText}>退出登录</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }

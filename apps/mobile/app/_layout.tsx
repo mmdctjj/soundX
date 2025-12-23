@@ -11,6 +11,7 @@ export const unstable_settings = {
 };
 
 import { PlaylistModal } from "../src/components/PlaylistModal";
+import { SettingsProvider } from "../src/context/SettingsContext";
 import { SyncProvider } from "../src/context/SyncContext";
 
 function RootLayoutNav() {
@@ -30,7 +31,8 @@ function RootLayoutNav() {
       segments[0] === "album" ||
       segments[0] === "modal" ||
       segments[0] === "player" ||
-      segments[0] === "search";
+      segments[0] === "search" ||
+      segments[0] === "settings";
 
     if (!token && inAuthGroup) {
       router.replace("/login");
@@ -64,6 +66,13 @@ function RootLayoutNav() {
                 animation: "fade",
               }}
             />
+            <Stack.Screen
+              name="settings"
+              options={{
+                headerShown: false,
+                animation: "slide_from_right",
+              }}
+            />
           </Stack>
           {segments[0] !== "player" && <PlaylistModal />}
         </PlayerProvider>
@@ -81,12 +90,14 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AuthProvider>
-          <NotificationProvider>
-            <SyncProvider>
-              <RootLayoutNav />
-              <PlaybackNotification />
-            </SyncProvider>
-          </NotificationProvider>
+          <SettingsProvider>
+            <NotificationProvider>
+              <SyncProvider>
+                <RootLayoutNav />
+                <PlaybackNotification />
+              </SyncProvider>
+            </NotificationProvider>
+          </SettingsProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

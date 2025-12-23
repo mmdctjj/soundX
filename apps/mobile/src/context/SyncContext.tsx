@@ -3,6 +3,7 @@ import { Track } from '../models';
 import { socketService } from '../services/socket';
 import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
+import { useSettings } from './SettingsContext';
 
 interface Participant {
   userId: number;
@@ -41,6 +42,7 @@ const SyncContext = createContext<SyncContextType | undefined>(undefined);
 export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, token } = useAuth();
   const { showNotification, hideNotification } = useNotification();
+  const { acceptSync } = useSettings();
   const [isSynced, setIsSynced] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -53,7 +55,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const handleInviteReceived = (payload: SyncInvite) => {
         setInvites(prev => [...prev, payload]);
-        if (payload.currentTrack) {
+        if (payload.currentTrack && acceptSync) {
           showNotification({
             type: 'sync',
             track: payload.currentTrack,

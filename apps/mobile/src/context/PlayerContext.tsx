@@ -3,12 +3,12 @@ import * as Device from "expo-device";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import TrackPlayer, {
-  AppKilledPlaybackBehavior,
-  Capability,
-  Event,
-  State,
-  useProgress,
-  useTrackPlayerEvents
+    AppKilledPlaybackBehavior,
+    Capability,
+    Event,
+    State,
+    useProgress,
+    useTrackPlayerEvents
 } from 'react-native-track-player';
 import { getBaseURL } from "../https";
 import { Track, TrackType } from "../models";
@@ -19,6 +19,7 @@ import { reportAudiobookProgress } from "../services/userAudiobookHistory";
 import { usePlayMode } from "../utils/playMode";
 import { useAuth } from "./AuthContext";
 import { useNotification } from "./NotificationContext";
+import { useSettings } from "./SettingsContext";
 import { useSync } from "./SyncContext";
 
 export enum PlayMode {
@@ -87,6 +88,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const { user, device } = useAuth();
   const { mode } = usePlayMode();
   const { showNotification } = useNotification();
+  const { acceptRelay } = useSettings();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [trackList, setTrackList] = useState<Track[]>([]);
@@ -647,7 +649,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Check Resume on mount
   useEffect(() => {
-    if (user && isSetup) {
+    if (user && isSetup && acceptRelay) {
         const checkResume = async () => {
             try {
                 const res = await getLatestHistory(user.id);
