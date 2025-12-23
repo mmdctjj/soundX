@@ -2,7 +2,12 @@
   "name": "api",
   "version": "0.0.1",
   "description": "",
-  "author": "",
+  "author": "mmdctjj <mmdctjj@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmdctjj/AudioDock"
+  },
+  "homepage": "https://github.com/mmdctjj/AudioDock",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

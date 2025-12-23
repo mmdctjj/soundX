@@ -1,6 +1,7 @@
 import {
   CustomerServiceOutlined,
   DeleteOutlined,
+  GithubOutlined,
   ImportOutlined,
   LeftOutlined,
   LogoutOutlined,
@@ -310,6 +311,23 @@ const Header: React.FC = () => {
             <div className={styles.userMenu}>
               <div className={styles.userMenuItem}>
                 嗨！{user?.username || "未知"}
+              </div>
+              <div
+                className={styles.userMenuItem}
+                onClick={() => {
+                  if (window.ipcRenderer) {
+                    window.ipcRenderer?.openExternal(
+                      "https://github.com/mmdctjj/AudioDock"
+                    );
+                  } else {
+                    window.open(
+                      "https://github.com/mmdctjj/AudioDock",
+                      "_blank"
+                    );
+                  }
+                }}
+              >
+                <GithubOutlined />求 Star！！！
               </div>
               <div
                 className={styles.userMenuItem}

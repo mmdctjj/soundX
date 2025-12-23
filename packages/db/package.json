@@ -1,6 +1,12 @@
 {
   "name": "@soundx/db",
   "version": "0.0.1",
+  "author": "mmdctjj <mmdctjj@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmdctjj/AudioDock"
+  },
+  "homepage": "https://github.com/mmdctjj/AudioDock",
   "main": "dist/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",

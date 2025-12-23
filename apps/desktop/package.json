@@ -3,6 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "productName": "Sound X",
+  "author": "mmdctjj <mmdctjj@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmdctjj/AudioDock"
+  },
+  "homepage": "https://github.com/mmdctjj/AudioDock",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {

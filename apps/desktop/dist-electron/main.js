@@ -1,4 +1,4 @@
-import { ipcMain, app, BrowserWindow, Menu, Tray, nativeImage } from "electron";
+import { ipcMain, app, shell, BrowserWindow, Menu, Tray, nativeImage } from "electron";
 import { fileURLToPath } from "node:url";
 import os from "os";
 import path from "path";
@@ -20,6 +20,10 @@ ipcMain.handle("set-auto-launch", (event, enable) => {
     openAtLogin: enable,
     path: process.execPath
   });
+});
+ipcMain.handle("open-url", (event, url) => {
+  console.log("Opening URL:", url);
+  return shell.openExternal(url);
 });
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
 process.env.DIST = path.join(__dirname$1, "../dist");

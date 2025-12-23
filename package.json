@@ -18,8 +18,13 @@
     "core:dev": "cd packages/core && pnpm run dev",
     "dev": "pnpm --filter @soundx/ws run build && pnpm --filter @soundx/utils run build && pnpm --filter @soundx/db run generate && concurrently \"pnpm --filter api run start:dev\" \"pnpm --filter sound-x run dev\""
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmdctjj/AudioDock"
+  },
+  "homepage": "https://github.com/mmdctjj/AudioDock",
   "keywords": [],
-  "author": "",
+  "author": "mmdctjj <mmdctjj@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "@soundx/utils": "workspace:^"

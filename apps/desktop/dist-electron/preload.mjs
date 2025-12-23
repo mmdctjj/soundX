@@ -29,5 +29,6 @@ electron.contextBridge.exposeInMainWorld("ipcRenderer", {
   platform: process.platform,
   getName: async () => {
     return await electron.ipcRenderer.invoke("get-device-name");
-  }
+  },
+  openExternal: (url) => electron.ipcRenderer.invoke("open-url", url)
 });

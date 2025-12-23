@@ -11,8 +11,13 @@
     "prepublishOnly": "father doctor && npm run build"
   },
   "types": "dist/esm/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmdctjj/AudioDock"
+  },
+  "homepage": "https://github.com/mmdctjj/AudioDock",
   "keywords": [],
-  "authors": [],
+  "author": "mmdctjj <mmdctjj@gmail.com>",
   "license": "MIT",
   "files": [
     "dist",

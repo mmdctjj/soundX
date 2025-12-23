@@ -9,6 +9,11 @@ This project is licensed under a **Personal-Use Only License**.
 
 # AudioDock
 
+<p style="text-align: center;" >
+<img src="./images/logo.png" width="200" />
+</p>
+
+
 AudioDock（声仓） 是一个基于现代 Web 技术构建的音乐和有声书一体的本地化播放器，包含桌面端、移动端、web端、小程序。以及本地化后端服务
 
 <p>
