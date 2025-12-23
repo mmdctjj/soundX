@@ -9,7 +9,7 @@ This project is licensed under a **Personal-Use Only License**.
 
 # AudioDock
 
-<p style="text-align: center;" >
+<p align="center">
 <img src="./images/logo.png" width="200" />
 </p>
 
