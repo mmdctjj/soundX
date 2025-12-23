@@ -21,6 +21,16 @@ import { UserService } from '../services/user';
 export class UserController {
   constructor(private readonly userService: UserService) { }
 
+  @Public()
+  @Get("/hello")
+  async hello(): Promise<ISuccessResponse<string> | IErrorResponse> {
+    return {
+      code: 200,
+      message: 'success',
+      data: 'hello',
+    };
+  }
+
   @Get('/user/list')
   async getUserList(): Promise<ISuccessResponse<User[]> | IErrorResponse> {
     try {

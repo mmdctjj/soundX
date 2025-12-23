@@ -1,3 +1,5 @@
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -25,20 +27,60 @@ export default function LoginScreen() {
 
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [serverAddress, setServerAddress] = useState("");
+  const [serverAddress, setServerAddress] = useState("http://localhost:3000");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [statusMessage, setStatusMessage] = useState<'ok' | 'error' >('error');
+
   useEffect(() => {
     loadServerAddress();
   }, []);
+
+  const checkServerConnectivity = async (address: string) => {
+    if (!address) {
+      setStatusMessage('error');
+      return;
+    }
+
+    // Simple URL validation
+    if (!address.startsWith("http://") && !address.startsWith("https://")) {
+      setStatusMessage('error');
+      return;
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch(
+        `${address.endsWith("/") ? address : address + "/"}hello`,
+        {
+          signal: controller.signal,
+        }
+      );
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const text = await response.text();
+        if (text.includes("hello")) {
+          setStatusMessage("ok");
+          return;
+        }
+      }
+      throw new Error();
+    } catch (error) {
+      setStatusMessage("error");
+    }
+  };
 
   const loadServerAddress = async () => {
     try {
       const savedAddress = await AsyncStorage.getItem("serverAddress");
       if (savedAddress) {
         setServerAddress(savedAddress);
+        checkServerConnectivity(savedAddress);
       }
     } catch (error) {
       console.error("Failed to load server address:", error);
@@ -94,31 +136,40 @@ export default function LoginScreen() {
       >
         <View style={styles.content}>
           <Text style={[styles.title, { color: colors.text }]}>
-            {isLogin ? "Welcome Back" : "Create Account"}
+            {isLogin ? "欢迎登录" : "欢迎注册"}
           </Text>
 
           <View style={styles.form}>
             <Text style={[styles.label, { color: colors.text }]}>
-              Server Address
+              数据源地址
             </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  color: colors.text,
-                  borderColor: colors.border,
-                  backgroundColor: colors.card,
-                },
-              ]}
-              placeholder="http://localhost:3000"
-              placeholderTextColor={colors.secondary}
-              value={serverAddress}
-              onChangeText={setServerAddress}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.inputWarp,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
+                  },
+                ]}
+                placeholder="http://localhost:3000"
+                placeholderTextColor={colors.secondary}
+                value={serverAddress}
+                onChangeText={setServerAddress}
+                onBlur={() => checkServerConnectivity(serverAddress)}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {statusMessage === "error" ?  (
+                <MaterialIcons style={styles.statusMessage} name="error" size={24} color="red" />
+              ) : (
+                <FontAwesome style={styles.statusMessage} name="check-circle" size={24} color="black" />
+              )}
+            </View>
 
-            <Text style={[styles.label, { color: colors.text }]}>Username</Text>
+            <Text style={[styles.label, { color: colors.text }]}>用户名</Text>
             <TextInput
               style={[
                 styles.input,
@@ -128,14 +179,14 @@ export default function LoginScreen() {
                   backgroundColor: colors.card,
                 },
               ]}
-              placeholder="Username"
+              placeholder="用户名"
               placeholderTextColor={colors.secondary}
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
             />
 
-            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+            <Text style={[styles.label, { color: colors.text }]}>密码</Text>
             <TextInput
               style={[
                 styles.input,
@@ -145,7 +196,7 @@ export default function LoginScreen() {
                   backgroundColor: colors.card,
                 },
               ]}
-              placeholder="Password"
+              placeholder="密码"
               placeholderTextColor={colors.secondary}
               value={password}
               onChangeText={setPassword}
@@ -155,7 +206,7 @@ export default function LoginScreen() {
             {!isLogin && (
               <>
                 <Text style={[styles.label, { color: colors.text }]}>
-                  Confirm Password
+                  确认密码
                 </Text>
                 <TextInput
                   style={[
@@ -166,7 +217,7 @@ export default function LoginScreen() {
                       backgroundColor: colors.card,
                     },
                   ]}
-                  placeholder="Confirm Password"
+                  placeholder="确认密码"
                   placeholderTextColor={colors.secondary}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -184,7 +235,7 @@ export default function LoginScreen() {
                 <ActivityIndicator color={colors.background} />
               ) : (
                 <Text style={[styles.buttonText, { color: colors.background }]}>
-                  {isLogin ? "Login" : "Sign Up"}
+                  {isLogin ? "登陆" : "注册"}
                 </Text>
               )}
             </TouchableOpacity>
@@ -195,8 +246,8 @@ export default function LoginScreen() {
             >
               <Text style={[styles.switchText, { color: colors.secondary }]}>
                 {isLogin
-                  ? "Don't have an account? Sign Up"
-                  : "Already have an account? Login"}
+                  ? "没有账号？注册"
+                  : "已有账号？登录"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -226,10 +277,10 @@ const styles = StyleSheet.create({
   },
   form: {
     width: "100%",
+    gap: 10,
   },
   label: {
     fontSize: 16,
-    marginBottom: 8,
     fontWeight: "500",
   },
   input: {
@@ -237,7 +288,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 15,
-    marginBottom: 20,
     fontSize: 16,
   },
   button: {
@@ -257,5 +307,16 @@ const styles = StyleSheet.create({
   },
   switchText: {
     fontSize: 14,
+  },
+  statusMessage: {},
+  inputContainer: {
+    display: "flex",
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  inputWarp: {
+    flex: 4,
   },
 });
