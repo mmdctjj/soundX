@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
 import { fileURLToPath } from 'node:url';
 import os from "os";
 import path from 'path';
@@ -25,6 +25,15 @@ ipcMain.handle("set-auto-launch", (event, enable: boolean) => {
     openAtLogin: enable,
     path: process.execPath,
   });
+});
+
+ipcMain.handle("select-directory", async () => {
+  if (!win) return null;
+  const result = await dialog.showOpenDialog(win, {
+    properties: ['openDirectory']
+  });
+  if (result.canceled) return null;
+  return result.filePaths[0];
 });
 
 ipcMain.handle("open-url", (event, url: string) => {

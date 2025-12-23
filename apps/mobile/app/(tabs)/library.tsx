@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    useWindowDimensions,
 } from "react-native";
 import { getBaseURL } from "../../src/https";
 import { Album, Artist } from "../../src/models";
@@ -278,7 +278,7 @@ export default function LibraryScreen() {
                 styles.segmentText,
                 {
                   color:
-                    activeTab === "artists" ? "#fff" : colors.secondary,
+                    activeTab === "artists" ? colors.background : colors.secondary,
                 },
               ]}
             >
@@ -297,7 +297,7 @@ export default function LibraryScreen() {
                 styles.segmentText,
                 {
                   color:
-                    activeTab === "albums" ? "#fff" : colors.secondary,
+                    activeTab === "albums" ? colors.background : colors.secondary,
                 },
               ]}
             >

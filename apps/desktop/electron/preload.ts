@@ -37,4 +37,5 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     return await ipcRenderer.invoke("get-device-name")
   },
   openExternal: (url: string) => ipcRenderer.invoke("open-url", url),
+  selectDirectory: () => ipcRenderer.invoke("select-directory"),
 })

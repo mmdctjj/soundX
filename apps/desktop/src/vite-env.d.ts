@@ -17,5 +17,6 @@ interface Window {
     off: (channel: string, listener: (event: any, ...args: any[]) => void) => void;
     getName: () => Promise<string>;
     openExternal: (url: string) => Promise<void>;
+    selectDirectory: () => Promise<string>;
   };
 }

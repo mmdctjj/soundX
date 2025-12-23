@@ -9,9 +9,8 @@ import {
   PlayCircleOutlined,
   PlusOutlined,
   SearchOutlined,
-  ShareAltOutlined,
   SortAscendingOutlined,
-  SortDescendingOutlined,
+  SortDescendingOutlined
 } from "@ant-design/icons";
 import { useRequest } from "ahooks";
 import {
@@ -478,7 +477,6 @@ const Detail: React.FC = () => {
                       onClick={() => album && likeAlbum(album.id)}
                     />
                   )}
-                  <ShareAltOutlined className={styles.actionIcon} />
                   <CloudDownloadOutlined className={styles.actionIcon} />
                 </Typography.Text>
               </div>

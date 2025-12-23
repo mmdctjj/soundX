@@ -7,6 +7,8 @@ export interface SettingsState {
     minimizeToTray: boolean;
     language: string;
     theme: 'system' | 'light' | 'dark';
+    acceptRelay: boolean;
+    acceptSync: boolean;
   };
   desktopLyric: {
     enable: boolean;
@@ -35,6 +37,8 @@ export const useSettingsStore = create<SettingsState>()(
         minimizeToTray: true,
         language: 'zh-CN',
         theme: 'system',
+        acceptRelay: true,
+        acceptSync: true,
       },
       desktopLyric: {
         enable: true,
@@ -75,6 +79,21 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'soundx-settings',
+      version: 1,
+      migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+          // Migration from version 0 to 1
+          if (persistedState.general) {
+            if (persistedState.general.acceptRelay === undefined) {
+              persistedState.general.acceptRelay = true;
+            }
+            if (persistedState.general.acceptSync === undefined) {
+              persistedState.general.acceptSync = true;
+            }
+          }
+        }
+        return persistedState;
+      },
     }
   )
 );

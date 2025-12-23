@@ -1,4 +1,5 @@
-import { ColorPicker, Divider, Input, InputNumber, Select, Space, Switch, Typography, theme } from "antd";
+import { FolderOpenOutlined } from "@ant-design/icons";
+import { Button, ColorPicker, Divider, Input, InputNumber, Select, Space, Switch, Typography, theme } from "antd";
 import React from "react";
 import { useSettingsStore } from "../../store/settings";
 import styles from "./index.module.less";
@@ -15,6 +16,15 @@ const Settings: React.FC = () => {
     updateDesktopLyric,
     updateDownload,
   } = useSettingsStore();
+
+  const handleSelectDirectory = async () => {
+    if (window.ipcRenderer && window.ipcRenderer.selectDirectory) {
+      const path = await window.ipcRenderer.selectDirectory();
+      if (path) {
+        updateDownload("downloadPath", path);
+      }
+    }
+  };
 
   return (
     <div className={styles.settingsPage} style={{ color: token.colorText }}>
@@ -42,6 +52,24 @@ const Settings: React.FC = () => {
                 <Space>
                     <Switch checked={general.minimizeToTray} onChange={(val) => updateGeneral('minimizeToTray', val)} />
                     <Text className={styles.description}>关闭窗口时最小化到系统托盘</Text>
+                </Space>
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>接力播放</div>
+            <div className={styles.control}>
+                <Space>
+                    <Switch checked={general.acceptRelay} onChange={(val) => updateGeneral('acceptRelay', val)} />
+                    <Text className={styles.description}>是否接受多设备之间播放接力</Text>
+                </Space>
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>同步控制</div>
+            <div className={styles.control}>
+                <Space>
+                    <Switch checked={general.acceptSync} onChange={(val) => updateGeneral('acceptSync', val)} />
+                    <Text className={styles.description}>是否接受同数据源下其他用户的同步控制请求</Text>
                 </Space>
             </div>
         </div>
@@ -152,7 +180,15 @@ const Settings: React.FC = () => {
             <div className={styles.control}>
                 <Input
                     value={download.downloadPath}
-                    onChange={(e) => updateDownload('downloadPath', e.target.value)}
+                    readOnly
+                    addonAfter={
+                        <Button 
+                            type="text" 
+                            size="small" 
+                            icon={<FolderOpenOutlined />} 
+                            onClick={handleSelectDirectory}
+                        />
+                    }
                     className={styles.pathInput}
                     placeholder="音频文件和缓存文件的保存位置"
                 />
