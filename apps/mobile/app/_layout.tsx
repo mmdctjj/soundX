@@ -73,17 +73,20 @@ function RootLayoutNav() {
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import InviteNotification from "../src/components/InviteNotification";
+import PlaybackNotification from "../src/components/PlaybackNotification";
+import { NotificationProvider } from "../src/context/NotificationContext";
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AuthProvider>
-          <SyncProvider>
-            <RootLayoutNav />
-            <InviteNotification />
-          </SyncProvider>
+          <NotificationProvider>
+            <SyncProvider>
+              <RootLayoutNav />
+              <PlaybackNotification />
+            </SyncProvider>
+          </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

@@ -3,12 +3,12 @@ import * as Device from "expo-device";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import TrackPlayer, {
-    AppKilledPlaybackBehavior,
-    Capability,
-    Event,
-    State,
-    useProgress,
-    useTrackPlayerEvents
+  AppKilledPlaybackBehavior,
+  Capability,
+  Event,
+  State,
+  useProgress,
+  useTrackPlayerEvents
 } from 'react-native-track-player';
 import { getBaseURL } from "../https";
 import { Track, TrackType } from "../models";
@@ -18,6 +18,7 @@ import { addToHistory, getLatestHistory } from "../services/user";
 import { reportAudiobookProgress } from "../services/userAudiobookHistory";
 import { usePlayMode } from "../utils/playMode";
 import { useAuth } from "./AuthContext";
+import { useNotification } from "./NotificationContext";
 import { useSync } from "./SyncContext";
 
 export enum PlayMode {
@@ -85,6 +86,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const { user, device } = useAuth();
   const { mode } = usePlayMode();
+  const { showNotification } = useNotification();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [trackList, setTrackList] = useState<Track[]>([]);
@@ -658,14 +660,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
                     const isOtherDevice = history.deviceName !== deviceName;
 
                     if (isRecent && isOtherDevice && history.track) {
-                        Alert.alert(
-                            "继续播放",
-                            `发现在设备 ${history.deviceName} 上的播放记录，是否从 ${Math.floor(history.progress / 60)}:${Math.floor(history.progress % 60).toString().padStart(2, '0')} 继续播放 ${history.track.name}?`,
-                            [
-                                { text: "取消", style: "cancel" },
-                                { text: "确定", onPress: () => playTrack(history.track, history.progress) }
-                            ]
-                        );
+                        const m = Math.floor(history.progress / 60);
+                        const s = Math.floor(history.progress % 60).toString().padStart(2, '0');
+                        showNotification({
+                            type: 'resume',
+                            track: history.track,
+                            title: "继续播放",
+                            description: `发现在设备 ${history.deviceName} 上的播放记录，是否从 ${m}:${s} 继续播放？`,
+                            onAccept: () => playTrack(history.track, history.progress),
+                            onReject: () => {}
+                        });
                     }
                 }
             } catch (e) {

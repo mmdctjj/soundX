@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Track } from '../models';
 import { socketService } from '../services/socket';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationContext';
 
 interface Participant {
   userId: number;
@@ -39,6 +40,7 @@ const SyncContext = createContext<SyncContextType | undefined>(undefined);
 
 export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, token } = useAuth();
+  const { showNotification, hideNotification } = useNotification();
   const [isSynced, setIsSynced] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -51,6 +53,16 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const handleInviteReceived = (payload: SyncInvite) => {
         setInvites(prev => [...prev, payload]);
+        if (payload.currentTrack) {
+          showNotification({
+            type: 'sync',
+            track: payload.currentTrack,
+            title: "同步播放邀请",
+            description: `来自 ${payload.fromUsername} (${payload.fromDeviceName})`,
+            onAccept: () => acceptInvite(payload),
+            onReject: () => rejectInvite(payload)
+          });
+        }
       };
 
       const handleParticipantsUpdate = (payload: { participants: Participant[] }) => {
@@ -66,6 +78,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const handleInviteHandled = (payload: { fromUserId: number }) => {
           // If another device handled this invite, remove it locally
           setInvites(prev => prev.filter(i => i.fromUserId !== payload.fromUserId));
+          hideNotification();
       };
 
       socketService.on('invite_received', handleInviteReceived);
