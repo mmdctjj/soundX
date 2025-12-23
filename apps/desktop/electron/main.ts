@@ -16,6 +16,17 @@ ipcMain.handle("get-device-name", () => {
     return getDeviceName();
   });
 
+ipcMain.handle("get-auto-launch", () => {
+  return app.getLoginItemSettings().openAtLogin;
+});
+
+ipcMain.handle("set-auto-launch", (event, enable: boolean) => {
+  app.setLoginItemSettings({
+    openAtLogin: enable,
+    path: process.execPath,
+  });
+});
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 process.env.DIST = path.join(__dirname, '../dist');
@@ -35,6 +46,9 @@ let playerState = {
   isPlaying: false,
   track: null as null | { name: string; artist: string; album?: string },
 };
+
+let minimizeToTray = true;
+let isQuitting = false;
 
 // ---------- UI 更新统一入口 ----------
 function updatePlayerUI() {
@@ -83,6 +97,10 @@ ipcMain.on("player:update", (event, payload) => {
   updatePlayerUI();
 });
 
+ipcMain.on("settings:update-minimize-to-tray", (event, value: boolean) => {
+  minimizeToTray = value;
+});
+
 ipcMain.on("lyric:update", (event, payload) => {
   const { currentLyric } = payload;
 
@@ -117,6 +135,14 @@ function createWindow() {
     },
   });
 
+  win.on('close', (event) => {
+    if (!isQuitting && minimizeToTray) {
+      event.preventDefault();
+      win?.hide();
+    }
+    return false;
+  });
+
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
@@ -149,6 +175,10 @@ function createTray() {
 }
 
 // ---------- APP 生命周期 ----------
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
 app.whenReady().then(() => {
   createWindow();
   createTray();

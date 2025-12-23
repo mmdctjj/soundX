@@ -1,0 +1,193 @@
+import { ColorPicker, Divider, Input, InputNumber, Select, Space, Switch, Typography, theme } from "antd";
+import React from "react";
+import { useSettingsStore } from "../../store/settings";
+import styles from "./index.module.less";
+
+const { Title, Text } = Typography;
+
+const Settings: React.FC = () => {
+  const { token } = theme.useToken();
+  const {
+    general,
+    desktopLyric,
+    download,
+    updateGeneral,
+    updateDesktopLyric,
+    updateDownload,
+  } = useSettingsStore();
+
+  return (
+    <div className={styles.settingsPage} style={{ color: token.colorText }}>
+      <header className={styles.header}>
+        <Title level={2} className={styles.title}>设置</Title>
+      </header>
+      
+      <Divider className={styles.divider} />
+
+      {/* General Settings */}
+      <section className={styles.section}>
+        <Title level={4} className={styles.sectionTitle}>通用</Title>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>开机启动</div>
+            <div className={styles.control}>
+                <Space>
+                    <Switch checked={general.autoLaunch} onChange={(val) => updateGeneral('autoLaunch', val)} />
+                    <Text className={styles.description}>系统启动时自动运行应用</Text>
+                </Space>
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>最小化到托盘</div>
+            <div className={styles.control}>
+                <Space>
+                    <Switch checked={general.minimizeToTray} onChange={(val) => updateGeneral('minimizeToTray', val)} />
+                    <Text className={styles.description}>关闭窗口时最小化到系统托盘</Text>
+                </Space>
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>语言</div>
+            <div className={styles.control}>
+                <Select
+                    value={general.language}
+                    onChange={(val) => updateGeneral('language', val)}
+                    options={[
+                        { label: "简体中文", value: "zh-CN" },
+                        { label: "English", value: "en-US" }
+                    ]}
+                    className={styles.selectSmall}
+                />
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>主题</div>
+            <div className={styles.control}>
+                <Select
+                    value={general.theme}
+                    onChange={(val) => updateGeneral('theme', val)}
+                    options={[
+                        { label: "跟随系统", value: "system" },
+                        { label: "浅色", value: "light" },
+                        { label: "深色", value: "dark" }
+                    ]}
+                    className={styles.selectSmall}
+                />
+            </div>
+        </div>
+      </section>
+
+      <Divider className={styles.divider} />
+
+      {/* Desktop Lyric Settings */}
+      <section className={styles.section}>
+        <Title level={4} className={styles.sectionTitle}>桌面歌词</Title>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>桌面歌词</div>
+            <div className={styles.control}>
+                <Space>
+                    <Switch checked={desktopLyric.enable} onChange={(val) => updateDesktopLyric('enable', val)} />
+                    <Text className={styles.description}>启用桌面歌词</Text>
+                </Space>
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>位置锁定</div>
+            <div className={styles.control}>
+                <Space>
+                    <Switch checked={desktopLyric.lockPosition} onChange={(val) => updateDesktopLyric('lockPosition', val)} />
+                    <Text className={styles.description}>锁定歌词窗口位置</Text>
+                </Space>
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>字体大小</div>
+            <div className={styles.control}>
+                <InputNumber
+                    min={16}
+                    max={64}
+                    value={desktopLyric.fontSize}
+                    onChange={(val) => updateDesktopLyric('fontSize', val)}
+                    addonAfter="px"
+                    className={styles.inputNumber}
+                />
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>字体颜色</div>
+            <div className={styles.control}>
+                <ColorPicker
+                    value={desktopLyric.fontColor}
+                    onChange={(val) => updateDesktopLyric('fontColor', val.toHexString())}
+                    showText
+                />
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>文字阴影</div>
+            <div className={styles.control}>
+                <Space>
+                    <Switch checked={desktopLyric.shadow} onChange={(val) => updateDesktopLyric('shadow', val)} />
+                    <Text className={styles.description}>启用文字阴影效果</Text>
+                </Space>
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>窗口置顶</div>
+            <div className={styles.control}>
+                <Space>
+                    <Switch checked={desktopLyric.alwaysOnTop} onChange={(val) => updateDesktopLyric('alwaysOnTop', val)} />
+                    <Text className={styles.description}>歌词窗口始终保持在最前端</Text>
+                </Space>
+            </div>
+        </div>
+      </section>
+
+      <Divider className={styles.divider} />
+
+      {/* Download Settings */}
+      <section className={styles.section}>
+        <Title level={4} className={styles.sectionTitle}>下载设置</Title>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>存储位置</div>
+            <div className={styles.control}>
+                <Input
+                    value={download.downloadPath}
+                    onChange={(e) => updateDownload('downloadPath', e.target.value)}
+                    className={styles.pathInput}
+                    placeholder="音频文件和缓存文件的保存位置"
+                />
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>下载品质</div>
+            <div className={styles.control}>
+                <Select
+                    value={download.quality}
+                    onChange={(val) => updateDownload('quality', val)}
+                    options={[
+                        { label: "标准 (128K)", value: "128k" },
+                        { label: "高品质 (320K)", value: "320k" },
+                        { label: "无损 (FLAC)", value: "flac" }
+                    ]}
+                    className={styles.selectMedium}
+                />
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>同时下载数</div>
+            <div className={styles.control}>
+                <InputNumber
+                    min={1}
+                    max={10}
+                    value={download.concurrentDownloads}
+                    onChange={(val) => updateDownload('concurrentDownloads', val)}
+                    className={styles.inputNumber}
+                />
+            </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default Settings;

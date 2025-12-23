@@ -1,0 +1,73 @@
+.settingsPage {
+  padding: 32px 48px;
+  max-width: 100%;
+  overflow-y: auto;
+  height: 100%;
+
+  .title {
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 0;
+  }
+
+  .section {
+    margin-bottom: 40px;
+
+    .sectionTitle {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+  }
+
+  .divider {
+    margin: 24px 0;
+    opacity: 0.2;
+  }
+
+  .settingItem {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    gap: 24px;
+
+    .label {
+      width: 120px;
+      font-size: 14px;
+      padding-top: 4px;
+      flex-shrink: 0;
+      text-align: right;
+      color: var(--ant-color-text-description);
+    }
+
+    .control {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+  }
+
+  .description {
+    font-size: 13px;
+    opacity: 0.65;
+  }
+
+  .selectSmall {
+    width: 150px;
+  }
+
+  .selectMedium {
+    width: 180px;
+  }
+
+  .inputNumber {
+    width: 120px;
+  }
+
+  .pathInput {
+    max-width: 460px;
+  }
+}

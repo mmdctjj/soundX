@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { useTheme as useTheme2 } from "../hooks/useTheme";
+import { useTheme as useSystemTheme } from "../hooks/useTheme";
+import { useSettingsStore } from "../store/settings";
 
-type ThemeMode = "light" | "dark" | "auto";
+type ThemeMode = "light" | "dark" | "system";
 
 interface ThemeContextType {
-  mode: ThemeMode;
-  toggleTheme: (newMode: ThemeMode) => void;
+  mode: "light" | "dark"; // The actual applied mode
+  themeSetting: ThemeMode; // The user's choice
+  setTheme: (newMode: ThemeMode) => void;
+  toggleTheme: () => void; // For cycling in Header icon
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -13,29 +16,33 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const theme = useTheme2();
-  // Load theme from localStorage or default to 'dark'
-  const [mode, setMode] = useState<ThemeMode>(() => {
-    const savedTheme = localStorage.getItem("theme") || "light";
-    if (savedTheme === "auto") return theme;
-    return savedTheme as ThemeMode;
-  });
+  const systemTheme = useSystemTheme();
+  const themeSetting = useSettingsStore((state) => state.general.theme);
+  const updateGeneral = useSettingsStore((state) => state.updateGeneral);
+
+  const [appliedMode, setAppliedMode] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    setMode(() => {
-      const savedTheme = localStorage.getItem("theme") || "light";
-      if (savedTheme === "auto") return theme;
-      return savedTheme as ThemeMode;
-    });
-  }, [theme]);
+    if (themeSetting === "system") {
+      setAppliedMode(systemTheme as "light" | "dark");
+    } else {
+      setAppliedMode(themeSetting as "light" | "dark");
+    }
+  }, [themeSetting, systemTheme]);
 
-  const toggleTheme = (newMode: ThemeMode) => {
-    setMode(newMode);
-    localStorage.setItem("theme", newMode); // Save to localStorage
+  const setTheme = (newMode: ThemeMode) => {
+    updateGeneral("theme", newMode);
+  };
+
+  const toggleTheme = () => {
+    const modes: ThemeMode[] = ["light", "dark", "system"];
+    const currentIndex = modes.indexOf(themeSetting);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setTheme(modes[nextIndex]);
   };
 
   return (
-    <ThemeContext.Provider value={{ mode, toggleTheme }}>
+    <ThemeContext.Provider value={{ mode: appliedMode, themeSetting, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

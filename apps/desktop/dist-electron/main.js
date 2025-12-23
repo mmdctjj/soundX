@@ -12,6 +12,15 @@ function getDeviceName() {
 ipcMain.handle("get-device-name", () => {
   return getDeviceName();
 });
+ipcMain.handle("get-auto-launch", () => {
+  return app.getLoginItemSettings().openAtLogin;
+});
+ipcMain.handle("set-auto-launch", (event, enable) => {
+  app.setLoginItemSettings({
+    openAtLogin: enable,
+    path: process.execPath
+  });
+});
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
 process.env.DIST = path.join(__dirname$1, "../dist");
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
@@ -24,6 +33,8 @@ let playerState = {
   isPlaying: false,
   track: null
 };
+let minimizeToTray = true;
+let isQuitting = false;
 function updatePlayerUI() {
   const playIcon = playerState.isPlaying ? "pause.png" : "play.png";
   trayPlay?.setImage(path.join(process.env.VITE_PUBLIC, playIcon));
@@ -60,6 +71,9 @@ ipcMain.on("player:update", (event, payload) => {
   playerState = { ...playerState, ...payload };
   updatePlayerUI();
 });
+ipcMain.on("settings:update-minimize-to-tray", (event, value) => {
+  minimizeToTray = value;
+});
 ipcMain.on("lyric:update", (event, payload) => {
   const { currentLyric } = payload;
   if (process.platform === "darwin") {
@@ -95,6 +109,13 @@ function createWindow() {
       preload: path.join(__dirname$1, "preload.mjs")
     }
   });
+  win.on("close", (event) => {
+    if (!isQuitting && minimizeToTray) {
+      event.preventDefault();
+      win?.hide();
+    }
+    return false;
+  });
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
@@ -118,6 +139,9 @@ function createTray() {
   });
   updatePlayerUI();
 }
+app.on("before-quit", () => {
+  isQuitting = true;
+});
 app.whenReady().then(() => {
   createWindow();
   createTray();

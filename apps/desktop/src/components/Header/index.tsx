@@ -1,12 +1,17 @@
 import {
   CustomerServiceOutlined,
+  DeleteOutlined,
   ImportOutlined,
   LeftOutlined,
+  LogoutOutlined,
   MoonOutlined,
   ReadOutlined,
   ReloadOutlined,
+  RetweetOutlined,
   RightOutlined,
+  RollbackOutlined,
   SearchOutlined,
+  SettingOutlined,
   SkinOutlined,
   SunOutlined,
 } from "@ant-design/icons";
@@ -35,7 +40,7 @@ const Header: React.FC = () => {
   const message = useMessage();
   const navigate = useNavigate();
   const location = useLocation();
-  const { mode, toggleTheme } = useTheme();
+  const { themeSetting, toggleTheme } = useTheme();
   const { token } = theme.useToken();
   const pollTimerRef = useRef<number | null>(null);
   const [modal, contextHolder] = Modal.useModal();
@@ -279,50 +284,35 @@ const Header: React.FC = () => {
         </Tooltip>
         <Tooltip
           title={
-            mode === "dark"
+            themeSetting === "dark"
               ? "切换至亮色模式"
-              : mode === "light"
-                ? "切换至暗色模式"
-                : "切换至自动模式"
+              : themeSetting === "light"
+                ? "切换至跟随系统"
+                : "切换至暗色模式"
           }
         >
-          <div className={styles.actionIcon} style={actionIconStyle}>
-            {mode === "dark" ? (
-              <SunOutlined onClick={() => toggleTheme("light")} />
-            ) : mode === "light" ? (
-              <MoonOutlined onClick={() => toggleTheme("auto")} />
+          <div
+            className={styles.actionIcon}
+            style={actionIconStyle}
+            onClick={toggleTheme}
+          >
+            {themeSetting === "dark" ? (
+              <MoonOutlined />
+            ) : themeSetting === "light" ? (
+              <SunOutlined />
             ) : (
-              <span onClick={() => toggleTheme("dark")}>Auto</span>
+              <span style={{ fontSize: "12px", fontWeight: "bold" }}>Auto</span>
             )}
           </div>
         </Tooltip>
         <Popover
           content={
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "5px",
-                padding: "0px",
-              }}
-            >
-              <div
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor: "transparent",
-                }}
-              >
+            <div className={styles.userMenu}>
+              <div className={styles.userMenuItem}>
                 嗨！{user?.username || "未知"}
               </div>
               <div
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor: "transparent",
-                }}
+                className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
                     title: "确认增量更新？",
@@ -333,15 +323,11 @@ const Header: React.FC = () => {
                   });
                 }}
               >
+                <RollbackOutlined />
                 增量更新音频文件
               </div>
               <div
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor: "transparent",
-                }}
+                className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
                     title: "确认全量更新？",
@@ -353,27 +339,24 @@ const Header: React.FC = () => {
                   });
                 }}
               >
+                <RetweetOutlined />
                 全量更新音频文件
               </div>
-              <div
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor: "transparent",
-                }}
-              >
+              <div className={styles.userMenuItem}>
+                <DeleteOutlined />
                 清空缓存文件
               </div>
+
               <div
-                style={{
-                  cursor: "pointer",
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  backgroundColor: "transparent",
-                }}
-                onClick={handleLogout}
+                className={styles.userMenuItem}
+                onClick={() => navigate("/settings")}
               >
+                <SettingOutlined className={styles.actionIcon} />
+                设置
+              </div>
+
+              <div className={styles.userMenuItem} onClick={handleLogout}>
+                <LogoutOutlined />
                 退出登陆
               </div>
             </div>
@@ -387,7 +370,7 @@ const Header: React.FC = () => {
             <div className={styles.avatar}>
               <img
                 src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                style={{ width: "100%", height: "100%" }}
+                alt="avatar"
               />
             </div>
           </Flex>

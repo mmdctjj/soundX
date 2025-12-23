@@ -19,17 +19,19 @@ const Favorites = lazy(() => import("./pages/Favorites"));
 const Listened = lazy(() => import("./pages/Listened"));
 const PlaylistDetail = lazy(() => import("./pages/PlaylistDetail"));
 const Detail = lazy(() => import("./components/Detail/index"));
+const Settings = lazy(() => import("./pages/Settings/index"));
 
 import { useEffect } from "react";
 import InviteListener from "./components/InviteListener";
 import { socketService } from "./services/socket";
 import { useAuthStore } from "./store/auth";
+import { useSettingsStore, type SettingsState } from "./store/settings";
 
 // ... existing imports
 
 const AppContent = () => {
   const { mode } = useTheme();
-  const themeConfig = getThemeConfig(mode === "auto" ? "dark" : mode);
+  const themeConfig = getThemeConfig(mode);
   const [messageApi, contextHolder] = message.useMessage();
   const { token, user } = useAuthStore();
 
@@ -40,6 +42,15 @@ const AppContent = () => {
       socketService.disconnect();
     }
   }, [token, user]);
+
+  // Sync settings on startup
+  const { autoLaunch, minimizeToTray } = useSettingsStore((state: SettingsState) => state.general);
+  useEffect(() => {
+    if ((window as any).ipcRenderer) {
+      (window as any).ipcRenderer.invoke('set-auto-launch', autoLaunch);
+      (window as any).ipcRenderer.send('settings:update-minimize-to-tray', minimizeToTray);
+    }
+  }, []);
 
   return (
     <ConfigProvider theme={themeConfig} locale={zhCN}>
@@ -103,6 +114,7 @@ const AppContent = () => {
                   <Route path="/listened" element={<Listened />} />
                   <Route path="/artists" element={<ArtistList />} />
                   <Route path="/playlist/:id" element={<PlaylistDetail />} />
+                  <Route path="/settings" element={<Settings />} />
                 </Routes>
               </Suspense>
             </div>
