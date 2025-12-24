@@ -12,9 +12,8 @@ import styles from "./index.module.less";
 const LyricWindow: React.FC = () => {
   const [currentLyric, setCurrentLyric] = useState("等待播放...");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [trackInfo, setTrackInfo] = useState({ name: "", artist: "" });
   
-  const { fontSize, fontColor, lockPosition, shadow } = useSettingsStore(
+  const { fontSize, fontColor, shadow } = useSettingsStore(
     (state) => state.desktopLyric
   );
 
@@ -22,7 +21,7 @@ const LyricWindow: React.FC = () => {
     if (!window.ipcRenderer) return;
 
     const handleLyricUpdate = (_event: any, payload: { currentLyric: string }) => {
-      setCurrentLyric(payload.currentLyric || "SoundX 听见你的声音");
+      setCurrentLyric(payload.currentLyric || "AudioDock 听见你的声音");
     };
 
     const handlePlayerUpdate = (
@@ -30,10 +29,19 @@ const LyricWindow: React.FC = () => {
       payload: { isPlaying: boolean; track: { name: string; artist: string } }
     ) => {
       setIsPlaying(payload.isPlaying);
-      if (payload.track) {
-        setTrackInfo(payload.track);
+    };
+
+    const fetchInitialState = async () => {
+      const state = await window.ipcRenderer.invoke("player:get-state");
+      if (state) {
+        setIsPlaying(state.isPlaying);
+        if (state.track) {
+          setCurrentLyric(`${state.track.name} - ${state.track.artist}`);
+        }
       }
     };
+
+    fetchInitialState();
 
     window.ipcRenderer.on("lyric:update", handleLyricUpdate);
     window.ipcRenderer.on("player:update", handlePlayerUpdate);

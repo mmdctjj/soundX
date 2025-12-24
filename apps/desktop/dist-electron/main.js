@@ -15,6 +15,9 @@ ipcMain.handle("get-device-name", () => {
 ipcMain.handle("get-auto-launch", () => {
   return app.getLoginItemSettings().openAtLogin;
 });
+ipcMain.handle("player:get-state", () => {
+  return playerState;
+});
 ipcMain.handle("set-auto-launch", (event, enable) => {
   app.setLoginItemSettings({
     openAtLogin: enable,
@@ -106,6 +109,15 @@ ipcMain.on("lyric:close", () => {
 });
 ipcMain.on("lyric:set-mouse-ignore", (event, ignore) => {
   lyricWin?.setIgnoreMouseEvents(ignore, { forward: true });
+});
+ipcMain.on("player:toggle", () => {
+  win?.webContents.send("player:toggle");
+});
+ipcMain.on("player:next", () => {
+  win?.webContents.send("player:next");
+});
+ipcMain.on("player:prev", () => {
+  win?.webContents.send("player:prev");
 });
 function createWindow() {
   win = new BrowserWindow({

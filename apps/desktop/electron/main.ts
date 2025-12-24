@@ -20,6 +20,10 @@ ipcMain.handle("get-auto-launch", () => {
   return app.getLoginItemSettings().openAtLogin;
 });
 
+ipcMain.handle("player:get-state", () => {
+  return playerState;
+});
+
 ipcMain.handle("set-auto-launch", (event, enable: boolean) => {
   app.setLoginItemSettings({
     openAtLogin: enable,
@@ -143,6 +147,19 @@ ipcMain.on("lyric:close", () => {
 
 ipcMain.on("lyric:set-mouse-ignore", (event, ignore: boolean) => {
   lyricWin?.setIgnoreMouseEvents(ignore, { forward: true });
+});
+
+// Bridge playback controls from lyric window to main window
+ipcMain.on("player:toggle", () => {
+  win?.webContents.send("player:toggle");
+});
+
+ipcMain.on("player:next", () => {
+  win?.webContents.send("player:next");
+});
+
+ipcMain.on("player:prev", () => {
+  win?.webContents.send("player:prev");
 });
 
 // ---------- 创建窗口 ----------
