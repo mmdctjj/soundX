@@ -9,6 +9,7 @@ import { Slider } from "@miblanchard/react-native-slider";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
   FlatList,
   Image,
@@ -84,6 +85,7 @@ export default function PlayerScreen() {
     isSynced,
     handleDisconnect,
     setShowPlaylist,
+    isLoading,
   } = usePlayer();
   const [syncModalVisible, setSyncModalVisible] = useState(false);
   const [moreModalVisible, setMoreModalVisible] = useState(false);
@@ -105,6 +107,30 @@ export default function PlayerScreen() {
       setLiked(!!isLiked);
     }
   }, [currentTrack, user]);
+  
+  const breatheAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isLoading) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(breatheAnim, {
+            toValue: 1.3,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(breatheAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      breatheAnim.stopAnimation();
+      breatheAnim.setValue(1);
+    }
+  }, [isLoading]);
 
   const handleToggleLike = async () => {
     if (!currentTrack || !user) return;
@@ -359,6 +385,19 @@ export default function PlayerScreen() {
           minimumTrackTintColor={colors.primary}
           maximumTrackTintColor={colors.border}
           thumbTintColor={colors.primary}
+          renderThumbComponent={() => (
+            <Animated.View
+              style={{
+                width: 15,
+                height: 15,
+                borderRadius: 8,
+                backgroundColor: colors.primary,
+                borderWidth: 2,
+                borderColor: "#fff",
+                transform: [{ scale: breatheAnim }],
+              }}
+            />
+          )}
         />
         <Text style={[styles.timeText, { color: colors.secondary }]}>
           {formatTime(duration)}

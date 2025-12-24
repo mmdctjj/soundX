@@ -1,27 +1,29 @@
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import { getBaseURL } from "@/src/https";
-import { Album, Artist, Track } from "@/src/models";
+import { Album, Artist, Track, TrackType } from "@/src/models";
 import { getAlbumsByArtist } from "@/src/services/album";
 import { getArtistById } from "@/src/services/artist";
 import { getTracksByArtist } from "@/src/services/track";
+import { usePlayMode } from "@/src/utils/playMode";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function ArtistDetailScreen() {
   const { id } = useLocalSearchParams();
   const { colors } = useTheme();
   const { playTrackList } = usePlayer();
+  const { mode } = usePlayMode();
   const router = useRouter();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -141,46 +143,48 @@ export default function ArtistDetailScreen() {
           </ScrollView>
         </View>
 
-        <View style={[styles.section, styles.trackList]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            所有单曲 ({tracks.length})
-          </Text>
-          {tracks.map((track, index) => (
-            <TouchableOpacity
-              key={track.id}
-              style={[styles.trackItem, { borderBottomColor: colors.border }]}
-              onPress={() => {
-                playTrackList(tracks, index);
-              }}
-            >
-              <Text style={[styles.trackIndex, { color: colors.secondary }]}>
-                {index + 1}
-              </Text>
-              <View style={styles.trackInfo}>
-                <Image
-                  source={{
-                    uri: track.cover
-                      ? `${getBaseURL()}${track.cover}`
-                      : `https://picsum.photos/seed/${track.id}/20/20`,
-                  }}
-                  alt=""
-                  style={{ width: 20, height: 20 }}
-                />
-                <Text
-                  style={[styles.trackName, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {track.name}
+        {mode !== TrackType.AUDIOBOOK && (
+          <View style={[styles.section, styles.trackList]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              所有单曲 ({tracks.length})
+            </Text>
+            {tracks.map((track, index) => (
+              <TouchableOpacity
+                key={track.id}
+                style={[styles.trackItem, { borderBottomColor: colors.border }]}
+                onPress={() => {
+                  playTrackList(tracks, index);
+                }}
+              >
+                <Text style={[styles.trackIndex, { color: colors.secondary }]}>
+                  {index + 1}
                 </Text>
-              </View>
-              <Text style={[styles.trackDuration, { color: colors.secondary }]}>
-                {track.duration
-                  ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, "0")}`
-                  : "--:--"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <View style={styles.trackInfo}>
+                  <Image
+                    source={{
+                      uri: track.cover
+                        ? `${getBaseURL()}${track.cover}`
+                        : `https://picsum.photos/seed/${track.id}/20/20`,
+                    }}
+                    alt=""
+                    style={{ width: 20, height: 20 }}
+                  />
+                  <Text
+                    style={[styles.trackName, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {track.name}
+                  </Text>
+                </View>
+                <Text style={[styles.trackDuration, { color: colors.secondary }]}>
+                  {track.duration
+                    ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, "0")}`
+                    : "--:--"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );

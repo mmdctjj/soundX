@@ -141,6 +141,7 @@ const Player: React.FC = () => {
 
   // Upgrade: Invite User Modal
   const [isUserSelectModalOpen, setIsUserSelectModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Sync Logic
   const { isSynced, sessionId, setSynced, setParticipants } = useSyncStore();
@@ -917,6 +918,9 @@ const Player: React.FC = () => {
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
+        onWaiting={() => setIsLoading(true)}
+        onPlaying={() => setIsLoading(false)}
+        onCanPlay={() => setIsLoading(false)}
       />
 
       {/* Song Info */}
@@ -1023,10 +1027,11 @@ const Player: React.FC = () => {
             max={duration || 100}
             onChange={handleSeek}
             tooltip={{ open: false }}
+            className={isLoading ? styles.loadingSlider : ""}
             style={{ flex: 1, margin: 0 }}
             trackStyle={{ backgroundColor: token.colorText }}
             railStyle={{ backgroundColor: token.colorBorder }}
-            handleStyle={{ display: "none" }}
+            handleStyle={{ display: isLoading ? "block" : "none" }}
           />
           <Text type="secondary" style={{ fontSize: "10px" }}>
             {formatDuration(duration)}
@@ -1281,8 +1286,9 @@ const Player: React.FC = () => {
                 max={duration || 100}
                 style={{ width: "150px" }}
                 onChange={handleSeek}
+                className={isLoading ? styles.loadingSlider : ""}
                 tooltip={{ open: false }}
-                handleStyle={{ display: "none" }}
+                handleStyle={{ display: isLoading ? "block" : "none" }}
               />
               <Text type="secondary" style={{ fontSize: "10px" }}>
                 {formatDuration(duration)}

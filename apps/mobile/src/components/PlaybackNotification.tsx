@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
@@ -52,46 +52,53 @@ const PlaybackNotification: React.FC = () => {
     : null;
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
-      <View style={[styles.content, { backgroundColor: colors.card, shadowColor: colors.text }]}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            {notification.title}
-          </Text>
-          <Text style={[styles.description, { color: colors.secondary }]}>
-            {notification.description}
-          </Text>
-        </View>
+    <Modal
+      transparent
+      visible={!!notification}
+      animationType="none"
+      pointerEvents="box-none"
+    >
+      <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
+        <View style={[styles.content, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {notification.title}
+            </Text>
+            <Text style={[styles.description, { color: colors.secondary }]}>
+              {notification.description}
+            </Text>
+          </View>
 
-        <View style={[styles.trackCard, { backgroundColor: colors.background + '80' }]}>
-          {artwork && (
-            <Image source={{ uri: artwork }} style={styles.cover} />
-          )}
-          <View style={styles.trackInfo}>
-            <Text style={[styles.trackName, { color: colors.text }]} numberOfLines={1}>
-              {notification.track.name}
-            </Text>
-            <Text style={[styles.trackArtist, { color: colors.secondary }]} numberOfLines={1}>
-              {notification.track.artist}
-            </Text>
-          </View>
-          <View style={styles.actions}>
-            <TouchableOpacity 
-              style={[styles.btn, { backgroundColor: colors.border }]} 
-              onPress={handleReject}
-            >
-              <Ionicons name="close" size={20} color={colors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.btn, { backgroundColor: colors.primary }]} 
-              onPress={handleAccept}
-            >
-              <Ionicons name="checkmark" size={20} color={colors.background} />
-            </TouchableOpacity>
+          <View style={[styles.trackCard, { backgroundColor: colors.background + '80' }]}>
+            {artwork && (
+              <Image source={{ uri: artwork }} style={styles.cover} />
+            )}
+            <View style={styles.trackInfo}>
+              <Text style={[styles.trackName, { color: colors.text }]} numberOfLines={1}>
+                {notification.track.name}
+              </Text>
+              <Text style={[styles.trackArtist, { color: colors.secondary }]} numberOfLines={1}>
+                {notification.track.artist}
+              </Text>
+            </View>
+            <View style={styles.actions}>
+              <TouchableOpacity 
+                style={[styles.btn, { backgroundColor: colors.border }]} 
+                onPress={handleReject}
+              >
+                <Ionicons name="close" size={20} color={colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.btn, { backgroundColor: colors.primary }]} 
+                onPress={handleAccept}
+              >
+                <Ionicons name="checkmark" size={20} color={colors.background} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </Modal>
   );
 };
 

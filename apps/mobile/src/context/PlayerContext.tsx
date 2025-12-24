@@ -35,6 +35,7 @@ interface PlayerContextType {
   currentTrack: Track | null;
   position: number;
   duration: number;
+  isLoading: boolean;
   playTrack: (track: Track, initialPosition?: number) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
@@ -60,6 +61,7 @@ const PlayerContext = createContext<PlayerContextType>({
   currentTrack: null,
   position: 0,
   duration: 0,
+  isLoading: false,
   playTrack: async () => {},
   pause: async () => {},
   resume: async () => {},
@@ -95,6 +97,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [playMode, setPlayMode] = useState<PlayMode>(PlayMode.SEQUENCE);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isSetup, setIsSetup] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
 
   const prevModeRef = useRef(mode);
@@ -179,6 +182,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     if (event.type === Event.PlaybackState) {
         setIsPlaying(event.state === State.Playing);
+        setIsLoading(event.state === State.Buffering || event.state === State.Loading);
     }
     if (event.type === Event.PlaybackQueueEnded) {
         playNext();
@@ -713,6 +717,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         currentTrack,
         position,
         duration,
+        isLoading,
         playTrack,
         pause,
         resume,
