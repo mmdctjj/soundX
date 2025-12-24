@@ -10,6 +10,7 @@ import Sidebar from "./components/Sidebar/index";
 import { getThemeConfig } from "./config/themeConfig";
 import { MessageProvider } from "./context/MessageContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import LyricWindow from "./pages/LyricWindow";
 import Recommended from "./pages/Recommended";
 
 const ArtistDetail = lazy(() => import("./pages/ArtistDetail"));
@@ -44,13 +45,25 @@ const AppContent = () => {
   }, [token, user]);
 
   // Sync settings on startup
-  const { autoLaunch, minimizeToTray } = useSettingsStore((state: SettingsState) => state.general);
+  const settings = useSettingsStore((state: SettingsState) => state);
+  const { autoLaunch, minimizeToTray } = settings.general;
+
   useEffect(() => {
     if ((window as any).ipcRenderer) {
       (window as any).ipcRenderer.invoke('set-auto-launch', autoLaunch);
       (window as any).ipcRenderer.send('settings:update-minimize-to-tray', minimizeToTray);
     }
   }, []);
+
+  const isLyricWindow = window.location.hash.includes("/lyric");
+
+  if (isLyricWindow) {
+    return (
+      <ConfigProvider theme={themeConfig} locale={zhCN}>
+        <LyricWindow />
+      </ConfigProvider>
+    );
+  }
 
   return (
     <ConfigProvider theme={themeConfig} locale={zhCN}>

@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import type { Track } from "../../models";
 import { socketService } from "../../services/socket";
 import { usePlayerStore } from "../../store/player";
+import { useSettingsStore } from "../../store/settings";
 import { getCoverUrl } from "../Detail";
 
 const { Text } = Typography;
@@ -88,6 +89,17 @@ const InviteListener: React.FC = () => {
     }) => {
       console.log("InviteListener", payload);
       const key = `invite-${payload.fromUserId}`; // Fixed key to prevent duplicates
+
+      const { acceptSync } = useSettingsStore.getState().general;
+      if (!acceptSync) {
+        socketService.emit("respond_invite", {
+          fromUserId: payload.fromUserId,
+          fromSocketId: payload.fromSocketId,
+          sessionId: payload.sessionId,
+          accept: false,
+        });
+        return;
+      }
 
       const handleRespond = (accept: boolean) => {
         socketService.emit("respond_invite", {

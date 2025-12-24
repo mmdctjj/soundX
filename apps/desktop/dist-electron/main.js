@@ -37,6 +37,7 @@ const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
 process.env.DIST = path.join(__dirname$1, "../dist");
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
 let win = null;
+let lyricWin = null;
 let trayPrev = null;
 let trayPlay = null;
 let trayNext = null;
@@ -82,6 +83,7 @@ function updatePlayerUI() {
 ipcMain.on("player:update", (event, payload) => {
   playerState = { ...playerState, ...payload };
   updatePlayerUI();
+  lyricWin?.webContents.send("player:update", payload);
 });
 ipcMain.on("settings:update-minimize-to-tray", (event, value) => {
   minimizeToTray = value;
@@ -91,6 +93,19 @@ ipcMain.on("lyric:update", (event, payload) => {
   if (process.platform === "darwin") {
     trayNext?.setTitle(currentLyric || "");
   }
+  lyricWin?.webContents.send("lyric:update", payload);
+});
+ipcMain.on("lyric:open", () => {
+  createLyricWindow();
+});
+ipcMain.on("lyric:close", () => {
+  if (lyricWin) {
+    lyricWin.close();
+    lyricWin = null;
+  }
+});
+ipcMain.on("lyric:set-mouse-ignore", (event, ignore) => {
+  lyricWin?.setIgnoreMouseEvents(ignore, { forward: true });
 });
 function createWindow() {
   win = new BrowserWindow({
@@ -133,6 +148,39 @@ function createWindow() {
   } else {
     win.loadFile(path.join(process.env.DIST, "index.html"));
   }
+}
+function createLyricWindow() {
+  if (lyricWin) return;
+  lyricWin = new BrowserWindow({
+    width: 800,
+    height: 120,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: true,
+    hasShadow: false,
+    hiddenInMissionControl: true,
+    // Prevent Mission Control interference
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname$1, "preload.mjs")
+    }
+  });
+  const lyricUrl = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/lyric` : `${path.join(process.env.DIST, "index.html")}#/lyric`;
+  if (process.env.VITE_DEV_SERVER_URL) {
+    lyricWin.loadURL(lyricUrl);
+  } else {
+    lyricWin.loadURL(`file://${path.join(process.env.DIST, "index.html")}#/lyric`);
+  }
+  if (process.platform === "darwin") {
+    lyricWin.setAlwaysOnTop(true, "screen-saver");
+    lyricWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+  lyricWin.on("closed", () => {
+    lyricWin = null;
+  });
 }
 function createTray() {
   const img = (name, size = 20) => nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC, name)).resize({ width: size, height: size });

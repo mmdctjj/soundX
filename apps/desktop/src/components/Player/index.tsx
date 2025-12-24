@@ -2,6 +2,7 @@ import Icon, {
   BackwardOutlined, // Added as per instruction
   DeliveredProcedureOutlined,
   DownOutlined,
+  FontColorsOutlined,
   ForwardOutlined,
   OrderedListOutlined,
   PauseCircleFilled,
@@ -48,6 +49,7 @@ import { socketService } from "../../services/socket";
 import { addToHistory, getLatestHistory } from "../../services/user"; // Added
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
+import { useSettingsStore } from "../../store/settings";
 import { useSyncStore } from "../../store/sync";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
@@ -81,6 +83,7 @@ const Player: React.FC = () => {
     syncActiveMode,
   } = usePlayerStore();
   const { mode: appMode } = usePlayMode();
+  const { updateDesktopLyric } = useSettingsStore();
 
   // Sync store active mode with app mode
   useEffect(() => {
@@ -149,6 +152,9 @@ const Player: React.FC = () => {
 
   useEffect(() => {
     const checkResume = async () => {
+      const { acceptRelay } = useSettingsStore.getState().general;
+      if (!acceptRelay) return;
+
       const user = useAuthStore.getState().user;
       if (!user) return;
 
@@ -649,6 +655,19 @@ const Player: React.FC = () => {
         isPlaying,
       });
     }
+    // Update main process for desktop lyrics
+    if (window.ipcRenderer) {
+      window.ipcRenderer.send("player:update", {
+        isPlaying,
+        track: currentTrack
+          ? {
+              name: currentTrack.name,
+              artist: currentTrack.artist,
+              album: currentTrack.album,
+            }
+          : null,
+      });
+    }
   }, [currentTrack, isPlaying]);
 
   // // Create refs for control functions to use in IPC handlers
@@ -730,18 +749,21 @@ const Player: React.FC = () => {
 
   // Set sleep timer
   const setSleepTimer = () => {
-    if (timerMinutes > 0) {
-      setTimeout(
-        () => {
-          pause();
-          message.success("定时关闭已触发");
-        },
-        timerMinutes * 60 * 1000
-      );
-      message.success(`已设置 ${timerMinutes} 分钟后自动暂停`);
-      setIsTimerModalOpen(false);
-    }
+    // ... exist logic
   };
+
+  const handleDesktopLyricToggle = () => {
+    const { enable } = useSettingsStore.getState().desktopLyric;
+    updateDesktopLyric("enable", !enable);
+  };
+
+  useEffect(() => {
+    // Initial sync of desktop lyric window on mount
+    const { enable } = useSettingsStore.getState().desktopLyric;
+    if (enable && appMode === TrackType.MUSIC && window.ipcRenderer) {
+      window.ipcRenderer.send("lyric:open");
+    }
+  }, []);
 
   const openAddToPlaylistModal = async (e: React.MouseEvent, track: Track) => {
     e.stopPropagation();
@@ -1150,6 +1172,15 @@ const Player: React.FC = () => {
               />
             </Tooltip>
           </Popover>
+        )}
+
+        {appMode === TrackType.MUSIC && (
+          <Tooltip title="桌面歌词">
+            <FontColorsOutlined
+              className={`${styles.settingIcon} ${useSettingsStore((state) => state.desktopLyric.enable) ? styles.activeIcon : ""}`}
+              onClick={handleDesktopLyricToggle}
+            />
+          </Tooltip>
         )}
 
         {/* Volume */}

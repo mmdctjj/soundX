@@ -49,6 +49,7 @@ process.env.VITE_PUBLIC = app.isPackaged
   : path.join(process.env.DIST, '../public');
 
 let win: BrowserWindow | null = null;
+let lyricWin: BrowserWindow | null = null;
 
 let trayPrev: Tray | null = null;
 let trayPlay: Tray | null = null;
@@ -109,6 +110,8 @@ function updatePlayerUI() {
 ipcMain.on("player:update", (event, payload) => {
   playerState = { ...playerState, ...payload };
   updatePlayerUI();
+  // Sync with lyric window
+  lyricWin?.webContents.send("player:update", payload);
 });
 
 ipcMain.on("settings:update-minimize-to-tray", (event, value: boolean) => {
@@ -122,6 +125,24 @@ ipcMain.on("lyric:update", (event, payload) => {
   if (process.platform === "darwin") {
     trayNext?.setTitle(currentLyric || "");
   }
+
+  // 同步桌面投影歌词
+  lyricWin?.webContents.send("lyric:update", payload);
+});
+
+ipcMain.on("lyric:open", () => {
+  createLyricWindow();
+});
+
+ipcMain.on("lyric:close", () => {
+  if (lyricWin) {
+    lyricWin.close();
+    lyricWin = null;
+  }
+});
+
+ipcMain.on("lyric:set-mouse-ignore", (event, ignore: boolean) => {
+  lyricWin?.setIgnoreMouseEvents(ignore, { forward: true });
 });
 
 // ---------- 创建窗口 ----------
@@ -162,6 +183,49 @@ function createWindow() {
   } else {
     win.loadFile(path.join(process.env.DIST!, "index.html"));
   }
+}
+
+function createLyricWindow() {
+  if (lyricWin) return;
+
+  lyricWin = new BrowserWindow({
+    width: 800,
+    height: 120,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: true,
+    hasShadow: false,
+    hiddenInMissionControl: true, // Prevent Mission Control interference
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, "preload.mjs"),
+    },
+  });
+
+  const lyricUrl = process.env.VITE_DEV_SERVER_URL
+    ? `${process.env.VITE_DEV_SERVER_URL}#/lyric`
+    : `${path.join(process.env.DIST!, "index.html")}#/lyric`;
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+    lyricWin.loadURL(lyricUrl);
+  } else {
+    // For production with HashRouter, we might need a different approach
+    // but typically loadFile with hash works or we use loadURL with file protocol
+    lyricWin.loadURL(`file://${path.join(process.env.DIST!, "index.html")}#/lyric`);
+  }
+
+  // macOS specific window settings for better "transparency" and persistence
+  if (process.platform === "darwin") {
+    lyricWin.setAlwaysOnTop(true, "screen-saver");
+    lyricWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+
+  lyricWin.on("closed", () => {
+    lyricWin = null;
+  });
 }
 
 // ---------- 托盘 ----------

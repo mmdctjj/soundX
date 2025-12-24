@@ -1,0 +1,82 @@
+.container {
+  height: 100vh;
+  width: 100vw;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-app-region: no-drag;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 40px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.3s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.6);
+    .controls {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .dragArea {
+        display: block;
+    }
+  }
+}
+
+.dragArea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  -webkit-app-region: drag;
+  display: none;
+  cursor: move;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.lyricText {
+  color: var(--font-color, #fff);
+  font-weight: 700;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.controls {
+  position: absolute;
+  bottom: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 16px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.controlBtn {
+  color: #fff !important;
+  opacity: 0.8;
+  transition: all 0.2s;
+
+  &:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    color: var(--font-color, #fff) !important;
+  }
+}

@@ -54,8 +54,12 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       socketService.connectWithContext(user.id, token);
 
       const handleInviteReceived = (payload: SyncInvite) => {
+        if (!acceptSync) {
+          rejectInvite(payload);
+          return;
+        }
         setInvites(prev => [...prev, payload]);
-        if (payload.currentTrack && acceptSync) {
+        if (payload.currentTrack) {
           showNotification({
             type: 'sync',
             track: payload.currentTrack,

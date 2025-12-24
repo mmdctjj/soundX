@@ -68,10 +68,24 @@ export const useSettingsStore = create<SettingsState>()(
           }
         }
       },
-      updateDesktopLyric: (key, value) =>
+      updateDesktopLyric: (key, value) => {
         set((state) => ({
           desktopLyric: { ...state.desktopLyric, [key]: value },
-        })),
+        }));
+
+        if ((window as any).ipcRenderer) {
+          if (key === "enable") {
+            if (value) {
+              (window as any).ipcRenderer.send("lyric:open");
+            } else {
+              (window as any).ipcRenderer.send("lyric:close");
+            }
+          }
+          if (key === "lockPosition") {
+            (window as any).ipcRenderer.send("lyric:set-mouse-ignore", value);
+          }
+        }
+      },
       updateDownload: (key, value) =>
         set((state) => ({
           download: { ...state.download, [key]: value },
