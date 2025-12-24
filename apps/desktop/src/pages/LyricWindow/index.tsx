@@ -13,12 +13,15 @@ const LyricWindow: React.FC = () => {
   const [currentLyric, setCurrentLyric] = useState("等待播放...");
   const [isPlaying, setIsPlaying] = useState(false);
   
-  const { fontSize, fontColor, shadow, strokeWidth, strokeColor } = useSettingsStore(
-    (state) => state.desktopLyric
-  );
+  const settings = useSettingsStore((state) => state.desktopLyric);
+  const [config, setConfig] = useState(settings);
 
   useEffect(() => {
     if (!window.ipcRenderer) return;
+
+    const handleSettingsUpdate = (_event: any, payload: any) => {
+      setConfig((prev) => ({ ...prev, ...payload }));
+    };
 
     const handleLyricUpdate = (_event: any, payload: { currentLyric: string }) => {
       setCurrentLyric(payload.currentLyric || "AudioDock 听见你的声音");
@@ -45,10 +48,12 @@ const LyricWindow: React.FC = () => {
 
     window.ipcRenderer.on("lyric:update", handleLyricUpdate);
     window.ipcRenderer.on("player:update", handlePlayerUpdate);
+    window.ipcRenderer.on("lyric:settings-update", handleSettingsUpdate);
 
     return () => {
       window.ipcRenderer.off("lyric:update", handleLyricUpdate);
       window.ipcRenderer.off("player:update", handlePlayerUpdate);
+      window.ipcRenderer.off("lyric:settings-update", handleSettingsUpdate);
     };
   }, []);
 
@@ -65,9 +70,9 @@ const LyricWindow: React.FC = () => {
     <div 
       className={styles.container} 
       style={{ 
-        "--font-color": fontColor,
-        "--stroke-color": strokeColor,
-        "--stroke-width": `${strokeWidth}px`
+        "--font-color": config.fontColor,
+        "--stroke-color": config.strokeColor,
+        "--stroke-width": `${config.strokeWidth}px`
       } as any}
     >
       <div className={styles.dragArea} />
@@ -75,9 +80,9 @@ const LyricWindow: React.FC = () => {
       <div className={styles.content}>
         <div 
           className={styles.lyricText} 
-          style={{ 
-            fontSize: `${fontSize}px`,
-            textShadow: shadow ? "0 2px 4px rgba(0,0,0,0.5)" : "none"
+          style={{
+            fontSize: `${config.fontSize}px`,
+            textShadow: config.shadow ? "0 2px 4px rgba(0,0,0,0.5)" : "none"
           }}
         >
           {currentLyric}

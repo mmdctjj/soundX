@@ -88,6 +88,7 @@ export const useSettingsStore = create<SettingsState>()(
           if (key === "lockPosition") {
             (window as any).ipcRenderer.send("lyric:set-mouse-ignore", value);
           }
+          (window as any).ipcRenderer.send("lyric:settings-update", { [key]: value });
         }
       },
       updateDownload: (key, value) =>

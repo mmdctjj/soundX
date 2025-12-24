@@ -98,6 +98,9 @@ ipcMain.on("lyric:update", (event, payload) => {
   }
   lyricWin?.webContents.send("lyric:update", payload);
 });
+ipcMain.on("lyric:settings-update", (event, payload) => {
+  lyricWin?.webContents.send("lyric:settings-update", payload);
+});
 ipcMain.on("lyric:open", () => {
   createLyricWindow();
 });
@@ -111,9 +114,16 @@ ipcMain.on("lyric:set-mouse-ignore", (event, ignore) => {
   lyricWin?.setIgnoreMouseEvents(ignore, { forward: true });
 });
 ipcMain.on("player:toggle", () => {
-  win?.webContents.send("player:toggle");
+  console.log("Main process: received player:toggle");
+  if (win) {
+    console.log("Main process: forwarding player:toggle to main window");
+    win.webContents.send("player:toggle");
+  } else {
+    console.warn("Main process: win is null, cannot forward player:toggle");
+  }
 });
 ipcMain.on("player:next", () => {
+  console.log("Main process: received player:next");
   win?.webContents.send("player:next");
 });
 ipcMain.on("player:prev", () => {
