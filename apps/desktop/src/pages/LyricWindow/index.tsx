@@ -13,7 +13,7 @@ const LyricWindow: React.FC = () => {
   const [currentLyric, setCurrentLyric] = useState("等待播放...");
   const [isPlaying, setIsPlaying] = useState(false);
   
-  const { fontSize, fontColor, shadow } = useSettingsStore(
+  const { fontSize, fontColor, shadow, strokeWidth, strokeColor } = useSettingsStore(
     (state) => state.desktopLyric
   );
 
@@ -62,7 +62,14 @@ const LyricWindow: React.FC = () => {
   // };
 
   return (
-    <div className={styles.container} style={{ "--font-color": fontColor } as any}>
+    <div 
+      className={styles.container} 
+      style={{ 
+        "--font-color": fontColor,
+        "--stroke-color": strokeColor,
+        "--stroke-width": `${strokeWidth}px`
+      } as any}
+    >
       <div className={styles.dragArea} />
       
       <div className={styles.content}>

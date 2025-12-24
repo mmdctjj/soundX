@@ -151,6 +151,29 @@ const Settings: React.FC = () => {
             </div>
         </div>
         <div className={styles.settingItem}>
+            <div className={styles.label}>描边粗细</div>
+            <div className={styles.control}>
+                <InputNumber
+                    min={0}
+                    max={10}
+                    value={desktopLyric.strokeWidth}
+                    onChange={(val) => updateDesktopLyric('strokeWidth', val)}
+                    addonAfter="px"
+                    className={styles.inputNumber}
+                />
+            </div>
+        </div>
+        <div className={styles.settingItem}>
+            <div className={styles.label}>描边颜色</div>
+            <div className={styles.control}>
+                <ColorPicker
+                    value={desktopLyric.strokeColor}
+                    onChange={(val) => updateDesktopLyric('strokeColor', val?.toHexString?.() || val)}
+                    showText
+                />
+            </div>
+        </div>
+        <div className={styles.settingItem}>
             <div className={styles.label}>文字阴影</div>
             <div className={styles.control}>
                 <Space>

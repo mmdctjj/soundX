@@ -15,6 +15,8 @@ export interface SettingsState {
     lockPosition: boolean;
     fontSize: number;
     fontColor: string;
+    strokeWidth: number;
+    strokeColor: string;
     shadow: boolean;
     alwaysOnTop: boolean;
   };
@@ -45,6 +47,8 @@ export const useSettingsStore = create<SettingsState>()(
         lockPosition: false,
         fontSize: 28,
         fontColor: '#ffffff',
+        strokeWidth: 2,
+        strokeColor: '#000000',
         shadow: true,
         alwaysOnTop: true,
       },
