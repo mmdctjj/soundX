@@ -16,6 +16,8 @@ const LyricWindow: React.FC = () => {
   const settings = useSettingsStore((state) => state.desktopLyric);
   const [config, setConfig] = useState(settings);
 
+  const [trackInfo, setTrackInfo] = useState<{ name: string; artist: string } | null>(null);
+
   useEffect(() => {
     if (!window.ipcRenderer) return;
 
@@ -32,6 +34,9 @@ const LyricWindow: React.FC = () => {
       payload: { isPlaying: boolean; track: { name: string; artist: string } }
     ) => {
       setIsPlaying(payload.isPlaying);
+      if (payload.track) {
+         setTrackInfo(payload.track);
+      }
     };
 
     const fetchInitialState = async () => {
@@ -39,6 +44,7 @@ const LyricWindow: React.FC = () => {
       if (state) {
         setIsPlaying(state.isPlaying);
         if (state.track) {
+          setTrackInfo(state.track);
           setCurrentLyric(`${state.track.name} - ${state.track.artist}`);
         }
       }
@@ -60,11 +66,6 @@ const LyricWindow: React.FC = () => {
   const togglePlay = () => window.ipcRenderer?.send("player:toggle");
   const next = () => window.ipcRenderer?.send("player:next");
   const prev = () => window.ipcRenderer?.send("player:prev");
-  // const toggleLock = () => {
-  //   const newLock = !lockPosition;
-  //   useSettingsStore.getState().updateDesktopLyric("lockPosition", newLock);
-  //   window.ipcRenderer?.send("lyric:set-mouse-ignore", newLock);
-  // };
 
   return (
     <div 
@@ -75,7 +76,11 @@ const LyricWindow: React.FC = () => {
         "--stroke-width": `${config.strokeWidth}px`
       } as any}
     >
-      <div className={styles.dragArea} />
+      <div className={styles.header}>
+         <div className={styles.trackInfo}>
+            {trackInfo ? `${trackInfo.name} - ${trackInfo.artist}` : "AudioDock"}
+         </div>
+      </div>
       
       <div className={styles.content}>
         <div 
@@ -110,12 +115,6 @@ const LyricWindow: React.FC = () => {
             onClick={next} 
             className={styles.controlBtn}
           />
-          {/* <Button 
-            type="text" 
-            icon={lockPosition ? <LockOutlined /> : <UnlockOutlined />} 
-            onClick={toggleLock} 
-            className={styles.controlBtn}
-          /> */}
         </Space>
       </div>
     </div>

@@ -21,21 +21,64 @@
       opacity: 1;
       transform: translateY(0);
     }
-    .dragArea {
-        display: block;
+    .header {
+      opacity: 1;
+      // transform: translateY(0); // Removed to match header style
     }
   }
 }
 
-.dragArea {
+.header {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  // transform: translateY(-10px); // Removed to prevent flicker
+  transition: opacity 0.3s ease;
+  z-index: 10;
+  padding: 0 10px;
   -webkit-app-region: drag;
-  display: none;
+  cursor: pointer;
+  
+  // Ensure header stays visible when interacting with it
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.dragHandle {
+  position: absolute;
+  right: 10px; // Moved to right
+  left: auto;
+  display: flex;
+  align-items: center;
+  color: #fff;
+  opacity: 0.7;
   cursor: move;
+  -webkit-app-region: drag;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  
+  &:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.trackInfo {
+  color: #fff;
+  font-size: 12px;
+  opacity: 0.8;
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .content {
