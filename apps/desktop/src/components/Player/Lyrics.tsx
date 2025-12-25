@@ -84,10 +84,8 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
       const container = containerRef.current;
       const line = lineRefs.current[activeIndex];
 
-      if (line && window?.ipcRenderer) {
-        window?.ipcRenderer.send("lyric:update", {
-          currentLyric: parsedLyrics[activeIndex]?.text || "",
-        });
+      if (line) {
+        // Removed IPC sync from here to support global sync in Player component
         const containerHeight = container.clientHeight;
         const lineHeight = line.clientHeight;
         const offset = line.offsetTop - containerHeight / 2 + lineHeight / 2;

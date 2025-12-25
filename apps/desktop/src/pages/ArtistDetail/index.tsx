@@ -89,22 +89,22 @@ const ArtistDetail: React.FC = () => {
         <Skeleton.Input active />
         <Flex gap={24}>
           <Flex vertical gap={24}>
-            <Skeleton.Node style={{ width: 200, height: 200 }} active />
+            <Skeleton.Node style={{ width: 170, height: 170 }} active />
             <Skeleton.Input active />
             <Skeleton.Input active />
           </Flex>
           <Flex vertical gap={24}>
-            <Skeleton.Node style={{ width: 200, height: 200 }} active />
+            <Skeleton.Node style={{ width: 170, height: 170 }} active />
             <Skeleton.Input active />
             <Skeleton.Input active />
           </Flex>
           <Flex vertical gap={24}>
-            <Skeleton.Node style={{ width: 200, height: 200 }} active />
+            <Skeleton.Node style={{ width: 170, height: 170 }} active />
             <Skeleton.Input active />
             <Skeleton.Input active />
           </Flex>
           <Flex vertical gap={24}>
-            <Skeleton.Node style={{ width: 200, height: 200 }} active />
+            <Skeleton.Node style={{ width: 170, height: 170 }} active />
             <Skeleton.Input active />
             <Skeleton.Input active />
           </Flex>

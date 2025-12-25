@@ -52,10 +52,10 @@ let playerState = {
 };
 let minimizeToTray = true;
 let isQuitting = false;
-function updatePlayerUI() {
+function updatePlayerUI(shouldUpdateTitle = true) {
   const playIcon = playerState.isPlaying ? "pause.png" : "play.png";
   trayPlay?.setImage(path.join(process.env.VITE_PUBLIC, playIcon));
-  if (process.platform === "darwin") {
+  if (process.platform === "darwin" && shouldUpdateTitle) {
     if (playerState.track) {
       trayNext?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
     } else {
@@ -86,7 +86,8 @@ function updatePlayerUI() {
 }
 ipcMain.on("player:update", (event, payload) => {
   playerState = { ...playerState, ...payload };
-  updatePlayerUI();
+  const shouldUpdateTitle = payload.track !== void 0;
+  updatePlayerUI(shouldUpdateTitle);
   lyricWin?.webContents.send("player:update", payload);
   miniWin?.webContents.send("player:update", payload);
 });
@@ -96,7 +97,8 @@ ipcMain.on("settings:update-minimize-to-tray", (event, value) => {
 ipcMain.on("lyric:update", (event, payload) => {
   const { currentLyric } = payload;
   if (process.platform === "darwin") {
-    trayNext?.setTitle(currentLyric || "");
+    const displayTitle = currentLyric || (playerState.track ? `${playerState.track.name} - ${playerState.track.artist}` : "");
+    trayNext?.setTitle(displayTitle);
   }
   lyricWin?.webContents.send("lyric:update", payload);
   miniWin?.webContents.send("lyric:update", payload);

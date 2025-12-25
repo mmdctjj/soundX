@@ -71,13 +71,13 @@ let minimizeToTray = true;
 let isQuitting = false;
 
 // ---------- UI 更新统一入口 ----------
-function updatePlayerUI() {
+function updatePlayerUI(shouldUpdateTitle = true) {
   // 1）更新播放按钮图标
   const playIcon = playerState.isPlaying ? "pause.png" : "play.png";
   trayPlay?.setImage(path.join(process.env.VITE_PUBLIC!, playIcon));
 
   // 2）更新导航栏歌词标题（macOS 专用）
-  if (process.platform === "darwin") {
+  if (process.platform === "darwin" && shouldUpdateTitle) {
     if (playerState.track) {
       trayNext?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
     } else {
@@ -114,7 +114,9 @@ function updatePlayerUI() {
 // ---------- IPC：合并为一个事件 ----------
 ipcMain.on("player:update", (event, payload) => {
   playerState = { ...playerState, ...payload };
-  updatePlayerUI();
+  // Only update title if track info changed
+  const shouldUpdateTitle = payload.track !== undefined;
+  updatePlayerUI(shouldUpdateTitle);
   // Sync with lyric window
   lyricWin?.webContents.send("player:update", payload);
   miniWin?.webContents.send("player:update", payload);
@@ -129,7 +131,8 @@ ipcMain.on("lyric:update", (event, payload) => {
 
   // macOS 托盘标题更新
   if (process.platform === "darwin") {
-    trayNext?.setTitle(currentLyric || "");
+      const displayTitle = currentLyric || (playerState.track ? `${playerState.track.name} - ${playerState.track.artist}` : "");
+      trayNext?.setTitle(displayTitle);
   }
 
   // 同步桌面投影歌词

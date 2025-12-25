@@ -1,33 +1,33 @@
 import Icon, {
-    BackwardOutlined, // Added as per instruction
-    DeliveredProcedureOutlined,
-    DownOutlined,
-    FontColorsOutlined,
-    ForwardOutlined,
-    OrderedListOutlined,
-    PauseCircleFilled,
-    PlayCircleFilled,
-    SoundOutlined,
-    StepBackwardOutlined,
-    StepForwardOutlined,
-    TeamOutlined,
+  BackwardOutlined, // Added as per instruction
+  DeliveredProcedureOutlined,
+  DownOutlined,
+  FontColorsOutlined,
+  ForwardOutlined,
+  OrderedListOutlined,
+  PauseCircleFilled,
+  PlayCircleFilled,
+  SoundOutlined,
+  StepBackwardOutlined,
+  StepForwardOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import {
-    Avatar, // Added
-    Button,
-    Drawer,
-    Flex,
-    InputNumber,
-    List, // Rename to avoid conflict if needed, though useMessage is typically context. Context is safer.
-    Modal,
-    notification, // Added
-    Popover,
-    Slider,
-    Space, // Added
-    Tabs,
-    theme,
-    Tooltip,
-    Typography,
+  Avatar, // Added
+  Button,
+  Drawer,
+  Flex,
+  InputNumber,
+  List, // Rename to avoid conflict if needed, though useMessage is typically context. Context is safer.
+  Modal,
+  notification, // Added
+  Popover,
+  Slider,
+  Space, // Added
+  Tabs,
+  theme,
+  Tooltip,
+  Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -41,9 +41,9 @@ import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
 import { type Device, type Track, TrackType } from "../../models";
 import {
-    addTrackToPlaylist,
-    getPlaylists,
-    type Playlist,
+  addTrackToPlaylist,
+  getPlaylists,
+  type Playlist,
 } from "../../services/playlist";
 import { socketService } from "../../services/socket";
 import { addToHistory, getLatestHistory } from "../../services/user"; // Added
@@ -686,6 +686,66 @@ const Player: React.FC = () => {
       });
     }
   }, [currentTrack, isPlaying]);
+
+  // Global Lyric Sync Logic
+  const [parsedLyrics, setParsedLyrics] = useState<{ time: number; text: string }[]>([]);
+
+  // Parse lyrics when track changes
+  useEffect(() => {
+    const rawLyrics = currentTrack?.lyrics;
+    if (!rawLyrics) {
+      setParsedLyrics([]);
+      // Sync empty state immediately
+      if (window.ipcRenderer) {
+         window.ipcRenderer.send("lyric:update", { currentLyric: "" });
+      }
+      return;
+    }
+
+    const lines = rawLyrics.split(/\r?\n/);
+    const parsed: { time: number; text: string }[] = [];
+    const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g;
+
+    lines.forEach((line) => {
+      const matches = [...line.matchAll(timeRegex)];
+      if (matches.length > 0) {
+        const text = line.replace(timeRegex, "").trim();
+        if (text) {
+          matches.forEach((match) => {
+            const minutes = parseInt(match[1], 10);
+            const seconds = parseInt(match[2], 10);
+            const milliseconds = parseInt(match[3], 10);
+            const time = minutes * 60 + seconds + milliseconds / 1000;
+            parsed.push({ time, text });
+          });
+        }
+      }
+    });
+
+    parsed.sort((a, b) => a.time - b.time);
+    setParsedLyrics(parsed);
+  }, [currentTrack?.lyrics]);
+
+  // Sync active lyric line
+  useEffect(() => {
+    if (parsedLyrics.length === 0 || !window.ipcRenderer) return;
+
+    let index = parsedLyrics.findIndex((line) => line.time > currentTime) - 1;
+    if (index === -2) index = -1;
+    else if (index === -1) index = parsedLyrics.length - 1;
+
+    const currentLineText = index >= 0 ? parsedLyrics[index].text : "";
+    
+    // Optimize: Only send if needed (though main process handles diffs usually, better to be chatty or let throttling handle it? 
+    // Main process throttling might be better, but let's send for now. 
+    // Ideally we would check if it changed, but we don't store previous sent lyric here easily without ref.
+    // Given the frequency of currentTime updates (throttle in main loop?), this runs every time time updates.
+    // Actually handleTimeUpdate updates currentTime state.
+    
+    window.ipcRenderer.send("lyric:update", {
+      currentLyric: currentLineText,
+    });
+  }, [currentTime, parsedLyrics]);
 
   // // Create refs for control functions to use in IPC handlers
   // const togglePlayRef = useRef<(() => void) | undefined>(undefined);
