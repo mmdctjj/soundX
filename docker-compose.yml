@@ -19,12 +19,14 @@ services:
       - AUDIO_BOOK_DIR=/audio
       - MUSIC_BASE_DIR=/music
       - CACHE_DIR=/covers
+      - DATABASE_URL=file:/data/dev.db
 
     # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:
       - ./audio:/audio
       - ./music:/music
       - ./covers:/covers
+      - api-db:/data
 
     restart: unless-stopped
     networks:

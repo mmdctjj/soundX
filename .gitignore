@@ -8,3 +8,4 @@ pnpm-lock.yaml
 .vscode
 *.db
 **/release
+.jwt_secret
