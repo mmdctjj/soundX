@@ -24,6 +24,7 @@ const Settings = lazy(() => import("./pages/Settings/index"));
 
 import { useEffect } from "react";
 import InviteListener from "./components/InviteListener";
+import MiniPlayer from "./components/MiniPlayer";
 import { socketService } from "./services/socket";
 import { useAuthStore } from "./store/auth";
 import { useSettingsStore, type SettingsState } from "./store/settings";
@@ -56,6 +57,7 @@ const AppContent = () => {
   }, []);
 
   const isLyricWindow = window.location.hash.includes("/lyric");
+  const isMiniPlayer = window.location.hash.includes("/mini");
 
   if (isLyricWindow) {
     return (
@@ -63,6 +65,20 @@ const AppContent = () => {
         <LyricWindow />
       </ConfigProvider>
     );
+  }
+
+  if (isMiniPlayer) {
+     return (
+        <ConfigProvider theme={themeConfig} locale={zhCN}>
+           <MiniPlayer 
+              onRestore={() => {
+                 if ((window as any).ipcRenderer) {
+                    (window as any).ipcRenderer.send("window:restore-main");
+                 }
+              }} 
+           />
+        </ConfigProvider>
+     )
   }
 
   return (

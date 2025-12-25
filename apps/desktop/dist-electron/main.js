@@ -41,6 +41,7 @@ process.env.DIST = path.join(__dirname$1, "../dist");
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
 let win = null;
 let lyricWin = null;
+let miniWin = null;
 let trayPrev = null;
 let trayPlay = null;
 let trayNext = null;
@@ -87,6 +88,7 @@ ipcMain.on("player:update", (event, payload) => {
   playerState = { ...playerState, ...payload };
   updatePlayerUI();
   lyricWin?.webContents.send("player:update", payload);
+  miniWin?.webContents.send("player:update", payload);
 });
 ipcMain.on("settings:update-minimize-to-tray", (event, value) => {
   minimizeToTray = value;
@@ -97,6 +99,7 @@ ipcMain.on("lyric:update", (event, payload) => {
     trayNext?.setTitle(currentLyric || "");
   }
   lyricWin?.webContents.send("lyric:update", payload);
+  miniWin?.webContents.send("lyric:update", payload);
 });
 ipcMain.on("lyric:settings-update", (event, payload) => {
   lyricWin?.webContents.send("lyric:settings-update", payload);
@@ -129,6 +132,66 @@ ipcMain.on("player:next", () => {
 ipcMain.on("player:prev", () => {
   win?.webContents.send("player:prev");
 });
+ipcMain.on("player:seek", (event, time) => {
+  win?.webContents.send("player:seek", time);
+});
+ipcMain.on("window:set-mini", () => {
+  if (win) {
+    win.hide();
+    createMiniPlayerWindow();
+  }
+});
+ipcMain.on("window:restore-main", () => {
+  if (miniWin) {
+    miniWin.close();
+    miniWin = null;
+  }
+  if (win) {
+    win.show();
+    win.center();
+  }
+});
+ipcMain.on("window:set-always-on-top", (event, enable) => {
+  if (miniWin) {
+    miniWin.setAlwaysOnTop(enable, "floating");
+  }
+});
+function createMiniPlayerWindow() {
+  if (miniWin) {
+    miniWin.show();
+    return;
+  }
+  miniWin = new BrowserWindow({
+    width: 360,
+    height: 170,
+    frame: false,
+    titleBarStyle: "hidden",
+    resizable: false,
+    alwaysOnTop: true,
+    // Start always on top
+    skipTaskbar: true,
+    hasShadow: false,
+    transparent: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname$1, "preload.mjs")
+    }
+  });
+  const miniUrl = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/mini` : `file://${path.join(process.env.DIST, "index.html")}#/mini`;
+  if (process.env.VITE_DEV_SERVER_URL) {
+    miniWin.loadURL(miniUrl);
+  } else {
+    miniWin.loadURL(miniUrl);
+  }
+  if (process.platform === "darwin") {
+    miniWin.setAlwaysOnTop(true, "floating");
+    miniWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+  miniWin.on("closed", () => {
+    miniWin = null;
+  });
+}
 function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, "logo.png"),

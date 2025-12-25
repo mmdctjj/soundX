@@ -1,33 +1,33 @@
 import Icon, {
-  BackwardOutlined, // Added as per instruction
-  DeliveredProcedureOutlined,
-  DownOutlined,
-  FontColorsOutlined,
-  ForwardOutlined,
-  OrderedListOutlined,
-  PauseCircleFilled,
-  PlayCircleFilled,
-  SoundOutlined,
-  StepBackwardOutlined,
-  StepForwardOutlined,
-  TeamOutlined,
+    BackwardOutlined, // Added as per instruction
+    DeliveredProcedureOutlined,
+    DownOutlined,
+    FontColorsOutlined,
+    ForwardOutlined,
+    OrderedListOutlined,
+    PauseCircleFilled,
+    PlayCircleFilled,
+    SoundOutlined,
+    StepBackwardOutlined,
+    StepForwardOutlined,
+    TeamOutlined,
 } from "@ant-design/icons";
 import {
-  Avatar, // Added
-  Button,
-  Drawer,
-  Flex,
-  InputNumber,
-  List, // Rename to avoid conflict if needed, though useMessage is typically context. Context is safer.
-  Modal,
-  notification, // Added
-  Popover,
-  Slider,
-  Space, // Added
-  Tabs,
-  theme,
-  Tooltip,
-  Typography,
+    Avatar, // Added
+    Button,
+    Drawer,
+    Flex,
+    InputNumber,
+    List, // Rename to avoid conflict if needed, though useMessage is typically context. Context is safer.
+    Modal,
+    notification, // Added
+    Popover,
+    Slider,
+    Space, // Added
+    Tabs,
+    theme,
+    Tooltip,
+    Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -41,9 +41,9 @@ import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
 import { type Device, type Track, TrackType } from "../../models";
 import {
-  addTrackToPlaylist,
-  getPlaylists,
-  type Playlist,
+    addTrackToPlaylist,
+    getPlaylists,
+    type Playlist,
 } from "../../services/playlist";
 import { socketService } from "../../services/socket";
 import { addToHistory, getLatestHistory } from "../../services/user"; // Added
@@ -533,12 +533,25 @@ const Player: React.FC = () => {
 
   const { token } = theme.useToken();
 
+  const lastTimeUpdateRef = useRef(0);
+
   const handleTimeUpdate = () => {
     if (audioRef.current) {
       if (ignoreTimeUpdate.current) return;
 
       const time = audioRef.current.currentTime;
       setCurrentTime(time);
+
+      // IPC Broadcast for Mini Player (throttled ~250ms)
+      const now = Date.now();
+      if ((window as any).ipcRenderer && now - lastTimeUpdateRef.current > 250) {
+          (window as any).ipcRenderer.send("player:update", {
+             currentTime: time,
+             duration: duration || audioRef.current.duration,
+             isPlaying: !audioRef.current.paused
+          });
+          lastTimeUpdateRef.current = now;
+      }
 
       // Handle skip end - ONLY in Audiobook mode
       if (
@@ -647,9 +660,11 @@ const Player: React.FC = () => {
       window.ipcRenderer.send("player:update", {
         track: currentTrack
           ? {
+              id: currentTrack.id,
               name: currentTrack.name,
               artist: currentTrack.artist,
               album: currentTrack.album,
+              cover: currentTrack.cover,
             }
           : null,
         isPlaying,
@@ -661,9 +676,11 @@ const Player: React.FC = () => {
         isPlaying,
         track: currentTrack
           ? {
+              id: currentTrack.id,
               name: currentTrack.name,
               artist: currentTrack.artist,
               album: currentTrack.album,
+              cover: currentTrack.cover,
             }
           : null,
       });

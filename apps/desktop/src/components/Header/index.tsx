@@ -14,7 +14,7 @@ import {
   SearchOutlined,
   SettingOutlined,
   SkinOutlined,
-  SunOutlined,
+  SunOutlined
 } from "@ant-design/icons";
 import { Flex, Input, Modal, Popover, theme, Tooltip } from "antd";
 import React, { useEffect, useRef, useState } from "react";
@@ -278,6 +278,11 @@ const Header: React.FC = () => {
           <ImportOutlined
             className={styles.actionIcon}
             style={actionIconStyle}
+            onClick={() => {
+                if ((window as any).ipcRenderer) {
+                   (window as any).ipcRenderer.send("window:set-mini");
+                }
+             }}
           />
         </Tooltip>
         <Tooltip title="主题">

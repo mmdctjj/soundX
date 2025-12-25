@@ -54,6 +54,7 @@ process.env.VITE_PUBLIC = app.isPackaged
 
 let win: BrowserWindow | null = null;
 let lyricWin: BrowserWindow | null = null;
+let miniWin: BrowserWindow | null = null;
 
 let trayPrev: Tray | null = null;
 let trayPlay: Tray | null = null;
@@ -116,6 +117,7 @@ ipcMain.on("player:update", (event, payload) => {
   updatePlayerUI();
   // Sync with lyric window
   lyricWin?.webContents.send("player:update", payload);
+  miniWin?.webContents.send("player:update", payload);
 });
 
 ipcMain.on("settings:update-minimize-to-tray", (event, value: boolean) => {
@@ -132,6 +134,7 @@ ipcMain.on("lyric:update", (event, payload) => {
 
   // 同步桌面投影歌词
   lyricWin?.webContents.send("lyric:update", payload);
+  miniWin?.webContents.send("lyric:update", payload);
 });
 
 ipcMain.on("lyric:settings-update", (event, payload) => {
@@ -172,6 +175,79 @@ ipcMain.on("player:next", () => {
 ipcMain.on("player:prev", () => {
   win?.webContents.send("player:prev");
 });
+
+ipcMain.on("player:seek", (event, time: number) => {
+  win?.webContents.send("player:seek", time);
+});
+
+// ---- 窗口模式切换 ----
+ipcMain.on("window:set-mini", () => {
+  if (win) {
+     win.hide();
+     createMiniPlayerWindow();
+  }
+});
+
+ipcMain.on("window:restore-main", () => {
+  if (miniWin) {
+     miniWin.close();
+     miniWin = null;
+  }
+  if (win) {
+    win.show();
+    win.center();
+  }
+});
+
+ipcMain.on("window:set-always-on-top", (event, enable: boolean) => {
+  if (miniWin) {
+    miniWin.setAlwaysOnTop(enable, "floating");
+  }
+});
+
+function createMiniPlayerWindow() {
+   if (miniWin) {
+      miniWin.show();
+      return;
+   }
+
+   miniWin = new BrowserWindow({
+      width: 360,
+      height: 170,
+      frame: false,
+      titleBarStyle: "hidden",
+      resizable: false,
+      alwaysOnTop: true, // Start always on top
+      skipTaskbar: true,
+      hasShadow: false,
+      transparent: true,
+      webPreferences: {
+         contextIsolation: true,
+         nodeIntegration: false,
+         preload: path.join(__dirname, "preload.mjs"),
+      }
+   });
+
+   const miniUrl = process.env.VITE_DEV_SERVER_URL
+     ? `${process.env.VITE_DEV_SERVER_URL}#/mini`
+     : `file://${path.join(process.env.DIST!, "index.html")}#/mini`;
+
+   if (process.env.VITE_DEV_SERVER_URL) {
+      miniWin.loadURL(miniUrl);
+   } else {
+      miniWin.loadURL(miniUrl);
+   }
+   
+   // macOS tweaks
+   if (process.platform === "darwin") {
+      miniWin.setAlwaysOnTop(true, "floating");
+      miniWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+   }
+
+   miniWin.on("closed", () => {
+      miniWin = null;
+   });
+}
 
 // ---------- 创建窗口 ----------
 function createWindow() {
