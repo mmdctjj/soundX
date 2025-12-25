@@ -54,16 +54,22 @@
   font-size: 20px;
   cursor: pointer;
   opacity: 0.8;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 0.2s;
 
   &:hover {
     opacity: 1;
+    transform: scale(1.1);
   }
 }
 
 .playIcon {
   font-size: 40px;
   cursor: pointer;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: scale(1.1);
+  }
 }
 
 .progressWrapper {
@@ -86,9 +92,11 @@
   cursor: pointer;
   color: inherit;
   opacity: 0.8;
+  transition: opacity 0.2s, transform 0.2s;
 
   &:hover {
     opacity: 1;
+    transform: scale(1.1);
   }
 }
 

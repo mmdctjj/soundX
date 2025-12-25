@@ -32,11 +32,12 @@
 .navIcon {
   cursor: pointer;
   opacity: 0.7;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 0.2s;
   color: inherit;
 
   &:hover {
     opacity: 1;
+    transform: scale(1.1);
   }
 }
 
@@ -51,6 +52,11 @@
   padding: 3px 5px;
   position: relative;
   -webkit-app-region: no-drag; // Allow typing in search
+  transition: background-color 0.3s;
+
+  &:focus-within {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
 }
 
 .searchInput {
@@ -78,10 +84,11 @@
   color: inherit;
   cursor: pointer;
   opacity: 0.8;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 0.2s;
 
   &:hover {
     opacity: 1;
+    transform: scale(1.1);
   }
 }
 
