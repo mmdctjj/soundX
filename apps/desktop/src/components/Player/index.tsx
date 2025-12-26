@@ -84,6 +84,7 @@ const Player: React.FC = () => {
   } = usePlayerStore();
   const { mode: appMode } = usePlayMode();
   const { updateDesktopLyric } = useSettingsStore();
+  const desktopLyricEnable = useSettingsStore((state) => state.desktopLyric.enable);
 
   // Sync store active mode with app mode
   useEffect(() => {
@@ -1254,7 +1255,7 @@ const Player: React.FC = () => {
         {appMode === TrackType.MUSIC && (
           <Tooltip title="桌面歌词">
             <FontColorsOutlined
-              className={`${styles.settingIcon} ${useSettingsStore((state) => state.desktopLyric.enable) ? styles.activeIcon : ""}`}
+              className={`${styles.settingIcon} ${desktopLyricEnable ? styles.activeIcon : ""}`}
               onClick={handleDesktopLyricToggle}
             />
           </Tooltip>

@@ -183,13 +183,13 @@ export class ImportService {
       // Save Music (sequential to avoid duplicate creation)
       for (const [index, item] of musicResults.entries()) {
         console.log("music", item);
-        await processItem(item, TrackType.MUSIC, musicPath, index);
+        await processItem(item || {}, TrackType.MUSIC, musicPath, index);
       }
 
       // Save Audiobooks (sequential to avoid duplicate creation)
       for (const [index, item] of audiobookResults.entries()) {
         console.log("audiobook", item);
-        await processItem(item, TrackType.AUDIOBOOK, audiobookPath, index);
+        await processItem(item || {}, TrackType.AUDIOBOOK, audiobookPath, index);
       }
 
       task.status = TaskStatus.SUCCESS;
