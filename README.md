@@ -80,16 +80,13 @@ services:
   # 1. API 后端服务 (Node.js)
   api:
     platform: linux/amd64
-    build:
-      context: . # 上下文必须是根目录
-      dockerfile: Dockerfile # Dockerfile 必须在根目录
-      target: backend_runner # 使用多阶段构建的目标
+    image: ctjj/audiodock-api:0.0.1
     container_name: audiodock-api
 
     # 容器内部端口 (3000) 默认对内部网络开放，无需 ports 字段映射到宿主机
     # 如果要直接测试 API，可以加上 ports: - "3000:3000"
     ports:
-      - "3000:3000"
+      - "8858:3000"
 
     environment:
       - AUDIO_BOOK_DIR=/audio
@@ -99,8 +96,8 @@ services:
 
     # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:
-      - ./audio:/audio
-      - ./music:/music
+      - /volume1/audio:/audio
+      - /volume1/music:/music
       - ./covers:/covers
       - api-db:/data
 
@@ -111,10 +108,7 @@ services:
   # 2. Web 前端服务 (Nginx) - 用于托管静态文件和反向代理
   web:
     platform: linux/amd64
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: frontend_runner # 使用多阶段构建的目标
+    image: ctjj/audiodock-web:0.0.1
     container_name: audiodock-web
     ports:
       - "9958:9958" # <--- 将 Web 服务的 80 端口映射到宿主机的 8080 端口
