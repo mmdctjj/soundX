@@ -71,6 +71,16 @@ const Recommended: React.FC = () => {
     return sectionsToSort;
   };
 
+  const getPageSize = (type: "album" | "artist" | "track") => {
+    const width = window.innerWidth;
+    // Sidebar 200 + Padding 60 (30*2)
+    const availableWidth = width - 200 - 60;
+    // Album/Track: 170 + 24 (gap) = 194
+    // Artist: 110 + 24 (gap) = 134
+    const itemWidth = type === "artist" ? 134 : 194;
+    return Math.max(4, Math.floor(availableWidth / itemWidth));
+  };
+
   const loadSections = async (forceRefresh = false) => {
     try {
       setLoading(true);
@@ -141,14 +151,18 @@ const Recommended: React.FC = () => {
 
       // Fetch from API with playMode as type parameter
       const type = playMode;
+      const albumSize = getPageSize("album");
+      const artistSize = getPageSize("artist");
+      const trackSize = getPageSize("track");
+
       const promises: Promise<any>[] = [
-        getRecommendedAlbums(type),
-        getRecentAlbums(type),
-        getLatestArtists(type),
+        getRecommendedAlbums(type, albumSize),
+        getRecentAlbums(type, albumSize),
+        getLatestArtists(type, artistSize),
       ];
 
       if (playMode === "MUSIC") {
-        promises.push(getLatestTracks("MUSIC"));
+        promises.push(getLatestTracks("MUSIC", trackSize));
       }
 
       const results = await Promise.all(promises);
@@ -208,24 +222,27 @@ const Recommended: React.FC = () => {
       setRefreshing(sectionId);
 
       const type = playMode;
+      const albumSize = getPageSize("album");
+      const artistSize = getPageSize("artist");
+      const trackSize = getPageSize("track");
 
       if (sectionId === "recommended") {
-        const res = await getRecommendedAlbums(type);
+        const res = await getRecommendedAlbums(type, albumSize);
         const data = res.data || [];
         updateSection(sectionId, data);
         cacheUtils.set(getCacheKey(CACHE_KEY_RECOMMENDED), data);
       } else if (sectionId === "recent") {
-        const res = await getRecentAlbums(type);
+        const res = await getRecentAlbums(type, albumSize);
         const data = res.data || [];
         updateSection(sectionId, data);
         cacheUtils.set(getCacheKey(CACHE_KEY_RECENT), data);
       } else if (sectionId === "artists") {
-        const res = await getLatestArtists(type);
+        const res = await getLatestArtists(type, artistSize);
         const data = res.data || [];
         updateSection(sectionId, data);
         cacheUtils.set(getCacheKey(CACHE_KEY_ARTISTS), data);
       } else if (sectionId === "tracks") {
-        const res = await getLatestTracks("MUSIC");
+        const res = await getLatestTracks("MUSIC", trackSize);
         const data = res.data || [];
         updateSection(sectionId, data);
         cacheUtils.set(getCacheKey(CACHE_KEY_TRACKS), data);

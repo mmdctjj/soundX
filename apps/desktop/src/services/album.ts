@@ -1,9 +1,9 @@
 import request from "../https";
 import type {
-  Album,
-  ILoadMoreData,
-  ISuccessResponse,
-  ITableData,
+    Album,
+    ILoadMoreData,
+    ISuccessResponse,
+    ITableData,
 } from "../models";
 
 export const getAlbumList = () => {
@@ -58,16 +58,16 @@ export const batchDeleteAlbums = (ids: number[]) => {
 };
 
 // Get recommended albums (8 random unlistened albums)
-export const getRecommendedAlbums = (type?: string) => {
+export const getRecommendedAlbums = (type?: string, pageSize?: number) => {
   return request.get<any, ISuccessResponse<Album[]>>("/album/recommend", {
-    params: type ? { type } : undefined,
+    params: { type, pageSize },
   });
 };
 
 // Get recent albums (8 latest albums)
-export const getRecentAlbums = (type?: string) => {
+export const getRecentAlbums = (type?: string, pageSize?: number) => {
   return request.get<any, ISuccessResponse<Album[]>>("/album/latest", {
-    params: type ? { type } : undefined,
+    params: { type, pageSize },
   });
 };
 

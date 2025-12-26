@@ -25,6 +25,5 @@ export const isWeb = () => {
 declare global {
   interface Window {
     platform?: string;
-    ipcRenderer?: any;
   }
 }
