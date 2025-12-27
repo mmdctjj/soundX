@@ -1,6 +1,6 @@
 {
   "name": "@soundx/ws",
-  "version": "0.0.1",
+  "version": "1.0.1",
   "description": "Shared WebSocket client for SoundX",
   "author": "mmdctjj <mmdctjj@gmail.com>",
   "repository": {
@@ -27,6 +27,6 @@
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
-      "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1"
   }
 }
