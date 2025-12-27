@@ -38,11 +38,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build Dependencies
+        run: |
+          pnpm --filter @soundx/ws run build
+          pnpm --filter @soundx/utils run build
+          pnpm --filter @soundx/db run generate
+
       - name: Build Electron App
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Runs the platform specific build command defined in package.json
-        run: pnpm --filter @soundx/desktop run ${{ matrix.command }}
+        run: pnpm --filter sound-x run ${{ matrix.command }}
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
