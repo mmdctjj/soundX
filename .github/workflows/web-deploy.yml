@@ -39,7 +39,7 @@ jobs:
 
       - name: Build Web
         # The script `pnpm run build:web` runs `cross-env VITE_PLATFORM=web tsc -b && vite build` in apps/desktop
-        run: pnpm --filter @soundx/desktop run build:web
+        run: pnpm --filter sound-x run build:web
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
