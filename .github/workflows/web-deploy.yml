@@ -35,7 +35,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build Web
         # The script `pnpm run build:web` runs `cross-env VITE_PLATFORM=web tsc -b && vite build` in apps/desktop
