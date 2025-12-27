@@ -46,7 +46,7 @@ jobs:
 
       - name: Build Electron App
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         # Runs the platform specific build command defined in package.json
         run: pnpm --filter sound-x run ${{ matrix.command }}
 
