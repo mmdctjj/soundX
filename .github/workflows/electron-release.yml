@@ -44,11 +44,8 @@ jobs:
           pnpm --filter @soundx/utils run build
           pnpm --filter @soundx/db run generate
 
-      - name: Build Electron App
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-        # Runs the platform specific build command defined in package.json
-        run: pnpm --filter sound-x run ${{ matrix.command }}
+      - name: List release folder
+        run: ls -al apps/desktop/release
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
@@ -60,3 +57,6 @@ jobs:
             apps/desktop/release/*.exe
             apps/desktop/release/*.blockmap
             apps/desktop/release/latest*.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
