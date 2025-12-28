@@ -1,4 +1,4 @@
-import { ipcMain, app, dialog, shell, screen, BrowserWindow, Menu, Tray, nativeImage } from "electron";
+import { ipcMain, app, dialog, shell, screen, BrowserWindow, protocol, net, Menu, Tray, nativeImage } from "electron";
 import { fileURLToPath } from "node:url";
 import os from "os";
 import path from "path";
@@ -180,7 +180,7 @@ function createMiniPlayerWindow() {
       preload: path.join(__dirname$1, "preload.mjs")
     }
   });
-  const miniUrl = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/mini` : `file://${path.join(process.env.DIST, "index.html")}#/mini`;
+  const miniUrl = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/mini` : `app://./index.html#/mini`;
   if (process.env.VITE_DEV_SERVER_URL) {
     miniWin.loadURL(miniUrl);
   } else {
@@ -233,7 +233,7 @@ function createWindow() {
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    win.loadFile(path.join(process.env.DIST, "index.html"));
+    win.loadURL("app://./index.html");
   }
 }
 function createLyricWindow() {
@@ -264,7 +264,7 @@ function createLyricWindow() {
   if (process.env.VITE_DEV_SERVER_URL) {
     lyricWin.loadURL(lyricUrl);
   } else {
-    lyricWin.loadURL(`file://${path.join(process.env.DIST, "index.html")}#/lyric`);
+    lyricWin.loadURL("app://./index.html#/lyric");
   }
   if (process.platform === "darwin") {
     lyricWin.setAlwaysOnTop(true, "screen-saver");
@@ -289,12 +289,28 @@ function createTray() {
   trayPrev.on("click", () => {
     win?.webContents.send("player:prev");
   });
+  trayMain.on("click", () => {
+    if (win) {
+      if (win.isVisible()) {
+        win.focus();
+      } else {
+        win.show();
+      }
+    }
+  });
   updatePlayerUI();
 }
 app.on("before-quit", () => {
   isQuitting = true;
 });
 app.whenReady().then(() => {
+  protocol.handle("app", (request) => {
+    const url = new URL(request.url);
+    const pathname = decodeURIComponent(url.pathname);
+    let relativePath = pathname === "/" ? "index.html" : pathname;
+    if (relativePath.startsWith("/")) relativePath = relativePath.slice(1);
+    return net.fetch(`file://${path.join(process.env.DIST, relativePath)}`);
+  });
   createWindow();
   createTray();
 });
@@ -302,5 +318,9 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  } else {
+    win?.show();
+  }
 });
