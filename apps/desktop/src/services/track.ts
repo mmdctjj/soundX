@@ -1,9 +1,9 @@
 import request from "../https";
 import type {
-    ILoadMoreData,
-    ISuccessResponse,
-    ITableData,
-    Track,
+  ILoadMoreData,
+  ISuccessResponse,
+  ITableData,
+  Track,
 } from "../models";
 
 export const getTrackList = () => {
@@ -56,9 +56,9 @@ export const batchDeleteTracks = (ids: number[]) => {
   );
 };
 
-export const getLatestTracks = (type?: string, pageSize?: number) => {
+export const getLatestTracks = (type?: string, random?: boolean, pageSize?: number) => {
   return request.get<any, ISuccessResponse<Track[]>>("/track/latest", {
-    params: { type, pageSize },
+    params: { type, random, pageSize },
   });
 };
 

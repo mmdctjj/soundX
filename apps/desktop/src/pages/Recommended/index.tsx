@@ -156,13 +156,13 @@ const Recommended: React.FC = () => {
       const trackSize = getPageSize("track");
 
       const promises: Promise<any>[] = [
-        getRecommendedAlbums(type, albumSize),
-        getRecentAlbums(type, albumSize),
-        getLatestArtists(type, artistSize),
+        getRecommendedAlbums(type, true, albumSize),
+        getRecentAlbums(type, true, albumSize),
+        getLatestArtists(type, true, artistSize),
       ];
 
       if (playMode === "MUSIC") {
-        promises.push(getLatestTracks("MUSIC", trackSize));
+        promises.push(getLatestTracks("MUSIC", true, trackSize));
       }
 
       const results = await Promise.all(promises);
@@ -227,22 +227,22 @@ const Recommended: React.FC = () => {
       const trackSize = getPageSize("track");
 
       if (sectionId === "recommended") {
-        const res = await getRecommendedAlbums(type, albumSize);
+        const res = await getRecommendedAlbums(type, true, albumSize);
         const data = res.data || [];
         updateSection(sectionId, data);
         cacheUtils.set(getCacheKey(CACHE_KEY_RECOMMENDED), data);
       } else if (sectionId === "recent") {
-        const res = await getRecentAlbums(type, albumSize);
+        const res = await getRecentAlbums(type, true, albumSize);
         const data = res.data || [];
         updateSection(sectionId, data);
         cacheUtils.set(getCacheKey(CACHE_KEY_RECENT), data);
       } else if (sectionId === "artists") {
-        const res = await getLatestArtists(type, artistSize);
+        const res = await getLatestArtists(type, true, artistSize);
         const data = res.data || [];
         updateSection(sectionId, data);
         cacheUtils.set(getCacheKey(CACHE_KEY_ARTISTS), data);
       } else if (sectionId === "tracks") {
-        const res = await getLatestTracks("MUSIC", trackSize);
+        const res = await getLatestTracks("MUSIC", true, trackSize);
         const data = res.data || [];
         updateSection(sectionId, data);
         cacheUtils.set(getCacheKey(CACHE_KEY_TRACKS), data);

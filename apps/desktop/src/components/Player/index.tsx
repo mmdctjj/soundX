@@ -147,6 +147,12 @@ const Player: React.FC = () => {
   const [isUserSelectModalOpen, setIsUserSelectModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Playback Rate
+  const [playbackRate, setPlaybackRate] = useState(() => {
+    const saved = localStorage.getItem("playbackRate");
+    return saved ? Number(saved) : 1;
+  });
+
   // Sync Logic
   const { isSynced, sessionId, setSynced, setParticipants } = useSyncStore();
   const isProcessingSync = useRef(false);
@@ -503,6 +509,13 @@ const Player: React.FC = () => {
     localStorage.setItem("skipEnd", String(skipEnd));
   }, [skipEnd]);
 
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+    }
+    localStorage.setItem("playbackRate", String(playbackRate));
+  }, [playbackRate]);
+
   const device: Device = JSON.parse(localStorage.getItem("device") || "{}");
 
   useEffect(() => {
@@ -569,6 +582,9 @@ const Player: React.FC = () => {
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
+      
+      // Apply playback rate
+      audioRef.current.playbackRate = playbackRate;
 
       // Critical for Sync: If store has a specific currentTime (set by play or sync), apply it now.
       // We prioritize valid currentTime > 0.
@@ -1248,6 +1264,34 @@ const Player: React.FC = () => {
                 className={styles.settingIcon}
                 style={{ fontSize: "24px", fontWeight: "bold" }}
               />
+            </Tooltip>
+          </Popover>
+        )}
+
+        {/* Speed Selector */}
+        {appMode === TrackType.AUDIOBOOK && (
+          <Popover
+            content={
+              <Flex vertical gap={4}>
+                {[0.5, 1, 1.25, 1.5, 2, 3].map((rate) => (
+                  <Button
+                    key={rate}
+                    type={playbackRate === rate ? "primary" : "text"}
+                    onClick={() => setPlaybackRate(rate)}
+                    size="small"
+                  >
+                    {rate}x
+                  </Button>
+                ))}
+              </Flex>
+            }
+            trigger="click"
+            placement="top"
+          >
+            <Tooltip title="播放速度">
+              <div className={styles.playbackRateIcon}>
+                {playbackRate}倍
+              </div>
             </Tooltip>
           </Popover>
         )}

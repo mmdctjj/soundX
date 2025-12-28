@@ -1,9 +1,9 @@
 import request from "../https";
 import type {
-    Artist,
-    ILoadMoreData,
-    ISuccessResponse,
-    ITableData,
+  Artist,
+  ILoadMoreData,
+  ISuccessResponse,
+  ITableData,
 } from "../models";
 
 export const getArtistList = (
@@ -73,6 +73,6 @@ export const getArtistById = (id: number) => {
   return request.get<any, ISuccessResponse<Artist>>(`/artist/${id}`);
 };
 
-export const getLatestArtists = (type: string, pageSize?: number) => {
-  return request.get<any, ISuccessResponse<Artist[]>>("/artist/latest", { params: { type, pageSize } });
+export const getLatestArtists = (type: string, random?: boolean, pageSize?: number) => {
+  return request.get<any, ISuccessResponse<Artist[]>>("/artist/latest", { params: { type, random, pageSize } });
 };

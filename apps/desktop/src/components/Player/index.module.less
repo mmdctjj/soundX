@@ -83,7 +83,6 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  width: 150px;
   justify-content: flex-end;
 }
 
@@ -93,6 +92,23 @@
   color: inherit;
   opacity: 0.8;
   transition: opacity 0.2s, transform 0.2s;
+
+  &:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.playbackRateIcon {
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s, transform 0.2s;
+  padding: 2px 2px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  min-width: 45px;
+  text-align: center;
+  font-size: 12px;
 
   &:hover {
     opacity: 1;
