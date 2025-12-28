@@ -8,6 +8,8 @@ on:
 
 jobs:
   release:
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -55,7 +57,7 @@ jobs:
         run: pnpm --filter sound-x run ${{ matrix.command }} -- --publish never
 
       - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
@@ -67,6 +69,7 @@ jobs:
             apps/desktop/release/*.blockmap
             apps/desktop/release/latest*.yml
           generate_release_notes: true
+          make_latest: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
