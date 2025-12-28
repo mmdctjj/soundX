@@ -42,16 +42,11 @@ import {
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
+import { getCoverUrl } from "../../utils";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
 import PlayingIndicator from "../PlayingIndicator";
 import styles from "./index.module.less";
-
-export const getCoverUrl = (path?: string | null, id?: number) => {
-  return path
-    ? `${getBaseURL()}${path}`
-    : `https://picsum.photos/seed/${id}/300/300`;
-};
 
 const { Title, Text } = Typography;
 

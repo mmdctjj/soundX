@@ -4,7 +4,7 @@ import type { Track } from "../../models";
 import { socketService } from "../../services/socket";
 import { usePlayerStore } from "../../store/player";
 import { useSettingsStore } from "../../store/settings";
-import { getCoverUrl } from "../Detail";
+import { getCoverUrl } from "../../utils";
 
 const { Text } = Typography;
 

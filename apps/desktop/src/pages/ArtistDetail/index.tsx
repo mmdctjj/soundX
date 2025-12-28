@@ -12,7 +12,6 @@ import {
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Cover from "../../components/Cover";
-import { getCoverUrl } from "../../components/Detail";
 import PlayingIndicator from "../../components/PlayingIndicator";
 import { useMessage } from "../../context/MessageContext";
 import { getBaseURL } from "../../https";
@@ -21,6 +20,7 @@ import { getAlbumsByArtist } from "../../services/album";
 import { getArtistById } from "../../services/artist";
 import { getTracksByArtist } from "../../services/track";
 import { usePlayerStore } from "../../store/player";
+import { getCoverUrl } from "../../utils";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
