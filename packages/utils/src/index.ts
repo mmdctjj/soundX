@@ -46,6 +46,9 @@ export class LocalMusicScanner {
         const parentDir = path.dirname(filePath);
         const folderName = path.basename(parentDir);
         metadata.album = folderName;
+        if (!metadata.artist) {
+          metadata.artist = folderName;
+        }
 
         // If no cover, look for first image in directory
         if (!metadata.coverPath) {
@@ -137,11 +140,11 @@ export class LocalMusicScanner {
         path: filePath,
         size: fs.statSync(filePath).size,
         mtime: fs.statSync(filePath).mtime,
-        title: common.title,
-        artist: common.artist,
+        ...common,
+        title: common.title || path.basename(filePath, path.extname(filePath)),
+        artist: common.artist || common.album,
         album: common.album,
         duration: metadata.format.duration,
-        ...common,
         coverPath: coverPath || undefined,
         lyrics: lyrics || undefined,
       };

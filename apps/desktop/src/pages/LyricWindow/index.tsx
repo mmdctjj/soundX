@@ -1,5 +1,5 @@
 import {
-    DragOutlined,
+    CloseOutlined,
     ExportOutlined,
     PauseCircleFilled,
     PlayCircleFilled,
@@ -101,9 +101,10 @@ const LyricWindow: React.FC = () => {
         <Space size="large">
           <Button 
             type="text" 
-            icon={<DragOutlined />} 
-            className={`${styles.controlBtn} ${styles.dragBtn}`}
-            title="拖动"
+            icon={<CloseOutlined />} 
+            onClick={() => useSettingsStore.getState().updateDesktopLyric('enable', false)}
+            className={styles.controlBtn}
+            title="关闭"
           />
           <Button 
             type="text" 

@@ -172,8 +172,8 @@ export class ImportService {
           index: index + 1 || 1, // Track number/index from metadata
           type: type,
           createdAt: new Date(),
-          fileModifiedAt: item.mtime ? new Date(item.mtime) : null,
-          episodeNumber: extractEpisodeNumber(item.title),
+          fileModifiedAt: item?.mtime ? new Date(item.mtime) : null,
+          episodeNumber: extractEpisodeNumber(item.title || ""),
           artistId: artist.id,
           albumId: album.id,
         });
