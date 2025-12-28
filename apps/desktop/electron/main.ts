@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, screen as electronScreen, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
 import { fileURLToPath } from 'node:url';
 import os from "os";
 import path from 'path';
@@ -295,9 +295,15 @@ function createWindow() {
 function createLyricWindow() {
   if (lyricWin) return;
 
+  const { width: screenWidth, height: screenHeight } = electronScreen.getPrimaryDisplay().workAreaSize;
+  const winWidth = 800;
+  const winHeight = 120;
+
   lyricWin = new BrowserWindow({
-    width: 800,
-    height: 120,
+    width: winWidth,
+    height: winHeight,
+    x: Math.floor((screenWidth - winWidth) / 2),
+    y: screenHeight - winHeight - 50,
     frame: false,
     transparent: true,
     alwaysOnTop: true,

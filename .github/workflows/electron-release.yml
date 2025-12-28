@@ -17,6 +17,9 @@ jobs:
           - os: windows-latest
             platform: win
             command: build:win
+          - os: ubuntu-latest
+            platform: linux
+            command: build:linux
 
     runs-on: ${{ matrix.os }}
 
@@ -57,6 +60,8 @@ jobs:
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
             apps/desktop/release/*.exe
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
             apps/desktop/release/*.blockmap
             apps/desktop/release/latest*.yml
         env:

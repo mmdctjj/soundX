@@ -1,202 +1,136 @@
-import { ipcMain, app, dialog, shell, BrowserWindow, Menu, Tray, nativeImage } from "electron";
-import { fileURLToPath } from "node:url";
-import os from "os";
-import path from "path";
-function getDeviceName() {
-  const hostname = os.hostname().replace(/\.local$/, "");
-  const platform = process.platform;
-  if (platform === "darwin") return `${hostname}（Mac）`;
-  if (platform === "win32") return `${hostname}（Windows）`;
-  return hostname;
+import { ipcMain as r, app as c, dialog as T, shell as R, screen as _, BrowserWindow as f, Menu as V, Tray as u, nativeImage as k } from "electron";
+import { fileURLToPath as S } from "node:url";
+import L from "os";
+import a from "path";
+function U() {
+  const n = L.hostname().replace(/\.local$/, ""), e = process.platform;
+  return e === "darwin" ? `${n}（Mac）` : e === "win32" ? `${n}（Windows）` : n;
 }
-ipcMain.handle("get-device-name", () => {
-  return getDeviceName();
-});
-ipcMain.handle("get-auto-launch", () => {
-  return app.getLoginItemSettings().openAtLogin;
-});
-ipcMain.handle("player:get-state", () => {
-  return playerState;
-});
-ipcMain.handle("set-auto-launch", (event, enable) => {
-  app.setLoginItemSettings({
-    openAtLogin: enable,
+r.handle("get-device-name", () => U());
+r.handle("get-auto-launch", () => c.getLoginItemSettings().openAtLogin);
+r.handle("player:get-state", () => s);
+r.handle("set-auto-launch", (n, e) => {
+  c.setLoginItemSettings({
+    openAtLogin: e,
     path: process.execPath
   });
 });
-ipcMain.handle("select-directory", async () => {
-  if (!win) return null;
-  const result = await dialog.showOpenDialog(win, {
+r.handle("select-directory", async () => {
+  if (!t) return null;
+  const n = await T.showOpenDialog(t, {
     properties: ["openDirectory"]
   });
-  if (result.canceled) return null;
-  return result.filePaths[0];
+  return n.canceled ? null : n.filePaths[0];
 });
-ipcMain.handle("open-url", (event, url) => {
-  console.log("Opening URL:", url);
-  return shell.openExternal(url);
-});
-const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-process.env.DIST = path.join(__dirname$1, "../dist");
-process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
-let win = null;
-let lyricWin = null;
-let miniWin = null;
-let trayPrev = null;
-let trayPlay = null;
-let trayNext = null;
-let trayMain = null;
-let playerState = {
-  isPlaying: false,
+r.handle("open-url", (n, e) => (console.log("Opening URL:", e), R.openExternal(e)));
+const w = a.dirname(S(import.meta.url));
+process.env.DIST = a.join(w, "../dist");
+process.env.VITE_PUBLIC = c.isPackaged ? process.env.DIST : a.join(process.env.DIST, "../public");
+let t = null, l = null, o = null, y = null, g = null, d = null, h = null, s = {
+  isPlaying: !1,
   track: null
-};
-let minimizeToTray = true;
-let isQuitting = false;
-function updatePlayerUI(shouldUpdateTitle = true) {
-  const playIcon = playerState.isPlaying ? "pause.png" : "play.png";
-  trayPlay?.setImage(path.join(process.env.VITE_PUBLIC, playIcon));
-  if (process.platform === "darwin" && shouldUpdateTitle) {
-    if (playerState.track) {
-      trayNext?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
-    } else {
-      trayNext?.setTitle("");
-    }
-  }
-  const menuItems = [];
-  if (playerState.track) {
-    menuItems.push(
-      { label: `♫ ${playerState.track.name}`, enabled: false },
-      { label: `   ${playerState.track.artist}`, enabled: false },
-      { type: "separator" },
-      { label: "⏮ 上一曲", click: () => win?.webContents.send("player:prev") },
-      {
-        label: playerState.isPlaying ? "⏸ 暂停" : "▶️ 播放",
-        click: () => win?.webContents.send("player:toggle")
-      },
-      { label: "⏭ 下一曲", click: () => win?.webContents.send("player:next") },
-      { type: "separator" }
-    );
-  }
-  menuItems.push(
-    { label: "打开播放器", click: () => win?.show() },
-    { label: "退出", click: () => app.quit() }
+}, m = !0, v = !1;
+function b(n = !0) {
+  const e = s.isPlaying ? "pause.png" : "play.png";
+  g?.setImage(a.join(process.env.VITE_PUBLIC, e)), process.platform === "darwin" && n && (s.track ? d?.setTitle(`${s.track.name} - ${s.track.artist}`) : d?.setTitle(""));
+  const i = [];
+  s.track && i.push(
+    { label: `♫ ${s.track.name}`, enabled: !1 },
+    { label: `   ${s.track.artist}`, enabled: !1 },
+    { type: "separator" },
+    { label: "⏮ 上一曲", click: () => t?.webContents.send("player:prev") },
+    {
+      label: s.isPlaying ? "⏸ 暂停" : "▶️ 播放",
+      click: () => t?.webContents.send("player:toggle")
+    },
+    { label: "⏭ 下一曲", click: () => t?.webContents.send("player:next") },
+    { type: "separator" }
+  ), i.push(
+    { label: "打开播放器", click: () => t?.show() },
+    { label: "退出", click: () => c.quit() }
   );
-  const menu = Menu.buildFromTemplate(menuItems);
-  trayMain?.setContextMenu(menu);
+  const p = V.buildFromTemplate(i);
+  h?.setContextMenu(p);
 }
-ipcMain.on("player:update", (event, payload) => {
-  playerState = { ...playerState, ...payload };
-  const shouldUpdateTitle = payload.track !== void 0;
-  updatePlayerUI(shouldUpdateTitle);
-  lyricWin?.webContents.send("player:update", payload);
-  miniWin?.webContents.send("player:update", payload);
+r.on("player:update", (n, e) => {
+  s = { ...s, ...e };
+  const i = e.track !== void 0;
+  b(i), l?.webContents.send("player:update", e), o?.webContents.send("player:update", e);
 });
-ipcMain.on("settings:update-minimize-to-tray", (event, value) => {
-  minimizeToTray = value;
+r.on("settings:update-minimize-to-tray", (n, e) => {
+  m = e;
 });
-ipcMain.on("lyric:update", (event, payload) => {
-  const { currentLyric } = payload;
+r.on("lyric:update", (n, e) => {
+  const { currentLyric: i } = e;
   if (process.platform === "darwin") {
-    const displayTitle = currentLyric || (playerState.track ? `${playerState.track.name} - ${playerState.track.artist}` : "");
-    trayNext?.setTitle(displayTitle);
+    const p = i || (s.track ? `${s.track.name} - ${s.track.artist}` : "");
+    d?.setTitle(p);
   }
-  lyricWin?.webContents.send("lyric:update", payload);
-  miniWin?.webContents.send("lyric:update", payload);
+  l?.webContents.send("lyric:update", e), o?.webContents.send("lyric:update", e);
 });
-ipcMain.on("lyric:settings-update", (event, payload) => {
-  lyricWin?.webContents.send("lyric:settings-update", payload);
+r.on("lyric:settings-update", (n, e) => {
+  l?.webContents.send("lyric:settings-update", e);
 });
-ipcMain.on("lyric:open", () => {
-  createLyricWindow();
+r.on("lyric:open", () => {
+  D();
 });
-ipcMain.on("lyric:close", () => {
-  if (lyricWin) {
-    lyricWin.close();
-    lyricWin = null;
-  }
+r.on("lyric:close", () => {
+  l && (l.close(), l = null);
 });
-ipcMain.on("lyric:set-mouse-ignore", (event, ignore) => {
-  lyricWin?.setIgnoreMouseEvents(ignore, { forward: true });
+r.on("lyric:set-mouse-ignore", (n, e) => {
+  l?.setIgnoreMouseEvents(e, { forward: !0 });
 });
-ipcMain.on("player:toggle", () => {
-  console.log("Main process: received player:toggle");
-  if (win) {
-    console.log("Main process: forwarding player:toggle to main window");
-    win.webContents.send("player:toggle");
-  } else {
-    console.warn("Main process: win is null, cannot forward player:toggle");
-  }
+r.on("player:toggle", () => {
+  console.log("Main process: received player:toggle"), t ? (console.log("Main process: forwarding player:toggle to main window"), t.webContents.send("player:toggle")) : console.warn("Main process: win is null, cannot forward player:toggle");
 });
-ipcMain.on("player:next", () => {
-  console.log("Main process: received player:next");
-  win?.webContents.send("player:next");
+r.on("player:next", () => {
+  console.log("Main process: received player:next"), t?.webContents.send("player:next");
 });
-ipcMain.on("player:prev", () => {
-  win?.webContents.send("player:prev");
+r.on("player:prev", () => {
+  t?.webContents.send("player:prev");
 });
-ipcMain.on("player:seek", (event, time) => {
-  win?.webContents.send("player:seek", time);
+r.on("player:seek", (n, e) => {
+  t?.webContents.send("player:seek", e);
 });
-ipcMain.on("window:set-mini", () => {
-  if (win) {
-    win.hide();
-    createMiniPlayerWindow();
-  }
+r.on("window:set-mini", () => {
+  t && (t.hide(), C());
 });
-ipcMain.on("window:restore-main", () => {
-  if (miniWin) {
-    miniWin.close();
-    miniWin = null;
-  }
-  if (win) {
-    win.show();
-    win.center();
-  }
+r.on("window:restore-main", () => {
+  o && (o.close(), o = null), t && (t.show(), t.center());
 });
-ipcMain.on("window:set-always-on-top", (event, enable) => {
-  if (miniWin) {
-    miniWin.setAlwaysOnTop(enable, "floating");
-  }
+r.on("window:set-always-on-top", (n, e) => {
+  o && o.setAlwaysOnTop(e, "floating");
 });
-function createMiniPlayerWindow() {
-  if (miniWin) {
-    miniWin.show();
+function C() {
+  if (o) {
+    o.show();
     return;
   }
-  miniWin = new BrowserWindow({
+  o = new f({
     width: 360,
     height: 170,
-    frame: false,
+    frame: !1,
     titleBarStyle: "hidden",
-    resizable: false,
-    alwaysOnTop: true,
+    resizable: !1,
+    alwaysOnTop: !0,
     // Start always on top
-    skipTaskbar: true,
-    hasShadow: false,
-    transparent: true,
+    skipTaskbar: !0,
+    hasShadow: !1,
+    transparent: !0,
     webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      preload: path.join(__dirname$1, "preload.mjs")
+      contextIsolation: !0,
+      nodeIntegration: !1,
+      preload: a.join(w, "preload.mjs")
     }
   });
-  const miniUrl = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/mini` : `file://${path.join(process.env.DIST, "index.html")}#/mini`;
-  if (process.env.VITE_DEV_SERVER_URL) {
-    miniWin.loadURL(miniUrl);
-  } else {
-    miniWin.loadURL(miniUrl);
-  }
-  if (process.platform === "darwin") {
-    miniWin.setAlwaysOnTop(true, "floating");
-    miniWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  }
-  miniWin.on("closed", () => {
-    miniWin = null;
+  const n = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/mini` : `file://${a.join(process.env.DIST, "index.html")}#/mini`;
+  process.env.VITE_DEV_SERVER_URL, o.loadURL(n), process.platform === "darwin" && (o.setAlwaysOnTop(!0, "floating"), o.setVisibleOnAllWorkspaces(!0, { visibleOnFullScreen: !0 })), o.on("closed", () => {
+    o = null;
   });
 }
-function createWindow() {
-  win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, "logo.png"),
+function E() {
+  t = new f({
+    icon: a.join(process.env.VITE_PUBLIC, "logo.png"),
     titleBarStyle: "hidden",
     titleBarOverlay: {
       color: "rgba(0,0,0,0)",
@@ -216,86 +150,60 @@ function createWindow() {
     vibrancy: "popover",
     visualEffectState: "active",
     webPreferences: {
-      contextIsolation: true,
+      contextIsolation: !0,
       // 明确开启
-      nodeIntegration: false,
+      nodeIntegration: !1,
       // 保持安全
-      preload: path.join(__dirname$1, "preload.mjs")
+      preload: a.join(w, "preload.mjs")
     }
-  });
-  win.on("close", (event) => {
-    if (!isQuitting && minimizeToTray) {
-      event.preventDefault();
-      win?.hide();
-    }
-    return false;
-  });
-  if (process.env.VITE_DEV_SERVER_URL) {
-    win.loadURL(process.env.VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(process.env.DIST, "index.html"));
-  }
+  }), t.on("close", (n) => (!v && m && (n.preventDefault(), t?.hide()), !1)), process.env.VITE_DEV_SERVER_URL ? t.loadURL(process.env.VITE_DEV_SERVER_URL) : t.loadFile(a.join(process.env.DIST, "index.html"));
 }
-function createLyricWindow() {
-  if (lyricWin) return;
-  lyricWin = new BrowserWindow({
-    width: 800,
-    height: 120,
-    frame: false,
-    transparent: true,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    resizable: true,
-    hasShadow: false,
-    hiddenInMissionControl: true,
+function D() {
+  if (l) return;
+  const { width: n, height: e } = _.getPrimaryDisplay().workAreaSize, i = 800, p = 120;
+  l = new f({
+    width: i,
+    height: p,
+    x: Math.floor((n - i) / 2),
+    y: e - p - 50,
+    frame: !1,
+    transparent: !0,
+    alwaysOnTop: !0,
+    skipTaskbar: !0,
+    resizable: !0,
+    hasShadow: !1,
+    hiddenInMissionControl: !0,
     // Prevent Mission Control interference
     webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      preload: path.join(__dirname$1, "preload.mjs")
+      contextIsolation: !0,
+      nodeIntegration: !1,
+      preload: a.join(w, "preload.mjs")
     }
   });
-  const lyricUrl = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/lyric` : `${path.join(process.env.DIST, "index.html")}#/lyric`;
-  if (process.env.VITE_DEV_SERVER_URL) {
-    lyricWin.loadURL(lyricUrl);
-  } else {
-    lyricWin.loadURL(`file://${path.join(process.env.DIST, "index.html")}#/lyric`);
-  }
-  if (process.platform === "darwin") {
-    lyricWin.setAlwaysOnTop(true, "screen-saver");
-    lyricWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  }
-  lyricWin.on("closed", () => {
-    lyricWin = null;
+  const I = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/lyric` : `${a.join(process.env.DIST, "index.html")}#/lyric`;
+  process.env.VITE_DEV_SERVER_URL ? l.loadURL(I) : l.loadURL(`file://${a.join(process.env.DIST, "index.html")}#/lyric`), process.platform === "darwin" && (l.setAlwaysOnTop(!0, "screen-saver"), l.setVisibleOnAllWorkspaces(!0, { visibleOnFullScreen: !0 })), l.on("closed", () => {
+    l = null;
   });
 }
-function createTray() {
-  const img = (name, size = 20) => nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC, name)).resize({ width: size, height: size });
-  trayNext = new Tray(img("next.png"));
-  trayPlay = new Tray(img("play.png"));
-  trayPrev = new Tray(img("previous.png"));
-  trayMain = new Tray(img("mini_logo.png"));
-  trayNext.on("click", () => {
-    win?.webContents.send("player:next");
-  });
-  trayPlay.on("click", () => {
-    win?.webContents.send("player:toggle");
-  });
-  trayPrev.on("click", () => {
-    win?.webContents.send("player:prev");
-  });
-  updatePlayerUI();
+function P() {
+  const n = (e, i = 20) => k.createFromPath(a.join(process.env.VITE_PUBLIC, e)).resize({ width: i, height: i });
+  d = new u(n("next.png")), g = new u(n("play.png")), y = new u(n("previous.png")), h = new u(n("mini_logo.png")), d.on("click", () => {
+    t?.webContents.send("player:next");
+  }), g.on("click", () => {
+    t?.webContents.send("player:toggle");
+  }), y.on("click", () => {
+    t?.webContents.send("player:prev");
+  }), b();
 }
-app.on("before-quit", () => {
-  isQuitting = true;
+c.on("before-quit", () => {
+  v = !0;
 });
-app.whenReady().then(() => {
-  createWindow();
-  createTray();
+c.whenReady().then(() => {
+  E(), P();
 });
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+c.on("window-all-closed", () => {
+  process.platform !== "darwin" && c.quit();
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+c.on("activate", () => {
+  f.getAllWindows().length === 0 && E();
 });

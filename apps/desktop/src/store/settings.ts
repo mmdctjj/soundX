@@ -43,7 +43,7 @@ export const useSettingsStore = create<SettingsState>()(
         acceptSync: true,
       },
       desktopLyric: {
-        enable: true,
+        enable: false,
         lockPosition: false,
         fontSize: 28,
         fontColor: '#ffffff',

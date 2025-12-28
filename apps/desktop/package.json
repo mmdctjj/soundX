@@ -17,6 +17,7 @@
     "build:win": "cross-env VITE_PLATFORM=win tsc -b && vite build && electron-builder --win --x64",
     "build:win:arm64": "cross-env VITE_PLATFORM=win tsc -b && vite build && electron-builder --win --arm64",
     "build:mac": "cross-env VITE_PLATFORM=mac tsc -b && vite build && electron-builder --mac",
+    "build:linux": "cross-env VITE_PLATFORM=linux tsc -b && vite build && electron-builder --linux",
     "build:web": "cross-env VITE_PLATFORM=web tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -103,6 +104,14 @@
         }
       ],
       "category": "public.app-category.music"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Audio",
+      "icon": "public/logo.icns"
     },
     "dmg": {
       "contents": [
