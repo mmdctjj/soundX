@@ -26,6 +26,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v3
@@ -48,8 +50,6 @@ jobs:
           pnpm --filter @soundx/db run generate
 
       - name: Build Electron App
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: pnpm --filter sound-x run ${{ matrix.command }}
 
       - name: Upload Release Assets
@@ -64,6 +64,7 @@ jobs:
             apps/desktop/release/*.deb
             apps/desktop/release/*.blockmap
             apps/desktop/release/latest*.yml
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
