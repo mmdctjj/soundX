@@ -50,7 +50,9 @@ jobs:
           pnpm --filter @soundx/db run generate
 
       - name: Build Electron App
-        run: pnpm --filter sound-x run ${{ matrix.command }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: pnpm --filter sound-x run ${{ matrix.command }} -- --publish never
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
