@@ -67,8 +67,15 @@ instance.interceptors.response.use(
   },
   (error: AxiosError) => {
     const status = error.response?.status ?? 0;
-    const msg = messageContent[status] || error.message;
-    console.warn(`API Error: ${msg}`);
+    const isNetworkError = !error.response || status === 0;
+    const msg = isNetworkError ? "Connection lost or server unreachable" : (messageContent[status] || error.message);
+    
+    if (isNetworkError) {
+      console.warn(`[Network] ${error.config?.method?.toUpperCase()} ${error.config?.url} failed. BaseURL: ${error.config?.baseURL}`);
+    } else {
+      console.warn(`API Error (${status}): ${msg}`);
+    }
+    
     return Promise.reject(error);
   }
 );

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+    Alert,
     ScrollView,
     StyleSheet,
     Switch,
@@ -13,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/context/AuthContext";
 import { useSettings } from "../src/context/SettingsContext";
 import { useTheme } from "../src/context/ThemeContext";
+import { clearCache } from "../src/services/cache";
 import { usePlayMode } from "../src/utils/playMode";
 
 export default function SettingsScreen() {
@@ -21,7 +23,7 @@ export default function SettingsScreen() {
   const { colors, theme, toggleTheme } = useTheme();
   const { mode, setMode } = usePlayMode();
   const { logout } = useAuth();
-  const { acceptRelay, acceptSync, updateSetting } = useSettings();
+  const { acceptRelay, acceptSync, cacheEnabled, updateSetting } = useSettings();
 
   const renderSettingRow = (
     label: string,
@@ -86,6 +88,38 @@ export default function SettingsScreen() {
             acceptSync,
             (val) => updateSetting("acceptSync", val)
           )}
+
+          {renderSettingRow(
+            "边听边存",
+            "播放时自动缓存到本地，下次播放优先使用本地文件",
+            cacheEnabled,
+            (val) => updateSetting("cacheEnabled", val)
+          )}
+
+          <TouchableOpacity 
+            style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            onPress={() => {
+              Alert.alert(
+                "清除缓存",
+                "确定要清除所有本地音频缓存吗？",
+                [
+                  { text: "取消", style: "cancel" },
+                  { text: "确定", onPress: async () => {
+                    await clearCache();
+                    Alert.alert("已清除", "本地缓存已清空");
+                  }}
+                ]
+              );
+            }}
+          >
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>清除缓存</Text>
+              <Text style={[styles.settingDescription, { color: colors.secondary }]}>
+                释放本地存储空间
+              </Text>
+            </View>
+            <Ionicons name="trash-outline" size={20} color={colors.secondary} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>

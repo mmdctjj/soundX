@@ -9,17 +9,17 @@ import { Slider } from "@miblanchard/react-native-slider";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    Animated,
+    Dimensions,
+    FlatList,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlayerMoreModal } from "../src/components/PlayerMoreModal";
@@ -86,6 +86,8 @@ export default function PlayerScreen() {
     handleDisconnect,
     setShowPlaylist,
     isLoading,
+    playbackRate,
+    setPlaybackRate,
   } = usePlayer();
   const [syncModalVisible, setSyncModalVisible] = useState(false);
   const [moreModalVisible, setMoreModalVisible] = useState(false);
@@ -279,6 +281,16 @@ export default function PlayerScreen() {
     }
   };
 
+  const togglePlaybackRate = () => {
+    const rates = [0.5, 1, 1.5, 2];
+    const currentIndex = rates.indexOf(playbackRate);
+    const nextRate = rates[(currentIndex + 1) % rates.length];
+    setPlaybackRate(nextRate);
+  };
+
+  const skipForward = () => seekTo(position + 15);
+  const skipBackward = () => seekTo(Math.max(0, position - 15));
+
   if (!currentTrack) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -418,6 +430,12 @@ export default function PlayerScreen() {
             <Ionicons name="play-skip-back" size={35} color={colors.text} />
           </TouchableOpacity>
 
+          {currentTrack.type === TrackType.AUDIOBOOK && (
+            <TouchableOpacity onPress={skipBackward}>
+              <MaterialCommunityIcons name="rewind-15" size={30} color={colors.text} />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             onPress={togglePlayback}
             style={[styles.playButton, { backgroundColor: colors.text }]}
@@ -430,14 +448,26 @@ export default function PlayerScreen() {
             />
           </TouchableOpacity>
 
+          {currentTrack.type === TrackType.AUDIOBOOK && (
+            <TouchableOpacity onPress={skipForward}>
+              <MaterialCommunityIcons name="fast-forward-15" size={30} color={colors.text} />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity onPress={playNext}>
             <Ionicons name="play-skip-forward" size={35} color={colors.text} />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={() => setShowPlaylist(true)}>
-          <Ionicons name="list" size={24} color={colors.secondary} />
-        </TouchableOpacity>
+        {currentTrack.type === TrackType.AUDIOBOOK ? (
+          <TouchableOpacity onPress={togglePlaybackRate} style={styles.rateButton}>
+            <Text style={[styles.rateText, { color: colors.secondary }]}>{playbackRate}x</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={() => setShowPlaylist(true)}>
+            <Ionicons name="list" size={24} color={colors.secondary} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -800,6 +830,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "flex-start",
     marginRight: 10,
+  },
+  rateButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    minWidth: 45,
+    alignItems: 'center',
+  },
+  rateText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   likeButton: {
     padding: 0,

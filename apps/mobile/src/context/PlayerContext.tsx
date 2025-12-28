@@ -13,6 +13,7 @@ import TrackPlayer, {
 import { getBaseURL } from "../https";
 import { Track, TrackType } from "../models";
 import { addAlbumToHistory } from "../services/album";
+import { downloadTrack, isCached } from "../services/cache";
 import { socketService } from "../services/socket";
 import { addToHistory, getLatestHistory } from "../services/user";
 import { reportAudiobookProgress } from "../services/userAudiobookHistory";
@@ -54,6 +55,8 @@ interface PlayerContextType {
   sleepTimer: number | null;
   setSleepTimer: (minutes: number) => void;
   clearSleepTimer: () => void;
+  playbackRate: number;
+  setPlaybackRate: (rate: number) => Promise<void>;
 }
 
 const PlayerContext = createContext<PlayerContextType>({
@@ -80,6 +83,8 @@ const PlayerContext = createContext<PlayerContextType>({
   sleepTimer: null,
   setSleepTimer: () => {},
   clearSleepTimer: () => {},
+  playbackRate: 1,
+  setPlaybackRate: async () => {},
 });
 
 export const usePlayer = () => useContext(PlayerContext);
@@ -90,7 +95,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const { user, device } = useAuth();
   const { mode } = usePlayMode();
   const { showNotification } = useNotification();
-  const { acceptRelay } = useSettings();
+  const { acceptRelay, cacheEnabled } = useSettings();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [trackList, setTrackList] = useState<Track[]>([]);
@@ -99,6 +104,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isSetup, setIsSetup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
+  const [playbackRate, setPlaybackRateState] = useState(1);
 
   const prevModeRef = useRef(mode);
   const isInitialLoadRef = useRef(true);
@@ -111,6 +117,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const trackListRef = React.useRef(trackList);
   const currentTrackRef = React.useRef(currentTrack);
   const positionRef = React.useRef(position);
+  const playbackRateRef = React.useRef(playbackRate);
 
   useEffect(() => {
     playModeRef.current = playMode;
@@ -127,6 +134,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     positionRef.current = position;
   }, [position]);
+  
+  useEffect(() => {
+    playbackRateRef.current = playbackRate;
+  }, [playbackRate]);
 
   // Setup Player
   useEffect(() => {
@@ -144,6 +155,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
             Capability.SkipToPrevious,
             Capability.Stop,
             Capability.SeekTo,
+            Capability.JumpForward,
+            Capability.JumpBackward,
           ],
           compactCapabilities: [
             Capability.Play, 
@@ -159,6 +172,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           await TrackPlayer.updateOptions({
             iosCategory: 'playback',
             iosCategoryMode: 'default',
+            iosCategoryOptions: [
+              'allowBluetooth',
+              'allowBluetoothA2DP',
+              'allowAirPlay',
+              'duckOthers', // Added to help keep the session active
+            ],
+            // Ensure the notification stays synced with the app state
+            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.PausePlayback,
           } as any);
         }
         setIsSetup(true);
@@ -274,6 +295,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       trackList: trackListRef.current,
       position: positionRef.current,
       playMode: playModeRef.current,
+      playbackRate: playbackRateRef.current,
     };
     try {
       await AsyncStorage.setItem(`playbackState_${targetMode}`, JSON.stringify(state));
@@ -290,6 +312,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         const state = JSON.parse(saved);
         setTrackList(state.trackList);
         setPlayMode(state.playMode);
+        if (state.playbackRate) {
+          setPlaybackRateState(state.playbackRate);
+        }
         if (state.currentTrack) {
           const track = state.currentTrack;
           const uri = track.path.startsWith("http")
@@ -361,10 +386,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       
       const artwork = track.cover ? (track.cover.startsWith("http") ? track.cover : `${getBaseURL()}${track.cover}`) : undefined;
       console.log("Playing track:", track);
+      
+      let playUri = uri;
+      
+      if (cacheEnabled && track.id) {
+        const localPath = await isCached(track.id, track.path);
+        if (localPath) {
+          console.log("Playing from cache:", localPath);
+          playUri = localPath;
+        } else {
+          console.log("Not cached, starting background download");
+          // Don't wait for download, just start it
+          downloadTrack(track.id, uri).catch(e => console.error("Cache download failed", e));
+        }
+      }
+
       await TrackPlayer.reset();
       await TrackPlayer.add({
         id: String(track.id),
-        url: uri,
+        url: playUri,
         title: track.name,
         artist: track.artist,
         artwork: artwork,
@@ -435,6 +475,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const setPlaybackRate = async (rate: number) => {
+    if (isSetup) {
+      try {
+        await TrackPlayer.setRate(rate);
+        setPlaybackRateState(rate);
+        savePlaybackState(mode);
+      } catch (error) {
+        console.error("Failed to set playback rate:", error);
+      }
+    }
+  };
+
   const handleDisconnect = () => {
     Alert.alert(
       "结束同步播放",
@@ -464,25 +516,30 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       const deviceName = Device.modelName || "Mobile Device";
       const deviceId = device?.id;
       
-      await addToHistory(
-        currentTrackRef.current.id, 
-        user.id, 
-        Math.floor(positionRef.current), 
-        deviceName, 
-        deviceId, 
-        isSynced
-      );
+      try {
+        await addToHistory(
+          currentTrackRef.current.id, 
+          user.id, 
+          Math.floor(positionRef.current), 
+          deviceName, 
+          deviceId, 
+          isSynced
+        );
 
-      if (currentTrackRef.current.albumId) {
-        await addAlbumToHistory(currentTrackRef.current.albumId, user.id);
-      }
+        if (currentTrackRef.current.albumId) {
+          await addAlbumToHistory(currentTrackRef.current.albumId, user.id);
+        }
 
-      if (currentTrackRef.current.type === TrackType.AUDIOBOOK) {
-        await reportAudiobookProgress({
-          userId: user.id,
-          trackId: currentTrackRef.current.id,
-          progress: Math.floor(positionRef.current),
-        });
+        if (currentTrackRef.current.type === TrackType.AUDIOBOOK) {
+          await reportAudiobookProgress({
+            userId: user.id,
+            trackId: currentTrackRef.current.id,
+            progress: Math.floor(positionRef.current),
+          });
+        }
+      } catch (e) {
+        // Silence background network errors for history recording
+        console.log("Background history sync skipped due to network/transient error");
       }
     }
   };
@@ -736,6 +793,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         sleepTimer,
         setSleepTimer,
         clearSleepTimer,
+        playbackRate,
+        setPlaybackRate,
       }}
     >
       {children}

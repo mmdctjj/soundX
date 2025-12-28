@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 interface SettingsState {
   acceptRelay: boolean;
   acceptSync: boolean;
+  cacheEnabled: boolean;
 }
 
 interface SettingsContextType extends SettingsState {
@@ -17,6 +18,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [settings, setSettings] = useState<SettingsState>({
     acceptRelay: true,
     acceptSync: true,
+    cacheEnabled: false,
   });
   const [isLoading, setIsLoading] = useState(true);
 

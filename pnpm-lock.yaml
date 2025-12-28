@@ -160,6 +160,9 @@ importers:
       expo-device:
         specifier: ~8.0.10
         version: 8.0.10(expo@54.0.27)
+      expo-file-system:
+        specifier: ^19.0.21
+        version: 19.0.21(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))
       expo-font:
         specifier: ~14.0.10
         version: 14.0.10(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -5269,8 +5272,8 @@ packages:
     peerDependencies:
       expo: '*'
 
-  expo-file-system@19.0.20:
-    resolution: {integrity: sha512-Jr/nNvJmUlptS3cHLKVBNyTyGMHNyxYBKRph1KRe0Nb3RzZza1gZLZXMG5Ky//sO2azTn+OaT0dv/lAyL0vJNA==}
+  expo-file-system@19.0.21:
+    resolution: {integrity: sha512-s3DlrDdiscBHtab/6W1osrjGL+C2bvoInPJD7sOwmxfJ5Woynv2oc+Fz1/xVXaE/V7HE/+xrHC/H45tu6lZzzg==}
     peerDependencies:
       expo: '*'
       react-native: '*'
@@ -16163,7 +16166,7 @@ snapshots:
       expo: 54.0.27(@babel/core@7.28.5)(@expo/metro-runtime@6.1.2)(expo-router@6.0.17)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       ua-parser-js: 0.7.41
 
-  expo-file-system@19.0.20(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)):
+  expo-file-system@19.0.21(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)):
     dependencies:
       expo: 54.0.27(@babel/core@7.28.5)(@expo/metro-runtime@6.1.2)(expo-router@6.0.17)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native: 0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)
@@ -16311,7 +16314,7 @@ snapshots:
       babel-preset-expo: 54.0.8(@babel/core@7.28.5)(@babel/runtime@7.27.1)(expo@54.0.27)(react-refresh@0.14.2)
       expo-asset: 12.0.11(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       expo-constants: 18.0.11(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))
-      expo-file-system: 19.0.20(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))
+      expo-file-system: 19.0.21(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))
       expo-font: 14.0.10(expo@54.0.27)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       expo-keep-awake: 15.0.8(expo@54.0.27)(react@19.1.0)
       expo-modules-autolinking: 3.0.23
