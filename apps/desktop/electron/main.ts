@@ -144,8 +144,8 @@ ipcMain.on("lyric:settings-update", (event, payload) => {
   lyricWin?.webContents.send("lyric:settings-update", payload);
 });
 
-ipcMain.on("lyric:open", () => {
-  createLyricWindow();
+ipcMain.on("lyric:open", (event, settings) => {
+  createLyricWindow(settings);
 });
 
 ipcMain.on("lyric:close", () => {
@@ -199,6 +199,16 @@ ipcMain.on("window:restore-main", () => {
   if (win) {
     win.show();
     win.center();
+  }
+});
+
+ipcMain.on("app:show-main", () => {
+  if (win) {
+    if (win.isVisible()) {
+      win.focus();
+    } else {
+      win.show();
+    }
   }
 });
 
@@ -292,18 +302,21 @@ function createWindow() {
   }
 }
 
-function createLyricWindow() {
+function createLyricWindow(settings?: any) {
   if (lyricWin) return;
 
   const { width: screenWidth, height: screenHeight } = electronScreen.getPrimaryDisplay().workAreaSize;
   const winWidth = 800;
   const winHeight = 120;
 
+  const x = settings?.x !== undefined ? settings.x : Math.floor((screenWidth - winWidth) / 2);
+  const y = settings?.y !== undefined ? settings.y : screenHeight - winHeight - 50;
+
   lyricWin = new BrowserWindow({
     width: winWidth,
     height: winHeight,
-    x: Math.floor((screenWidth - winWidth) / 2),
-    y: screenHeight - winHeight - 50,
+    x,
+    y,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -333,6 +346,18 @@ function createLyricWindow() {
     lyricWin.setAlwaysOnTop(true, "screen-saver");
     lyricWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
+
+  // Persist position on move
+  let moveTimeout: NodeJS.Timeout | null = null;
+  lyricWin.on("move", () => {
+     if (moveTimeout) clearTimeout(moveTimeout);
+     moveTimeout = setTimeout(() => {
+        if (lyricWin && win) {
+           const [newX, newY] = lyricWin.getPosition();
+           win.webContents.send("lyric:position-updated", { x: newX, y: newY });
+        }
+     }, 500);
+  });
 
   lyricWin.on("closed", () => {
     lyricWin = null;

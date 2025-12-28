@@ -106,8 +106,8 @@ ipcMain.on("lyric:update", (event, payload) => {
 ipcMain.on("lyric:settings-update", (event, payload) => {
   lyricWin?.webContents.send("lyric:settings-update", payload);
 });
-ipcMain.on("lyric:open", () => {
-  createLyricWindow();
+ipcMain.on("lyric:open", (event, settings) => {
+  createLyricWindow(settings);
 });
 ipcMain.on("lyric:close", () => {
   if (lyricWin) {
@@ -151,6 +151,15 @@ ipcMain.on("window:restore-main", () => {
   if (win) {
     win.show();
     win.center();
+  }
+});
+ipcMain.on("app:show-main", () => {
+  if (win) {
+    if (win.isVisible()) {
+      win.focus();
+    } else {
+      win.show();
+    }
   }
 });
 ipcMain.on("window:set-always-on-top", (event, enable) => {
@@ -236,16 +245,18 @@ function createWindow() {
     win.loadURL("app://./index.html");
   }
 }
-function createLyricWindow() {
+function createLyricWindow(settings) {
   if (lyricWin) return;
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
   const winWidth = 800;
   const winHeight = 120;
+  const x = settings?.x !== void 0 ? settings.x : Math.floor((screenWidth - winWidth) / 2);
+  const y = settings?.y !== void 0 ? settings.y : screenHeight - winHeight - 50;
   lyricWin = new BrowserWindow({
     width: winWidth,
     height: winHeight,
-    x: Math.floor((screenWidth - winWidth) / 2),
-    y: screenHeight - winHeight - 50,
+    x,
+    y,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -270,6 +281,16 @@ function createLyricWindow() {
     lyricWin.setAlwaysOnTop(true, "screen-saver");
     lyricWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
+  let moveTimeout = null;
+  lyricWin.on("move", () => {
+    if (moveTimeout) clearTimeout(moveTimeout);
+    moveTimeout = setTimeout(() => {
+      if (lyricWin && win) {
+        const [newX, newY] = lyricWin.getPosition();
+        win.webContents.send("lyric:position-updated", { x: newX, y: newY });
+      }
+    }, 500);
+  });
   lyricWin.on("closed", () => {
     lyricWin = null;
   });

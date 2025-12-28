@@ -141,6 +141,27 @@ const Settings: React.FC = () => {
             </div>
         </div>
         <div className={styles.settingItem}>
+            <div className={styles.label}>字体粗细</div>
+            <div className={styles.control}>
+                <Select
+                    value={desktopLyric.fontWeight}
+                    onChange={(val) => updateDesktopLyric('fontWeight', val)}
+                    options={[
+                        { label: "更细 (100)", value: 100 },
+                        { label: "细 (200)", value: 200 },
+                        { label: "较细 (300)", value: 300 },
+                        { label: "常规 (400)", value: 400 },
+                        { label: "中等 (500)", value: 500 },
+                        { label: "较粗 (600)", value: 600 },
+                        { label: "粗 (700)", value: 700 },
+                        { label: "很粗 (800)", value: 800 },
+                        { label: "黑体 (900)", value: 900 }
+                    ]}
+                    className={styles.selectSmall}
+                />
+            </div>
+        </div>
+        <div className={styles.settingItem}>
             <div className={styles.label}>字体颜色</div>
             <div className={styles.control}>
                 <ColorPicker

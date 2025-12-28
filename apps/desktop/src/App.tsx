@@ -53,6 +53,16 @@ const AppContent = () => {
     if ((window as any).ipcRenderer) {
       (window as any).ipcRenderer.invoke('set-auto-launch', autoLaunch);
       (window as any).ipcRenderer.send('settings:update-minimize-to-tray', minimizeToTray);
+
+      const handlePositionUpdate = (_event: any, pos: { x: number; y: number }) => {
+        useSettingsStore.getState().updateDesktopLyric('x', pos.x);
+        useSettingsStore.getState().updateDesktopLyric('y', pos.y);
+      };
+
+      (window as any).ipcRenderer.on('lyric:position-updated', handlePositionUpdate);
+      return () => {
+        (window as any).ipcRenderer.off('lyric:position-updated', handlePositionUpdate);
+      };
     }
   }, []);
 

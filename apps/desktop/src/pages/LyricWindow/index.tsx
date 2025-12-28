@@ -1,8 +1,10 @@
 import {
-  PauseCircleFilled,
-  PlayCircleFilled,
-  StepBackwardOutlined,
-  StepForwardOutlined
+    DragOutlined,
+    ExportOutlined,
+    PauseCircleFilled,
+    PlayCircleFilled,
+    StepBackwardOutlined,
+    StepForwardOutlined
 } from "@ant-design/icons";
 import { Button, Space } from "antd";
 import React, { useEffect, useState } from "react";
@@ -87,6 +89,7 @@ const LyricWindow: React.FC = () => {
           className={styles.lyricText} 
           style={{
             fontSize: `${config.fontSize}px`,
+            fontWeight: config.fontWeight,
             textShadow: config.shadow ? "0 2px 4px rgba(0,0,0,0.5)" : "none"
           }}
         >
@@ -96,6 +99,12 @@ const LyricWindow: React.FC = () => {
 
       <div className={styles.controls}>
         <Space size="large">
+          <Button 
+            type="text" 
+            icon={<DragOutlined />} 
+            className={`${styles.controlBtn} ${styles.dragBtn}`}
+            title="拖动"
+          />
           <Button 
             type="text" 
             icon={<StepBackwardOutlined />} 
@@ -114,6 +123,13 @@ const LyricWindow: React.FC = () => {
             icon={<StepForwardOutlined />} 
             onClick={next} 
             className={styles.controlBtn}
+          />
+          <Button 
+            type="text" 
+            icon={<ExportOutlined />} 
+            onClick={() => window.ipcRenderer?.send("app:show-main")} 
+            className={styles.controlBtn}
+            title="打开播放器"
           />
         </Space>
       </div>

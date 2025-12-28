@@ -19,6 +19,9 @@ export interface SettingsState {
     strokeColor: string;
     shadow: boolean;
     alwaysOnTop: boolean;
+    fontWeight: number;
+    x?: number;
+    y?: number;
   };
   download: {
     downloadPath: string;
@@ -33,7 +36,7 @@ export interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       general: {
         autoLaunch: false,
         minimizeToTray: true,
@@ -51,6 +54,7 @@ export const useSettingsStore = create<SettingsState>()(
         strokeColor: '#000000',
         shadow: true,
         alwaysOnTop: true,
+        fontWeight: 500,
       },
       download: {
         downloadPath: '~/Music/Downloads',
@@ -80,7 +84,7 @@ export const useSettingsStore = create<SettingsState>()(
         if ((window as any).ipcRenderer) {
           if (key === "enable") {
             if (value) {
-              (window as any).ipcRenderer.send("lyric:open");
+              (window as any).ipcRenderer.send("lyric:open", get().desktopLyric);
             } else {
               (window as any).ipcRenderer.send("lyric:close");
             }

@@ -125,3 +125,32 @@
     }
   }
 }
+
+
+// Table Styles override
+:global {
+  .episode-row:hover td {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  .ant-table {
+    background: transparent !important;
+  }
+  .ant-table-thead > tr > th {
+    background: transparent !important;
+    color: inherit !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+
+    // Hide or match the column separator color
+    &::before {
+      background-color: currentColor !important;
+      opacity: 1;
+    }
+  }
+  .ant-table-tbody > tr > td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: transparent !important;
+  }
+}
