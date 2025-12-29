@@ -403,6 +403,20 @@ app.on('before-quit', () => {
   isQuitting = true;
 });
 
+// 必须放在 app.whenReady() 之前！
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,          // ← 关键！开启 localStorage、cookie 等
+      secure: true,            // 推荐开启
+      supportFetchAPI: true,   // 推荐开启，尤其是用 fetch 的项目
+      bypassCSP: false         // 通常 false 更安全，除非你真的需要
+      // corsEnabled: true     // 如果有跨域需求再开
+    }
+  }
+])
+
 app.whenReady().then(() => {
   // Register custom protocol for stable localStorage origin
   protocol.handle('app', (request) => {
