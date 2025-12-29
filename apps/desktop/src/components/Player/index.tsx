@@ -46,6 +46,7 @@ import {
   type Playlist,
 } from "../../services/playlist";
 import { socketService } from "../../services/socket";
+import { deleteTrack } from "../../services/track";
 import { addToHistory, getLatestHistory } from "../../services/user"; // Added
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
@@ -81,6 +82,7 @@ const Player: React.FC = () => {
     setDuration,
     toggleLike,
     syncActiveMode,
+    removeTrack,
   } = usePlayerStore();
   const { mode: appMode } = usePlayMode();
   const { updateDesktopLyric } = useSettingsStore();
@@ -723,7 +725,7 @@ const Player: React.FC = () => {
     const parsed: { time: number; text: string }[] = [];
     const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g;
 
-    lines.forEach((line) => {
+    lines.forEach((line: string) => {
       const matches = [...line.matchAll(timeRegex)];
       if (matches.length > 0) {
         const text = line.replace(timeRegex, "").trim();
@@ -888,6 +890,30 @@ const Player: React.FC = () => {
       message.error("添加失败");
     }
   };
+
+
+    const handleDeleteSubTrack = async (track: Track) => {
+      modalApi.confirm({
+        title: "确定删除该音频文件吗?",
+        content: "删除后将无法恢复，且会同步删除本地原文件。",
+        okText: "删除",
+        okType: "danger",
+        cancelText: "取消",
+        onOk: async () => {
+          try {
+            const res = await deleteTrack(track.id);
+            if (res.code === 200) {
+              message.success("删除成功");
+              removeTrack(track.id);
+            } else {
+              message.error("删除失败");
+            }
+          } catch (error) {
+            message.error("删除失败");
+          }
+        },
+      });
+    };
 
   const renderPlayOrderButton = () => (
     <Popover
@@ -1597,6 +1623,7 @@ const Player: React.FC = () => {
                   onPlay={handlePlay}
                   onAddToPlaylist={openAddToPlaylistModal}
                   onToggleLike={(_, track, type) => toggleLike(track.id, type)}
+                  onDelete={handleDeleteSubTrack}
                 />
               </div>
             ) : (
@@ -1626,6 +1653,7 @@ const Player: React.FC = () => {
           onPlay={handlePlay}
           onAddToPlaylist={openAddToPlaylistModal}
           onToggleLike={(_, track, type) => toggleLike(track.id, type)}
+          onDelete={handleDeleteSubTrack}
         />
       </Drawer>
 

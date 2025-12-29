@@ -1,6 +1,7 @@
 import {
   CaretRightOutlined,
   CloudDownloadOutlined,
+  DeleteOutlined,
   HeartFilled,
   HeartOutlined,
   MoreOutlined,
@@ -39,6 +40,7 @@ import {
   getPlaylists,
   type Playlist,
 } from "../../services/playlist";
+import { deleteTrack } from "../../services/track";
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
@@ -74,7 +76,9 @@ const Detail: React.FC = () => {
 
   const { token } = theme.useToken();
 
-  const { play, setPlaylist, currentTrack, toggleLike, pause, isPlaying } =
+  const [modalApi, contextHolder] = Modal.useModal();
+
+  const { play, setPlaylist, currentTrack, toggleLike, pause, isPlaying, removeTrack } =
     usePlayerStore();
 
   const { mode } = usePlayMode();
@@ -238,6 +242,30 @@ const Detail: React.FC = () => {
     }
   };
 
+  const handleDeleteSubTrack = async (track: Track) => {
+    modalApi.confirm({
+      title: "确定删除该音频文件吗?",
+      content: "删除后将无法恢复，且会同步删除本地原文件。",
+      okText: "删除",
+      okType: "danger",
+      cancelText: "取消",
+      onOk: async () => {
+        try {
+          const res = await deleteTrack(track.id);
+          if (res.code === 200) {
+            message.success("删除成功");
+            setTracks((prev) => prev.filter((t) => t.id !== track.id));
+            removeTrack(track.id);
+          } else {
+            message.error("删除失败");
+          }
+        } catch (error) {
+          message.error("删除失败");
+        }
+      },
+    });
+  };
+
   const columns: ColumnProps<Track>[] = [
     {
       title: "#",
@@ -385,6 +413,16 @@ const Detail: React.FC = () => {
               openAddToPlaylistModal(info.domEvent as any, record);
             },
           },
+          {
+            key: "delete",
+            label: "删除",
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: (info) => {
+              info.domEvent.stopPropagation();
+              handleDeleteSubTrack(record);
+            },
+          },
         ];
 
         return (
@@ -406,6 +444,7 @@ const Detail: React.FC = () => {
       style={{ overflowY: "auto", height: "100%" }}
     >
       {/* Header Banner */}
+      {contextHolder}
       <div
         className={styles.banner}
         style={{

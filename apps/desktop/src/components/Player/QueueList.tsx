@@ -1,11 +1,12 @@
 import {
-  HeartFilled,
-  HeartOutlined,
-  MoreOutlined,
-  PauseCircleFilled,
-  PlayCircleFilled,
-  PlayCircleOutlined,
-  PlusOutlined,
+    DeleteOutlined,
+    HeartFilled,
+    HeartOutlined,
+    MoreOutlined,
+    PauseCircleFilled,
+    PlayCircleFilled,
+    PlayCircleOutlined,
+    PlusOutlined,
 } from "@ant-design/icons";
 import { Dropdown, List, theme, Typography } from "antd";
 import React from "react";
@@ -29,6 +30,7 @@ interface QueueListProps {
     type: "like" | "unlike"
   ) => void;
   onAddToPlaylist: (e: React.MouseEvent, track: Track) => void;
+  onDelete: (track: Track) => void;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -47,6 +49,7 @@ export const QueueList: React.FC<QueueListProps> = ({
   onPuse,
   onToggleLike,
   onAddToPlaylist,
+  onDelete,
   className,
   style,
 }) => {
@@ -115,6 +118,16 @@ export const QueueList: React.FC<QueueListProps> = ({
                       onClick: (info) => {
                         info.domEvent.stopPropagation();
                         onAddToPlaylist(info.domEvent as any, item);
+                      },
+                    },
+                    {
+                      key: "delete",
+                      label: "删除",
+                      icon: <DeleteOutlined />,
+                      danger: true,
+                      onClick: (info) => {
+                        info.domEvent.stopPropagation();
+                        onDelete(item);
                       },
                     },
                   ],

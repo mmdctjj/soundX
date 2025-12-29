@@ -1,12 +1,39 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaClient, Track, TrackType } from '@soundx/db';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class TrackService {
   private prisma: PrismaClient;
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     this.prisma = new PrismaClient();
+  }
+
+  private getFilePath(trackPath: string): string | null {
+    if (trackPath.startsWith('/music/')) {
+      const musicBaseDir = this.configService.get<string>('MUSIC_BASE_DIR') || './';
+      return path.join(path.resolve(musicBaseDir), trackPath.replace('/music/', ''));
+    }
+    if (trackPath.startsWith('/audio/')) {
+      const audioBookDir = this.configService.get<string>('AUDIO_BOOK_DIR') || './';
+      return path.join(path.resolve(audioBookDir), trackPath.replace('/audio/', ''));
+    }
+    return null;
+  }
+
+  private async deleteFileSafely(trackPath: string) {
+    const absolutePath = this.getFilePath(trackPath);
+    if (absolutePath && fs.existsSync(absolutePath)) {
+      try {
+        await fs.promises.unlink(absolutePath);
+        console.log(`Deleted file: ${absolutePath}`);
+      } catch (error) {
+        console.error(`Failed to delete file: ${absolutePath}`, error);
+      }
+    }
   }
 
   async getTrackList(): Promise<Track[]> {
@@ -122,6 +149,10 @@ export class TrackService {
   }
 
   async deleteTrack(id: number): Promise<boolean> {
+    const track = await this.prisma.track.findUnique({ where: { id } });
+    if (track) {
+      await this.deleteFileSafely(track.path);
+    }
     await this.prisma.track.delete({
       where: { id },
     });
@@ -141,6 +172,12 @@ export class TrackService {
 
   // 批量删除
   async deleteTracks(ids: number[]): Promise<boolean> {
+    const tracks = await this.prisma.track.findMany({
+      where: { id: { in: ids } },
+    });
+    for (const track of tracks) {
+      await this.deleteFileSafely(track.path);
+    }
     await this.prisma.track.deleteMany({
       where: { id: { in: ids } },
     });

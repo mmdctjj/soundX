@@ -41,6 +41,7 @@ interface PlayerState {
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   toggleLike: (trackId: number, type: "like" | "unlike") => Promise<void>;
+  removeTrack: (trackId: number) => void;
 
   // Internal/System Actions
   syncActiveMode: (mode: TrackType) => void;
@@ -387,6 +388,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       } catch (e) {
         console.error("Failed to toggle like", e);
       }
+    },
+
+    removeTrack: (trackId) => {
+      const { currentTrack, playlist, isPlaying, pause, activeMode } = get();
+      
+      // If current track is being deleted, pause first
+      if (currentTrack?.id === trackId) {
+        pause();
+        set({ currentTrack: null, currentTime: 0 });
+      }
+
+      const updatedPlaylist = playlist.filter(t => t.id !== trackId);
+      set({ playlist: updatedPlaylist });
+
+      // Persist changes
+      const s = get();
+      persistModeState(activeMode, {
+        currentTrack: s.currentTrack,
+        playlist: updatedPlaylist,
+        currentTime: s.currentTime,
+        duration: s.duration,
+        currentAlbumId: s.currentAlbumId
+      });
     }
   };
 });
