@@ -85,7 +85,7 @@ services:
   # 1. API 后端服务 (Node.js)
   api:
     platform: linux/amd64
-    image: ctjj/audiodock-api:0.0.1
+    image: mmdctjj/audiodock-api:latest
     container_name: audiodock-api
 
     # 容器内部端口 (3000) 默认对内部网络开放，无需 ports 字段映射到宿主机
@@ -113,7 +113,7 @@ services:
   # 2. Web 前端服务 (Nginx) - 用于托管静态文件和反向代理
   web:
     platform: linux/amd64
-    image: ctjj/audiodock-web:0.0.1
+    image: mmdctjj/audiodock-web:latest
     container_name: audiodock-web
     ports:
       - "9958:9958" # <--- 将 Web 服务的 80 端口映射到宿主机的 8080 端口

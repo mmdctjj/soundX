@@ -3,12 +3,12 @@ import {
   DeleteOutlined,
   EditOutlined,
   MoreOutlined,
-  PauseOutlined,
-  PlayCircleOutlined,
+  PauseCircleFilled,
+  PlayCircleFilled,
   PlusOutlined,
   SearchOutlined,
   SortAscendingOutlined,
-  SortDescendingOutlined,
+  SortDescendingOutlined
 } from "@ant-design/icons";
 import {
   Col,
@@ -27,6 +27,7 @@ import {
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import PlayingIndicator from "../../components/PlayingIndicator";
 import { useMessage } from "../../context/MessageContext";
 import { type Track } from "../../models";
 import {
@@ -39,6 +40,7 @@ import {
   type Playlist,
 } from "../../services/playlist";
 import { usePlayerStore } from "../../store/player";
+import { getCoverUrl } from "../../utils";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
 // Use the same styles as Detail component
@@ -220,32 +222,43 @@ const PlaylistDetail: React.FC = () => {
     {
       title: "#",
       key: "index",
-      width: 100,
+      width: 50,
       render: (_: any, __: any, index: number) => {
         return <Text>{index + 1}</Text>;
       },
     },
     {
-      title: " ",
-      key: "play",
-      width: 100,
+      title: "封面",
+      key: "cover",
+      width: 60,
       render: (_: any, record: Track) => {
-        const isCurrent = currentTrack?.id === record.id;
         return (
           <div
+            style={{ position: "relative" }}
             onClick={(e) => {
               e.stopPropagation();
               handlePlayTrack(record);
             }}
-            style={{ cursor: "pointer" }}
           >
-            <Text strong={currentTrack?.id === record.id}>
-              {isCurrent && isPlaying ? (
-                <PauseOutlined />
-              ) : (
-                <PlayCircleOutlined />
-              )}
-            </Text>
+            <img
+              src={getCoverUrl(record.cover, record.id)}
+              alt={record.name}
+              style={{
+                width: "30px",
+                height: "30px",
+                objectFit: "cover",
+              }}
+            />
+            {currentTrack?.id === record.id && isPlaying && (
+              <div className={styles.playIconStatus}>
+                <PlayingIndicator />
+              </div>
+            )}
+            {currentTrack?.id === record.id && isPlaying ? (
+              <PauseCircleFilled className={styles.listPlayIcon} />
+            ) : (
+              <PlayCircleFilled className={styles.listPlayIcon} />
+            )}
           </div>
         );
       },
@@ -263,7 +276,7 @@ const PlaylistDetail: React.FC = () => {
       title: "时长",
       dataIndex: "duration",
       key: "duration",
-      width: 100,
+      width: 80,
       render: (duration: number) => (
         <Text type="secondary">{formatDuration(duration)}</Text>
       ),
@@ -271,7 +284,7 @@ const PlaylistDetail: React.FC = () => {
     {
       title: <MoreOutlined />,
       key: "action",
-      width: 100,
+      width: 30,
       render: (_: any, record: Track) => {
         const items: MenuProps["items"] = [
           {
@@ -315,7 +328,9 @@ const PlaylistDetail: React.FC = () => {
     },
   ];
 
-  if (!playlist && !loading) return <div>Playlist not found</div>;
+  const coverUrl = playlist?.tracks?.[0]
+    ? getCoverUrl(playlist.tracks[0].cover, playlist.tracks[0].id)
+    : `https://picsum.photos/seed/${playlist?.id}/1200/400`;
 
   return (
     <div
@@ -326,7 +341,7 @@ const PlaylistDetail: React.FC = () => {
       <div
         className={styles.banner}
         style={{
-          backgroundImage: `url("https://picsum.photos/seed/${playlist?.id}/1200/400")`, // Random cover for playlist
+          backgroundImage: `url(${coverUrl})`,
         }}
       >
         <div className={styles.bannerOverlay}></div>
@@ -344,9 +359,9 @@ const PlaylistDetail: React.FC = () => {
             }}
           >
             <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-              alt="avatar"
-              style={{ width: "100%", height: "100%" }}
+              src={coverUrl}
+              alt="cover"
+              style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
             />
           </div>
           <Flex vertical gap={0}>
@@ -388,6 +403,7 @@ const PlaylistDetail: React.FC = () => {
 
                 <div className={styles.actionGroup}>
                   <EditOutlined
+                    className={styles.actionIcon}
                     onClick={() => {
                       form.setFieldsValue({ name: playlist?.name });
                       setIsEditModalOpen(true);
@@ -401,7 +417,7 @@ const PlaylistDetail: React.FC = () => {
                     cancelText="取消"
                     okButtonProps={{ danger: true }}
                   >
-                    <DeleteOutlined />
+                    <DeleteOutlined className={styles.actionIcon} />
                   </Popconfirm>
                 </div>
               </div>
@@ -443,11 +459,11 @@ const PlaylistDetail: React.FC = () => {
               pagination={false}
               rowKey="id"
               loading={loading}
+              rowClassName={styles.listCover}
               onRow={(record) => ({
-                onDoubleClick: () => handlePlayTrack(record),
+                onClick: () => handlePlayTrack(record),
                 style: { cursor: "pointer" },
               })}
-              rowClassName="episode-row"
             />
           </Col>
         </Row>
