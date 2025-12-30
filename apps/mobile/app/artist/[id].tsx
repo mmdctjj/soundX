@@ -10,14 +10,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { MiniPlayer } from "../../src/components/MiniPlayer";
 
 export default function ArtistDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -98,7 +99,7 @@ export default function ArtistDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
-      <ScrollView>
+      <ScrollView style={{ flex: 1 }}>
         <View style={styles.header}>
           <Image
             source={{
@@ -186,6 +187,7 @@ export default function ArtistDetailScreen() {
           </View>
         )}
       </ScrollView>
+      <MiniPlayer />
     </View>
   );
 }

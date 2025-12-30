@@ -32,7 +32,8 @@ function RootLayoutNav() {
       segments[0] === "modal" ||
       segments[0] === "player" ||
       segments[0] === "search" ||
-      segments[0] === "settings";
+      segments[0] === "settings" ||
+      segments[0] === "playlist";
 
     if (!token && inAuthGroup) {
       router.replace("/login");
@@ -73,6 +74,9 @@ function RootLayoutNav() {
                 animation: "slide_from_right",
               }}
             />
+            <Stack.Screen name="playlist/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="album/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="artist/[id]" options={{ headerShown: false }} />
           </Stack>
           {segments[0] !== "player" && <PlaylistModal />}
         </PlayerProvider>

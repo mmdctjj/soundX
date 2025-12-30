@@ -60,27 +60,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="album/[id]"
-        options={{
-          href: null,
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="artist/[id]"
-        options={{
-          href: null,
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="playlist/[id]"
-        options={{
-          href: null,
-          headerShown: false,
-        }}
-      />
+
     </Tabs>
   );
 }
