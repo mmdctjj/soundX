@@ -23,6 +23,10 @@ export class PlaylistService {
         type,
       },
       include: {
+        tracks: {
+          take: 3,
+          select: { id: true, cover: true },
+        },
         _count: {
           select: { tracks: true },
         },

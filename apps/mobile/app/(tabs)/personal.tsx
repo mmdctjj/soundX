@@ -2,13 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/AuthContext";
@@ -21,6 +21,45 @@ import { getHistoryTracks, getLikedTracks } from "../../src/services/user";
 import { usePlayMode } from "../../src/utils/playMode";
 
 type TabType = "playlists" | "favorites" | "history";
+
+const StackedCover = ({ tracks }: { tracks: any[] }) => {
+  const covers = (tracks || []).slice(0, 3);
+  
+  return (
+    <View style={styles.stackedCoverContainer}>
+      {covers.map((track, index) => {
+        let coverUrl = "https://picsum.photos/100";
+        if (track.cover) {
+          coverUrl = track.cover.startsWith("http") ? track.cover : `${getBaseURL()}${track.cover}`;
+        }
+        
+        return (
+          <Image
+            key={track.id}
+            source={{ uri: coverUrl }}
+            style={[
+              styles.itemCover,
+              styles.stackedCover,
+              { 
+                zIndex: 3 - index,
+                left: index * 10,
+                top: index * 4,
+                position: index === 0 ? 'relative' : 'absolute',
+                opacity: 1 - (index * 0.2)
+              }
+            ]}
+          />
+        );
+      })}
+      {covers.length === 0 && (
+        <Image
+          source={{ uri: "https://picsum.photos/100" }}
+          style={styles.itemCover}
+        />
+      )}
+    </View>
+  );
+};
 
 export default function PersonalScreen() {
   const { theme, toggleTheme, colors } = useTheme();
@@ -64,18 +103,11 @@ export default function PersonalScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: any }) => {
+  const renderItem = React.useCallback(({ item }: { item: any }) => {
     const isPlaylist = activeTab === "playlists";
     const data = isPlaylist ? (item as Playlist) : (item as Track);
-    
     let coverUrl = "https://picsum.photos/100";
-    if (isPlaylist) {
-      const playlist = item as Playlist;
-      if (playlist.tracks && playlist.tracks.length > 0 && playlist.tracks[0].cover) {
-        const cover = playlist.tracks[0].cover;
-        coverUrl = cover.startsWith("http") ? cover : `${getBaseURL()}${cover}`;
-      }
-    } else {
+    if (!isPlaylist) {
       const track = item as Track;
       if (track.cover) {
         coverUrl = track.cover.startsWith("http") ? track.cover : `${getBaseURL()}${track.cover}`;
@@ -86,28 +118,34 @@ export default function PersonalScreen() {
       <TouchableOpacity 
         style={[styles.item, { borderBottomColor: colors.border }]}
         onPress={() => {
-          if (!isPlaylist) {
+          if (isPlaylist) {
+            router.push(`/playlist/${(data as Playlist).id}`);
+          } else {
             const list = activeTab === "favorites" ? favorites : history;
             const index = list.findIndex(t => t.id === (data as Track).id);
             playTrackList(list, index);
           }
         }}
       >
-        <Image
-          source={{ uri: coverUrl }}
-          style={styles.itemCover}
-        />
+        {isPlaylist ? (
+          <StackedCover tracks={(item as Playlist).tracks || []} />
+        ) : (
+          <Image
+            source={{ uri: coverUrl }}
+            style={styles.itemCover}
+          />
+        )}
         <View style={styles.itemInfo}>
           <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>
             {data.name}
           </Text>
           <Text style={[styles.itemSubtitle, { color: colors.secondary }]}>
-            {isPlaylist ? `${(data as Playlist).tracks?.length || 0} 首` : (data as Track).artist}
+            {isPlaylist ? `${(data as Playlist)._count?.tracks || (data as Playlist).tracks?.length || 0} 首` : (data as Track).artist}
           </Text>
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [activeTab, colors, favorites, history, playTrackList]);
 
   return (
     <View
@@ -252,6 +290,15 @@ const styles = StyleSheet.create({
   },
   itemSubtitle: {
     fontSize: 13,
+  },
+  stackedCoverContainer: {
+    width: 70,
+    height: 60,
+    marginRight: 15,
+  },
+  stackedCover: {
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   center: {
     flex: 1,

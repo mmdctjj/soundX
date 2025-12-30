@@ -162,6 +162,9 @@ export interface Playlist {
   userId: number;
   user?: User;
   tracks?: Track[];
+  _count?: {
+    tracks: number;
+  };
 }
 
 export interface Device {

@@ -6,17 +6,18 @@ import { getHistoryAlbums, getLikedAlbums } from "@/src/services/album";
 import { getHistoryTracks, getLikedTracks } from "@/src/services/user";
 import { usePlayMode } from "@/src/utils/playMode";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getBaseURL } from "../https";
@@ -29,6 +30,7 @@ export const PlaylistModal = () => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { mode } = usePlayMode();
+  const router = useRouter();
   const {
     trackList,
     currentTrack,
@@ -110,16 +112,9 @@ export const PlaylistModal = () => {
         ]}
         onPress={async () => {
           if (isAlbum && isHistoryOrFav) {
-            // If it's an album in history/favs, we don't have its tracks yet.
-            // For now, let's keep it simple or maybe play the first track?
-            // Actually, the user might expect navigating to the album detail.
-            // But this is a playlist modal.
-            // Let's just play if it's a track, and maybe ignore for now if it's an album?
-            // Or we could fetch tracks. Let's stick to tracks for now or basic album play if we had a service.
-            // The requirement says "只显示 播放过的专辑列表", suggesting they want to see them.
-            // I'll leave it as a no-op or a simple alert for now if it's an album,
-            // or maybe navigating is better but requires navigation ref.
-            console.log("Album selected:", item.id);
+            // Navigate to album detail page
+            setShowPlaylist(false);
+            router.push(`/album/${item.id}`);
           } else {
             if (activeTab === "current") {
               playTrackList(trackList, index);
