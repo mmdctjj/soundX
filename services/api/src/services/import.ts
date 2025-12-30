@@ -117,6 +117,8 @@ export class ImportService {
       task.total = musicResults.length + audiobookResults.length;
       task.current = 0;
 
+      const playlistsData = new Map<string, number[]>();
+
       const processItem = async (item: any, type: TrackType, audioBasePath: string, index: number) => {
         const artistName = item.artist || '未知';
         const albumName = item.album || '未知';
@@ -128,55 +130,72 @@ export class ImportService {
         // Convert local audio path to HTTP URL, preserving relative path from base directory
         const audioUrl = this.convertToHttpUrl(item.path, type === TrackType.AUDIOBOOK ? 'audio' : 'music', audioBasePath);
 
+        // Track ID to collect for playlist
+        let trackId: number;
+
         // CHECK EXISTENCE (Incremental Mode Logic)
         const existingTrack = await this.trackService.findByPath(audioUrl);
         if (existingTrack) {
-          // If track exists, skip creation
-          // We could update metadata here if we wanted to be smarter, but for now just skip
-          return;
-        }
+          // If track exists, stick with its ID
+          trackId = existingTrack.id;
+        } else {
+          // 1. Handle Artist
+          let artist = await this.artistService.findByName(artistName, type);
+          if (!artist) {
+            // Use album cover as fallback for artist avatar if not provided
+            // Since we don't have artist specific avatar in import, we use coverUrl (which is album cover)
+            artist = await this.artistService.createArtist({
+              name: artistName,
+              avatar: coverUrl,
+              type: type
+            });
+          }
 
-        // 1. Handle Artist
-        let artist = await this.artistService.findByName(artistName, type);
-        if (!artist) {
-          // Use album cover as fallback for artist avatar if not provided
-          // Since we don't have artist specific avatar in import, we use coverUrl (which is album cover)
-          artist = await this.artistService.createArtist({
-            name: artistName,
-            avatar: coverUrl,
-            type: type
-          });
-        }
+          // 2. Handle Album
+          let album = await this.albumService.findByName(albumName, artistName, type);
+          if (!album) {
+            album = await this.albumService.createAlbum({
+              name: albumName,
+              artist: artistName,
+              cover: coverUrl,
+              year: item.year ? String(item.year) : null,
+              type: type
+            });
+          }
 
-        // 2. Handle Album
-        let album = await this.albumService.findByName(albumName, artistName, type);
-        if (!album) {
-          album = await this.albumService.createAlbum({
-            name: albumName,
+          // 3. Create Track
+          const newTrack = await this.trackService.createTrack({
+            name: item.title || path.basename(item.path),
             artist: artistName,
+            album: albumName,
             cover: coverUrl,
-            year: item.year ? String(item.year) : null,
-            type: type
+            path: audioUrl,
+            duration: Math.round(item.duration || 0),
+            lyrics: item.lyrics || null,
+            index: index + 1 || 1, // Track number/index from metadata
+            type: type,
+            createdAt: new Date(),
+            fileModifiedAt: item?.mtime ? new Date(item.mtime) : null,
+            episodeNumber: extractEpisodeNumber(item.title || ""),
+            artistId: artist.id,
+            albumId: album.id,
           });
+          trackId = newTrack.id;
         }
 
-        // 3. Create Track
-        await this.trackService.createTrack({
-          name: item.title || path.basename(item.path),
-          artist: artistName,
-          album: albumName,
-          cover: coverUrl,
-          path: audioUrl,
-          duration: Math.round(item.duration || 0),
-          lyrics: item.lyrics || null,
-          index: index + 1 || 1, // Track number/index from metadata
-          type: type,
-          createdAt: new Date(),
-          fileModifiedAt: item?.mtime ? new Date(item.mtime) : null,
-          episodeNumber: extractEpisodeNumber(item.title || ""),
-          artistId: artist.id,
-          albumId: album.id,
-        });
+        // Collect playlist data (only for MUSIC mode)
+        if (type === TrackType.MUSIC) {
+          const relativePath = path.relative(audioBasePath, item.path);
+          const segments = relativePath.split(path.sep);
+          if (segments.length > 1) {
+            const folderName = segments[0];
+            if (!playlistsData.has(folderName)) {
+              playlistsData.set(folderName, []);
+            }
+            playlistsData.get(folderName)!.push(trackId);
+          }
+        }
+
         task.current = (task.current || 0) + 1;
       };
 
@@ -190,6 +209,38 @@ export class ImportService {
       for (const [index, item] of audiobookResults.entries()) {
         console.log("audiobook", item);
         await processItem(item || {}, TrackType.AUDIOBOOK, audiobookPath, index);
+      }
+
+      // 4. Create/Update Playlists based on folders
+      this.logger.log(`Syncing ${playlistsData.size} folder-based playlists...`);
+      const defaultUser = await this.prisma.user.findFirst();
+      const userId = defaultUser ? defaultUser.id : 1;
+
+      for (const [folderName, trackIds] of playlistsData.entries()) {
+        let playlist = await this.prisma.playlist.findFirst({
+          where: { name: folderName, userId }
+        });
+
+        if (!playlist) {
+          playlist = await this.prisma.playlist.create({
+            data: {
+              name: folderName,
+              userId: userId,
+              type: TrackType.MUSIC,
+            }
+          });
+        }
+
+        // Connect tracks to playlist (batch)
+        // Note: connect only adds new relations without removing existing ones
+        await this.prisma.playlist.update({
+          where: { id: playlist.id },
+          data: {
+            tracks: {
+              connect: trackIds.map(id => ({ id }))
+            }
+          }
+        });
       }
 
       task.status = TaskStatus.SUCCESS;

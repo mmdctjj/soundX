@@ -67,6 +67,8 @@ const PlaylistDetail: React.FC = () => {
   const [keywordMidValue, setKeywordMidValue] = useState("");
   const [sort, setSort] = useState<"asc" | "desc">("asc");
 
+  const [modalApi, modalContextHolder] = Modal.useModal();
+  
   const { token } = theme.useToken();
   const {
     play,
@@ -293,7 +295,7 @@ const PlaylistDetail: React.FC = () => {
               // Given previous UI had Popconfirm, let's use Modal.confirm for safety or just direct call if acceptable.
               // Let's use a simple confirm or just direct call for now as it's inside a menu.
               // Actually, let's wrap the logic in a function that shows modal.
-              Modal.confirm({
+              modalApi.confirm({
                 title: "确定从列表中移除?",
                 onOk: () => handleRemoveTrack(record.id),
               });
@@ -450,7 +452,7 @@ const PlaylistDetail: React.FC = () => {
           </Col>
         </Row>
       </div>
-
+      {modalContextHolder}
       <Modal
         title="编辑播放列表"
         open={isEditModalOpen}

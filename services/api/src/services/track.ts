@@ -148,11 +148,61 @@ export class TrackService {
     });
   }
 
-  async deleteTrack(id: number): Promise<boolean> {
+  async checkDeletionImpact(id: number): Promise<{ isLastTrackInAlbum: boolean; albumName: string | null }> {
+    const track = await this.prisma.track.findUnique({ where: { id } });
+    if (!track) return { isLastTrackInAlbum: false, albumName: null };
+
+    let count = 0;
+    if (track.albumId) {
+      count = await this.prisma.track.count({ where: { albumId: track.albumId } });
+    } else if (track.album) {
+      count = await this.prisma.track.count({
+        where: {
+          album: track.album,
+          artist: track.artist
+        }
+      });
+    }
+
+    return {
+      isLastTrackInAlbum: count === 1,
+      albumName: track.album || null
+    };
+  }
+
+  async deleteTrack(id: number, deleteAlbum: boolean = false): Promise<boolean> {
     const track = await this.prisma.track.findUnique({ where: { id } });
     if (track) {
       await this.deleteFileSafely(track.path);
     }
+
+    // Manual cleanup of relations to avoid P2003 error
+    await this.prisma.userTrackLike.deleteMany({ where: { trackId: id } });
+    await this.prisma.userTrackHistory.deleteMany({ where: { trackId: id } });
+    await this.prisma.userAudiobookLike.deleteMany({ where: { trackId: id } });
+    await this.prisma.userAudiobookHistory.deleteMany({ where: { trackId: id } });
+
+    // Handle album deletion if requested and possible
+    if (deleteAlbum && track) {
+      if (track.albumId) {
+        console.log('Deleting album with ID:', track.albumId);
+        await this.prisma.userAlbumLike.deleteMany({ where: { albumId: track.albumId } });
+        await this.prisma.userAlbumHistory.deleteMany({ where: { albumId: track.albumId } });
+        await this.prisma.album.delete({ where: { id: track.albumId } });
+        console.log('Album deleted successfully');
+      } else if (track.album) {
+        // Find album by name and artist if no albumId
+        const album = await this.prisma.album.findFirst({
+          where: { name: track.album, artist: track.artist }
+        });
+        if (album) {
+          await this.prisma.userAlbumLike.deleteMany({ where: { albumId: album.id } });
+          await this.prisma.userAlbumHistory.deleteMany({ where: { albumId: album.id } });
+          await this.prisma.album.delete({ where: { id: album.id } });
+        }
+      }
+    }
+
     await this.prisma.track.delete({
       where: { id },
     });
@@ -178,6 +228,13 @@ export class TrackService {
     for (const track of tracks) {
       await this.deleteFileSafely(track.path);
     }
+
+    // Manual cleanup of relations to avoid P2003 error
+    await this.prisma.userTrackLike.deleteMany({ where: { trackId: { in: ids } } });
+    await this.prisma.userTrackHistory.deleteMany({ where: { trackId: { in: ids } } });
+    await this.prisma.userAudiobookLike.deleteMany({ where: { trackId: { in: ids } } });
+    await this.prisma.userAudiobookHistory.deleteMany({ where: { trackId: { in: ids } } });
+
     await this.prisma.track.deleteMany({
       where: { id: { in: ids } },
     });

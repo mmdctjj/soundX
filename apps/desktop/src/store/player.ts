@@ -391,7 +391,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     removeTrack: (trackId) => {
-      const { currentTrack, playlist, isPlaying, pause, activeMode } = get();
+      const { currentTrack, playlist, pause, activeMode } = get();
       
       // If current track is being deleted, pause first
       if (currentTrack?.id === trackId) {

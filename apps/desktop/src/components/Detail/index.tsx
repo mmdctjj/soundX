@@ -30,7 +30,7 @@ import {
 } from "antd";
 import type { ColumnProps } from "antd/es/table";
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import { getBaseURL } from "../../https";
 import { type Album, type Track, TrackType } from "../../models";
@@ -40,7 +40,7 @@ import {
   getPlaylists,
   type Playlist,
 } from "../../services/playlist";
-import { deleteTrack } from "../../services/track";
+import { deleteTrack, getDeletionImpact } from "../../services/track";
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
@@ -75,6 +75,7 @@ const Detail: React.FC = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   const { token } = theme.useToken();
+  const navigate = useNavigate();
 
   const [modalApi, contextHolder] = Modal.useModal();
 
@@ -243,27 +244,39 @@ const Detail: React.FC = () => {
   };
 
   const handleDeleteSubTrack = async (track: Track) => {
-    modalApi.confirm({
-      title: "确定删除该音频文件吗?",
-      content: "删除后将无法恢复，且会同步删除本地原文件。",
-      okText: "删除",
-      okType: "danger",
-      cancelText: "取消",
-      onOk: async () => {
-        try {
-          const res = await deleteTrack(track.id);
-          if (res.code === 200) {
-            message.success("删除成功");
-            setTracks((prev) => prev.filter((t) => t.id !== track.id));
-            removeTrack(track.id);
-          } else {
+    try {
+      const { data: impact } = await getDeletionImpact(track.id);
+
+      modalApi.confirm({
+        title: "确定删除该音频文件吗?",
+        content: impact?.isLastTrackInAlbum
+          ? `这是专辑《${impact.albumName}》的最后一个音频，删除后该专辑也将被同步删除。`
+          : "删除后将无法恢复，且会同步删除本地原文件。",
+        okText: "删除",
+        okType: "danger",
+        cancelText: "取消",
+        onOk: async () => {
+          try {
+            const res = await deleteTrack(track.id, impact?.isLastTrackInAlbum);
+            if (res.code === 200) {
+              message.success("删除成功");
+              if (impact?.isLastTrackInAlbum) {
+                navigate(-1);
+              } else {
+                setTracks((prev) => prev.filter((t) => t.id !== track.id));
+              }
+              removeTrack(track.id);
+            } else {
+              message.error("删除失败");
+            }
+          } catch (error) {
             message.error("删除失败");
           }
-        } catch (error) {
-          message.error("删除失败");
-        }
-      },
-    });
+        },
+      });
+    } catch (error) {
+      message.error("获取删除影响失败");
+    }
   };
 
   const columns: ColumnProps<Track>[] = [

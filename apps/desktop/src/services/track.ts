@@ -1,9 +1,9 @@
 import request from "../https";
 import type {
-  ILoadMoreData,
-  ISuccessResponse,
-  ITableData,
-  Track,
+    ILoadMoreData,
+    ISuccessResponse,
+    ITableData,
+    Track,
 } from "../models";
 
 export const getTrackList = () => {
@@ -38,8 +38,17 @@ export const updateTrack = (id: number, data: Partial<Track>) => {
   return request.put<any, ISuccessResponse<Track>>(`/track/${id}`, data);
 };
 
-export const deleteTrack = (id: number) => {
-  return request.delete<any, ISuccessResponse<boolean>>(`/track/${id}`);
+export const deleteTrack = (id: number, deleteAlbum: boolean = false) => {
+  return request.delete<any, ISuccessResponse<boolean>>(`/track/${id}`, {
+    params: { deleteAlbum },
+  });
+};
+
+export const getDeletionImpact = (id: number) => {
+  return request.get<
+    any,
+    ISuccessResponse<{ isLastTrackInAlbum: boolean; albumName: string | null }>
+  >(`/track/${id}/deletion-impact`);
 };
 
 export const batchCreateTracks = (data: Omit<Track, "id">[]) => {

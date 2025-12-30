@@ -1,19 +1,19 @@
 import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    Post,
-    Put,
-    Query,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
 } from '@nestjs/common';
 import { Track, TrackType } from '@soundx/db';
 import {
-    IErrorResponse,
-    ILoadMoreData,
-    ISuccessResponse,
-    ITableData,
+  IErrorResponse,
+  ILoadMoreData,
+  ISuccessResponse,
+  ITableData,
 } from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
 import { TrackService } from '../services/track';
@@ -145,13 +145,36 @@ export class TrackController {
   @Delete('/track/:id')
   async deleteTrack(
     @Param('id') id: string,
+    @Query('deleteAlbum') deleteAlbum?: string,
   ): Promise<ISuccessResponse<boolean> | IErrorResponse> {
     try {
-      const isSuccess = await this.trackService.deleteTrack(parseInt(id));
+      const isSuccess = await this.trackService.deleteTrack(
+        parseInt(id),
+        deleteAlbum === 'true',
+      );
       return {
         code: 200,
         message: 'success',
         data: isSuccess,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Get('/track/:id/deletion-impact')
+  async getDeletionImpact(
+    @Param('id') id: string,
+  ): Promise<ISuccessResponse<{ isLastTrackInAlbum: boolean; albumName: string | null }> | IErrorResponse> {
+    try {
+      const impact = await this.trackService.checkDeletionImpact(parseInt(id));
+      return {
+        code: 200,
+        message: 'success',
+        data: impact,
       };
     } catch (error) {
       return {
