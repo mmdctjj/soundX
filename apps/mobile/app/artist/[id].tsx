@@ -18,7 +18,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { MiniPlayer } from "../../src/components/MiniPlayer";
 
 export default function ArtistDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -99,7 +98,7 @@ export default function ArtistDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
-      <ScrollView style={{ flex: 1 }}>
+      <ScrollView>
         <View style={styles.header}>
           <Image
             source={{
@@ -187,7 +186,6 @@ export default function ArtistDetailScreen() {
           </View>
         )}
       </ScrollView>
-      <MiniPlayer />
     </View>
   );
 }

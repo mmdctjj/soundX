@@ -17,7 +17,6 @@ import {
   ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MiniPlayer } from "../../src/components/MiniPlayer";
 
 export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -105,7 +104,7 @@ export default function PlaylistDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
-      <ScrollView style={{ flex: 1 }}>
+      <ScrollView>
         {/* Photo Wall - Staggered Grid */}
         <View style={styles.photoWall}>
           {uniqueAlbums.map((album, index) => {
@@ -191,7 +190,6 @@ export default function PlaylistDetailScreen() {
           ))}
         </View>
       </ScrollView>
-      <MiniPlayer />
     </View>
   );
 }
