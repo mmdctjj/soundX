@@ -174,8 +174,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
             Capability.SkipToPrevious,
             Capability.Stop,
             Capability.SeekTo,
-            Capability.JumpForward,
-            Capability.JumpBackward,
           ],
           compactCapabilities: [
             Capability.Play,
@@ -299,28 +297,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const onRemoteNext = () => playNext();
     const onRemotePrev = () => playPrevious();
-    const onJumpForward = async (interval: number) => {
-      const pos = await TrackPlayer.getPosition();
-      await TrackPlayer.seekTo(pos + interval);
-    };
-    const onJumpBackward = async (interval: number) => {
-      const pos = await TrackPlayer.getPosition();
-      await TrackPlayer.seekTo(Math.max(0, pos - interval));
-    };
-    const onSpeed = async () => {
-      if (currentTrackRef.current?.type === TrackType.AUDIOBOOK) {
-        const rates = [0.5, 1, 1.5, 2];
-        const currentIndex = rates.indexOf(playbackRateRef.current);
-        const nextRate = rates[(currentIndex + 1) % rates.length];
-        await setPlaybackRate(nextRate);
-      }
-    };
 
     playerEventEmitter.on(PLAYER_EVENTS.REMOTE_NEXT, onRemoteNext);
     playerEventEmitter.on(PLAYER_EVENTS.REMOTE_PREVIOUS, onRemotePrev);
-    playerEventEmitter.on(PLAYER_EVENTS.REMOTE_JUMP_FORWARD, onJumpForward);
-    playerEventEmitter.on(PLAYER_EVENTS.REMOTE_JUMP_BACKWARD, onJumpBackward);
-    playerEventEmitter.on(PLAYER_EVENTS.REMOTE_SPEED, onSpeed);
 
     return () => {
       playerEventEmitter.removeListener(
@@ -331,15 +310,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         PLAYER_EVENTS.REMOTE_PREVIOUS,
         onRemotePrev
       );
-      playerEventEmitter.removeListener(
-        PLAYER_EVENTS.REMOTE_JUMP_FORWARD,
-        onJumpForward
-      );
-      playerEventEmitter.removeListener(
-        PLAYER_EVENTS.REMOTE_JUMP_BACKWARD,
-        onJumpBackward
-      );
-      playerEventEmitter.removeListener(PLAYER_EVENTS.REMOTE_SPEED, onSpeed);
     };
   }, [playNext, playPrevious]);
 
@@ -490,61 +460,23 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         duration: track.duration || 0,
       });
 
-      // Update capabilities based on track type
-      const baseCapabilities = [
-        Capability.Play,
-        Capability.Pause,
-        Capability.SkipToNext,
-        Capability.SkipToPrevious,
-        Capability.Stop,
-        Capability.SeekTo,
-      ];
-
-      const audiobookCapabilities = [
-        ...baseCapabilities,
-        Capability.JumpForward,
-        Capability.JumpBackward,
-        Capability.Like, // Used for speed toggle
-      ];
-
-      const iosOptions = {
-        iosCategory: "playback",
-        iosCategoryMode: "default",
-        iosCategoryOptions: [
-          "allowBluetooth",
-          "allowBluetoothA2DP",
-          "allowAirPlay",
-          "duckOthers",
+      // Update capabilities (Universal for all track types)
+      await TrackPlayer.updateOptions({
+        capabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+          Capability.Stop,
+          Capability.SeekTo,
         ],
-      };
-
-      if (track.type === TrackType.AUDIOBOOK) {
-        await TrackPlayer.updateOptions({
-          ...iosOptions,
-          capabilities: audiobookCapabilities,
-          compactCapabilities: [
-            Capability.Play,
-            Capability.Pause,
-            Capability.SkipToNext,
-            Capability.SkipToPrevious,
-            Capability.JumpForward,
-            Capability.JumpBackward,
-          ],
-          forwardJumpInterval: 15,
-          backwardJumpInterval: 15,
-        } as any);
-      } else {
-        await TrackPlayer.updateOptions({
-          ...iosOptions,
-          capabilities: baseCapabilities,
-          compactCapabilities: [
-            Capability.Play,
-            Capability.Pause,
-            Capability.SkipToNext,
-            Capability.SkipToPrevious,
-          ],
-        } as any);
-      }
+        compactCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+        ],
+      });
 
       if (initialPosition) {
         await TrackPlayer.seekTo(initialPosition);
