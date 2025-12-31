@@ -1,7 +1,7 @@
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
-import { Track } from "@/src/models";
-import { Ionicons } from "@expo/vector-icons";
+import { Track, TrackType } from "@/src/models";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -33,7 +33,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [sleepTimerVisible, setSleepTimerVisible] = useState(false);
-  const { sleepTimer } = usePlayer();
+  const { sleepTimer, position, seekTo, playbackRate, setPlaybackRate } = usePlayer();
   const [remainingTime, setRemainingTime] = useState<string>("");
 
   // Calculate remaining time
@@ -89,30 +89,52 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
     // Placeholder - not implemented yet
   };
 
-  const options = [
+  const handleSkipBackward = () => {
+    seekTo(Math.max(0, position - 15));
+    setVisible(false);
+  };
+
+  const handleSkipForward = () => {
+    seekTo(position + 15);
+    setVisible(false);
+  };
+
+  const handleTogglePlaybackRate = () => {
+    const rates = [0.5, 1, 1.5, 2];
+    const currentIndex = rates.indexOf(playbackRate);
+    const nextRate = rates[(currentIndex + 1) % rates.length];
+    setPlaybackRate(nextRate);
+  };
+
+  // Standard options (always shown)
+  const standardOptions = [
     {
       icon: "person-outline" as const,
       label: "歌手详情",
       onPress: handleArtistDetails,
       disabled: !currentTrack?.artistId,
+      isMaterialIcon: false,
     },
     {
       icon: "albums-outline" as const,
       label: "专辑详情",
       onPress: handleAlbumDetails,
       disabled: !currentTrack?.albumId,
+      isMaterialIcon: false,
     },
     {
       icon: "time-outline" as const,
       label: remainingTime ? `定时关闭 (${remainingTime})` : "定时关闭",
       onPress: handleSleepTimer,
       disabled: false,
+      isMaterialIcon: false,
     },
     {
       icon: "download-outline" as const,
       label: "下载",
       onPress: handleDownload,
       disabled: true,
+      isMaterialIcon: false,
     },
   ];
 
@@ -135,7 +157,55 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
               <View style={styles.handle} />
               <Text style={[styles.title, { color: colors.text }]}>更多选项</Text>
 
-              {options.map((option, index) => (
+              {/* Audiobook Controls - Horizontal Layout */}
+              {currentTrack?.type === TrackType.AUDIOBOOK && (
+                <View style={styles.audiobookControls}>
+                  <TouchableOpacity
+                    style={styles.controlButton}
+                    onPress={handleSkipBackward}
+                  >
+                    <MaterialCommunityIcons
+                      name="rewind-15"
+                      size={32}
+                      color={colors.text}
+                    />
+                    <Text style={[styles.controlLabel, { color: colors.secondary }]}>
+                      后退 15s
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.controlButton}
+                    onPress={handleTogglePlaybackRate}
+                  >
+                    <Ionicons
+                      name="speedometer-outline"
+                      size={32}
+                      color={colors.text}
+                    />
+                    <Text style={[styles.controlLabel, { color: colors.secondary }]}>
+                      {playbackRate}x
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.controlButton}
+                    onPress={handleSkipForward}
+                  >
+                    <MaterialCommunityIcons
+                      name="fast-forward-15"
+                      size={32}
+                      color={colors.text}
+                    />
+                    <Text style={[styles.controlLabel, { color: colors.secondary }]}>
+                      前进 15s
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Standard Options - Vertical List */}
+              {standardOptions.map((option, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[
@@ -147,7 +217,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                   disabled={option.disabled}
                 >
                   <Ionicons
-                    name={option.icon}
+                    name={option.icon as any}
                     size={24}
                     color={option.disabled ? colors.secondary : colors.text}
                   />
@@ -218,5 +288,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
     marginLeft: 16,
+  },
+  audiobookControls: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(150,150,150,0.2)",
+    marginBottom: 8,
+  },
+  controlButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 80,
+  },
+  controlLabel: {
+    fontSize: 12,
+    marginTop: 8,
   },
 });

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "AudioDock",
+    "slug": "AudioDock 听见你的声音",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "icon": "../../images/logo.png",
+    "scheme": "audiodock",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

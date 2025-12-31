@@ -50,7 +50,10 @@ function RootLayoutNav() {
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen
               name="modal"
-              options={{ presentation: "modal", title: "Modal" }}
+              options={{
+                headerShown: false,
+                animation: "slide_from_right",
+              }}
             />
             <Stack.Screen
               name="player"

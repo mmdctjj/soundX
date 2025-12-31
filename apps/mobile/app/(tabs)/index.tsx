@@ -1,6 +1,7 @@
 import { usePlayer } from "@/src/context/PlayerContext";
 import { EvilIcons, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Device from "expo-device";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -142,6 +143,33 @@ export default function HomeScreen() {
       }
     },
     [mode]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadOrder = async () => {
+        try {
+          const savedOrder = await AsyncStorage.getItem("section_order");
+          if (savedOrder) {
+            const order = JSON.parse(savedOrder);
+            setSections((prev) => {
+              const newSections = [...prev];
+              newSections.sort((a, b) => {
+                const indexA = order.indexOf(a.id);
+                const indexB = order.indexOf(b.id);
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+              });
+              return newSections;
+            });
+          }
+        } catch (e) {
+          console.error("Failed to load section order:", e);
+        }
+      };
+      loadOrder();
+    }, [])
   );
 
   useEffect(() => {

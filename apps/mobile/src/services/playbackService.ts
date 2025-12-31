@@ -1,39 +1,55 @@
 import TrackPlayer, { Event } from 'react-native-track-player';
+import { PLAYER_EVENTS, playerEventEmitter } from '../utils/playerEvents';
+console.log('[PlaybackService] File evaluated');
 
-export const PlaybackService = async function() {
+export const PlaybackService = async function () {
+    console.log('[PlaybackService] Registered');
 
     TrackPlayer.addEventListener(Event.RemotePlay, () => {
+        console.log('[PlaybackService] Event.RemotePlay');
         TrackPlayer.play();
     });
 
     TrackPlayer.addEventListener(Event.RemotePause, () => {
+        console.log('[PlaybackService] Event.RemotePause');
         TrackPlayer.pause();
     });
 
-    TrackPlayer.addEventListener(Event.RemoteStop, () => {
-        TrackPlayer.reset();
+    TrackPlayer.addEventListener(Event.RemoteStop, async () => {
+        console.log('[PlaybackService] Event.RemoteStop');
+        await TrackPlayer.pause();
+        await TrackPlayer.reset();
     });
 
     TrackPlayer.addEventListener(Event.RemoteNext, () => {
-        TrackPlayer.skipToNext();
+        console.log('[PlaybackService] Event.RemoteNext - Emitting custom event');
+        playerEventEmitter.emit(PLAYER_EVENTS.REMOTE_NEXT);
     });
 
     TrackPlayer.addEventListener(Event.RemotePrevious, () => {
-        TrackPlayer.skipToPrevious();
+        console.log('[PlaybackService] Event.RemotePrevious - Emitting custom event');
+        playerEventEmitter.emit(PLAYER_EVENTS.REMOTE_PREVIOUS);
     });
 
     TrackPlayer.addEventListener(Event.RemoteSeek, (event) => {
+        console.log('[PlaybackService] Event.RemoteSeek:', event.position);
         TrackPlayer.seekTo(event.position);
     });
 
-    // Handle other events as needed, e.g., JumpForward, JumpBackward for audiobooks
-    TrackPlayer.addEventListener(Event.RemoteJumpForward, async (event) => {
-        const position = await TrackPlayer.getPosition();
-        await TrackPlayer.seekTo(position + event.interval);
+    TrackPlayer.addEventListener(Event.RemoteJumpForward, (event) => {
+        const interval = event.interval || 15;
+        console.log('[PlaybackService] Event.RemoteJumpForward:', interval);
+        playerEventEmitter.emit(PLAYER_EVENTS.REMOTE_JUMP_FORWARD, interval);
     });
 
-    TrackPlayer.addEventListener(Event.RemoteJumpBackward, async (event) => {
-        const position = await TrackPlayer.getPosition();
-        await TrackPlayer.seekTo(Math.max(0, position - event.interval));
+    TrackPlayer.addEventListener(Event.RemoteJumpBackward, (event) => {
+        const interval = event.interval || 15;
+        console.log('[PlaybackService] Event.RemoteJumpBackward:', interval);
+        playerEventEmitter.emit(PLAYER_EVENTS.REMOTE_JUMP_BACKWARD, interval);
+    });
+
+    TrackPlayer.addEventListener(Event.RemoteLike, () => {
+        console.log('[PlaybackService] Event.RemoteLike (Speed Toggle)');
+        playerEventEmitter.emit(PLAYER_EVENTS.REMOTE_SPEED);
     });
 };

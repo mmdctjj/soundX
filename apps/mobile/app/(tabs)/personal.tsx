@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     alignItems: "center",
-    paddingVertical: 30,
+    paddingVertical: 0,
   },
   avatar: {
     width: 80,

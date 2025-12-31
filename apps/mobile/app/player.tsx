@@ -9,17 +9,17 @@ import { Slider } from "@miblanchard/react-native-slider";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    FlatList,
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlayerMoreModal } from "../src/components/PlayerMoreModal";
@@ -380,6 +380,16 @@ export default function PlayerScreen() {
             />
           </TouchableOpacity>
         )}
+        <TouchableOpacity
+          onPress={() => setMoreModalVisible(true)}
+          style={styles.likeButton}
+        >
+          <Ionicons
+            name="ellipsis-horizontal"
+            size={24}
+            color={colors.text}
+          />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.timeContainer}>
@@ -430,12 +440,6 @@ export default function PlayerScreen() {
             <Ionicons name="play-skip-back" size={35} color={colors.text} />
           </TouchableOpacity>
 
-          {currentTrack.type === TrackType.AUDIOBOOK && (
-            <TouchableOpacity onPress={skipBackward}>
-              <MaterialCommunityIcons name="rewind-15" size={30} color={colors.text} />
-            </TouchableOpacity>
-          )}
-
           <TouchableOpacity
             onPress={togglePlayback}
             style={[styles.playButton, { backgroundColor: colors.text }]}
@@ -448,26 +452,14 @@ export default function PlayerScreen() {
             />
           </TouchableOpacity>
 
-          {currentTrack.type === TrackType.AUDIOBOOK && (
-            <TouchableOpacity onPress={skipForward}>
-              <MaterialCommunityIcons name="fast-forward-15" size={30} color={colors.text} />
-            </TouchableOpacity>
-          )}
-
           <TouchableOpacity onPress={playNext}>
             <Ionicons name="play-skip-forward" size={35} color={colors.text} />
           </TouchableOpacity>
         </View>
 
-        {currentTrack.type === TrackType.AUDIOBOOK ? (
-          <TouchableOpacity onPress={togglePlaybackRate} style={styles.rateButton}>
-            <Text style={[styles.rateText, { color: colors.secondary }]}>{playbackRate}x</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={() => setShowPlaylist(true)}>
-            <Ionicons name="list" size={24} color={colors.secondary} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={() => setShowPlaylist(true)}>
+          <Ionicons name="list" size={24} color={colors.secondary} />
+        </TouchableOpacity>
       </View>
     </View>
   );

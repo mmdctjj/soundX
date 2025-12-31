@@ -1,15 +1,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Device from "expo-device";
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Alert } from "react-native";
 import TrackPlayer, {
-    AppKilledPlaybackBehavior,
-    Capability,
-    Event,
-    State,
-    useProgress,
-    useTrackPlayerEvents
-} from 'react-native-track-player';
+  AppKilledPlaybackBehavior,
+  Capability,
+  Event,
+  IOSCategory,
+  IOSCategoryMode,
+  IOSCategoryOptions,
+  State,
+  useProgress,
+  useTrackPlayerEvents,
+} from "react-native-track-player";
 import { getBaseURL } from "../https";
 import { Track, TrackType } from "../models";
 import { addAlbumToHistory } from "../services/album";
@@ -17,6 +26,7 @@ import { downloadTrack, isCached } from "../services/cache";
 import { socketService } from "../services/socket";
 import { addToHistory, getLatestHistory } from "../services/user";
 import { reportAudiobookProgress } from "../services/userAudiobookHistory";
+import { PLAYER_EVENTS, playerEventEmitter } from "../utils/playerEvents";
 import { usePlayMode } from "../utils/playMode";
 import { useAuth } from "./AuthContext";
 import { useNotification } from "./NotificationContext";
@@ -134,7 +144,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     positionRef.current = position;
   }, [position]);
-  
+
   useEffect(() => {
     playbackRateRef.current = playbackRate;
   }, [playbackRate]);
@@ -143,11 +153,20 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const setupPlayer = async () => {
       try {
-        await TrackPlayer.setupPlayer();
+        // 1️⃣ 只在 setupPlayer 里配置 iOS Audio Session
+        await TrackPlayer.setupPlayer({
+          iosCategory: IOSCategory.Playback,
+          iosCategoryMode: IOSCategoryMode.Default,
+          iosCategoryOptions: [
+            IOSCategoryOptions.AllowBluetooth,
+            IOSCategoryOptions.AllowBluetoothA2DP,
+            IOSCategoryOptions.AllowAirPlay,
+            IOSCategoryOptions.DuckOthers,
+          ],
+        });
+
+        // 2️⃣ 只调用一次 updateOptions（不要再 platform 分支）
         await TrackPlayer.updateOptions({
-          android: {
-            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
-          },
           capabilities: [
             Capability.Play,
             Capability.Pause,
@@ -159,36 +178,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
             Capability.JumpBackward,
           ],
           compactCapabilities: [
-            Capability.Play, 
-            Capability.Pause, 
+            Capability.Play,
+            Capability.Pause,
             Capability.SkipToNext,
             Capability.SkipToPrevious,
           ],
           progressUpdateEventInterval: 2,
-        } as any);
-        
-        // Separately configure iOS audio session for background playback
-        if (require('react-native').Platform.OS === 'ios') {
-          await TrackPlayer.updateOptions({
-            iosCategory: 'playback',
-            iosCategoryMode: 'default',
-            iosCategoryOptions: [
-              'allowBluetooth',
-              'allowBluetoothA2DP',
-              'allowAirPlay',
-              'duckOthers', // Added to help keep the session active
-            ],
-            // Ensure the notification stays synced with the app state
-            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.PausePlayback,
-          } as any);
-        }
+
+          android: {
+            appKilledPlaybackBehavior:
+              AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+          },
+        });
+
         setIsSetup(true);
-      } catch (error) {
-        console.error("Failed to setup player", error);
-        // It might be already setup, so we can ignore or handle accordingly
-        const state = await TrackPlayer.getPlaybackState();
-        if (state.state !== State.None) {
-             setIsSetup(true);
+      } catch (error: any) {
+        if (error?.message?.includes("already been initialized")) {
+          setIsSetup(true);
+        } else {
+          console.error("[TrackPlayer] setup failed", error);
         }
       }
     };
@@ -197,18 +205,26 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // Sync isPlaying state with TrackPlayer events
-  useTrackPlayerEvents([Event.PlaybackState, Event.PlaybackError, Event.PlaybackQueueEnded], async (event) => {
-    if (event.type === Event.PlaybackError) {
-        console.error('An error occurred while playing the current track.', event);
-    }
-    if (event.type === Event.PlaybackState) {
+  useTrackPlayerEvents(
+    [Event.PlaybackState, Event.PlaybackError, Event.PlaybackQueueEnded],
+    async (event) => {
+      if (event.type === Event.PlaybackError) {
+        console.error(
+          "An error occurred while playing the current track.",
+          event
+        );
+      }
+      if (event.type === Event.PlaybackState) {
         setIsPlaying(event.state === State.Playing);
-        setIsLoading(event.state === State.Buffering || event.state === State.Loading);
-    }
-    if (event.type === Event.PlaybackQueueEnded) {
+        setIsLoading(
+          event.state === State.Buffering || event.state === State.Loading
+        );
+      }
+      if (event.type === Event.PlaybackQueueEnded) {
         playNext();
+      }
     }
-  });
+  );
 
   const getNextIndex = (
     currentIndex: number,
@@ -244,11 +260,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const playNext = async () => {
     const list = trackListRef.current;
-    
+
     // If Loop Single, just seek to 0 and play
     if (playModeRef.current === PlayMode.LOOP_SINGLE) {
-        await seekTo(0);
-        return;
+      await seekTo(0);
+      return;
     }
 
     const current = currentTrackRef.current;
@@ -261,7 +277,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (nextIndex !== -1) {
       await playTrack(list[nextIndex]);
     } else {
-        await TrackPlayer.pause();
+      await TrackPlayer.pause();
     }
   };
 
@@ -278,6 +294,54 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       await playTrack(list[prevIndex]);
     }
   };
+
+  // Handle lock screen / control center buttons via shared event emitter
+  useEffect(() => {
+    const onRemoteNext = () => playNext();
+    const onRemotePrev = () => playPrevious();
+    const onJumpForward = async (interval: number) => {
+      const pos = await TrackPlayer.getPosition();
+      await TrackPlayer.seekTo(pos + interval);
+    };
+    const onJumpBackward = async (interval: number) => {
+      const pos = await TrackPlayer.getPosition();
+      await TrackPlayer.seekTo(Math.max(0, pos - interval));
+    };
+    const onSpeed = async () => {
+      if (currentTrackRef.current?.type === TrackType.AUDIOBOOK) {
+        const rates = [0.5, 1, 1.5, 2];
+        const currentIndex = rates.indexOf(playbackRateRef.current);
+        const nextRate = rates[(currentIndex + 1) % rates.length];
+        await setPlaybackRate(nextRate);
+      }
+    };
+
+    playerEventEmitter.on(PLAYER_EVENTS.REMOTE_NEXT, onRemoteNext);
+    playerEventEmitter.on(PLAYER_EVENTS.REMOTE_PREVIOUS, onRemotePrev);
+    playerEventEmitter.on(PLAYER_EVENTS.REMOTE_JUMP_FORWARD, onJumpForward);
+    playerEventEmitter.on(PLAYER_EVENTS.REMOTE_JUMP_BACKWARD, onJumpBackward);
+    playerEventEmitter.on(PLAYER_EVENTS.REMOTE_SPEED, onSpeed);
+
+    return () => {
+      playerEventEmitter.removeListener(
+        PLAYER_EVENTS.REMOTE_NEXT,
+        onRemoteNext
+      );
+      playerEventEmitter.removeListener(
+        PLAYER_EVENTS.REMOTE_PREVIOUS,
+        onRemotePrev
+      );
+      playerEventEmitter.removeListener(
+        PLAYER_EVENTS.REMOTE_JUMP_FORWARD,
+        onJumpForward
+      );
+      playerEventEmitter.removeListener(
+        PLAYER_EVENTS.REMOTE_JUMP_BACKWARD,
+        onJumpBackward
+      );
+      playerEventEmitter.removeListener(PLAYER_EVENTS.REMOTE_SPEED, onSpeed);
+    };
+  }, [playNext, playPrevious]);
 
   const togglePlayMode = () => {
     const modes = Object.values(PlayMode);
@@ -298,7 +362,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       playbackRate: playbackRateRef.current,
     };
     try {
-      await AsyncStorage.setItem(`playbackState_${targetMode}`, JSON.stringify(state));
+      await AsyncStorage.setItem(
+        `playbackState_${targetMode}`,
+        JSON.stringify(state)
+      );
     } catch (e) {
       console.error("Failed to save playback state", e);
     }
@@ -320,22 +387,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           const uri = track.path.startsWith("http")
             ? track.path
             : `${getBaseURL()}${track.path}`;
-          const artwork = track.cover ? (track.cover.startsWith("http") ? track.cover : `${getBaseURL()}${track.cover}`) : undefined;
-          
+          const artwork = track.cover
+            ? track.cover.startsWith("http")
+              ? track.cover
+              : `${getBaseURL()}${track.cover}`
+            : undefined;
+
           await TrackPlayer.reset();
           await TrackPlayer.add({
             id: String(track.id),
             url: uri,
             title: track.name,
             artist: track.artist,
+            album: track.album || "Unknown Album",
             artwork: artwork,
             duration: track.duration || 0,
           });
-          
+
           if (state.position) {
             await TrackPlayer.seekTo(state.position);
           }
-          
+
           setCurrentTrack(track);
         }
       } else {
@@ -383,12 +455,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       const uri = track.path.startsWith("http")
         ? track.path
         : `${getBaseURL()}${track.path}`;
-      
-      const artwork = track.cover ? (track.cover.startsWith("http") ? track.cover : `${getBaseURL()}${track.cover}`) : undefined;
+
+      const artwork = track.cover
+        ? track.cover.startsWith("http")
+          ? track.cover
+          : `${getBaseURL()}${track.cover}`
+        : undefined;
       console.log("Playing track:", track);
-      
+
       let playUri = uri;
-      
+
       if (cacheEnabled && track.id) {
         const localPath = await isCached(track.id, track.path);
         if (localPath) {
@@ -397,7 +473,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         } else {
           console.log("Not cached, starting background download");
           // Don't wait for download, just start it
-          downloadTrack(track.id, uri).catch(e => console.error("Cache download failed", e));
+          downloadTrack(track.id, uri).catch((e) =>
+            console.error("Cache download failed", e)
+          );
         }
       }
 
@@ -407,14 +485,71 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         url: playUri,
         title: track.name,
         artist: track.artist,
+        album: track.album || "Unknown Album",
         artwork: artwork,
         duration: track.duration || 0,
       });
-      
-      if (initialPosition) {
-          await TrackPlayer.seekTo(initialPosition);
+
+      // Update capabilities based on track type
+      const baseCapabilities = [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+        Capability.Stop,
+        Capability.SeekTo,
+      ];
+
+      const audiobookCapabilities = [
+        ...baseCapabilities,
+        Capability.JumpForward,
+        Capability.JumpBackward,
+        Capability.Like, // Used for speed toggle
+      ];
+
+      const iosOptions = {
+        iosCategory: "playback",
+        iosCategoryMode: "default",
+        iosCategoryOptions: [
+          "allowBluetooth",
+          "allowBluetoothA2DP",
+          "allowAirPlay",
+          "duckOthers",
+        ],
+      };
+
+      if (track.type === TrackType.AUDIOBOOK) {
+        await TrackPlayer.updateOptions({
+          ...iosOptions,
+          capabilities: audiobookCapabilities,
+          compactCapabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.SkipToNext,
+            Capability.SkipToPrevious,
+            Capability.JumpForward,
+            Capability.JumpBackward,
+          ],
+          forwardJumpInterval: 15,
+          backwardJumpInterval: 15,
+        } as any);
+      } else {
+        await TrackPlayer.updateOptions({
+          ...iosOptions,
+          capabilities: baseCapabilities,
+          compactCapabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.SkipToNext,
+            Capability.SkipToPrevious,
+          ],
+        } as any);
       }
-      
+
+      if (initialPosition) {
+        await TrackPlayer.seekTo(initialPosition);
+      }
+
       await TrackPlayer.play();
       // Optimistically set current track for UI
       setCurrentTrack(track);
@@ -434,10 +569,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const broadcastSync = (type: string, data?: any) => {
     if (isSynced && sessionId && !isProcessingSync.current) {
-      socketService.emit('sync_command', {
+      socketService.emit("sync_command", {
         sessionId,
         type,
-        data
+        data,
       });
     }
   };
@@ -468,7 +603,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (isSetup) {
       try {
         await TrackPlayer.seekTo(pos);
-        broadcastSync('seek', pos);
+        broadcastSync("seek", pos);
       } catch (error) {
         console.error("Failed to seek:", error);
       }
@@ -488,41 +623,37 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const handleDisconnect = () => {
-    Alert.alert(
-      "结束同步播放",
-      "确定要断开连接吗？",
-      [
-        {
-          text: "取消",
-          style: "cancel"
-        },
-        {
-          text: "确定",
-          onPress: () => {
-            console.log("User confirmed disconnect", sessionId);
-            if (sessionId) {
-              socketService.emit('player_left', { sessionId });
-              setSynced(false, null);
-              setParticipants([]);
-            }
+    Alert.alert("结束同步播放", "确定要断开连接吗？", [
+      {
+        text: "取消",
+        style: "cancel",
+      },
+      {
+        text: "确定",
+        onPress: () => {
+          console.log("User confirmed disconnect", sessionId);
+          if (sessionId) {
+            socketService.emit("player_left", { sessionId });
+            setSynced(false, null);
+            setParticipants([]);
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   const recordHistory = async () => {
     if (currentTrackRef.current && user) {
       const deviceName = Device.modelName || "Mobile Device";
       const deviceId = device?.id;
-      
+
       try {
         await addToHistory(
-          currentTrackRef.current.id, 
-          user.id, 
-          Math.floor(positionRef.current), 
-          deviceName, 
-          deviceId, 
+          currentTrackRef.current.id,
+          user.id,
+          Math.floor(positionRef.current),
+          deviceName,
+          deviceId,
           isSynced
         );
 
@@ -539,39 +670,51 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       } catch (e) {
         // Silence background network errors for history recording
-        console.log("Background history sync skipped due to network/transient error");
+        console.log(
+          "Background history sync skipped due to network/transient error"
+        );
       }
     }
   };
 
   const isProcessingSync = useRef(false);
-  const { isSynced, sessionId, setSynced, setParticipants, lastAcceptedInvite } = useSync();
+  const {
+    isSynced,
+    sessionId,
+    setSynced,
+    setParticipants,
+    lastAcceptedInvite,
+  } = useSync();
 
   // Sync Event Handlers - only active when synced
   useEffect(() => {
     if (isSynced && sessionId) {
-        const handleSyncEvent = (payload: { type: string; data: any; fromUserId: number }) => {
-          if (payload.fromUserId === user?.id) return;
-          
-          isProcessingSync.current = true;
-          
-          switch (payload.type) {
-            case 'play':
-              resume();
-              break;
-            case 'pause':
-              pause();
-              break;
-            case 'seek':
-              seekTo(payload.data);
-              break;
-            case 'track_change':
-              playTrack(payload.data);
-              break;
-            case 'playlist':
-              setTrackList(payload.data);
-              break;
-            case 'leave':
+      const handleSyncEvent = (payload: {
+        type: string;
+        data: any;
+        fromUserId: number;
+      }) => {
+        if (payload.fromUserId === user?.id) return;
+
+        isProcessingSync.current = true;
+
+        switch (payload.type) {
+          case "play":
+            resume();
+            break;
+          case "pause":
+            pause();
+            break;
+          case "seek":
+            seekTo(payload.data);
+            break;
+          case "track_change":
+            playTrack(payload.data);
+            break;
+          case "playlist":
+            setTrackList(payload.data);
+            break;
+          case "leave":
             console.log("Participant left the session");
             Alert.alert("同步状态", "对方已断开同步连接");
             break;
@@ -582,32 +725,35 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         }, 100);
       };
 
-      const handleRequestInitialState = (payload: { sessionId: string; fromSocketId: string }) => {
+      const handleRequestInitialState = (payload: {
+        sessionId: string;
+        fromSocketId: string;
+      }) => {
         if (currentTrack) {
-          socketService.emit('sync_command', {
+          socketService.emit("sync_command", {
             sessionId: payload.sessionId,
-            type: 'track_change',
+            type: "track_change",
             data: currentTrack,
-            targetSocketId: payload.fromSocketId
+            targetSocketId: payload.fromSocketId,
           });
-          
+
           setTimeout(() => {
-            socketService.emit('sync_command', {
+            socketService.emit("sync_command", {
               sessionId: payload.sessionId,
-              type: isPlaying ? 'play' : 'pause',
+              type: isPlaying ? "play" : "pause",
               data: position,
-              targetSocketId: payload.fromSocketId
+              targetSocketId: payload.fromSocketId,
             });
           }, 200);
         }
       };
 
-      socketService.on('sync_event', handleSyncEvent);
-      socketService.on('request_initial_state', handleRequestInitialState);
+      socketService.on("sync_event", handleSyncEvent);
+      socketService.on("request_initial_state", handleRequestInitialState);
 
       return () => {
-        socketService.off('sync_event', handleSyncEvent);
-        socketService.off('request_initial_state', handleRequestInitialState);
+        socketService.off("sync_event", handleSyncEvent);
+        socketService.off("request_initial_state", handleRequestInitialState);
       };
     }
   }, [isSynced, sessionId, currentTrack, isPlaying, position]);
@@ -623,7 +769,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         // playTrack(lastAcceptedInvite.currentTrack, lastAcceptedInvite.progress);
         // Important: Wait for player setup before applying
         if (isSetup) {
-             playTrack(lastAcceptedInvite.currentTrack, lastAcceptedInvite.progress);
+          playTrack(
+            lastAcceptedInvite.currentTrack,
+            lastAcceptedInvite.progress
+          );
         }
       }
     }
@@ -638,46 +787,57 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("Sync session ended");
     };
 
-    const handlePlayerLeft = (payload: { username: string; deviceName: string }) => {
-      Alert.alert("同步状态", `${payload.username} (${payload.deviceName}) 已断开同步连接`);
+    const handlePlayerLeft = (payload: {
+      username: string;
+      deviceName: string;
+    }) => {
+      Alert.alert(
+        "同步状态",
+        `${payload.username} (${payload.deviceName}) 已断开同步连接`
+      );
     };
 
-    socketService.on('session_ended', handleSessionEnded);
-    socketService.on('player_left', handlePlayerLeft);
+    socketService.on("session_ended", handleSessionEnded);
+    socketService.on("player_left", handlePlayerLeft);
 
     return () => {
-      socketService.off('session_ended', handleSessionEnded);
-      socketService.off('player_left', handlePlayerLeft);
+      socketService.off("session_ended", handleSessionEnded);
+      socketService.off("player_left", handlePlayerLeft);
     };
   }, [setSynced, setParticipants]);
 
   // Broadcast local changes
   useEffect(() => {
     if (isSynced && sessionId && !isProcessingSync.current) {
-        socketService.emit('sync_command', {
-          sessionId,
-          type: isPlaying ? 'play' : 'pause',
-          data: null
-        });
+      socketService.emit("sync_command", {
+        sessionId,
+        type: isPlaying ? "play" : "pause",
+        data: null,
+      });
     }
   }, [isPlaying, isSynced, sessionId]);
 
   useEffect(() => {
     if (isSynced && sessionId && !isProcessingSync.current && currentTrack) {
-      socketService.emit('sync_command', {
+      socketService.emit("sync_command", {
         sessionId,
-        type: 'track_change',
-        data: currentTrack
+        type: "track_change",
+        data: currentTrack,
       });
     }
   }, [currentTrack?.id, isSynced, sessionId]);
 
   useEffect(() => {
-    if (isSynced && sessionId && !isProcessingSync.current && trackList.length > 0) {
-      socketService.emit('sync_command', {
+    if (
+      isSynced &&
+      sessionId &&
+      !isProcessingSync.current &&
+      trackList.length > 0
+    ) {
+      socketService.emit("sync_command", {
         sessionId,
-        type: 'playlist',
-        data: trackList
+        type: "playlist",
+        data: trackList,
       });
     }
   }, [trackList, isSynced, sessionId]);
@@ -685,13 +845,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   // History Recording
   useEffect(() => {
     if (currentTrack) {
-        recordHistory();
+      recordHistory();
     }
   }, [currentTrack?.id]);
 
   useEffect(() => {
     if (!isPlaying && currentTrack) {
-        recordHistory();
+      recordHistory();
     }
   }, [isPlaying]);
 
@@ -711,35 +871,38 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   // Check Resume on mount
   useEffect(() => {
     if (user && isSetup && acceptRelay) {
-        const checkResume = async () => {
-            try {
-                const res = await getLatestHistory(user.id);
-                if (res.code === 200 && res.data) {
-                    const history = res.data;
-                    const deviceName = Device.modelName || "Mobile Device";
-                    
-                    const diff = new Date().getTime() - new Date(history.listenedAt).getTime();
-                    const isRecent = diff < 24 * 60 * 60 * 1000;
-                    const isOtherDevice = history.deviceName !== deviceName;
+      const checkResume = async () => {
+        try {
+          const res = await getLatestHistory(user.id);
+          if (res.code === 200 && res.data) {
+            const history = res.data;
+            const deviceName = Device.modelName || "Mobile Device";
 
-                    if (isRecent && isOtherDevice && history.track) {
-                        const m = Math.floor(history.progress / 60);
-                        const s = Math.floor(history.progress % 60).toString().padStart(2, '0');
-                        showNotification({
-                            type: 'resume',
-                            track: history.track,
-                            title: "继续播放",
-                            description: `发现在设备 ${history.deviceName} 上的播放记录，是否从 ${m}:${s} 继续播放？`,
-                            onAccept: () => playTrack(history.track, history.progress),
-                            onReject: () => {}
-                        });
-                    }
-                }
-            } catch (e) {
-                console.error("Check resume error", e);
+            const diff =
+              new Date().getTime() - new Date(history.listenedAt).getTime();
+            const isRecent = diff < 24 * 60 * 60 * 1000;
+            const isOtherDevice = history.deviceName !== deviceName;
+
+            if (isRecent && isOtherDevice && history.track) {
+              const m = Math.floor(history.progress / 60);
+              const s = Math.floor(history.progress % 60)
+                .toString()
+                .padStart(2, "0");
+              showNotification({
+                type: "resume",
+                track: history.track,
+                title: "继续播放",
+                description: `发现在设备 ${history.deviceName} 上的播放记录，是否从 ${m}:${s} 继续播放？`,
+                onAccept: () => playTrack(history.track, history.progress),
+                onReject: () => {},
+              });
             }
-        };
-        checkResume();
+          }
+        } catch (e) {
+          console.error("Check resume error", e);
+        }
+      };
+      checkResume();
     }
   }, [user?.id, isSetup]);
 
