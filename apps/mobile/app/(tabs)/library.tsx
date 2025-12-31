@@ -1,66 +1,76 @@
-import React, { useEffect, useState } from "react";
+import { AlphabetSidebar } from "@/src/components/AlphabetSidebar";
+import { groupAndSort, SectionData } from "@/src/utils/pinyin";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
+  ActivityIndicator,
+  Image,
+  SectionList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../../src/context/ThemeContext";
 import { getBaseURL } from "../../src/https";
 import { Album, Artist } from "../../src/models";
 import { loadMoreAlbum } from "../../src/services/album";
 import { getArtistList } from "../../src/services/artist";
-
-import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "../../src/context/ThemeContext";
 import { usePlayMode } from "../../src/utils/playMode";
 
 const GAP = 15;
 const SCREEN_PADDING = 40; // 20 horizontal padding * 2
-const TARGET_WIDTH = 120; // Target width similar to Recommended section
+const TARGET_WIDTH = 100; // Slightly smaller target for dense list
+
+// Helper to chunk data for grid layout
+const chunkArray = <T,>(array: T[], size: number): T[][] => {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size));
+  }
+  return result;
+};
 
 const ArtistList = () => {
   const { colors } = useTheme();
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
-  const [artists, setArtists] = useState<Artist[]>([]);
+  const [sections, setSections] = useState<SectionData<Artist[]>[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
+  const sectionListRef = useRef<SectionList>(null);
 
   // Calculate columns dynamically
   const availableWidth = width - SCREEN_PADDING;
-  // min columns 2
   const numColumns = Math.max(
-    2,
+    3, // Min 3 columns for better density
     Math.floor((availableWidth + GAP) / (TARGET_WIDTH + GAP))
   );
   const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
 
   useEffect(() => {
-    loadArtists(0);
+    loadArtists();
   }, [mode]);
 
-  const loadArtists = async (pageNum: number) => {
+  const loadArtists = async () => {
     try {
-      if (pageNum === 0) setLoading(true);
-
-      const res = await getArtistList(20, pageNum, mode);
+      setLoading(true);
+      // Fetch all artists (limit 1000)
+      const res = await getArtistList(1000, 0, mode);
 
       if (res.code === 200 && res.data) {
-        const { list, total } = res.data;
-        if (pageNum === 0) {
-          setArtists(list);
-        } else {
-          setArtists((prev) => [...prev, ...list]);
-        }
-        setHasMore(artists.length + list.length < total);
-        setPage(pageNum);
+        const { list } = res.data;
+        const grouped = groupAndSort(list, (item) => item.name);
+        
+        // Chunk data for grid layout within sections
+        const gridSections: any[] = grouped.map(section => ({
+          ...section,
+          data: chunkArray(section.data, numColumns)
+        }));
+        
+        setSections(gridSections);
       }
     } catch (error) {
       console.error("Failed to load artists:", error);
@@ -69,13 +79,17 @@ const ArtistList = () => {
     }
   };
 
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      loadArtists(page + 1);
+  const handleScrollToSection = (sectionIndex: number) => {
+    if (sectionListRef.current && sections.length > 0) {
+      sectionListRef.current.scrollToLocation({
+        sectionIndex,
+        itemIndex: 0,
+        animated: false, // Instant jump is better for drag
+      });
     }
   };
-  // ... rest of ArtistList
-  if (loading && page === 0) {
+
+  if (loading) {
     return (
       <ActivityIndicator
         size="large"
@@ -86,46 +100,54 @@ const ArtistList = () => {
   }
 
   return (
-    <FlatList
-      data={artists}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={{ width: itemWidth }}
-          onPress={() => router.push(`/artist/${item.id}`)}
-        >
-          <Image
-            source={{
-              uri: item.avatar
-                ? `${getBaseURL()}${item.avatar}`
-                : `https://picsum.photos/seed/${item.id}/200/200`,
-            }}
-            style={[
-              styles.image,
-              {
-                width: itemWidth,
-                height: itemWidth,
-                backgroundColor: colors.card,
-              },
-            ]}
-          />
-          <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-            {item.name}
-          </Text>
-        </TouchableOpacity>
-      )}
-      keyExtractor={(item) => item.id.toString()}
-      key={numColumns} // Force re-render when columns change
-      numColumns={numColumns}
-      columnWrapperStyle={[styles.row, { gap: GAP }]}
-      contentContainerStyle={styles.listContent}
-      onEndReached={handleLoadMore}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={
-        hasMore ? (
-          <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />
-        ) : null
-      }
-    />
+    <View style={styles.listContainer}>
+      <SectionList
+        ref={sectionListRef}
+        sections={sections}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        keyExtractor={(item, index) => `row-${index}`}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
+            <Text style={[styles.sectionHeaderText, { color: colors.primary }]}>{title}</Text>
+          </View>
+        )}
+        renderItem={({ item: rowItems }) => (
+          <View style={[styles.row, { gap: GAP }]}>
+            {(rowItems as Artist[]).map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={{ width: itemWidth }}
+                onPress={() => router.push(`/artist/${item.id}`)}
+              >
+                <Image
+                  source={{
+                    uri: item.avatar
+                      ? `${getBaseURL()}${item.avatar}`
+                      : `https://picsum.photos/seed/${item.id}/200/200`,
+                  }}
+                  style={[
+                    styles.image,
+                    {
+                      width: itemWidth,
+                      height: itemWidth,
+                      backgroundColor: colors.card,
+                    },
+                  ]}
+                />
+                <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+                  {item.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      />
+      <AlphabetSidebar 
+        sections={sections.map(s => s.title)} 
+        onSelect={(section, index) => handleScrollToSection(index)}
+      />
+    </View>
   );
 };
 
@@ -134,42 +156,42 @@ const AlbumList = () => {
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
-  const [albums, setAlbums] = useState<Album[]>([]);
+  const [sections, setSections] = useState<SectionData<Album[]>[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
+  const sectionListRef = useRef<SectionList>(null);
 
   // Calculate columns dynamically
   const availableWidth = width - SCREEN_PADDING;
   const numColumns = Math.max(
-    2,
+    3,
     Math.floor((availableWidth + GAP) / (TARGET_WIDTH + GAP))
   );
   const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
 
   useEffect(() => {
-    loadAlbums(0);
+    loadAlbums();
   }, [mode]);
 
-  const loadAlbums = async (pageNum: number) => {
+  const loadAlbums = async () => {
     try {
-      if (pageNum === 0) setLoading(true);
-
+      setLoading(true);
       const res = await loadMoreAlbum({
-        pageSize: 20,
-        loadCount: pageNum,
+        pageSize: 1000,
+        loadCount: 0,
         type: mode,
       });
 
       if (res.code === 200 && res.data) {
-        const { list, total } = res.data;
-        if (pageNum === 0) {
-          setAlbums(list);
-        } else {
-          setAlbums((prev) => [...prev, ...list]);
-        }
-        setHasMore(albums.length + list.length < total);
-        setPage(pageNum);
+        const { list } = res.data;
+        const grouped = groupAndSort(list, (item) => item.name);
+        
+         // Chunk data for grid layout within sections
+         const gridSections: any[] = grouped.map(section => ({
+          ...section,
+          data: chunkArray(section.data, numColumns)
+        }));
+        
+        setSections(gridSections);
       }
     } catch (error) {
       console.error("Failed to load albums:", error);
@@ -178,13 +200,17 @@ const AlbumList = () => {
     }
   };
 
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      loadAlbums(page + 1);
+  const handleScrollToSection = (sectionIndex: number) => {
+    if (sectionListRef.current && sections.length > 0) {
+      sectionListRef.current.scrollToLocation({
+        sectionIndex,
+        itemIndex: 0,
+        animated: false,
+      });
     }
   };
 
-  if (loading && page === 0) {
+  if (loading) {
     return (
       <ActivityIndicator
         size="large"
@@ -195,55 +221,63 @@ const AlbumList = () => {
   }
 
   return (
-    <FlatList
-      data={albums}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={{ width: itemWidth }}
-          onPress={() => router.push(`/album/${item.id}`)}
-        >
-          <Image
-            source={{
-              uri: item.cover
-                ? `${getBaseURL()}${item.cover}`
-                : `https://picsum.photos/seed/${item.id}/200/200`,
-            }}
-            style={[
-              styles.albumImage,
-              {
-                width: itemWidth,
-                height: itemWidth,
-                backgroundColor: colors.card,
-              },
-            ]}
-          />
-          <Text
-            style={[styles.albumTitle, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {item.name}
-          </Text>
-          <Text
-            style={[styles.albumArtist, { color: colors.secondary }]}
-            numberOfLines={1}
-          >
-            {item.artist}
-          </Text>
-        </TouchableOpacity>
-      )}
-      keyExtractor={(item) => item.id.toString()}
-      key={numColumns}
-      numColumns={numColumns}
-      columnWrapperStyle={[styles.row, { gap: GAP }]}
-      contentContainerStyle={styles.listContent}
-      onEndReached={handleLoadMore}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={
-        hasMore ? (
-          <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />
-        ) : null
-      }
-    />
+    <View style={styles.listContainer}>
+      <SectionList
+        ref={sectionListRef}
+        sections={sections}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        keyExtractor={(item, index) => `row-${index}`}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
+            <Text style={[styles.sectionHeaderText, { color: colors.primary }]}>{title}</Text>
+          </View>
+        )}
+        renderItem={({ item: rowItems }) => (
+          <View style={[styles.row, { gap: GAP }]}>
+            {(rowItems as Album[]).map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={{ width: itemWidth }}
+                onPress={() => router.push(`/album/${item.id}`)}
+              >
+                <Image
+                  source={{
+                    uri: item.cover
+                      ? `${getBaseURL()}${item.cover}`
+                      : `https://picsum.photos/seed/${item.id}/200/200`,
+                  }}
+                  style={[
+                    styles.albumImage,
+                    {
+                      width: itemWidth,
+                      height: itemWidth,
+                      backgroundColor: colors.card,
+                    },
+                  ]}
+                />
+                <Text
+                  style={[styles.albumTitle, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+                <Text
+                  style={[styles.albumArtist, { color: colors.secondary }]}
+                  numberOfLines={1}
+                >
+                  {item.artist}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      />
+      <AlphabetSidebar 
+        sections={sections.map(s => s.title)} 
+        onSelect={(section, index) => handleScrollToSection(index)}
+      />
+    </View>
   );
 };
 
@@ -315,19 +349,10 @@ export default function LibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
-  header: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  headerTop: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: "bold",
+  listContainer: {
+    flex: 1,
+    flexDirection: 'row',
   },
   tabContent: {
     paddingHorizontal: 20,
@@ -352,11 +377,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   listContent: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  sectionHeader: {
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  sectionHeaderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   row: {
-    // justifyContent: "space-between", // removed for gap support
-    marginBottom: 20,
+    flexDirection: 'row',
+    marginBottom: 15,
   },
   // Removed fixed Width styles
   image: {
