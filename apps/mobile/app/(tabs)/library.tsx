@@ -142,6 +142,15 @@ const ArtistList = () => {
             ))}
           </View>
         )}
+        onScrollToIndexFailed={() => {
+          // Fallback if needed
+        }}
+        initialNumToRender={20}
+        maxToRenderPerBatch={20}
+        windowSize={10}
+        updateCellsBatchingPeriod={10}
+        removeClippedSubviews={false} // Setting to false often fixes bounce in grid layouts
+        stickySectionHeadersEnabled={false} // Sticky headers can cause jumpy behavior on some RN versions
       />
       <AlphabetSidebar 
         sections={sections.map(s => s.title)} 
@@ -272,6 +281,15 @@ const AlbumList = () => {
             ))}
           </View>
         )}
+        onScrollToIndexFailed={() => {
+          // Fallback if needed
+        }}
+        initialNumToRender={20}
+        maxToRenderPerBatch={20}
+        windowSize={10}
+        updateCellsBatchingPeriod={10}
+        removeClippedSubviews={false}
+        stickySectionHeadersEnabled={false}
       />
       <AlphabetSidebar 
         sections={sections.map(s => s.title)} 

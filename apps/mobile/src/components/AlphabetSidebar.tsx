@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import {
-  PanResponder,
+  GestureResponderEvent,
   StyleSheet,
   Text,
   View,
@@ -18,45 +18,51 @@ export const AlphabetSidebar = ({ sections, onSelect, style }: Props) => {
   const { colors } = useTheme();
   const [containerHeight, setContainerHeight] = useState(0);
   const [containerLayout, setContainerLayout] = useState<{ y: number, height: number } | null>(null);
+  const containerRef = useRef<View>(null);
+  const lastIndex = useRef<number>(-1);
 
-  const handleSelect = (y: number) => {
+  const handleTouch = (e: GestureResponderEvent) => {
     if (!containerHeight || sections.length === 0) return;
     
+    // locationY is the most stable relative coordinate inside the sidebar component
+    const y = e.nativeEvent.locationY;
     const itemHeight = containerHeight / sections.length;
-    const index = Math.floor(y / itemHeight);
+    let index = Math.floor(y / itemHeight);
     
-    if (index >= 0 && index < sections.length) {
+    index = Math.max(0, Math.min(index, sections.length - 1));
+    
+    if (index !== lastIndex.current) {
+      lastIndex.current = index;
       onSelect(sections[index], index);
     }
   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt, gestureState) => {
-        handleSelect(evt.nativeEvent.locationY);
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        handleSelect(evt.nativeEvent.locationY);
-      },
-    })
-  ).current;
-
   return (
     <View
+      ref={containerRef}
       style={[styles.container, style]}
-      {...panResponder.panHandlers}
       onLayout={(e) => {
-        setContainerHeight(e.nativeEvent.layout.height);
+        const h = e.nativeEvent.layout.height;
+        setContainerHeight(h);
+        containerRef.current?.measure((x, y, width, height, pageX, pageY) => {
+          if (pageY) setContainerLayout({ y: pageY, height });
+        });
       }}
+      onStartShouldSetResponder={() => true}
+      onMoveShouldSetResponder={() => true}
+      onResponderGrant={handleTouch}
+      onResponderMove={handleTouch}
+      hitSlop={{ left: 20, right: 20, top: 0, bottom: 0 }}
     >
       {sections.map((section, index) => (
-        <View key={index} style={styles.item}>
+        <View key={index} style={styles.item} pointerEvents="none">
           <Text
             style={[
               styles.text,
-              { color: colors.primary, fontSize: sections.length > 26 ? 8 : 10 },
+              { 
+                color: colors.primary, 
+                fontSize: sections.length > 20 ? 9 : 11 
+              },
             ]}
           >
             {section}
@@ -70,15 +76,14 @@ export const AlphabetSidebar = ({ sections, onSelect, style }: Props) => {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    right: 2,
+    right: 0,
     top: 60,
     bottom: 60,
-    width: 20,
+    width: 25,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.5)", // slight background for touch area visibility
-    borderRadius: 10,
-    zIndex: 100,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    zIndex: 9999,
   },
   item: {
     flex: 1,

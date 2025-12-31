@@ -18,9 +18,10 @@ export const groupAndSort = <T>(
       const firstChar = name[0];
       if (/[a-zA-Z]/.test(firstChar)) {
         initial = firstChar.toUpperCase();
-      } else if (/[\u4e00-\u9fa5]/.test(firstChar)) {
-        const pinyin = Pinyin.convertToPinyin(firstChar); // returns 'ZHONG'
-        if (pinyin && pinyin.length > 0) {
+      } else {
+        // Use Pinyin for any non-English character
+        const pinyin = Pinyin.convertToPinyin(firstChar);
+        if (pinyin && pinyin.length > 0 && /[A-Z]/.test(pinyin[0].toUpperCase())) {
           initial = pinyin[0].toUpperCase();
         }
       }
