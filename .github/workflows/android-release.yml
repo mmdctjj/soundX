@@ -41,6 +41,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Patch react-native-track-player
+        run: |
+          FILE=$(find node_modules -name MusicModule.kt | grep "react-native-track-player")
+          if [ -n "$FILE" ]; then
+            echo "Patching $FILE"
+            # Fix "Bundle?" being passed where "Bundle" is expected
+            sed -i 's/metadata.putBundle(Metas.METADATA_KEY_EXTRAS, bundle)/metadata.putBundle(Metas.METADATA_KEY_EXTRAS, bundle ?: Bundle())/g' "$FILE"
+            sed -i 's/intent.putExtras(bundle)/intent.putExtras(bundle ?: Bundle())/g' "$FILE"
+          else
+            echo "MusicModule.kt not found"
+          fi
+
       - name: Build Dependencies
         run: |
           pnpm --filter @soundx/ws run build
