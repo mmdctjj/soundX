@@ -1,5 +1,6 @@
 import { SettingOutlined, SyncOutlined } from "@ant-design/icons";
-import { Avatar, Button, Col, Row, Skeleton, Typography } from "antd";
+import { useDebounceFn } from "ahooks";
+import { Avatar, Button, Col, Flex, Row, Skeleton, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Cover from "../../components/Cover/index";
@@ -42,6 +43,19 @@ const Recommended: React.FC = () => {
   useEffect(() => {
     loadSections();
   }, [playMode]);
+
+  // Debounce resize to re-fetch data based on new width
+  const { run: debouncedRefresh } = useDebounceFn(
+    () => {
+      loadSections(true); // Bypass cache on resize to get correct count
+    },
+    { wait: 500 }
+  );
+
+  useEffect(() => {
+    window.addEventListener("resize", debouncedRefresh);
+    return () => window.removeEventListener("resize", debouncedRefresh);
+  }, [debouncedRefresh]);
 
   const getCacheKey = (base: string) => `${base}_${playMode}`;
 
@@ -281,22 +295,21 @@ const Recommended: React.FC = () => {
   // Show skeleton loading on initial load
   if (loading) {
     return (
-      <div className={styles.container}>
-        {[1, 2, 3].map((sectionIndex) => (
-          <div key={sectionIndex} className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <Title level={3} className={styles.sectionTitle}>
-                <Skeleton.Node />
-              </Title>
-            </div>
-            <div className={styles.grid}>
-              {Array.from({ length: 8 }).map((_, index) => (
+      <Flex gap={16} vertical className={styles.container}>
+        {[1, 2].map((sectionIndex) => (
+          <Flex key={sectionIndex} gap={16} vertical>
+            <Flex justify="space-between" align="center">
+              <Skeleton.Input />
+              <Skeleton.Input size="small" />
+            </Flex>
+            <Flex gap={16}>
+              {Array.from({ length: 4 }).map((_, index) => (
                 <Cover.Skeleton key={`skeleton-${sectionIndex}-${index}`} />
               ))}
-            </div>
-          </div>
+            </Flex>
+          </Flex>
         ))}
-      </div>
+      </Flex>
     );
   }
 
