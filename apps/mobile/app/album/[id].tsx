@@ -1,3 +1,6 @@
+import { AddToPlaylistModal } from "@/src/components/AddToPlaylistModal";
+import PlayingIndicator from "@/src/components/PlayingIndicator";
+import { TrackMoreModal } from "@/src/components/TrackMoreModal";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import { getBaseURL } from "@/src/https";
@@ -7,23 +10,31 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { colors } = useTheme();
-  const { playTrack, playTrackList } = usePlayer();
+  const { playTrack, playTrackList, currentTrack, isPlaying } = usePlayer();
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [moreModalVisible, setMoreModalVisible] = useState(false);
+  const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
+
+  const PAGE_SIZE = 50;
 
   useEffect(() => {
     if (id) {
@@ -36,15 +47,37 @@ export default function AlbumDetailScreen() {
       setLoading(true);
       const [albumRes, tracksRes] = await Promise.all([
         getAlbumById(albumId),
-        getAlbumTracks(albumId, 100, 0),
+        getAlbumTracks(albumId, PAGE_SIZE, 0),
       ]);
 
       if (albumRes.code === 200) setAlbum(albumRes.data);
-      if (tracksRes.code === 200) setTracks(tracksRes.data.list);
+      if (tracksRes.code === 200) {
+        setTracks(tracksRes.data.list);
+        setTotal(tracksRes.data.total);
+        setHasMore(tracksRes.data.list.length < tracksRes.data.total);
+      }
     } catch (error) {
       console.error("Failed to load album details:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore || !album) return;
+
+    try {
+      setLoadingMore(true);
+      const res = await getAlbumTracks(album.id, PAGE_SIZE, tracks.length);
+      if (res.code === 200) {
+        const newList = [...tracks, ...res.data.list];
+        setTracks(newList);
+        setHasMore(newList.length < res.data.total);
+      }
+    } catch (error) {
+      console.error("Failed to load more tracks:", error);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -86,75 +119,114 @@ export default function AlbumDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
-      <ScrollView>
-        <View style={styles.header}>
-          <Image
-            source={{
-              uri: album.cover
-                ? `${getBaseURL()}${album.cover}`
-                : `https://picsum.photos/seed/${album.id}/300/300`,
-            }}
-            style={styles.cover}
-          />
-          <Text style={[styles.title, { color: colors.text }]}>
-            {album.name}
-          </Text>
-          <Text style={[styles.artist, { color: colors.secondary }]}>
-            {album.artist}
-          </Text>
-        </View>
-
-        <View style={styles.trackList}>
-          {tracks.map((track, index) => (
-            <TouchableOpacity
-              key={track.id}
-              style={[styles.trackItem, { borderBottomColor: colors.border }]}
-              onPress={() => {
-                playTrackList(tracks, index);
+      <FlatList
+        data={tracks}
+        keyExtractor={(item) => item.id.toString()}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Image
+              source={{
+                uri: album.cover
+                  ? `${getBaseURL()}${album.cover}`
+                  : `https://picsum.photos/seed/${album.id}/300/300`,
               }}
-            >
-              <Text style={[styles.trackIndex, { color: colors.secondary }]}>
-                {index + 1}
+              style={styles.cover}
+            />
+            <Text style={[styles.title, { color: colors.text }]}>
+              {album.name}
+            </Text>
+            <Text style={[styles.artist, { color: colors.secondary }]}>
+              {album.artist}
+            </Text>
+          </View>
+        }
+        renderItem={({ item, index }) => (
+          <TouchableOpacity
+            style={[styles.trackItem, { borderBottomColor: colors.border }]}
+            onPress={() => {
+              playTrackList(tracks, index);
+            }}
+            onLongPress={() => {
+              setSelectedTrack(item);
+              setMoreModalVisible(true);
+            }}
+          >
+            <View style={styles.trackIndexContainer}>
+              {currentTrack?.id === item.id && isPlaying ? (
+                <PlayingIndicator />
+              ) : (
+                <Text style={[styles.trackIndex, { color: currentTrack?.id === item.id ? colors.primary : colors.secondary }]}>
+                  {index + 1}
+                </Text>
+              )}
+            </View>
+            <Image
+              source={{
+                uri: item.cover
+                  ? `${getBaseURL()}${item.cover}`
+                  : `https://picsum.photos/seed/${item.id}/20/20`,
+              }}
+              alt=""
+              style={{ width: 20, height: 20, borderRadius: 2 }}
+            />
+            <View style={styles.trackInfo}>
+              <Text
+                style={[styles.trackName, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {item.name}
               </Text>
-              <Image
-                source={{
-                  uri: track.cover
-                    ? `${getBaseURL()}${track.cover}`
-                    : `https://picsum.photos/seed/${track.id}/20/20`,
-                }}
-                alt=""
-                style={{ width: 20, height: 20, borderRadius: 2 }}
-              />
-              <View style={styles.trackInfo}>
-                <Text
-                  style={[styles.trackName, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {track.name}
+            </View>
+            {album.type === "AUDIOBOOK" &&
+            item.listenedAsAudiobookByUsers?.[0]?.progress ? (
+              <View style={{ marginRight: 10 }}>
+                <Text style={{ fontSize: 10, color: colors.primary }}>
+                  {Math.floor(
+                    ((item.listenedAsAudiobookByUsers[0].progress || 0) /
+                      (item.duration || 1)) *
+                      100
+                  )}
+                  %
                 </Text>
               </View>
-              {album.type === "AUDIOBOOK" &&
-              track.listenedAsAudiobookByUsers?.[0]?.progress ? (
-                <View style={{ marginRight: 10 }}>
-                  <Text style={{ fontSize: 10, color: colors.primary }}>
-                    {Math.floor(
-                      ((track.listenedAsAudiobookByUsers[0].progress || 0) /
-                        (track.duration || 1)) *
-                        100
-                    )}
-                    %
-                  </Text>
-                </View>
-              ) : null}
-              <Text style={[styles.trackDuration, { color: colors.secondary }]}>
-                {track.duration
-                  ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, "0")}`
-                  : "--:--"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+            ) : null}
+            <Text style={[styles.trackDuration, { color: colors.secondary }]}>
+              {item.duration
+                ? `${Math.floor(item.duration / 60)}:${(item.duration % 60).toString().padStart(2, "0")}`
+                : "--:--"}
+            </Text>
+          </TouchableOpacity>
+        )}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ padding: 20 }}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : null
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+      />
+
+      <TrackMoreModal
+        visible={moreModalVisible}
+        track={selectedTrack}
+        onClose={() => setMoreModalVisible(false)}
+        onAddToPlaylist={(track) => {
+          setSelectedTrack(track);
+          setAddToPlaylistVisible(true);
+        }}
+        onDeleteSuccess={(id) => {
+          setTracks(tracks.filter((t) => t.id !== id));
+        }}
+      />
+
+      <AddToPlaylistModal
+        visible={addToPlaylistVisible}
+        trackId={selectedTrack?.id ?? null}
+        onClose={() => setAddToPlaylistVisible(false)}
+      />
     </View>
   );
 }
@@ -202,8 +274,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   trackIndex: {
-    width: 30,
     fontSize: 14,
+    textAlign: 'center',
+  },
+  trackIndexContainer: {
+    width: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   trackInfo: {
     flex: 1,

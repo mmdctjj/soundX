@@ -6,26 +6,26 @@ import * as Device from "expo-device";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import {
-  RenderItemParams,
-  ScaleDecorator,
+    RenderItemParams,
+    ScaleDecorator,
 } from "react-native-draggable-flatlist";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../src/context/ThemeContext";
 import { getBaseURL } from "../../src/https";
 import {
-  getRecentAlbums,
-  getRecommendedAlbums,
+    getRecentAlbums,
+    getRecommendedAlbums,
 } from "../../src/services/album";
 import { getLatestArtists } from "../../src/services/artist";
 import { getLatestTracks } from "../../src/services/track";
@@ -42,7 +42,7 @@ interface Section {
 export default function HomeScreen() {
   const { colors } = useTheme();
   const { playTrack } = usePlayer();
-  const { mode } = usePlayMode();
+  const { mode, setMode } = usePlayMode();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -293,10 +293,18 @@ export default function HomeScreen() {
       >
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>推荐</Text>
-          <Image
-            source={{ uri: "https://picsum.photos/seed/user/100/100" }}
-            style={styles.userAvatar}
-          />
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => setMode(mode === "MUSIC" ? "AUDIOBOOK" : "MUSIC")}
+              style={[styles.modeToggle, { backgroundColor: colors.card }]}
+            >
+              <Ionicons
+                name={mode === "MUSIC" ? "musical-notes" : "headset"}
+                size={20}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -489,6 +497,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    marginLeft: 12,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  modeToggle: {
+    padding: 8,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchBar: {
     marginHorizontal: 20,

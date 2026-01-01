@@ -1,30 +1,38 @@
+import PlayingIndicator from "@/src/components/PlayingIndicator";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import { getBaseURL } from "@/src/https";
 import { Playlist } from "@/src/models";
-import { getPlaylistDetail } from "@/src/services/playlist";
+import { deletePlaylist, getPlaylistDetail, updatePlaylist } from "@/src/services/playlist";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ViewStyle,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { colors } = useTheme();
-  const { playTrack, playTrackList } = usePlayer();
+  const { colors, theme } = useTheme();
+  const { playTrack, playTrackList, currentTrack, isPlaying } = usePlayer();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [loading, setLoading] = useState(true);
+  const [moreModalVisible, setMoreModalVisible] = useState(false);
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [updating, setUpdating] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -43,6 +51,44 @@ export default function PlaylistDetailScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRename = async () => {
+    if (!playlist || !newName.trim()) return;
+    setUpdating(true);
+    try {
+      const res = await updatePlaylist(playlist.id, { name: newName.trim() });
+      if (res.code === 200) {
+        setPlaylist({ ...playlist, name: newName.trim() });
+        setRenameModalVisible(false);
+      }
+    } catch (e) {
+      console.error("Rename failed", e);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDelete = () => {
+    if (!playlist) return;
+    setMoreModalVisible(false);
+    Alert.alert("解散播放列表", `确定要解散“${playlist.name}”吗？`, [
+      { text: "取消", style: "cancel" },
+      {
+        text: "确定",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const res = await deletePlaylist(playlist.id);
+            if (res.code === 200) {
+              router.back();
+            }
+          } catch (e) {
+            console.error("Delete failed", e);
+          }
+        },
+      },
+    ]);
   };
 
   if (loading) {
@@ -103,15 +149,27 @@ export default function PlaylistDetailScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
+        
+        <View style={styles.headerTextContainer}>
+          <Text style={[styles.headerTitleText, { color: colors.text }]} numberOfLines={1}>
+            {playlist.name}
+          </Text>
+          <Text style={[styles.headerSubtitleText, { color: colors.secondary }]}>
+            {tracks.length} 首歌曲
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => setMoreModalVisible(true)}
+          style={styles.moreButton}
+        >
+          <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
+        </TouchableOpacity>
       </View>
       <ScrollView>
         {/* Photo Wall - Staggered Grid */}
         <View style={styles.photoWall}>
           {uniqueAlbums.map((album, index) => {
-            // Pattern:
-            // Row 1 (4 items): 0.5 - 1 - 1 - 0.5
-            // Row 2 (3 items): 1 - 1 - 1
-            // Row 3 (4 items): 0.5 - 1 - 1 - 0.5
             const isSmall = [0, 3, 7, 10].includes(index);
             const itemStyle = {
               width: isSmall ? "16.66%" : "33.33%",
@@ -135,15 +193,6 @@ export default function PlaylistDetailScreen() {
           })}
         </View>
 
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            {playlist.name}
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.secondary }]}>
-            {tracks.length} 首歌曲
-          </Text>
-        </View>
-
         <View style={styles.trackList}>
           {tracks.map((track, index) => (
             <TouchableOpacity
@@ -153,9 +202,15 @@ export default function PlaylistDetailScreen() {
                 playTrackList(tracks, index);
               }}
             >
-              <Text style={[styles.trackIndex, { color: colors.secondary }]}>
-                {index + 1}
-              </Text>
+              <View style={styles.trackIndexContainer}>
+                {currentTrack?.id === track.id && isPlaying ? (
+                  <PlayingIndicator />
+                ) : (
+                  <Text style={[styles.trackIndex, { color: currentTrack?.id === track.id ? colors.primary : colors.secondary }]}>
+                    {index + 1}
+                  </Text>
+                )}
+              </View>
               <Image
                 source={{
                   uri: track.cover
@@ -190,6 +245,89 @@ export default function PlaylistDetailScreen() {
           ))}
         </View>
       </ScrollView>
+
+      {/* More Actions Menu */}
+      <Modal
+        visible={moreModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setMoreModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.menuOverlay}
+          activeOpacity={1}
+          onPress={() => setMoreModalVisible(false)}
+        >
+          <View style={[styles.menuContent, { backgroundColor: colors.card }]}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMoreModalVisible(false);
+                setNewName(playlist.name);
+                setRenameModalVisible(true);
+              }}
+            >
+              <Ionicons name="create-outline" size={20} color={colors.text} />
+              <Text style={[styles.menuText, { color: colors.text }]}>修改名称</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleDelete}
+            >
+              <Ionicons name="trash-outline" size={20} color="#ff4d4f" />
+              <Text style={[styles.menuText, styles.dangerText]}>解散播放列表</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.menuItem, { marginTop: 10, justifyContent: 'center' }]}
+              onPress={() => setMoreModalVisible(false)}
+            >
+              <Text style={[styles.menuText, { color: colors.secondary }]}>取消</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Rename Modal */}
+      <Modal
+        visible={renameModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>修改播放列表名称</Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+              value={newName}
+              onChangeText={setNewName}
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setRenameModalVisible(false)}
+              >
+                <Text style={{ color: colors.secondary }}>取消</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: colors.primary }]}
+                onPress={handleRename}
+                disabled={updating || !newName.trim()}
+              >
+                {updating ? (
+                  <ActivityIndicator size="small" color={theme === 'dark' ? '#000' : '#fff'} />
+                ) : (
+                  <Text style={[styles.confirmText, { color: theme === 'dark' ? '#000' : '#fff' }]}>
+                    确定
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -206,9 +344,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingBottom: 10,
     zIndex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerTextContainer: {
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: 10,
+  },
+  headerTitleText: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  headerSubtitleText: {
+    fontSize: 12,
   },
   backButton: {
     padding: 5,
+    width: 40,
   },
   title: {
     fontSize: 24,
@@ -249,8 +403,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   trackIndex: {
-    width: 30,
     fontSize: 14,
+    textAlign: 'center',
+  },
+  trackIndexContainer: {
+    width: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   trackInfo: {
     flex: 1,
@@ -265,5 +424,78 @@ const styles = StyleSheet.create({
   },
   trackDuration: {
     fontSize: 12,
+  },
+  moreButton: {
+    padding: 5,
+    width: 40,
+    alignItems: "flex-end",
+  },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  menuContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+    gap: 12,
+  },
+  menuText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  dangerText: {
+    color: "#ff4d4f",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    borderRadius: 20,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  cancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  confirmBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  confirmText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });

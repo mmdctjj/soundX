@@ -1,3 +1,6 @@
+import { AddToPlaylistModal } from "@/src/components/AddToPlaylistModal";
+import PlayingIndicator from "@/src/components/PlayingIndicator";
+import { TrackMoreModal } from "@/src/components/TrackMoreModal";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import { getBaseURL } from "@/src/https";
@@ -10,25 +13,28 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function ArtistDetailScreen() {
   const { id } = useLocalSearchParams();
   const { colors } = useTheme();
-  const { playTrackList } = usePlayer();
+  const { playTrackList, currentTrack, isPlaying } = usePlayer();
   const { mode } = usePlayMode();
   const router = useRouter();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [moreModalVisible, setMoreModalVisible] = useState(false);
+  const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -145,9 +151,17 @@ export default function ArtistDetailScreen() {
 
         {mode !== TrackType.AUDIOBOOK && (
           <View style={[styles.section, styles.trackList]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              所有单曲 ({tracks.length})
-            </Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+                所有单曲 ({tracks.length})
+              </Text>
+              <TouchableOpacity
+                onPress={() => tracks.length > 0 && playTrackList(tracks, 0)}
+                style={[styles.playButton, { backgroundColor: colors.primary }]}
+              >
+                <Ionicons name="play" size={20} color={colors.background} />
+              </TouchableOpacity>
+            </View>
             {tracks.map((track, index) => (
               <TouchableOpacity
                 key={track.id}
@@ -155,10 +169,20 @@ export default function ArtistDetailScreen() {
                 onPress={() => {
                   playTrackList(tracks, index);
                 }}
+                onLongPress={() => {
+                  setSelectedTrack(track);
+                  setMoreModalVisible(true);
+                }}
               >
-                <Text style={[styles.trackIndex, { color: colors.secondary }]}>
-                  {index + 1}
-                </Text>
+                <View style={styles.trackIndexContainer}>
+                  {currentTrack?.id === track.id && isPlaying ? (
+                    <PlayingIndicator />
+                  ) : (
+                    <Text style={[styles.trackIndex, { color: currentTrack?.id === track.id ? colors.primary : colors.secondary }]}>
+                      {index + 1}
+                    </Text>
+                  )}
+                </View>
                 <View style={styles.trackInfo}>
                   <Image
                     source={{
@@ -186,6 +210,25 @@ export default function ArtistDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      <TrackMoreModal
+        visible={moreModalVisible}
+        track={selectedTrack}
+        onClose={() => setMoreModalVisible(false)}
+        onAddToPlaylist={(track) => {
+          setSelectedTrack(track);
+          setAddToPlaylistVisible(true);
+        }}
+        onDeleteSuccess={(id) => {
+          setTracks(tracks.filter((t) => t.id !== id));
+        }}
+      />
+
+      <AddToPlaylistModal
+        visible={addToPlaylistVisible}
+        trackId={selectedTrack?.id ?? null}
+        onClose={() => setAddToPlaylistVisible(false)}
+      />
     </View>
   );
 }
@@ -230,6 +273,19 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 15,
   },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  playButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   albumCard: {
     marginRight: 15,
     width: 120,
@@ -251,8 +307,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   trackIndex: {
-    width: 20,
     fontSize: 14,
+    textAlign: 'center',
+  },
+  trackIndexContainer: {
+    width: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   trackInfo: {
     flex: 1,

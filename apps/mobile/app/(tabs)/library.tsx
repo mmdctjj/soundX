@@ -1,5 +1,6 @@
 import { AlphabetSidebar } from "@/src/components/AlphabetSidebar";
 import { groupAndSort, SectionData } from "@/src/utils/pinyin";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -302,6 +303,8 @@ const AlbumList = () => {
 export default function LibraryScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { mode, setMode } = usePlayMode();
   const [activeTab, setActiveTab] = useState<"artists" | "albums">("artists");
 
   return (
@@ -311,6 +314,28 @@ export default function LibraryScreen() {
         { backgroundColor: colors.background, paddingTop: insets.top },
       ]}
     >
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>声仓</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={() => router.push("/search")}
+            style={[styles.iconButton, { backgroundColor: colors.card }]}
+          >
+            <Ionicons name="search" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setMode(mode === "MUSIC" ? "AUDIOBOOK" : "MUSIC")}
+            style={[styles.iconButton, { backgroundColor: colors.card, marginLeft: 12 }]}
+          >
+            <Ionicons
+              name={mode === "MUSIC" ? "musical-notes" : "headset"}
+              size={20}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={styles.tabContent}>
         <View
           style={[
@@ -375,6 +400,28 @@ const styles = StyleSheet.create({
   tabContent: {
     paddingHorizontal: 20,
     paddingBottom: 15,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: 20,
+    paddingBottom: 15,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: "bold",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  iconButton: {
+    padding: 8,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   segmentedControl: {
     flexDirection: "row",

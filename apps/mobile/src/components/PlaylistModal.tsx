@@ -1,3 +1,4 @@
+import PlayingIndicator from "@/src/components/PlayingIndicator";
 import { useAuth } from "@/src/context/AuthContext";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
@@ -38,6 +39,7 @@ export const PlaylistModal = () => {
     showPlaylist,
     setShowPlaylist,
     playTrack,
+    isPlaying,
   } = usePlayer();
 
   const [activeTab, setActiveTab] = useState<TabType>("current");
@@ -149,6 +151,9 @@ export const PlaylistModal = () => {
           >
             {item.name}
           </Text>
+          {isActive && isPlaying && (
+            <PlayingIndicator />
+          )}
           {isAlbum && (
             <Ionicons
               name="chevron-forward"

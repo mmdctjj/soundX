@@ -5,8 +5,10 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -16,7 +18,7 @@ import { usePlayer } from "../../src/context/PlayerContext";
 import { useTheme } from "../../src/context/ThemeContext";
 import { getBaseURL } from "../../src/https";
 import { Playlist, Track } from "../../src/models";
-import { getPlaylists } from "../../src/services/playlist";
+import { createPlaylist, getPlaylists } from "../../src/services/playlist";
 import { getHistoryTracks, getLikedTracks } from "../../src/services/user";
 import { usePlayMode } from "../../src/utils/playMode";
 
@@ -76,6 +78,10 @@ export default function PersonalScreen() {
   const [favorites, setFavorites] = useState<Track[]>([]);
   const [history, setHistory] = useState<Track[]>([]);
 
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [creating, setCreating] = useState(false);
+
   useEffect(() => {
     if (user) {
       loadData();
@@ -100,6 +106,30 @@ export default function PersonalScreen() {
       console.error("Failed to load personal data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreatePlaylist = async () => {
+    if (!user || !newPlaylistName.trim()) return;
+    
+    setCreating(true);
+    try {
+      const res = await createPlaylist({
+        name: newPlaylistName.trim(),
+        type: mode as any,
+        userId: user.id
+      });
+      
+      if (res.code === 200) {
+        setCreateModalVisible(false);
+        setNewPlaylistName("");
+        await loadData();
+        router.push(`/playlist/${res.data.id}`);
+      }
+    } catch (error) {
+      console.error("Failed to create playlist:", error);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -156,7 +186,9 @@ export default function PersonalScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={() => setCreateModalVisible(true)} style={styles.iconBtn}>
+          <Ionicons name="add" size={28} color={colors.text} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push("/settings")} style={styles.iconBtn}>
           <Ionicons name="settings-outline" size={24} color={colors.text} />
         </TouchableOpacity>
@@ -219,6 +251,58 @@ export default function PersonalScreen() {
           }
         />
       )}
+
+      <Modal
+        visible={createModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setCreateModalVisible(false)}
+      >
+        <View style={styles.createModalOverlay}>
+          <View style={[styles.createModalContent, { backgroundColor: colors.card }]}>
+            <Text style={[styles.createModalTitle, { color: colors.text }]}>新建播放列表</Text>
+            <TextInput
+              style={[
+                styles.createInput,
+                { 
+                  color: colors.text, 
+                  borderColor: colors.border,
+                  backgroundColor: colors.background 
+                }
+              ]}
+              placeholder="请输入列表名称"
+              placeholderTextColor={colors.secondary}
+              value={newPlaylistName}
+              onChangeText={setNewPlaylistName}
+              autoFocus
+            />
+            <View style={styles.createModalButtons}>
+              <TouchableOpacity 
+                style={styles.createCancelBtn} 
+                onPress={() => {
+                  setCreateModalVisible(false);
+                  setNewPlaylistName("");
+                }}
+              >
+                <Text style={{ color: colors.secondary }}>取消</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.createConfirmBtn, { backgroundColor: colors.primary }]} 
+                onPress={handleCreatePlaylist}
+                disabled={creating || !newPlaylistName.trim()}
+              >
+                {creating ? (
+                  <ActivityIndicator size="small" color={theme === 'dark' ? '#000' : '#fff'} />
+                ) : (
+                  <Text style={[styles.createConfirmText, { color: theme === 'dark' ? '#000' : '#fff' }]}>
+                    确定
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -346,6 +430,57 @@ const styles = StyleSheet.create({
   logoutText: {
     color: "#fff",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  createModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  createModalContent: {
+    width: "80%",
+    borderRadius: 20,
+    padding: 24,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  createModalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  createInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  createModalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  createCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    justifyContent: "center",
+  },
+  createConfirmBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    justifyContent: "center",
+    minWidth: 80,
+    alignItems: "center",
+  },
+  createConfirmText: {
+    color: "#fff",
     fontWeight: "bold",
   },
 });
