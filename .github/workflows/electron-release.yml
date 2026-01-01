@@ -68,7 +68,7 @@ jobs:
             apps/desktop/release/*.deb
             apps/desktop/release/*.blockmap
             apps/desktop/release/latest*.yml
-          generate_release_notes: true
+          generate_release_notes: ${{ matrix.platform == 'mac' }}
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
