@@ -114,3 +114,16 @@ export const getHistoryAlbums = (userId: number, loadCount: number = 0, pageSize
     params: { userId, loadCount, pageSize, type }
   });
 };
+
+export const toggleAlbumLike = (albumId: number, userId: number) => {
+  return request.post<any, ISuccessResponse<any>>("/user-album-likes", {
+    albumId,
+    userId,
+  });
+};
+
+export const unlikeAlbum = (albumId: number, userId: number) => {
+  return request.delete<any, ISuccessResponse<any>>("/user-album-likes/unlike", {
+    params: { albumId, userId }
+  });
+};

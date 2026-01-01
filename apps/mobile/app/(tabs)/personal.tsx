@@ -18,6 +18,7 @@ import { usePlayer } from "../../src/context/PlayerContext";
 import { useTheme } from "../../src/context/ThemeContext";
 import { getBaseURL } from "../../src/https";
 import { Playlist, Track } from "../../src/models";
+import { getHistoryAlbums, getLikedAlbums } from "../../src/services/album";
 import { createPlaylist, getPlaylists } from "../../src/services/playlist";
 import { getHistoryTracks, getLikedTracks } from "../../src/services/user";
 import { usePlayMode } from "../../src/utils/playMode";
@@ -25,6 +26,7 @@ import { usePlayMode } from "../../src/utils/playMode";
 import { Ionicons } from "@expo/vector-icons";
 
 type TabType = "playlists" | "favorites" | "history";
+type SubTabType = "track" | "album";
 
 const StackedCover = ({ tracks }: { tracks: any[] }) => {
   const covers = (tracks || []).slice(0, 4);
@@ -79,11 +81,12 @@ export default function PersonalScreen() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<TabType>("playlists");
+  const [activeSubTab, setActiveSubTab] = useState<SubTabType>("track");
   const [loading, setLoading] = useState(false);
   
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [favorites, setFavorites] = useState<Track[]>([]);
-  const [history, setHistory] = useState<Track[]>([]);
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
 
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
@@ -94,7 +97,7 @@ export default function PersonalScreen() {
       if (user) {
         loadData();
       }
-    }, [user, activeTab, mode])
+    }, [user, activeTab, activeSubTab, mode])
   );
 
   const loadData = async () => {
@@ -105,11 +108,21 @@ export default function PersonalScreen() {
         const res = await getPlaylists(user.id, mode as any); 
         if (res.code === 200) setPlaylists(res.data);
       } else if (activeTab === "favorites") {
-        const res = await getLikedTracks(user.id, 0, 10000, mode as any);
-        if (res.code === 200) setFavorites(res.data.list.map((item: any) => item.track));
+        if (mode === "MUSIC" && activeSubTab === "track") {
+          const res = await getLikedTracks(user.id, 0, 10000, mode as any);
+          if (res.code === 200) setFavorites(res.data.list.map((item: any) => item.track));
+        } else {
+          const res = await getLikedAlbums(user.id, 0, 10000, mode as any);
+          if (res.code === 200) setFavorites(res.data.list.map((item: any) => item.album));
+        }
       } else if (activeTab === "history") {
-        const res = await getHistoryTracks(user.id, 0, 10000, mode as any);
-        if (res.code === 200) setHistory(res.data.list.map((item: any) => item.track));
+        if (mode === "MUSIC" && activeSubTab === "track") {
+          const res = await getHistoryTracks(user.id, 0, 10000, mode as any);
+          if (res.code === 200) setHistory(res.data.list.map((item: any) => item.track));
+        } else {
+          const res = await getHistoryAlbums(user.id, 0, 10000, mode as any);
+          if (res.code === 200) setHistory(res.data.list.map((item: any) => item.album));
+        }
       }
     } catch (error) {
       console.error("Failed to load personal data:", error);
@@ -144,13 +157,12 @@ export default function PersonalScreen() {
 
   const renderItem = React.useCallback(({ item }: { item: any }) => {
     const isPlaylist = activeTab === "playlists";
-    const data = isPlaylist ? (item as Playlist) : (item as Track);
+    const isAlbum = activeTab !== "playlists" && (mode === "AUDIOBOOK" || activeSubTab === "album");
+    const data = item;
     let coverUrl = "https://picsum.photos/100";
-    if (!isPlaylist) {
-      const track = item as Track;
-      if (track.cover) {
-        coverUrl = track.cover.startsWith("http") ? track.cover : `${getBaseURL()}${track.cover}`;
-      }
+    
+    if (item.cover) {
+      coverUrl = item.cover.startsWith("http") ? item.cover : `${getBaseURL()}${item.cover}`;
     }
     
     return (
@@ -159,6 +171,8 @@ export default function PersonalScreen() {
         onPress={() => {
           if (isPlaylist) {
             router.push(`/playlist/${(data as Playlist).id}`);
+          } else if (isAlbum) {
+            router.push(`/album/${data.id}`);
           } else {
             const list = activeTab === "favorites" ? favorites : history;
             const index = list.findIndex(t => t.id === (data as Track).id);
@@ -179,12 +193,14 @@ export default function PersonalScreen() {
             {data.name}
           </Text>
           <Text style={[styles.itemSubtitle, { color: colors.secondary }]}>
-            {isPlaylist ? `${(data as Playlist)._count?.tracks || (data as Playlist).tracks?.length || 0} 首` : (data as Track).artist}
+            {isPlaylist 
+              ? `${(data as Playlist)._count?.tracks || (data as Playlist).tracks?.length || 0} 首` 
+              : (isAlbum ? (data.artist || "") : (data as Track).artist)}
           </Text>
         </View>
       </TouchableOpacity>
     );
-  }, [activeTab, colors, favorites, history, playTrackList]);
+  }, [activeTab, activeSubTab, colors, favorites, history, playTrackList, mode]);
 
   return (
     <View
@@ -241,6 +257,42 @@ export default function PersonalScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Sub-tabs for MUSIC mode */}
+      {mode === "MUSIC" && (activeTab === "favorites" || activeTab === "history") && (
+        <View style={styles.subTabContainer}>
+          {[
+            { id: "album", label: "专辑" },
+            { id: "track", label: "单曲" },
+          ].map((sub) => (
+            <TouchableOpacity
+              key={sub.id}
+              style={[
+                styles.subTabItem,
+                activeSubTab === sub.id && {
+                  backgroundColor: "rgba(150,150,150,0.1)",
+                },
+              ]}
+              onPress={() => setActiveSubTab(sub.id as SubTabType)}
+            >
+              <Text
+                style={[
+                  styles.subTabText,
+                  {
+                    color:
+                      activeSubTab === sub.id
+                        ? colors.primary
+                        : colors.secondary,
+                  },
+                  activeSubTab === sub.id && { fontWeight: "bold" },
+                ]}
+              >
+                {sub.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* List Content */}
       {loading ? (
@@ -360,6 +412,20 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 16,
+  },
+  subTabContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    gap: 12,
+  },
+  subTabItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  subTabText: {
+    fontSize: 14,
   },
   item: {
     flexDirection: "row",

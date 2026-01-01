@@ -2,11 +2,12 @@ import { AddToPlaylistModal } from "@/src/components/AddToPlaylistModal";
 import { AlbumMoreModal } from "@/src/components/AlbumMoreModal";
 import PlayingIndicator from "@/src/components/PlayingIndicator";
 import { TrackMoreModal } from "@/src/components/TrackMoreModal";
+import { useAuth } from "@/src/context/AuthContext";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import { getBaseURL } from "@/src/https";
 import { Album, Track } from "@/src/models";
-import { getAlbumById, getAlbumTracks } from "@/src/services/album";
+import { getAlbumById, getAlbumTracks, toggleAlbumLike, unlikeAlbum } from "@/src/services/album";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -25,9 +26,11 @@ export default function AlbumDetailScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { playTrack, playTrackList, currentTrack, isPlaying } = usePlayer();
+  const { user } = useAuth();
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLiked, setIsLiked] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
@@ -52,7 +55,14 @@ export default function AlbumDetailScreen() {
         getAlbumTracks(albumId, PAGE_SIZE, 0),
       ]);
 
-      if (albumRes.code === 200) setAlbum(albumRes.data);
+      if (albumRes.code === 200) {
+        setAlbum(albumRes.data);
+        const likedByUsers = albumRes.data.likedByUsers || [];
+        const isLikedByCurrentUser = likedByUsers.some(
+          (like: any) => like.userId === user?.id
+        );
+        setIsLiked(isLikedByCurrentUser);
+      }
       if (tracksRes.code === 200) {
         setTracks(tracksRes.data.list);
         setTotal(tracksRes.data.total);
@@ -80,6 +90,21 @@ export default function AlbumDetailScreen() {
       console.error("Failed to load more tracks:", error);
     } finally {
       setLoadingMore(false);
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (!user || !album) return;
+    try {
+      const res = isLiked 
+        ? await unlikeAlbum(album.id, user.id)
+        : await toggleAlbumLike(album.id, user.id);
+        
+      if (res.code === 200) {
+        setIsLiked(!isLiked);
+      }
+    } catch (error) {
+      console.error("Failed to toggle album like:", error);
     }
   };
 
@@ -153,6 +178,16 @@ export default function AlbumDetailScreen() {
               >
                 <Ionicons name="play" size={20} color={colors.background} />
                 <Text style={[styles.playAllText, { color: colors.background }]}>播放全部</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.likeButton, { backgroundColor: colors.card }]}
+                onPress={handleToggleLike}
+              >
+                <Ionicons
+                  name={isLiked ? "heart" : "heart-outline"}
+                  size={24}
+                  color={isLiked ? colors.primary : colors.secondary}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -319,6 +354,14 @@ const styles = StyleSheet.create({
   playAllText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  likeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 15,
   },
   trackList: {
     padding: 20,
