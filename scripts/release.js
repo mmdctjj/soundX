@@ -8,6 +8,7 @@ const PACKAGES = [
   'package.json',
   'apps/desktop/package.json',
   'apps/mobile/package.json',
+  'apps/mobile/app.json',
   'services/api/package.json',
   'packages/db/package.json',
   'packages/utils/package.json',
@@ -100,7 +101,11 @@ function updateVersions(newVersion) {
   PACKAGES.forEach(pkgPath => {
     if (fs.existsSync(pkgPath)) {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-      pkg.version = newVersion;
+      if (pkgPath.endsWith('app.json') && pkg.expo) {
+        pkg.expo.version = newVersion;
+      } else {
+        pkg.version = newVersion;
+      }
       fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
       console.log(`Updated ${pkgPath} to ${newVersion}`);
     } else {
