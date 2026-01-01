@@ -67,6 +67,16 @@ export class PlaylistController {
     }
   }
 
+  @Post(':id/tracks/batch')
+  async addTracks(@Param('id') id: string, @Body('trackIds') trackIds: number[]) {
+    try {
+      const data = await this.playlistService.addTracks(+id, trackIds);
+      return { code: 200, message: 'success', data };
+    } catch (error) {
+      return { code: 500, message: error };
+    }
+  }
+
   @Delete(':id/tracks/:trackId')
   async removeTrack(@Param('id') id: string, @Param('trackId') trackId: string) {
     try {

@@ -1,4 +1,5 @@
 import { AddToPlaylistModal } from "@/src/components/AddToPlaylistModal";
+import { AlbumMoreModal } from "@/src/components/AlbumMoreModal";
 import PlayingIndicator from "@/src/components/PlayingIndicator";
 import { TrackMoreModal } from "@/src/components/TrackMoreModal";
 import { usePlayer } from "@/src/context/PlayerContext";
@@ -32,6 +33,7 @@ export default function AlbumDetailScreen() {
   const [total, setTotal] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [moreModalVisible, setMoreModalVisible] = useState(false);
+  const [albumMoreVisible, setAlbumMoreVisible] = useState(false);
   const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
 
   const PAGE_SIZE = 50;
@@ -118,6 +120,12 @@ export default function AlbumDetailScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setAlbumMoreVisible(true)}
+          style={styles.moreButton}
+        >
+          <Ionicons name="ellipsis-vertical" size={24} color={colors.text} />
+        </TouchableOpacity>
       </View>
       <FlatList
         data={tracks}
@@ -138,6 +146,15 @@ export default function AlbumDetailScreen() {
             <Text style={[styles.artist, { color: colors.secondary }]}>
               {album.artist}
             </Text>
+            <View style={styles.actions}>
+              <TouchableOpacity
+                style={[styles.playAllButton, { backgroundColor: colors.primary }]}
+                onPress={() => playTrackList(tracks, 0)}
+              >
+                <Ionicons name="play" size={20} color={colors.background} />
+                <Text style={[styles.playAllText, { color: colors.background }]}>播放全部</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         }
         renderItem={({ item, index }) => (
@@ -225,7 +242,23 @@ export default function AlbumDetailScreen() {
       <AddToPlaylistModal
         visible={addToPlaylistVisible}
         trackId={selectedTrack?.id ?? null}
-        onClose={() => setAddToPlaylistVisible(false)}
+        trackIds={selectedTrack ? undefined : tracks.map(t => t.id)}
+        onClose={() => {
+          setAddToPlaylistVisible(false);
+          setSelectedTrack(null);
+        }}
+      />
+
+      <AlbumMoreModal
+        visible={albumMoreVisible}
+        album={album}
+        trackIds={tracks.map(t => t.id)}
+        onClose={() => setAlbumMoreVisible(false)}
+        onAddToPlaylist={() => {
+          setAlbumMoreVisible(false);
+          setSelectedTrack(null);
+          setAddToPlaylistVisible(true);
+        }}
       />
     </View>
   );
@@ -244,8 +277,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingBottom: 10,
     zIndex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   backButton: {
+    padding: 5,
+  },
+  moreButton: {
     padding: 5,
   },
   cover: {
@@ -263,6 +302,23 @@ const styles = StyleSheet.create({
   artist: {
     fontSize: 18,
     textAlign: "center",
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  playAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 25,
+    paddingVertical: 10,
+    borderRadius: 25,
+    gap: 8,
+  },
+  playAllText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   trackList: {
     padding: 20,

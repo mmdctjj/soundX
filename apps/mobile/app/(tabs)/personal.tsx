@@ -1,6 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -22,11 +22,13 @@ import { createPlaylist, getPlaylists } from "../../src/services/playlist";
 import { getHistoryTracks, getLikedTracks } from "../../src/services/user";
 import { usePlayMode } from "../../src/utils/playMode";
 
+import { Ionicons } from "@expo/vector-icons";
+
 type TabType = "playlists" | "favorites" | "history";
 
 const StackedCover = ({ tracks }: { tracks: any[] }) => {
-  const covers = (tracks || []).slice(0, 3);
-  
+  const covers = (tracks || []).slice(0, 4);
+  const { colors } = useTheme();
   return (
     <View style={styles.stackedCoverContainer}>
       {covers.map((track, index) => {
@@ -43,11 +45,16 @@ const StackedCover = ({ tracks }: { tracks: any[] }) => {
               styles.itemCover,
               styles.stackedCover,
               { 
-                zIndex: 3 - index,
-                left: index * 10,
-                top: index * 4,
+                zIndex: 4 - index,
+                left: index * 6,
+                top: index * 3,
                 position: index === 0 ? 'relative' : 'absolute',
-                opacity: 1 - (index * 0.2)
+                opacity: 1 - (index * 0.1),
+                borderColor: colors.card,
+                borderWidth: index === 0 ? 0 : 1,
+                transform: [
+                  { scale: 1 - (index * 0.04) },
+                ]
               }
             ]}
           />
@@ -82,11 +89,13 @@ export default function PersonalScreen() {
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user, activeTab, mode]);
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadData();
+      }
+    }, [user, activeTab, mode])
+  );
 
   const loadData = async () => {
     if (!user) return;
@@ -381,8 +390,11 @@ const styles = StyleSheet.create({
     marginRight: 15,
   },
   stackedCover: {
-    borderWidth: 2,
-    borderColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   center: {
     flex: 1,

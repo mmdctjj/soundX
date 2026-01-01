@@ -27,6 +27,10 @@ export const addTrackToPlaylist = (playlistId: number, trackId: number) => {
   return request.post<any, ISuccessResponse<any>>(`/playlists/${playlistId}/tracks`, { trackId });
 };
 
+export const addTracksToPlaylist = (playlistId: number, trackIds: number[]) => {
+  return request.post<any, ISuccessResponse<any>>(`/playlists/${playlistId}/tracks/batch`, { trackIds });
+};
+
 export const removeTrackFromPlaylist = (playlistId: number, trackId: number) => {
   return request.delete<any, ISuccessResponse<any>>(`/playlists/${playlistId}/tracks/${trackId}`);
 };

@@ -13,12 +13,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { Playlist, TrackType } from "../models";
-import { addTrackToPlaylist, getPlaylists } from "../services/playlist";
+import { addTracksToPlaylist, addTrackToPlaylist, getPlaylists } from "../services/playlist";
 import { usePlayMode } from "../utils/playMode";
 
 interface AddToPlaylistModalProps {
   visible: boolean;
-  trackId: number | null;
+  trackId?: number | null;
+  trackIds?: number[];
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -26,6 +27,7 @@ interface AddToPlaylistModalProps {
 export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   visible,
   trackId,
+  trackIds,
   onClose,
   onSuccess,
 }) => {
@@ -59,16 +61,22 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   };
 
   const handleAddToPlaylist = async (playlistId: number) => {
-    if (!trackId) return;
+    if (!trackId && (!trackIds || trackIds.length === 0)) return;
     try {
       setAddingId(playlistId);
-      const res = await addTrackToPlaylist(playlistId, trackId);
-      if (res.code === 200) {
+      let res;
+      if (trackIds && trackIds.length > 0) {
+        res = await addTracksToPlaylist(playlistId, trackIds);
+      } else if (trackId) {
+        res = await addTrackToPlaylist(playlistId, trackId);
+      }
+
+      if (res && res.code === 200) {
         onSuccess?.();
         onClose();
       }
     } catch (e) {
-      console.error("Failed to add track to playlist", e);
+      console.error("Failed to add track(s) to playlist", e);
     } finally {
       setAddingId(null);
     }

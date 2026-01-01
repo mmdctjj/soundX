@@ -5,14 +5,15 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AddToPlaylistModal } from "./AddToPlaylistModal";
 import SleepTimerModal from "./SleepTimerModal";
 
 interface PlayerMoreModalProps {
@@ -33,6 +34,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [sleepTimerVisible, setSleepTimerVisible] = useState(false);
+  const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
   const { sleepTimer, position, seekTo, playbackRate, setPlaybackRate } = usePlayer();
   const [remainingTime, setRemainingTime] = useState<string>("");
 
@@ -127,6 +129,16 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       label: remainingTime ? `定时关闭 (${remainingTime})` : "定时关闭",
       onPress: handleSleepTimer,
       disabled: false,
+      isMaterialIcon: false,
+    },
+    {
+      icon: "add-circle-outline" as const,
+      label: "添加到播放列表",
+      onPress: () => {
+        setVisible(false);
+        setAddToPlaylistVisible(true);
+      },
+      disabled: !currentTrack,
       isMaterialIcon: false,
     },
     {
@@ -244,6 +256,12 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       <SleepTimerModal
         visible={sleepTimerVisible}
         onClose={() => setSleepTimerVisible(false)}
+      />
+
+      <AddToPlaylistModal
+        visible={addToPlaylistVisible}
+        trackId={currentTrack?.id ?? null}
+        onClose={() => setAddToPlaylistVisible(false)}
       />
     </>
   );

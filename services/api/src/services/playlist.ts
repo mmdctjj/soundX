@@ -24,7 +24,7 @@ export class PlaylistService {
       },
       include: {
         tracks: {
-          take: 3,
+          take: 4,
           select: { id: true, cover: true },
         },
         _count: {
@@ -65,6 +65,17 @@ export class PlaylistService {
       data: {
         tracks: {
           connect: { id: trackId },
+        },
+      },
+    });
+  }
+
+  async addTracks(playlistId: number, trackIds: number[]) {
+    return await this.prisma.playlist.update({
+      where: { id: playlistId },
+      data: {
+        tracks: {
+          connect: trackIds.map((id) => ({ id })),
         },
       },
     });
