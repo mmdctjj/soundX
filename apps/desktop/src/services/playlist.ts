@@ -15,11 +15,11 @@ export interface Playlist {
   tracks?: Track[];
 }
 
-export const createPlaylist = async (name: string, type: "MUSIC" | "AUDIOBOOK", userId: number = 1) => {
+export const createPlaylist = async (name: string, type: "MUSIC" | "AUDIOBOOK", userId: number) => {
   return await request.post<any, ISuccessResponse<boolean>>("/playlists", { name, type, userId });
 };
 
-export const getPlaylists = async (type?: "MUSIC" | "AUDIOBOOK", userId: number = 1) => {
+export const getPlaylists = async (type?: "MUSIC" | "AUDIOBOOK", userId?: number) => {
   return await request.get<any, ISuccessResponse<Playlist[]>>("/playlists", { params: { userId, type } });
 };
 

@@ -1,32 +1,32 @@
 import {
-  CaretRightOutlined,
-  CloudDownloadOutlined,
-  DeleteOutlined,
-  HeartFilled,
-  HeartOutlined,
-  MoreOutlined,
-  PauseCircleFilled,
-  PlayCircleFilled,
-  PlayCircleOutlined,
-  PlusOutlined,
-  SearchOutlined,
-  SortAscendingOutlined,
-  SortDescendingOutlined
+    CaretRightOutlined,
+    CloudDownloadOutlined,
+    DeleteOutlined,
+    HeartFilled,
+    HeartOutlined,
+    MoreOutlined,
+    PauseCircleFilled,
+    PlayCircleFilled,
+    PlayCircleOutlined,
+    PlusOutlined,
+    SearchOutlined,
+    SortAscendingOutlined,
+    SortDescendingOutlined
 } from "@ant-design/icons";
 import { useRequest } from "ahooks";
 import {
-  Avatar,
-  Col,
-  Dropdown,
-  Flex,
-  Input,
-  List,
-  type MenuProps,
-  Modal,
-  Row,
-  Table,
-  theme,
-  Typography,
+    Avatar,
+    Col,
+    Dropdown,
+    Flex,
+    Input,
+    List,
+    type MenuProps,
+    Modal,
+    Row,
+    Table,
+    theme,
+    Typography,
 } from "antd";
 import type { ColumnProps } from "antd/es/table";
 import React, { useEffect, useState } from "react";
@@ -36,9 +36,9 @@ import { getBaseURL } from "../../https";
 import { type Album, type Track, TrackType } from "../../models";
 import { getAlbumById, getAlbumTracks } from "../../services/album";
 import {
-  addTrackToPlaylist,
-  getPlaylists,
-  type Playlist,
+    addTrackToPlaylist,
+    getPlaylists,
+    type Playlist,
 } from "../../services/playlist";
 import { deleteTrack, getDeletionImpact } from "../../services/track";
 import { toggleAlbumLike, unlikeAlbum } from "../../services/user";
@@ -219,7 +219,7 @@ const Detail: React.FC = () => {
     setSelectedTrack(track);
     setIsAddToPlaylistModalOpen(true);
     try {
-      const res = await getPlaylists(mode);
+      const res = await getPlaylists(mode, user?.id);
       if (res.code === 200) {
         setPlaylists(res.data);
       }

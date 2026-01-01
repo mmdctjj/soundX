@@ -1,21 +1,22 @@
 import {
-  AppstoreOutlined,
-  CompassOutlined,
-  CustomerServiceOutlined,
-  HeartOutlined,
-  PlusOutlined,
-  SoundOutlined,
-  TeamOutlined,
+    AppstoreOutlined,
+    CompassOutlined,
+    CustomerServiceOutlined,
+    HeartOutlined,
+    PlusOutlined,
+    SoundOutlined,
+    TeamOutlined,
 } from "@ant-design/icons";
 import { Form, Input, Modal, theme, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import {
-  createPlaylist,
-  getPlaylists,
-  type Playlist,
+    createPlaylist,
+    getPlaylists,
+    type Playlist,
 } from "../../services/playlist";
+import { useAuthStore } from "../../store/auth";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
@@ -32,10 +33,11 @@ const Sidebar: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const { mode } = usePlayMode();
+  const { user } = useAuthStore();
 
   const fetchPlaylists = async () => {
     try {
-      const res = await getPlaylists(mode);
+      const res = await getPlaylists(mode, user?.id);
       if (res.code === 200) {
         setPlaylists(res.data);
       }
@@ -45,16 +47,19 @@ const Sidebar: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchPlaylists();
-  }, [mode]);
+    if (user?.id) {
+      fetchPlaylists();
+    }
+  }, [mode, user?.id]);
 
   const isActive = (path: string) => location.pathname === path;
 
   const handleCreatePlaylist = async () => {
     try {
       const values = await form.validateFields();
+      if (!user?.id) return;
       setLoading(true);
-      const res = await createPlaylist(values.name, mode);
+      const res = await createPlaylist(values.name, mode, user.id);
 
       if (res.code === 200) {
         message.success("创建成功");

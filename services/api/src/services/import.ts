@@ -117,7 +117,6 @@ export class ImportService {
       task.total = musicResults.length + audiobookResults.length;
       task.current = 0;
 
-      const playlistsData = new Map<string, number[]>();
 
       const processItem = async (item: any, type: TrackType, audioBasePath: string, index: number) => {
         const artistName = item.artist || '未知';
@@ -183,18 +182,6 @@ export class ImportService {
           trackId = newTrack.id;
         }
 
-        // Collect playlist data (only for MUSIC mode)
-        if (type === TrackType.MUSIC) {
-          const relativePath = path.relative(audioBasePath, item.path);
-          const segments = relativePath.split(path.sep);
-          if (segments.length > 1) {
-            const folderName = segments[0];
-            if (!playlistsData.has(folderName)) {
-              playlistsData.set(folderName, []);
-            }
-            playlistsData.get(folderName)!.push(trackId);
-          }
-        }
 
         task.current = (task.current || 0) + 1;
       };
@@ -211,37 +198,6 @@ export class ImportService {
         await processItem(item || {}, TrackType.AUDIOBOOK, audiobookPath, index);
       }
 
-      // 4. Create/Update Playlists based on folders
-      this.logger.log(`Syncing ${playlistsData.size} folder-based playlists...`);
-      const defaultUser = await this.prisma.user.findFirst();
-      const userId = defaultUser ? defaultUser.id : 1;
-
-      for (const [folderName, trackIds] of playlistsData.entries()) {
-        let playlist = await this.prisma.playlist.findFirst({
-          where: { name: folderName, userId }
-        });
-
-        if (!playlist) {
-          playlist = await this.prisma.playlist.create({
-            data: {
-              name: folderName,
-              userId: userId,
-              type: TrackType.MUSIC,
-            }
-          });
-        }
-
-        // Connect tracks to playlist (batch)
-        // Note: connect only adds new relations without removing existing ones
-        await this.prisma.playlist.update({
-          where: { id: playlist.id },
-          data: {
-            tracks: {
-              connect: trackIds.map(id => ({ id }))
-            }
-          }
-        });
-      }
 
       task.status = TaskStatus.SUCCESS;
     } catch (error) {

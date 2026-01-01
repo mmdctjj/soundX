@@ -1,33 +1,33 @@
 import Icon, {
-  BackwardOutlined, // Added as per instruction
-  DeliveredProcedureOutlined,
-  DownOutlined,
-  FontColorsOutlined,
-  ForwardOutlined,
-  OrderedListOutlined,
-  PauseCircleFilled,
-  PlayCircleFilled,
-  SoundOutlined,
-  StepBackwardOutlined,
-  StepForwardOutlined,
-  TeamOutlined,
+    BackwardOutlined, // Added as per instruction
+    DeliveredProcedureOutlined,
+    DownOutlined,
+    FontColorsOutlined,
+    ForwardOutlined,
+    OrderedListOutlined,
+    PauseCircleFilled,
+    PlayCircleFilled,
+    SoundOutlined,
+    StepBackwardOutlined,
+    StepForwardOutlined,
+    TeamOutlined,
 } from "@ant-design/icons";
 import {
-  Avatar, // Added
-  Button,
-  Drawer,
-  Flex,
-  InputNumber,
-  List, // Rename to avoid conflict if needed, though useMessage is typically context. Context is safer.
-  Modal,
-  notification, // Added
-  Popover,
-  Slider,
-  Space, // Added
-  Tabs,
-  theme,
-  Tooltip,
-  Typography,
+    Avatar, // Added
+    Button,
+    Drawer,
+    Flex,
+    InputNumber,
+    List, // Rename to avoid conflict if needed, though useMessage is typically context. Context is safer.
+    Modal,
+    notification, // Added
+    Popover,
+    Slider,
+    Space, // Added
+    Tabs,
+    theme,
+    Tooltip,
+    Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -41,9 +41,9 @@ import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
 import { type Device, type Track, TrackType } from "../../models";
 import {
-  addTrackToPlaylist,
-  getPlaylists,
-  type Playlist,
+    addTrackToPlaylist,
+    getPlaylists,
+    type Playlist,
 } from "../../services/playlist";
 import { socketService } from "../../services/socket";
 import { deleteTrack, getDeletionImpact } from "../../services/track";
@@ -85,6 +85,7 @@ const Player: React.FC = () => {
     removeTrack,
   } = usePlayerStore();
   const { mode: appMode } = usePlayMode();
+  const { user } = useAuthStore();
   const { updateDesktopLyric } = useSettingsStore();
   const desktopLyricEnable = useSettingsStore((state) => state.desktopLyric.enable);
 
@@ -866,7 +867,7 @@ const Player: React.FC = () => {
     setSelectedTrack(track);
     setIsAddToPlaylistModalOpen(true);
     try {
-      const res = await getPlaylists(appMode);
+      const res = await getPlaylists(appMode, user?.id);
       if (res.code === 200) {
         setPlaylists(res.data);
       }

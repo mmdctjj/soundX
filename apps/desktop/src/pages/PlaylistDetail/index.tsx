@@ -39,6 +39,7 @@ import {
   updatePlaylist,
   type Playlist,
 } from "../../services/playlist";
+import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { getCoverUrl } from "../../utils";
 import { formatDuration } from "../../utils/formatDuration";
@@ -80,6 +81,7 @@ const PlaylistDetail: React.FC = () => {
   } = usePlayerStore();
 
   const { mode } = usePlayMode();
+  const { user } = useAuthStore();
 
   const fetchPlaylist = async () => {
     if (!id) return;
@@ -162,7 +164,7 @@ const PlaylistDetail: React.FC = () => {
     setPendingAction("move");
     setIsAddToPlaylistModalOpen(true);
     try {
-      const res = await getPlaylists(mode);
+      const res = await getPlaylists(mode, user?.id);
       if (res.code === 200) {
         setPlaylists(res.data);
       }
@@ -410,10 +412,10 @@ const PlaylistDetail: React.FC = () => {
                     }}
                   />
                   <Popconfirm
-                    title="确定删除该播放列表?"
-                    description="删除后无法恢复"
+                    title="确定解散该播放列表?"
+                    description="解散后无法恢复"
                     onConfirm={handleDeletePlaylist}
-                    okText="删除"
+                    okText="解散"
                     cancelText="取消"
                     okButtonProps={{ danger: true }}
                   >
