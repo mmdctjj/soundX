@@ -73,12 +73,23 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
 
+      - name: Rename and Prepare APK
+        id: prepare_apk
+        run: |
+          VERSION=$(node -p "require('./apps/mobile/app.json').expo.version")
+          OLD_PATH="apps/mobile/android/app/build/outputs/apk/release/app-release.apk"
+          NEW_NAME="AudioDock-${VERSION}.apk"
+          NEW_PATH="apps/mobile/android/app/build/outputs/apk/release/${NEW_NAME}"
+          mv "$OLD_PATH" "$NEW_PATH"
+          echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
+          echo "apk_name=$NEW_NAME" >> $GITHUB_OUTPUT
+
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            apps/mobile/android/app/build/outputs/apk/release/*.apk
+            ${{ steps.prepare_apk.outputs.apk_path }}
           generate_release_notes: true
           make_latest: true
         env:
