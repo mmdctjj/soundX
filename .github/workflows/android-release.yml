@@ -47,6 +47,11 @@ jobs:
           pnpm --filter @soundx/utils run build
           pnpm --filter @soundx/db run generate
 
+      - name: Expo Prebuild
+        run: |
+          cd apps/mobile
+          npx expo prebuild --platform android --no-install
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
