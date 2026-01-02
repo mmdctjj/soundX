@@ -17,6 +17,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@expo/config-plugins": "~54.0.4",
     "@expo/vector-icons": "^15.0.3",
     "@miblanchard/react-native-slider": "^2.6.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
