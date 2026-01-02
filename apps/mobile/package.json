@@ -29,6 +29,7 @@
     "axios": "^1.13.2",
     "expo": "~54.0.27",
     "expo-av": "~16.0.8",
+    "expo-build-properties": "~1.0.10",
     "expo-constants": "~18.0.11",
     "expo-device": "~8.0.10",
     "expo-file-system": "^19.0.21",

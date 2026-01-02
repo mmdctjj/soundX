@@ -35,13 +35,14 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.mobile",
       "usesCleartextTraffic": true,
-      "networkSecurityConfig": "./network_security_config.xml"
+      "networkSecurityConfig": "res/xml/network_security_config.xml"
     },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./scripts/withNetworkSecurityConfig.js",
       "expo-router",
       [
         "expo-splash-screen",
@@ -52,6 +53,15 @@
           "backgroundColor": "#ffffff",
           "dark": {
             "backgroundColor": "#000000"
+          }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "networkSecurityConfig": "res/xml/network_security_config.xml"
           }
         }
       ]
