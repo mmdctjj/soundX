@@ -105,6 +105,7 @@ const ArtistList = () => {
       <SectionList
         ref={sectionListRef}
         sections={sections}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         keyExtractor={(item, index) => `row-${index}`}
@@ -235,6 +236,7 @@ const AlbumList = () => {
       <SectionList
         ref={sectionListRef}
         sections={sections}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         keyExtractor={(item, index) => `row-${index}`}

@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-    Alert,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
@@ -70,7 +70,7 @@ export const TrackMoreModal: React.FC<TrackMoreModalProps> = ({
         <View
           style={[
             styles.content,
-            { backgroundColor: colors.card, paddingBottom: insets.bottom + 20 },
+            { backgroundColor: colors.card, paddingBottom: insets.bottom + 20, width: '100%', maxWidth: 450 },
           ]}
           onStartShouldSetResponder={() => true}
         >
@@ -119,6 +119,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
+    alignItems: 'center',
   },
   content: {
     borderTopLeftRadius: 20,

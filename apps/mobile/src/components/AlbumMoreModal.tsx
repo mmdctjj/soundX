@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
@@ -63,7 +63,10 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
       onRequestClose={onClose}
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={{ width: "100%" }} onPress={(e) => e.stopPropagation()}>
+        <Pressable 
+          style={{ width: "100%", maxWidth: 450, alignSelf: 'center' }} 
+          onPress={(e) => e.stopPropagation()}
+        >
           <View
             style={[
               styles.modalContent,
@@ -95,6 +98,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
+    alignItems: 'center',
   },
   modalContent: {
     borderTopLeftRadius: 20,

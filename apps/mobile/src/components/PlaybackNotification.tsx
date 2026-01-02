@@ -108,6 +108,9 @@ const styles = StyleSheet.create({
     top: 0,
     left: 12,
     right: 12,
+    maxWidth: 450,
+    alignSelf: 'center',
+    width: '100%',
     zIndex: 10000,
   },
   content: {

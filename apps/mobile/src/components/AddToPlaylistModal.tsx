@@ -97,7 +97,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
         <View
           style={[
             styles.content,
-            { backgroundColor: colors.card, paddingBottom: insets.bottom + 20 },
+            { backgroundColor: colors.card, paddingBottom: insets.bottom + 20, width: '100%', maxWidth: 450 },
           ]}
           onStartShouldSetResponder={() => true}
         >
@@ -148,6 +148,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
+    alignItems: 'center',
   },
   content: {
     borderTopLeftRadius: 20,

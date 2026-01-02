@@ -109,7 +109,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
         onPress={onClose}
       >
         <TouchableOpacity 
-            style={[styles.content, { backgroundColor: colors.card }]} 
+            style={[styles.content, { backgroundColor: colors.card, width: '100%', maxWidth: 450 }]} 
             activeOpacity={1}
             onPress={() => {}}
         >
@@ -156,6 +156,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   content: {
     borderTopLeftRadius: 20,

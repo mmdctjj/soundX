@@ -518,6 +518,7 @@ const styles = StyleSheet.create({
   },
   createModalContent: {
     width: "80%",
+    maxWidth: 450,
     borderRadius: 20,
     padding: 24,
     elevation: 5,
