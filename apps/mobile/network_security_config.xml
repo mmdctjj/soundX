@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-  <domain-config cleartextTrafficPermitted="true">
-    <domain includeSubdomains="true">api.example.com</domain>
-  </domain-config>
+    <!-- 允许所有 HTTP 流量（仅调试用） -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- 或者更精确地配置特定域名的 HTTP 访问 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- 允许局域网访问 -->
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android 模拟器主机IP -->
+        <domain includeSubdomains="true">192.168.</domain> <!-- 所有 192.168.x.x -->
+        <domain includeSubdomains="true">172.16.</domain>  <!-- 私有网络 -->
+        <domain includeSubdomains="true">169.254.</domain> <!-- 链路本地地址 -->
+    </domain-config>
 </network-security-config>
