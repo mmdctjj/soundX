@@ -4,7 +4,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { getBaseURL } from "@/src/https";
 import { Track, TrackType, UserTrackLike } from "@/src/models";
 import { likeTrack, unlikeTrack } from "@/src/services/track";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -349,8 +349,8 @@ export default function PlayerScreen() {
           }
           style={[styles.syncButton, isSynced && styles.syncButtonActive]}
         >
-          <MaterialCommunityIcons
-            name={isSynced ? "account-multiple" : "account-multiple-outline"}
+          <Ionicons
+            name={isSynced ? "people" : "people-outline"}
             size={24}
             color={isSynced ? colors.primary : colors.text}
           />
