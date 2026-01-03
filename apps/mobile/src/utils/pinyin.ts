@@ -1,4 +1,4 @@
-import Pinyin from "tiny-pinyin";
+import { pinyin } from "pinyin-pro";
 
 export interface SectionData<T> {
   title: string;
@@ -19,10 +19,15 @@ export const groupAndSort = <T>(
       if (/[a-zA-Z]/.test(firstChar)) {
         initial = firstChar.toUpperCase();
       } else {
-        // Use Pinyin for any non-English character
-        const pinyin = Pinyin.convertToPinyin(firstChar);
-        if (pinyin && pinyin.length > 0 && /[A-Z]/.test(pinyin[0].toUpperCase())) {
-          initial = pinyin[0].toUpperCase();
+        // Use pinyin-pro for non-English characters
+        try {
+          const py = pinyin(firstChar, { pattern: 'first', toneType: 'none', type: 'array' });
+          if (py && py.length > 0 && /[a-zA-Z]/.test(py[0])) {
+            initial = py[0].toUpperCase();
+          }
+        } catch (e) {
+          // Fallback to # if conversion fails
+          console.warn("Pinyin conversion failed for:", firstChar);
         }
       }
     }

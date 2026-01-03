@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: "bold",
   },
   headerRight: {

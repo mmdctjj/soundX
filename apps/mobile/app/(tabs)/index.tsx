@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: "bold",
   },
   userAvatar: {
