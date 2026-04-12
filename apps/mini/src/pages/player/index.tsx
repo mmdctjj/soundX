@@ -1,4 +1,4 @@
-import { getFavoriteTracks, toggleLike, toggleUnLike } from '@soundx/services';
+import { getFavoriteTracks, toggleTrackLike, toggleTrackUnLike } from '@soundx/services';
 import { Image, ScrollView, Slider, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useState } from 'react';
@@ -123,9 +123,9 @@ export default function Player() {
 
     try {
       if (previousLiked) {
-        await toggleUnLike(Number(currentTrack.id), user.id);
+        await toggleTrackUnLike(Number(currentTrack.id), user.id);
       } else {
-        await toggleLike(Number(currentTrack.id), user.id);
+        await toggleTrackLike(Number(currentTrack.id), user.id);
       }
     } catch (error) {
       console.error('Failed to toggle like', error);

@@ -426,17 +426,6 @@ export default function Library() {
              )}
            </>
          )}
-             <View className='empty-state'>
-                 <Text className='empty-text'>暂无数据</Text>
-             </View>
-         )}
-         {sortedItems.length > 0 && (
-           <View className='library-footer'>
-             <Text className='library-footer-text'>
-               {`共加载 ${sortedItems.length} ${activeTab === 'songs' ? '首' : activeTab === 'artists' ? '位艺术家' : '张专辑'}`}
-             </Text>
-           </View>
-         )}
          <View id='bottom-anchor' />
       </ScrollView>
 
