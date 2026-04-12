@@ -81,6 +81,15 @@ const messageContent: { [key in number]: string } = {
 
 instance.interceptors.request.use(
   async (config) => {
+    // Strip undefined values so they don't get serialized as "undefined" in URLs
+    if (config.params) {
+      Object.keys(config.params).forEach(key => {
+        if (config.params[key] === undefined) {
+          delete config.params[key];
+        }
+      });
+    }
+
     try {
       const token = Taro.getStorageSync("token");
 
