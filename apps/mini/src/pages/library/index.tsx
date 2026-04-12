@@ -6,7 +6,6 @@ import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import SkeletonBlock from '../../components/SkeletonBlock';
 import { usePlayer } from '../../context/PlayerContext';
-import { groupAndSort, SectionData } from '../../utils/pinyin';
 import { usePlayMode } from '../../utils/playMode';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
@@ -15,7 +14,6 @@ const SONG_SKELETON_COUNT = 9;
 const GRID_SKELETON_COUNT = 12;
 
 type LibraryTab = 'songs' | 'artists' | 'albums';
-type ListItem = Artist | Album | Track;
 
 export default function Library() {
   const { mode, setMode } = usePlayMode();
@@ -26,8 +24,7 @@ export default function Library() {
     artists: null,
     albums: null,
   });
-  const [sections, setSections] = useState<SectionData<ListItem>[]>([]);
-  const [sortedItems, setSortedItems] = useState<ListItem[]>([]);
+  const [sortedItems, setSortedItems] = useState<(Artist | Album | Track)[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -41,7 +38,6 @@ export default function Library() {
   const loadData = async (isLoadMore = false) => {
     if (!isLoadMore) {
       setLoading(true);
-      setSections([]);
       setSortedItems([]);
       setLoadCount(0);
       setHasMore(true);
@@ -67,7 +63,6 @@ export default function Library() {
               : [...list].sort((a, b) => a.name.localeCompare(b.name));
           const newItems = isLoadMore ? [...sortedItems, ...sorted] : sorted;
           setSortedItems(newItems);
-          setSections(groupAndSort(newItems, (item) => item.name));
           setTotal(res.data.total || newItems.length);
           setHasMore(res.data.hasMore ?? newItems.length < (res.data.total || 0));
           setLoadCount((isLoadMore ? loadCount : 0) + 1);
@@ -87,7 +82,6 @@ export default function Library() {
               : [...list].sort((a, b) => a.name.localeCompare(b.name));
           const newItems = isLoadMore ? [...sortedItems, ...sorted] : sorted;
           setSortedItems(newItems);
-          setSections(groupAndSort(newItems, (item) => item.name));
           setTotal(res.data.total || newItems.length);
           setHasMore(res.data.hasMore ?? newItems.length < (res.data.total || 0));
           setLoadCount((isLoadMore ? loadCount : 0) + 1);
@@ -108,7 +102,6 @@ export default function Library() {
               : [...list].sort((a, b) => a.name.localeCompare(b.name));
           const newItems = isLoadMore ? [...sortedItems, ...sorted] : sorted;
           setSortedItems(newItems);
-          setSections(groupAndSort(newItems, (item) => item.name));
           setTotal(res.data.total || newItems.length);
           setHasMore(res.data.hasMore ?? newItems.length < (res.data.total || 0));
           setLoadCount((isLoadMore ? loadCount : 0) + 1);
@@ -366,71 +359,78 @@ export default function Library() {
              )}
            </View>
          ) : (
-           sections.map((section, index) => (
-             <View key={section.title + index} className='section'>
-                 <View className='section-header'>
-                     <Text className='section-header-text'>{section.title}</Text>
-                 </View>
-                 {activeTab === 'songs' ? (
-                   <View className='track-list'>
-                     {section.data.map((item: any) => (
-                       <View
-                         key={item.id}
-                         id={`item-${item.id}`}
-                         className='track-item'
-                         onLongPress={() => openTrackMoreMenu(item as Track)}
-                         onClick={() => {
-                           const index = (sortedItems as Track[]).findIndex((track) => track.id === item.id);
-                           if (index > -1) {
-                             playTrackList(sortedItems as Track[], index);
-                           }
-                         }}
-                       >
-                         <Image src={getImageUrl(item.cover || null)} className='track-cover' mode='aspectFill' />
-                         <View className='track-info'>
-                           <Text className={`track-name ${currentTrack?.id === item.id ? 'active' : ''}`} numberOfLines={1}>
-                             {item.name}
-                           </Text>
-                           <Text className='track-sub' numberOfLines={1}>
-                             {item.artist || '未知艺术家'} · {item.album || '未知专辑'}
-                           </Text>
-                         </View>
-                         {currentTrack?.id === item.id && isPlaying ? <Text className='track-playing'>播放中</Text> : null}
-                       </View>
-                     ))}
+           <>
+             {activeTab === 'songs' ? (
+               <View className='track-list'>
+                 {sortedItems.map((item: any) => (
+                   <View
+                     key={item.id}
+                     id={`item-${item.id}`}
+                     className='track-item'
+                     onLongPress={() => openTrackMoreMenu(item as Track)}
+                     onClick={() => {
+                       const idx = (sortedItems as Track[]).findIndex((track) => track.id === item.id);
+                       if (idx > -1) {
+                         playTrackList(sortedItems as Track[], idx);
+                       }
+                     }}
+                   >
+                     <Image src={getImageUrl(item.cover || null)} className='track-cover' mode='aspectFill' />
+                     <View className='track-info'>
+                       <Text className={`track-name ${currentTrack?.id === item.id ? 'active' : ''}`} numberOfLines={1}>
+                         {item.name}
+                       </Text>
+                       <Text className='track-sub' numberOfLines={1}>
+                         {item.artist || '未知艺术家'} · {item.album || '未知专辑'}
+                       </Text>
+                     </View>
+                     {currentTrack?.id === item.id && isPlaying ? <Text className='track-playing'>播放中</Text> : null}
                    </View>
-                 ) : (
-                   <View className='grid-container'>
-                     {section.data.map((item: any) => (
-                         <View 
-                            key={item.id} 
-                            id={`item-${item.id}`}
-                            className='grid-item'
-                            onClick={() => {
-                                const url = activeTab === 'artists' 
-                                    ? `/pages/artist/index?id=${item.id}` 
-                                    : `/pages/album/index?id=${item.id}`;
-                                Taro.navigateTo({ url });
-                            }}
-                         >
-                            <Image 
-                                src={getImageUrl(activeTab === 'artists' ? item.avatar : item.cover)} 
-                                className={`item-image ${activeTab === 'artists' ? 'circle' : 'rounded'}`} 
-                                mode='aspectFill'
-                            />
-                            <Text className='item-name' numberOfLines={1}>{item.name}</Text>
-                         </View>
-                     ))}
+                 ))}
+               </View>
+             ) : (
+               <View className='grid-container'>
+                 {sortedItems.map((item: any) => (
+                   <View
+                     key={item.id}
+                     id={`item-${item.id}`}
+                     className='grid-item'
+                     onClick={() => {
+                       const url = activeTab === 'artists'
+                         ? `/pages/artist/index?id=${item.id}`
+                         : `/pages/album/index?id=${item.id}`;
+                       Taro.navigateTo({ url });
+                     }}
+                   >
+                     <Image
+                       src={getImageUrl(activeTab === 'artists' ? item.avatar : item.cover)}
+                       className={`item-image ${activeTab === 'artists' ? 'circle' : 'rounded'}`}
+                       mode='aspectFill'
+                     />
+                     <Text className='item-name' numberOfLines={1}>{item.name}</Text>
                    </View>
-                 )}
-             </View>
-         )))}
-         {sections.length === 0 && !loading && (
+                 ))}
+               </View>
+             )}
+             {sortedItems.length === 0 && !loading && (
+               <View className='empty-state'>
+                 <Text className='empty-text'>暂无数据</Text>
+               </View>
+             )}
+             {sortedItems.length > 0 && (
+               <View className='library-footer'>
+                 <Text className='library-footer-text'>
+                   {`共加载 ${sortedItems.length} ${activeTab === 'songs' ? '首' : activeTab === 'artists' ? '位艺术家' : '张专辑'}`}
+                 </Text>
+               </View>
+             )}
+           </>
+         )}
              <View className='empty-state'>
                  <Text className='empty-text'>暂无数据</Text>
              </View>
          )}
-         {sections.length > 0 && (
+         {sortedItems.length > 0 && (
            <View className='library-footer'>
              <Text className='library-footer-text'>
                {`共加载 ${sortedItems.length} ${activeTab === 'songs' ? '首' : activeTab === 'artists' ? '位艺术家' : '张专辑'}`}
