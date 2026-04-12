@@ -93,3 +93,217 @@
   color: #333;
 }
 
+// Full Player Overlay
+.full-player-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.full-player-container {
+  width: 100%;
+  height: 100vh;
+  background-color: #fff;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.full-player-container.closing {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+.full-player-overlay.closing {
+  animation: fadeOut 0.2s ease-out forwards;
+}
+
+// Full Player Styles
+.header {
+  height: 100rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30rpx;
+  margin-top: 80rpx;
+}
+
+.header-btn {
+  padding: 10rpx;
+}
+
+.icon-btn {
+  font-size: 48rpx;
+  color: #333;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 40rpx 60rpx;
+  justify-content: space-between;
+}
+
+.artwork-lyric-area {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+.artwork-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.artwork {
+  width: 400rpx;
+  height: 400rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 20rpx 60rpx rgba(0,0,0,0.15);
+  background-color: #eee;
+}
+
+.bottom-controls {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-row {
+  flex-direction: row;
+  justify-content: space-between;
+  display: flex;
+  margin-bottom: 40rpx;
+}
+
+.track-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-right: 40rpx;
+}
+
+.track-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #000;
+  margin-bottom: 8rpx;
+}
+
+.track-artist {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.progress-area {
+  margin-bottom: 40rpx;
+}
+
+.time-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.time-text {
+  font-size: 24rpx;
+  color: #999;
+  width: 80rpx;
+  text-align: center;
+}
+
+.slider {
+  flex: 1;
+  margin: 0 20rpx;
+}
+
+.player-controls {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.main-ctrls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.ctrl-btn {
+  padding: 20rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ctrl-icon {
+  font-size: 60rpx;
+  color: #333;
+}
+
+.play-pause-btn {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background-color: #333;
+  margin: 0 40rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ctrl-icon-large {
+  font-size: 48rpx;
+  color: #fff;
+}

@@ -2,7 +2,7 @@
   "miniprogramRoot": "dist/",
   "projectname": "soundX-mini",
   "description": "SoundX WeChat Mini Program",
-  "appid": "wx2bc7054921c8a2ed",
+  "appid": "wxb5972cba5fe9eb74",
   "setting": {
     "urlCheck": true,
     "es6": false,

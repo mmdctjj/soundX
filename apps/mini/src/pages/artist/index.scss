@@ -41,6 +41,7 @@
   align-items: center;
   padding: 120rpx 40rpx 40rpx;
   background-color: #fff;
+  height: auto !important;
 }
 
 .avatar {
@@ -49,6 +50,7 @@
   border-radius: 50%;
   margin-bottom: 30rpx;
   background-color: #eee;
+  flex-shrink: 0;
 }
 
 .name {

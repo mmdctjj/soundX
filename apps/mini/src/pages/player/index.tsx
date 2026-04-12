@@ -187,50 +187,53 @@ export default function Player() {
   };
 
   if (!currentTrack) return (
-    <View className='player-container empty'>
-      <Text>No track playing</Text>
-      <View onClick={() => Taro.navigateBack()} className='back-link'>Go Back</View>
+    <View className='player-page'>
+      <View className='player-container empty'>
+        <Text>No track playing</Text>
+        <View onClick={() => Taro.navigateBack()} className='back-link'>Go Back</View>
+      </View>
     </View>
   );
 
   return (
-    <View className='player-container'>
-        <View className='header'>
-            <View className='header-btn' onClick={() => Taro.navigateBack()}>
-                <Text className='icon-btn icon icon-down' />
+    <View className='player-page'>
+      <View className='player-container'>
+        <View className='player-header'>
+            <View className='player-header-btn' onClick={() => Taro.navigateBack()}>
+                <Text className='player-icon-btn icon icon-down' />
             </View>
-            <View className='header-btn' onClick={() => {/* more modal */}}>
-                <Text className='icon-btn icon icon-more-v' />
+            <View className='player-header-btn' onClick={() => {/* more modal */}}>
+                <Text className='player-icon-btn icon icon-more-v' />
             </View>
         </View>
 
-        <View className='content'>
-            <View className='artwork-lyric-area' onClick={() => setShowLyrics(!showLyrics)}>
+        <View className='player-content'>
+            <View className='player-artwork-lyric-area' onClick={() => setShowLyrics(!showLyrics)}>
                 {!showLyrics ? (
-                    <View className='artwork-container'>
+                    <View className='player-artwork-container'>
                         <Image 
                             src={getImageUrl(currentTrack.cover)} 
-                            className='artwork' 
+                            className='player-artwork' 
                             mode='aspectFill'
                         />
                     </View>
                 ) : (
-                    <View className='lyrics-container'>
+                    <View className='player-lyrics-container'>
                         {lyrics.length > 0 ? (
                             <ScrollView 
                                 scrollY 
-                                className='lyrics-scroll' 
+                                className='player-lyrics-scroll' 
                                 scrollIntoView={`line-${currentLyricIndex > 3 ? currentLyricIndex - 3 : 0}`}
                                 scrollWithAnimation
                             >
                                 {lyrics.map((line, index) => (
-                                    <View key={index} id={`line-${index}`} className={`lyric-line ${index === currentLyricIndex ? 'active' : ''}`}>
-                                        <Text className='lyric-text'>{line.text}</Text>
+                                    <View key={index} id={`line-${index}`} className={`player-lyric-line ${index === currentLyricIndex ? 'active' : ''}`}>
+                                        <Text className='player-lyric-text'>{line.text}</Text>
                                     </View>
                                 ))}
                             </ScrollView>
                         ) : (
-                            <View className='no-lyrics'>
+                            <View className='player-no-lyrics'>
                                 <Text>暂无歌词</Text>
                             </View>
                         )}
@@ -238,27 +241,27 @@ export default function Player() {
                 )}
             </View>
 
-            <View className='bottom-controls' style={{ marginBottom: controlsBottomOffset }}>
-                <View className='info-row'>
-                    <View className='track-info'>
-                        <Text className='track-title' numberOfLines={1}>{currentTrack.name}</Text>
-                        <Text className='track-artist' numberOfLines={1}>{currentTrack.artist}</Text>
+            <View className='player-bottom-controls' style={{ marginBottom: controlsBottomOffset }}>
+                <View className='player-info-row'>
+                    <View className='player-track-info'>
+                        <Text className='player-track-title' numberOfLines={1}>{currentTrack.name}</Text>
+                        <Text className='player-track-artist' numberOfLines={1}>{currentTrack.artist}</Text>
                     </View>
-                    <View className='action-btns'>
-                        <View className='action-btn' onClick={handleToggleLike}>
-                            <Text className={`action-icon icon ${liked ? 'icon-heart-filled' : 'icon-heart'}`} />
+                    <View className='player-action-btns'>
+                        <View className='player-action-btn' onClick={handleToggleLike}>
+                            <Text className={`player-action-icon icon ${liked ? 'icon-heart-filled' : 'icon-heart'}`} />
                         </View>
-                        <View className='action-btn' onClick={() => setShowMoreMenu(!showMoreMenu)}>
-                            <Text className='action-icon icon icon-more-h' />
+                        <View className='player-action-btn' onClick={() => setShowMoreMenu(!showMoreMenu)}>
+                            <Text className='player-action-icon icon icon-more-h' />
                         </View>
                     </View>
                 </View>
 
-                <View className='progress-area'>
-                    <View className='time-container'>
-                        <Text className='time-text'>{formatTime(currentTime)}</Text>
+                <View className='player-progress-area'>
+                    <View className='player-time-container'>
+                        <Text className='player-time-text'>{formatTime(currentTime)}</Text>
                         <Slider 
-                            className='slider' 
+                            className='player-slider' 
                             min={0} 
                             max={duration} 
                             value={currentTime} 
@@ -267,49 +270,49 @@ export default function Player() {
                             backgroundColor='#eee'
                             blockSize={12}
                         />
-                        <Text className='time-text'>{formatTime(duration)}</Text>
+                        <Text className='player-time-text'>{formatTime(duration)}</Text>
                     </View>
                 </View>
 
                 <View className='player-controls'>
                     {mode === 'AUDIOBOOK' ? (
-                        <View className='audiobook-controls'>
-                            <View className='ctrl-btn' onClick={() => handleSkip(-15)}>
-                                <Text className='ctrl-icon-small'>-15s</Text>
+                        <View className='player-audiobook-controls'>
+                            <View className='player-ctrl-btn' onClick={() => handleSkip(-15)}>
+                                <Text className='player-ctrl-icon-small'>-15s</Text>
                             </View>
-                            <View className='main-ctrls'>
-                                <View className='ctrl-btn' onClick={playPrevious}>
-                                    <Text className='ctrl-icon icon icon-prev' />
+                            <View className='player-main-ctrls'>
+                                <View className='player-ctrl-btn' onClick={playPrevious}>
+                                    <Text className='player-ctrl-icon icon icon-prev' />
                                 </View>
-                                <View className='play-pause-btn ctrl-btn' onClick={isPlaying ? pause : resume}>
-                                    <Text className={`ctrl-icon-large icon ${isPlaying ? 'icon-pause' : 'icon-play'}`} />
+                                <View className='player-play-pause-btn player-ctrl-btn' onClick={isPlaying ? pause : resume}>
+                                    <Text className={`player-ctrl-icon-large icon ${isPlaying ? 'icon-pause' : 'icon-play'}`} />
                                 </View>
-                                <View className='ctrl-btn' onClick={playNext}>
-                                    <Text className='ctrl-icon icon icon-next' />
+                                <View className='player-ctrl-btn' onClick={playNext}>
+                                    <Text className='player-ctrl-icon icon icon-next' />
                                 </View>
                             </View>
-                            <View className='ctrl-btn' onClick={() => handleSkip(15)}>
-                                <Text className='ctrl-icon-small'>+15s</Text>
+                            <View className='player-ctrl-btn' onClick={() => handleSkip(15)}>
+                                <Text className='player-ctrl-icon-small'>+15s</Text>
                             </View>
                         </View>
                     ) : (
                         <>
-                            <View className='ctrl-btn' onClick={() => setMode(mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC')}>
-                                <Text className={`ctrl-icon-small icon ${mode === 'MUSIC' ? 'icon-repeat' : 'icon-headset'}`} />
+                            <View className='player-ctrl-btn' onClick={() => setMode(mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC')}>
+                                <Text className={`player-ctrl-icon-small icon ${mode === 'MUSIC' ? 'icon-repeat' : 'icon-headset'}`} />
                             </View>
-                            <View className='main-ctrls'>
-                                <View className='ctrl-btn' onClick={playPrevious}>
-                                    <Text className='ctrl-icon icon icon-prev' />
+                            <View className='player-main-ctrls'>
+                                <View className='player-ctrl-btn' onClick={playPrevious}>
+                                    <Text className='player-ctrl-icon icon icon-prev' />
                                 </View>
-                                <View className='play-pause-btn ctrl-btn' onClick={isPlaying ? pause : resume}>
-                                    <Text className={`ctrl-icon-large icon ${isPlaying ? 'icon-pause' : 'icon-play'}`} />
+                                <View className='player-play-pause-btn player-ctrl-btn' onClick={isPlaying ? pause : resume}>
+                                    <Text className={`player-ctrl-icon-large icon ${isPlaying ? 'icon-pause' : 'icon-play'}`} />
                                 </View>
-                                <View className='ctrl-btn' onClick={playNext}>
-                                    <Text className='ctrl-icon icon icon-next' />
+                                <View className='player-ctrl-btn' onClick={playNext}>
+                                    <Text className='player-ctrl-icon icon icon-next' />
                                 </View>
                             </View>
-                            <View className='ctrl-btn' onClick={() => setShowPlaylist(true)}>
-                                <Text className='ctrl-icon-small icon icon-list' />
+                            <View className='player-ctrl-btn' onClick={() => setShowPlaylist(true)}>
+                                <Text className='player-ctrl-icon-small icon icon-list' />
                             </View>
                         </>
                     )}
@@ -317,52 +320,51 @@ export default function Player() {
             </View>
         </View>
 
-        {/* More Actions Menu */}
         {showMoreMenu && (
-          <View className='more-menu-mask' onClick={() => setShowMoreMenu(false)}>
-            <View className='more-menu-content' onClick={(e) => e.stopPropagation()}>
-              <View className='menu-item' onClick={() => { setShowMoreMenu(false); setShowAddToPlaylist(true); }}>
-                <Text className='menu-item-text'>添加到播放列表</Text>
+          <View className='player-more-menu-mask' onClick={() => setShowMoreMenu(false)}>
+            <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
+              <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowAddToPlaylist(true); }}>
+                <Text className='player-menu-item-text'>添加到播放列表</Text>
               </View>
-              <View className='menu-item' onClick={() => { setShowMoreMenu(false); setShowTimerMenu(true); }}>
-                <Text className='menu-item-text'>定时播放</Text>
+              <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowTimerMenu(true); }}>
+                <Text className='player-menu-item-text'>定时播放</Text>
               </View>
               {currentTrack?.artistId && (
-                <View className='menu-item' onClick={handleNavigateToArtist}>
-                  <Text className='menu-item-text'>歌手详情</Text>
+                <View className='player-menu-item' onClick={handleNavigateToArtist}>
+                  <Text className='player-menu-item-text'>歌手详情</Text>
                 </View>
               )}
               {currentTrack?.albumId && (
-                <View className='menu-item' onClick={handleNavigateToAlbum}>
-                  <Text className='menu-item-text'>专辑详情</Text>
+                <View className='player-menu-item' onClick={handleNavigateToAlbum}>
+                  <Text className='player-menu-item-text'>专辑详情</Text>
                 </View>
               )}
-              <View className='menu-item' onClick={handleShowTrackProperty}>
-                <Text className='menu-item-text'>属性</Text>
+              <View className='player-menu-item' onClick={handleShowTrackProperty}>
+                <Text className='player-menu-item-text'>属性</Text>
               </View>
-              <View className='menu-item' onClick={() => { setShowMoreMenu(false); setShowControlsOffsetModal(true); }}>
-                <Text className='menu-item-text'>控制组位置调整</Text>
+              <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowControlsOffsetModal(true); }}>
+                <Text className='player-menu-item-text'>控制组位置调整</Text>
               </View>
               {mode === 'AUDIOBOOK' && (
-                <View className='menu-section'>
-                  <View className='menu-section-title'>
-                    <Text className='section-title-text'>播放速度</Text>
+                <View className='player-menu-section'>
+                  <View className='player-menu-section-title'>
+                    <Text className='player-section-title-text'>播放速度</Text>
                   </View>
-                  <View className='speed-options'>
+                  <View className='player-speed-options'>
                     {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
                       <View
                         key={speed}
-                        className={`speed-btn ${playbackSpeed === speed ? 'active' : ''}`}
+                        className={`player-speed-btn ${playbackSpeed === speed ? 'active' : ''}`}
                         onClick={() => { handleSpeedChange(speed); setShowMoreMenu(false); }}
                       >
-                        <Text className={`speed-text ${playbackSpeed === speed ? 'active' : ''}`}>{speed}x</Text>
+                        <Text className={`player-speed-text ${playbackSpeed === speed ? 'active' : ''}`}>{speed}x</Text>
                       </View>
                     ))}
                   </View>
                 </View>
               )}
-              <View className='menu-item' onClick={() => setShowMoreMenu(false)}>
-                <Text className='menu-item-text cancel'>取消</Text>
+              <View className='player-menu-item' onClick={() => setShowMoreMenu(false)}>
+                <Text className='player-menu-item-text cancel'>取消</Text>
               </View>
             </View>
           </View>
@@ -371,24 +373,23 @@ export default function Player() {
         <AddToPlaylistModal visible={showAddToPlaylist} onClose={() => setShowAddToPlaylist(false)} />
         <PlaylistModal />
 
-        {/* Controls Offset Modal */}
         {showControlsOffsetModal && (
-          <View className='more-menu-mask' onClick={() => setShowControlsOffsetModal(false)}>
-            <View className='more-menu-content' onClick={(e) => e.stopPropagation()}>
-              <View className='controls-offset-modal'>
-                <View className='modal-title-row'>
-                  <Text className='modal-title'>控制组位置调整</Text>
+          <View className='player-more-menu-mask' onClick={() => setShowControlsOffsetModal(false)}>
+            <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
+              <View className='player-controls-offset-modal'>
+                <View className='player-modal-title-row'>
+                  <Text className='player-modal-title'>控制组位置调整</Text>
                 </View>
-                <View className='modal-description-row'>
-                  <Text className='modal-description'>调整播放控制按钮距离屏幕底部的位置</Text>
+                <View className='player-modal-description-row'>
+                  <Text className='player-modal-description'>调整播放控制按钮距离屏幕底部的位置</Text>
                 </View>
-                <View className='slider-panel'>
-                  <View className='slider-header'>
-                    <Text className='slider-label'>底部偏移</Text>
-                    <Text className='slider-number'>{Math.round(controlsBottomOffset)}</Text>
+                <View className='player-slider-panel'>
+                  <View className='player-slider-header'>
+                    <Text className='player-slider-label'>底部偏移</Text>
+                    <Text className='player-slider-number'>{Math.round(controlsBottomOffset)}</Text>
                   </View>
                   <Slider
-                    className='offset-slider'
+                    className='player-offset-slider'
                     min={0}
                     max={120}
                     step={1}
@@ -398,23 +399,24 @@ export default function Player() {
                     backgroundColor='#eee'
                     blockSize={16}
                   />
-                  <View className='slider-hint-row'>
-                    <Text className='slider-hint'>贴近底部</Text>
-                    <Text className='slider-hint'>上移</Text>
+                  <View className='player-slider-hint-row'>
+                    <Text className='player-slider-hint'>贴近底部</Text>
+                    <Text className='player-slider-hint'>上移</Text>
                   </View>
                 </View>
-                <View className='modal-actions'>
-                  <View className='modal-btn modal-cancel-btn' onClick={() => { setControlsBottomOffset(0); setShowControlsOffsetModal(false); }}>
-                    <Text className='modal-cancel-text'>重置</Text>
+                <View className='player-modal-actions'>
+                  <View className='player-modal-btn player-modal-cancel-btn' onClick={() => { setControlsBottomOffset(0); setShowControlsOffsetModal(false); }}>
+                    <Text className='player-modal-cancel-text'>重置</Text>
                   </View>
-                  <View className='modal-btn modal-confirm-btn' onClick={() => setShowControlsOffsetModal(false)}>
-                    <Text className='modal-confirm-text'>完成</Text>
+                  <View className='player-modal-btn player-modal-confirm-btn' onClick={() => setShowControlsOffsetModal(false)}>
+                    <Text className='player-modal-confirm-text'>完成</Text>
                   </View>
                 </View>
               </View>
             </View>
           </View>
         )}
+      </View>
     </View>
   );
 }

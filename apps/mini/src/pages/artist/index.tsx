@@ -132,7 +132,7 @@ export default function ArtistDetail() {
              <View className='section'>
                  <View className='section-header-row'>
                      <Text className='section-title'>所有单曲 ({tracks.length})</Text>
-                     <View className='play-btn' onClick={() => tracks.length > 0 && playTrackList(tracks, 0)}>
+                     <View className='play-btn' onClick={() => tracks.length > 0 && playTrackList(tracks as any, 0)}>
                          <Text className='play-icon icon icon-play' />
                      </View>
                  </View>
@@ -142,7 +142,7 @@ export default function ArtistDetail() {
                             key={track.id} 
                             id={`track-${index}`}
                             className='track-item'
-                            onClick={() => playTrackList(tracks, index)}
+                            onClick={() => playTrackList(tracks as any, index)}
                          >
                              <View className='track-idx-container'>
                                 {currentTrack?.id === track.id && isPlaying ? (
