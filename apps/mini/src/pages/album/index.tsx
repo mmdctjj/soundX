@@ -4,6 +4,7 @@ import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
+import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
@@ -12,6 +13,7 @@ export default function AlbumDetail() {
   const router = useRouter();
   const { id } = router.params;
   const { playTrackList, currentTrack, isPlaying } = usePlayer();
+  const { user } = useAuth();
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -29,7 +31,7 @@ export default function AlbumDetail() {
     try {
       const [albumRes, tracksRes] = await Promise.all([
           getAlbumById(albumId),
-          getAlbumTracks(albumId, 200, 0, 'asc', '')
+          getAlbumTracks(albumId, 200, 0, 'asc', undefined, user?.id)
       ]);
 
       if (albumRes.code === 200) setAlbum(albumRes.data);
