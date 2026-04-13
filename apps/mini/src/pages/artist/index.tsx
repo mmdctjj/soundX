@@ -2,6 +2,7 @@ import { Album, Artist, Track, getAlbumsByArtist, getArtistById, getCollaborativ
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import BottomTabBar from '../../components/BottomTabBar';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import { usePlayer } from '../../context/PlayerContext';
@@ -132,8 +133,8 @@ export default function ArtistDetail() {
              <View className='section'>
                  <View className='section-header-row'>
                      <Text className='section-title'>所有单曲 ({tracks.length})</Text>
-                     <View className='play-btn' onClick={() => tracks.length > 0 && playTrackList(tracks as any, 0)}>
-                         <Text className='play-icon icon icon-play' />
+                     <View className='artist-play-btn' onClick={() => tracks.length > 0 && playTrackList(tracks as any, 0)}>
+                         <Text className='artist-play-icon icon icon-play' />
                      </View>
                  </View>
                  <View className='track-list'>
@@ -163,7 +164,7 @@ export default function ArtistDetail() {
              
              {/* Padding for MiniPlayer */}
              <View id='bottom-anchor' />
-             <View style={{ height: '160rpx' }}></View>
+             <View style={{ height: '260rpx' }}></View>
          </ScrollView>
          <QuickLocate
             onTop={() => scrollToAnchor('top-anchor')}
@@ -171,6 +172,7 @@ export default function ArtistDetail() {
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
+         <BottomTabBar />
          <MiniPlayer />
     </View>
   );

@@ -2,6 +2,7 @@ import { Album, Track, getAlbumById, getAlbumTracks } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import BottomTabBar from '../../components/BottomTabBar';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import { useAuth } from '../../context/AuthContext';
@@ -93,9 +94,9 @@ export default function AlbumDetail() {
                  <Text className='artist'>{album.artist}</Text>
                  
                  <View className='actions'>
-                     <View className='play-all-btn' onClick={handlePlayAll}>
-                         <Text className='play-icon icon icon-play' />
-                         <Text className='play-text'>播放全部</Text>
+                     <View className='album-play-all-btn' onClick={handlePlayAll}>
+                         <Text className='album-play-icon icon icon-play' />
+                         <Text className='album-play-text'>播放全部</Text>
                      </View>
                      <View className='like-btn'>
                          <Text className='like-icon icon icon-heart' />
@@ -128,7 +129,7 @@ export default function AlbumDetail() {
              </View>
 
              <View id='bottom-anchor' />
-             <View style={{ height: '160rpx' }}></View>
+             <View style={{ height: '260rpx' }}></View>
          </ScrollView>
          <QuickLocate
             onTop={() => scrollToAnchor('top-anchor')}
@@ -136,6 +137,7 @@ export default function AlbumDetail() {
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
+         <BottomTabBar />
          <MiniPlayer />
     </View>
   );

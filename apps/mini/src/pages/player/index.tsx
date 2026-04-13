@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import AddToPlaylistModal from '../../components/AddToPlaylistModal';
 import PlaylistModal from '../../components/PlaylistModal';
 import { useAuth } from '../../context/AuthContext';
-import { usePlayer } from '../../context/PlayerContext';
+import { PlayMode, usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
@@ -44,8 +44,30 @@ const parseLyrics = (lyrics: string): LyricLine[] => {
 };
 
 export default function Player() {
-  const { currentTrack, isPlaying, pause, resume, playNext, playPrevious, duration, currentTime, seek, setShowPlaylist } = usePlayer();
-  const { mode, setMode } = usePlayMode();
+  const {
+    currentTrack,
+    isPlaying,
+    pause,
+    resume,
+    playNext,
+    playPrevious,
+    duration,
+    currentTime,
+    seek,
+    setShowPlaylist,
+    playMode,
+    togglePlayMode,
+    sleepTimer,
+    setSleepTimer,
+    clearSleepTimer,
+    playbackRate,
+    setPlaybackRate,
+    skipIntroDuration,
+    setSkipIntroDuration,
+    skipOutroDuration,
+    setSkipOutroDuration,
+  } = usePlayer();
+  const { mode } = usePlayMode();
   const { user } = useAuth();
   const [showLyrics, setShowLyrics] = useState(false);
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
@@ -53,10 +75,14 @@ export default function Player() {
   const [liked, setLiked] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
-  const [showTimerMenu, setShowTimerMenu] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
   const [controlsBottomOffset, setControlsBottomOffset] = useState(0);
   const [showControlsOffsetModal, setShowControlsOffsetModal] = useState(false);
+  const [lyricFontSize, setLyricFontSize] = useState(32);
+  const [showLyricsFontModal, setShowLyricsFontModal] = useState(false);
+  const [showSkipConfigModal, setShowSkipConfigModal] = useState(false);
+  const [skipConfigType, setSkipConfigType] = useState<'intro' | 'outro'>('intro');
+  const [tempSkipTime, setTempSkipTime] = useState(30);
 
   useEffect(() => {
     if (currentTrack && currentTrack.lyrics) {
@@ -89,12 +115,23 @@ export default function Player() {
         setControlsBottomOffset(val);
       }
     }).catch(() => {});
+
+    Taro.getStorage({ key: 'lyric_font_size' }).then((res) => {
+      const val = parseFloat(res.data);
+      if (!Number.isNaN(val) && val > 0) {
+        setLyricFontSize(val);
+      }
+    }).catch(() => {});
   }, []);
 
   // Save controlsBottomOffset to storage when changed
   useEffect(() => {
     Taro.setStorage({ key: 'player_controls_bottom_offset', data: String(controlsBottomOffset) }).catch(() => {});
   }, [controlsBottomOffset]);
+
+  useEffect(() => {
+    Taro.setStorage({ key: 'lyric_font_size', data: String(lyricFontSize) }).catch(() => {});
+  }, [lyricFontSize]);
 
   // Check if current track is liked
   useEffect(() => {
@@ -163,9 +200,15 @@ export default function Player() {
   };
 
   const handleSpeedChange = (speed: number) => {
-    setPlaybackSpeed(speed);
-    // TODO: Implement actual playback speed change via audio context
+    setPlaybackRate(speed);
     Taro.showToast({ title: `倍速: ${speed}x`, icon: 'none' });
+  };
+
+  const togglePlaybackRate = () => {
+    const rates = [0.5, 1, 1.25, 1.5, 2];
+    const currentIndex = rates.indexOf(playbackRate);
+    const nextRate = rates[(currentIndex + 1) % rates.length];
+    handleSpeedChange(nextRate);
   };
 
   const getImageUrl = (url: string | null) => {
@@ -186,6 +229,59 @@ export default function Player() {
     seek(val);
   };
 
+  const formatRemainingTime = () => {
+    if (!sleepTimer) return '';
+    const remaining = Math.max(0, sleepTimer - Date.now());
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const getPlayModeIconClass = () => {
+    switch (playMode) {
+      case PlayMode.SEQUENCE:
+        return 'icon-sequence';
+      case PlayMode.SHUFFLE:
+        return 'icon-shuffle';
+      case PlayMode.LOOP_LIST:
+        return 'icon-repeat';
+      case PlayMode.LOOP_SINGLE:
+        return 'icon-repeat-once';
+      default:
+        return 'icon-repeat';
+    }
+  };
+
+  const openSkipConfig = (type: 'intro' | 'outro') => {
+    setSkipConfigType(type);
+    const currentValue = type === 'intro' ? skipIntroDuration : skipOutroDuration;
+    setTempSkipTime(currentValue === 0 ? 30 : currentValue);
+    setShowMoreMenu(false);
+    setShowSkipConfigModal(true);
+  };
+
+  const confirmSkipConfig = () => {
+    if (skipConfigType === 'intro') {
+      setSkipIntroDuration(tempSkipTime);
+    } else {
+      setSkipOutroDuration(tempSkipTime);
+    }
+    setShowSkipConfigModal(false);
+  };
+
+  const clearSkipConfig = () => {
+    if (skipConfigType === 'intro') {
+      setSkipIntroDuration(0);
+    } else {
+      setSkipOutroDuration(0);
+    }
+    setShowSkipConfigModal(false);
+  };
+
+  const handleOpenMore = () => {
+    setShowMoreMenu(true);
+  };
+
   if (!currentTrack) return (
     <View className='player-page'>
       <View className='player-container empty'>
@@ -202,7 +298,7 @@ export default function Player() {
             <View className='player-header-btn' onClick={() => Taro.navigateBack()}>
                 <Text className='player-icon-btn icon icon-down' />
             </View>
-            <View className='player-header-btn' onClick={() => {/* more modal */}}>
+            <View className='player-header-btn' onClick={handleOpenMore}>
                 <Text className='player-icon-btn icon icon-more-v' />
             </View>
         </View>
@@ -228,7 +324,12 @@ export default function Player() {
                             >
                                 {lyrics.map((line, index) => (
                                     <View key={index} id={`line-${index}`} className={`player-lyric-line ${index === currentLyricIndex ? 'active' : ''}`}>
-                                        <Text className='player-lyric-text'>{line.text}</Text>
+                                        <Text
+                                          className='player-lyric-text'
+                                          style={{ fontSize: `${index === currentLyricIndex ? lyricFontSize + 4 : lyricFontSize}rpx` }}
+                                        >
+                                          {line.text}
+                                        </Text>
                                     </View>
                                 ))}
                             </ScrollView>
@@ -248,9 +349,11 @@ export default function Player() {
                         <Text className='player-track-artist' numberOfLines={1}>{currentTrack.artist}</Text>
                     </View>
                     <View className='player-action-btns'>
-                        <View className='player-action-btn' onClick={handleToggleLike}>
-                            <Text className={`player-action-icon icon ${liked ? 'icon-heart-filled' : 'icon-heart'}`} />
-                        </View>
+                        {currentTrack.type !== 'AUDIOBOOK' && (
+                          <View className='player-action-btn' onClick={handleToggleLike}>
+                              <Text className={`player-action-icon icon ${liked ? 'icon-heart-filled' : 'icon-heart'}`} />
+                          </View>
+                        )}
                         <View className='player-action-btn' onClick={() => setShowMoreMenu(!showMoreMenu)}>
                             <Text className='player-action-icon icon icon-more-h' />
                         </View>
@@ -275,47 +378,23 @@ export default function Player() {
                 </View>
 
                 <View className='player-controls'>
-                    {mode === 'AUDIOBOOK' ? (
-                        <View className='player-audiobook-controls'>
-                            <View className='player-ctrl-btn' onClick={() => handleSkip(-15)}>
-                                <Text className='player-ctrl-icon-small'>-15s</Text>
-                            </View>
-                            <View className='player-main-ctrls'>
-                                <View className='player-ctrl-btn' onClick={playPrevious}>
-                                    <Text className='player-ctrl-icon icon icon-prev' />
-                                </View>
-                                <View className='player-play-pause-btn player-ctrl-btn' onClick={isPlaying ? pause : resume}>
-                                    <Text className={`player-ctrl-icon-large icon ${isPlaying ? 'icon-pause' : 'icon-play'}`} />
-                                </View>
-                                <View className='player-ctrl-btn' onClick={playNext}>
-                                    <Text className='player-ctrl-icon icon icon-next' />
-                                </View>
-                            </View>
-                            <View className='player-ctrl-btn' onClick={() => handleSkip(15)}>
-                                <Text className='player-ctrl-icon-small'>+15s</Text>
-                            </View>
+                    <View className='player-ctrl-btn' onClick={togglePlayMode}>
+                        <Text className={`player-ctrl-icon-small icon ${getPlayModeIconClass()}`} />
+                    </View>
+                    <View className='player-main-ctrls'>
+                        <View className='player-ctrl-btn' onClick={playPrevious}>
+                            <Text className='player-ctrl-icon icon icon-prev' />
                         </View>
-                    ) : (
-                        <>
-                            <View className='player-ctrl-btn' onClick={() => setMode(mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC')}>
-                                <Text className={`player-ctrl-icon-small icon ${mode === 'MUSIC' ? 'icon-repeat' : 'icon-headset'}`} />
-                            </View>
-                            <View className='player-main-ctrls'>
-                                <View className='player-ctrl-btn' onClick={playPrevious}>
-                                    <Text className='player-ctrl-icon icon icon-prev' />
-                                </View>
-                                <View className='player-play-pause-btn player-ctrl-btn' onClick={isPlaying ? pause : resume}>
-                                    <Text className={`player-ctrl-icon-large icon ${isPlaying ? 'icon-pause' : 'icon-play'}`} />
-                                </View>
-                                <View className='player-ctrl-btn' onClick={playNext}>
-                                    <Text className='player-ctrl-icon icon icon-next' />
-                                </View>
-                            </View>
-                            <View className='player-ctrl-btn' onClick={() => setShowPlaylist(true)}>
-                                <Text className='player-ctrl-icon-small icon icon-list' />
-                            </View>
-                        </>
-                    )}
+                        <View className='player-play-pause-btn player-ctrl-btn' onClick={isPlaying ? pause : resume}>
+                            <Text className={`player-ctrl-icon-large icon ${isPlaying ? 'icon-pause' : 'icon-play'}`} />
+                        </View>
+                        <View className='player-ctrl-btn' onClick={playNext}>
+                            <Text className='player-ctrl-icon icon icon-next' />
+                        </View>
+                    </View>
+                    <View className='player-ctrl-btn' onClick={() => setShowPlaylist(true)}>
+                        <Text className='player-ctrl-icon-small icon icon-list' />
+                    </View>
                 </View>
             </View>
         </View>
@@ -323,15 +402,42 @@ export default function Player() {
         {showMoreMenu && (
           <View className='player-more-menu-mask' onClick={() => setShowMoreMenu(false)}>
             <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
+              {currentTrack.type === 'AUDIOBOOK' && (
+                <View className='player-audiobook-menu-controls'>
+                  <View className='player-audiobook-menu-btn' onClick={() => openSkipConfig('intro')}>
+                    <Text className='player-audiobook-menu-icon icon icon-prev' />
+                    <Text className='player-audiobook-menu-label'>片头</Text>
+                    <Text className='player-audiobook-menu-value'>{skipIntroDuration > 0 ? `${skipIntroDuration}s` : '关'}</Text>
+                  </View>
+                  <View className='player-audiobook-menu-btn' onClick={() => handleSkip(-15)}>
+                    <Text className='player-audiobook-menu-plain'>-15s</Text>
+                    <Text className='player-audiobook-menu-label'>后退</Text>
+                  </View>
+                  <View className='player-audiobook-menu-btn' onClick={togglePlaybackRate}>
+                    <Text className='player-audiobook-menu-icon icon icon-headset' />
+                    <Text className='player-audiobook-menu-label'>倍速</Text>
+                    <Text className='player-audiobook-menu-value'>{playbackRate}x</Text>
+                  </View>
+                  <View className='player-audiobook-menu-btn' onClick={() => handleSkip(15)}>
+                    <Text className='player-audiobook-menu-plain'>+15s</Text>
+                    <Text className='player-audiobook-menu-label'>前进</Text>
+                  </View>
+                  <View className='player-audiobook-menu-btn' onClick={() => openSkipConfig('outro')}>
+                    <Text className='player-audiobook-menu-icon icon icon-next' />
+                    <Text className='player-audiobook-menu-label'>片尾</Text>
+                    <Text className='player-audiobook-menu-value'>{skipOutroDuration > 0 ? `${skipOutroDuration}s` : '关'}</Text>
+                  </View>
+                </View>
+              )}
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowAddToPlaylist(true); }}>
                 <Text className='player-menu-item-text'>添加到播放列表</Text>
               </View>
-              <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowTimerMenu(true); }}>
-                <Text className='player-menu-item-text'>定时播放</Text>
+              <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowSleepTimerModal(true); }}>
+                <Text className='player-menu-item-text'>{sleepTimer ? `定时关闭 (${formatRemainingTime()})` : '定时关闭'}</Text>
               </View>
               {currentTrack?.artistId && (
                 <View className='player-menu-item' onClick={handleNavigateToArtist}>
-                  <Text className='player-menu-item-text'>歌手详情</Text>
+                  <Text className='player-menu-item-text'>艺术家详情</Text>
                 </View>
               )}
               {currentTrack?.albumId && (
@@ -342,27 +448,12 @@ export default function Player() {
               <View className='player-menu-item' onClick={handleShowTrackProperty}>
                 <Text className='player-menu-item-text'>属性</Text>
               </View>
+              <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowLyricsFontModal(true); }}>
+                <Text className='player-menu-item-text'>调节歌词大小</Text>
+              </View>
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowControlsOffsetModal(true); }}>
                 <Text className='player-menu-item-text'>控制组位置调整</Text>
               </View>
-              {mode === 'AUDIOBOOK' && (
-                <View className='player-menu-section'>
-                  <View className='player-menu-section-title'>
-                    <Text className='player-section-title-text'>播放速度</Text>
-                  </View>
-                  <View className='player-speed-options'>
-                    {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
-                      <View
-                        key={speed}
-                        className={`player-speed-btn ${playbackSpeed === speed ? 'active' : ''}`}
-                        onClick={() => { handleSpeedChange(speed); setShowMoreMenu(false); }}
-                      >
-                        <Text className={`player-speed-text ${playbackSpeed === speed ? 'active' : ''}`}>{speed}x</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
               <View className='player-menu-item' onClick={() => setShowMoreMenu(false)}>
                 <Text className='player-menu-item-text cancel'>取消</Text>
               </View>
@@ -395,7 +486,7 @@ export default function Player() {
                     step={1}
                     value={controlsBottomOffset}
                     onChange={(e) => setControlsBottomOffset(e.detail.value)}
-                    activeColor='#007aff'
+                    activeColor='#000'
                     backgroundColor='#eee'
                     blockSize={16}
                   />
@@ -410,6 +501,119 @@ export default function Player() {
                   </View>
                   <View className='player-modal-btn player-modal-confirm-btn' onClick={() => setShowControlsOffsetModal(false)}>
                     <Text className='player-modal-confirm-text'>完成</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {showLyricsFontModal && (
+          <View className='player-more-menu-mask' onClick={() => setShowLyricsFontModal(false)}>
+            <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
+              <View className='player-controls-offset-modal'>
+                <View className='player-modal-title-row'>
+                  <Text className='player-modal-title'>调节歌词大小</Text>
+                </View>
+                <View className='player-modal-description-row'>
+                  <Text className='player-modal-description'>调整播放页歌词字号</Text>
+                </View>
+                <View className='player-slider-panel'>
+                  <View className='player-slider-header'>
+                    <Text className='player-slider-label'>字号</Text>
+                    <Text className='player-slider-number'>{Math.round(lyricFontSize)}</Text>
+                  </View>
+                  <Slider
+                    className='player-offset-slider'
+                    min={24}
+                    max={44}
+                    step={1}
+                    value={lyricFontSize}
+                    onChange={(e) => setLyricFontSize(e.detail.value)}
+                    activeColor='#000'
+                    backgroundColor='#eee'
+                    blockSize={16}
+                  />
+                </View>
+                <View className='player-modal-actions'>
+                  <View className='player-modal-btn player-modal-cancel-btn' onClick={() => { setLyricFontSize(32); setShowLyricsFontModal(false); }}>
+                    <Text className='player-modal-cancel-text'>重置</Text>
+                  </View>
+                  <View className='player-modal-btn player-modal-confirm-btn' onClick={() => setShowLyricsFontModal(false)}>
+                    <Text className='player-modal-confirm-text'>完成</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {showSleepTimerModal && (
+          <View className='player-more-menu-mask' onClick={() => setShowSleepTimerModal(false)}>
+            <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
+              <View className='player-controls-offset-modal'>
+                <View className='player-modal-title-row'>
+                  <Text className='player-modal-title'>定时关闭</Text>
+                </View>
+                <View className='player-sleep-grid'>
+                  {[15, 30, 60, 90].map((minutes) => (
+                    <View
+                      key={minutes}
+                      className='player-sleep-chip'
+                      onClick={() => { setSleepTimer(minutes); setShowSleepTimerModal(false); }}
+                    >
+                      <Text className='player-sleep-chip-text'>{minutes} 分钟</Text>
+                    </View>
+                  ))}
+                </View>
+                {sleepTimer && (
+                  <View className='player-menu-item' onClick={() => { clearSleepTimer(); setShowSleepTimerModal(false); }}>
+                    <Text className='player-menu-item-text'>关闭当前定时</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+
+        {showSkipConfigModal && (
+          <View className='player-more-menu-mask' onClick={() => setShowSkipConfigModal(false)}>
+            <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
+              <View className='player-controls-offset-modal'>
+                <View className='player-modal-title-row'>
+                  <Text className='player-modal-title'>{skipConfigType === 'intro' ? '设置自动跳过片头' : '设置自动跳过片尾'}</Text>
+                </View>
+                <View className='player-skip-time-display'>
+                  <Text className='player-skip-time-text'>{Math.floor(tempSkipTime / 60)}:{String(tempSkipTime % 60).padStart(2, '0')}</Text>
+                </View>
+                <View className='player-skip-adjust-row'>
+                  {[-10, -1, 1, 10].map((amount) => (
+                    <View
+                      key={amount}
+                      className='player-skip-adjust-btn'
+                      onClick={() => setTempSkipTime((prev) => Math.max(0, prev + amount))}
+                    >
+                      <Text className='player-skip-adjust-text'>{amount > 0 ? `+${amount}` : amount}</Text>
+                    </View>
+                  ))}
+                </View>
+                <View className='player-sleep-grid'>
+                  {[30, 60, 90, 120].map((seconds) => (
+                    <View
+                      key={seconds}
+                      className='player-sleep-chip'
+                      onClick={() => setTempSkipTime(seconds)}
+                    >
+                      <Text className='player-sleep-chip-text'>{seconds}s</Text>
+                    </View>
+                  ))}
+                </View>
+                <View className='player-modal-actions'>
+                  <View className='player-modal-btn player-modal-cancel-btn' onClick={clearSkipConfig}>
+                    <Text className='player-modal-cancel-text'>关闭此功能</Text>
+                  </View>
+                  <View className='player-modal-btn player-modal-confirm-btn' onClick={confirmSkipConfig}>
+                    <Text className='player-modal-confirm-text'>保存设置</Text>
                   </View>
                 </View>
               </View>

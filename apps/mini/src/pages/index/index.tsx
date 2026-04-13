@@ -88,6 +88,14 @@ export default function Index() {
       return `${getBaseURL()}${url}`;
   }
 
+  const chunkTracks = (tracks = [], size = 2) => {
+    const chunks: any[][] = [];
+    for (let i = 0; i < tracks.length; i += size) {
+      chunks.push(tracks.slice(i, i + size));
+    }
+    return chunks;
+  };
+
   return (
     <View className='index-container'>
       <ScrollView
@@ -117,14 +125,20 @@ export default function Index() {
             <ScrollView scrollX className='horizontal-list' showScrollbar={false}>
                <View className='flex-row'>
                 {section.type === 'track' ? (
-                   // Simply horizontally list tracks for now, chunking logic can be added later if needed
-                   section.data.map((track, index) => (
-                       <View key={track.id} className='track-card' onClick={() => handleTrackPlay(section.data, index)}>
-                          <Image src={getImageUrl(track.cover)} className='track-image' mode='aspectFill'/>
-                          <View className='track-info'>
-                             <Text className='track-title' numberOfLines={1}>{track.name}</Text>
-                             <Text className='track-artist' numberOfLines={1}>{track.artist}</Text>
-                          </View>
+                   chunkTracks(section.data, 2).map((group, groupIndex) => (
+                       <View key={`track-group-${groupIndex}`} className='track-column'>
+                         {group.map((track, trackIndex) => {
+                           const actualIndex = groupIndex * 2 + trackIndex;
+                           return (
+                             <View key={track.id} className='track-card' onClick={() => handleTrackPlay(section.data, actualIndex)}>
+                                <Image src={getImageUrl(track.cover)} className='track-image' mode='aspectFill'/>
+                                <View className='track-info'>
+                                   <Text className='track-title' numberOfLines={1}>{track.name}</Text>
+                                   <Text className='track-artist' numberOfLines={1}>{track.artist}</Text>
+                                </View>
+                             </View>
+                           );
+                         })}
                        </View>
                    ))
                 ) : (

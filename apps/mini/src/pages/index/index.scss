@@ -120,24 +120,32 @@
 
 .track-card {
   display: flex;
-  flex: 1 0 380rpx;
+  width: 380rpx;
   flex-direction: row;
   gap: 15rpx;
+  margin-bottom: 18rpx;
+}
+
+.track-column {
+  display: flex;
+  flex-direction: column;
+  margin-right: 24rpx;
 }
 
 .track-image {
   width: 80rpx;
-  height: inherit;
+  height: 80rpx;
   border-radius: 8rpx;
   background-color: #eee;
-  margin-bottom: 8rpx;
+  flex-shrink: 0;
 }
 
 .track-info {
-  width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .track-title {
