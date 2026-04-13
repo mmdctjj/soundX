@@ -254,3 +254,30 @@
   font-size: 24rpx;
   color: #999;
 }
+
+.delete-member-btn {
+  margin-top: 24rpx;
+  background-color: #FFF1F0;
+  border: 1rpx solid #FFCCC7;
+  padding: 30rpx;
+  border-radius: 24rpx;
+  text-align: center;
+}
+
+.delete-member-text {
+  color: #FF4D4F;
+  font-size: 34rpx;
+  font-weight: 600;
+}
+
+.p-0 {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0;
+}
+
+.slider-row {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+}

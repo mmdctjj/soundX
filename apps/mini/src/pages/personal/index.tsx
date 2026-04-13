@@ -185,6 +185,29 @@ export default function Personal() {
     }
   };
 
+  const handleOpenTtsTasks = async () => {
+    setShowMenu(false);
+
+    const isVipStr = Taro.getStorageSync('plus_vip_status');
+    const isVip = isVipStr === 'true';
+
+    if (isVip) {
+      Taro.navigateTo({ url: '/pages/tts/tasks/index' });
+      return;
+    }
+
+    const modalRes = await Taro.showModal({
+      title: '会员功能',
+      content: '开通会员才能使用 TTS 有声书转换功能',
+      confirmText: '去开通',
+      cancelText: '取消',
+    });
+
+    if (modalRes.confirm) {
+      Taro.navigateTo({ url: '/pages/member/benefits/index' });
+    }
+  };
+
   const handleUpdateLibrary = async (updateMode: 'incremental' | 'full' | 'compact') => {
     setShowMenu(false);
     const contentMap = {
@@ -328,7 +351,7 @@ export default function Personal() {
               <Text>全量更新音频文件</Text>
             </View>
             {sourceType !== 'Emby' && mode !== 'MUSIC' && (
-              <View className='menu-item' onClick={() => { setShowMenu(false); Taro.navigateTo({ url: '/pages/tts/tasks/index' }); }}>
+              <View className='menu-item' onClick={handleOpenTtsTasks}>
                 <Text>TTS 有声书转换</Text>
               </View>
             )}
