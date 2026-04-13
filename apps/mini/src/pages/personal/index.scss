@@ -15,6 +15,13 @@
   position: relative;
 }
 
+.left-actions,
+.right-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 20rpx;
+}
+
 .action-btn {
   width: 70rpx;
   height: 70rpx;
@@ -28,6 +35,13 @@
   .icon {
     font-size: 36rpx;
   }
+}
+
+.header-icon {
+  width: 32rpx;
+  height: 32rpx;
+  font-size: 32rpx;
+  color: #333;
 }
 
 .menu-dropdown {
@@ -71,6 +85,15 @@
     font-size: 36rpx;
     font-weight: bold;
     color: #333;
+  }
+
+  .source-tag {
+    margin-top: 12rpx;
+    padding: 8rpx 24rpx;
+    border-radius: 999rpx;
+    background: rgba(0, 0, 0, 0.06);
+    color: #666;
+    font-size: 22rpx;
   }
 
   .login-btn {
@@ -137,11 +160,14 @@
 .list-scroll {
   flex: 1;
   overflow: hidden;
-  padding-bottom: var(--mini-player-height);
 }
 
 .list-content {
   padding: 20rpx 40rpx;
+}
+
+.page-bottom-spacer {
+  height: calc(var(--mini-player-height) + var(--tab-bar-height) + env(safe-area-inset-bottom) + 56rpx);
 }
 
 .item-row {
@@ -208,7 +234,6 @@
   text-align: center;
   font-size: 28rpx;
   color: #ff3b30;
-  margin-bottom: var(--mini-player-height);
 }
 
 /* Modals */
@@ -308,4 +333,11 @@
   color: #999;
   text-align: center;
   margin-bottom: 40rpx;
+}
+
+.error-text {
+  color: #ff3b30;
+  font-size: 24rpx;
+  margin-bottom: 24rpx;
+  text-align: center;
 }

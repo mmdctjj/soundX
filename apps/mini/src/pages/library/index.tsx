@@ -1,10 +1,11 @@
-import { Album, Artist, Track, loadMoreAlbum, loadMoreArtist, loadMoreTrack } from '@soundx/services';
+import { Album, Artist, Track, getCollections, loadMoreAlbum, loadMoreArtist, loadMoreTrack } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
-import Taro, { useDidShow } from '@tarojs/taro';
+import Taro from '@tarojs/taro';
 import { useEffect, useMemo, useState } from 'react';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import SkeletonBlock from '../../components/SkeletonBlock';
+import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
 import { getBaseURL } from '../../utils/request';
@@ -13,18 +14,28 @@ import './index.scss';
 const SONG_SKELETON_COUNT = 9;
 const GRID_SKELETON_COUNT = 12;
 
-type LibraryTab = 'songs' | 'artists' | 'albums';
+type CollectionItem = {
+  id: number | string;
+  name: string;
+  cover?: string | null;
+  items?: Array<{ album?: Album }>;
+  _count?: { items?: number };
+};
+
+type LibraryTab = 'songs' | 'artists' | 'albums' | 'collections';
 
 export default function Library() {
   const { mode, setMode } = usePlayMode();
+  const { user } = useAuth();
   const { playTrackList, currentTrack, isPlaying } = usePlayer();
   const [activeTab, setActiveTab] = useState<LibraryTab>('songs');
   const [tabCounts, setTabCounts] = useState<Record<LibraryTab, number | null>>({
     songs: null,
     artists: null,
     albums: null,
+    collections: null,
   });
-  const [sortedItems, setSortedItems] = useState<(Artist | Album | Track)[]>([]);
+  const [sortedItems, setSortedItems] = useState<(Artist | Album | Track | CollectionItem)[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -34,6 +45,8 @@ export default function Library() {
   const [showTrackMoreMenu, setShowTrackMoreMenu] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [heartbeatModeActive, setHeartbeatModeActive] = useState(false);
+  const currentSourceType = Taro.getStorageSync('currentSourceType') || 'AudioDock';
+  const canSwitchMode = currentSourceType !== 'Subsonic';
 
   const loadData = async (isLoadMore = false) => {
     if (!isLoadMore) {
@@ -86,7 +99,7 @@ export default function Library() {
           setHasMore(res.data.hasMore ?? newItems.length < (res.data.total || 0));
           setLoadCount((isLoadMore ? loadCount : 0) + 1);
         }
-      } else {
+      } else if (activeTab === 'albums') {
         const res = await loadMoreAlbum({
           pageSize: 50,
           loadCount: isLoadMore ? loadCount : 0,
@@ -105,6 +118,15 @@ export default function Library() {
           setTotal(res.data.total || newItems.length);
           setHasMore(res.data.hasMore ?? newItems.length < (res.data.total || 0));
           setLoadCount((isLoadMore ? loadCount : 0) + 1);
+        }
+      } else if (user) {
+        const res = await getCollections(user.id);
+        if (res.code === 200 && res.data) {
+          const list = res.data as CollectionItem[];
+          setSortedItems(list);
+          setTotal(list.length);
+          setHasMore(false);
+          setLoadCount(1);
         }
       }
     } catch (error) {
@@ -131,6 +153,15 @@ export default function Library() {
   }, [activeTab, mode]);
 
   useEffect(() => {
+    if (mode === 'AUDIOBOOK' && activeTab === 'songs') {
+      setActiveTab('artists');
+    }
+    if (mode !== 'AUDIOBOOK' && activeTab === 'collections') {
+      setActiveTab('artists');
+    }
+  }, [activeTab, mode]);
+
+  useEffect(() => {
     if (mode !== 'MUSIC' && heartbeatModeActive) {
       setHeartbeatModeActive(false);
     }
@@ -141,7 +172,7 @@ export default function Library() {
 
     const loadTabCounts = async () => {
       try {
-        const [trackRes, artistRes, albumRes] = await Promise.all([
+        const [trackRes, artistRes, albumRes, collectionRes] = await Promise.all([
           loadMoreTrack({
             pageSize: 1,
             loadCount: 0,
@@ -157,15 +188,18 @@ export default function Library() {
             loadCount: 0,
             type: mode,
           }),
+          mode === 'AUDIOBOOK' && user ? getCollections(user.id) : Promise.resolve(null),
         ]);
 
         if (cancelled) return;
 
         setTabCounts({
           songs:
-            trackRes.code === 200
-              ? trackRes.data?.total || trackRes.data?.list?.length || 0
-              : 0,
+            mode === 'MUSIC'
+              ? trackRes.code === 200
+                ? trackRes.data?.total || trackRes.data?.list?.length || 0
+                : 0
+              : null,
           artists:
             artistRes.code === 200
               ? artistRes.data?.total || artistRes.data?.list?.length || 0
@@ -174,6 +208,10 @@ export default function Library() {
             albumRes.code === 200
               ? albumRes.data?.total || albumRes.data?.list?.length || 0
               : 0,
+          collections:
+            mode === 'AUDIOBOOK'
+              ? (collectionRes?.code === 200 ? collectionRes.data?.length || 0 : 0)
+              : null,
         });
       } catch (error) {
         if (!cancelled) {
@@ -187,11 +225,7 @@ export default function Library() {
     return () => {
       cancelled = true;
     };
-  }, [mode]);
-
-  useDidShow(() => {
-      // noop
-  });
+  }, [mode, user]);
 
   const getImageUrl = (url: string | null) => {
       if (!url) return `https://picsum.photos/200/200`;
@@ -225,6 +259,7 @@ export default function Library() {
 
   const locateDisabled = useMemo(() => {
     if (!currentTrack || sortedItems.length === 0) return true;
+    if (activeTab === 'collections') return true;
     if (activeTab === 'songs') {
       return !sortedItems.some((item) => (item as Track).id === currentTrack.id);
     }
@@ -237,6 +272,11 @@ export default function Library() {
   const openTrackMoreMenu = (track: Track) => {
     setSelectedTrack(track);
     setShowTrackMoreMenu(true);
+  };
+
+  const handlePlayAll = () => {
+    if (activeTab !== 'songs' || sortedItems.length === 0) return;
+    playTrackList(sortedItems as Track[], 0);
   };
 
   const showTrackPathModal = async (track: Track) => {
@@ -263,26 +303,35 @@ export default function Library() {
       <View className='header'>
         <Text className='header-title'>声仓</Text>
         <View className='header-icons'>
-             <View className='icon-btn' onClick={() => Taro.navigateTo({ url: '/pages/folder/index' })}>
-                <Text className='icon-text'>📂</Text>
-             </View>
-             <View className='icon-btn' onClick={() => Taro.navigateTo({ url: '/pages/search/index' })}>
-                <Text className='icon-text'>🔍</Text>
-             </View>
-             <View className='icon-btn' onClick={() => setMode(mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC')}>
-                <Text className='icon-text'>{mode === 'MUSIC' ? '🎵' : '🎧'}</Text>
-             </View>
+          {mode === 'MUSIC' && activeTab === 'songs' && sortedItems.length > 0 && (
+            <View className='icon-btn' onClick={handlePlayAll}>
+              <Text className='icon-text icon icon-play' />
+            </View>
+          )}
+          <View className='icon-btn' onClick={() => Taro.navigateTo({ url: '/pages/folder/index' })}>
+            <Text className='icon-text icon icon-folder' />
+          </View>
+          <View className='icon-btn' onClick={() => Taro.navigateTo({ url: '/pages/search/index' })}>
+            <Text className='icon-text icon icon-search' />
+          </View>
+          {canSwitchMode && (
+            <View className='icon-btn' onClick={() => setMode(mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC')}>
+              <Text className={`icon-text icon ${mode === 'MUSIC' ? 'icon-musical-notes' : 'icon-headset'}`} />
+            </View>
+          )}
         </View>
       </View>
 
       <View className='tabs-container'>
          <View className='tabs-bg'>
-            <View
-                className={`tab-item ${activeTab === 'songs' ? 'active' : ''}`}
-                onClick={() => setActiveTab('songs')}
-            >
-                {renderTabLabel('单曲', tabCounts.songs, activeTab === 'songs')}
-            </View>
+            {mode === 'MUSIC' && (
+              <View
+                  className={`tab-item ${activeTab === 'songs' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('songs')}
+              >
+                  {renderTabLabel('单曲', tabCounts.songs, activeTab === 'songs')}
+              </View>
+            )}
             <View 
                 className={`tab-item ${activeTab === 'artists' ? 'active' : ''}`} 
                 onClick={() => setActiveTab('artists')}
@@ -295,6 +344,14 @@ export default function Library() {
             >
                 {renderTabLabel('专辑', tabCounts.albums, activeTab === 'albums')}
             </View>
+            {mode === 'AUDIOBOOK' && (
+              <View
+                className={`tab-item ${activeTab === 'collections' ? 'active' : ''}`}
+                onClick={() => setActiveTab('collections')}
+              >
+                {renderTabLabel('合集', tabCounts.collections, activeTab === 'collections')}
+              </View>
+            )}
          </View>
       </View>
 
@@ -398,16 +455,43 @@ export default function Library() {
                      onClick={() => {
                        const url = activeTab === 'artists'
                          ? `/pages/artist/index?id=${item.id}`
-                         : `/pages/album/index?id=${item.id}`;
+                         : activeTab === 'collections'
+                           ? `/pages/collection/index?id=${item.id}`
+                           : `/pages/album/index?id=${item.id}`;
                        Taro.navigateTo({ url });
                      }}
                    >
                      <Image
-                       src={getImageUrl(activeTab === 'artists' ? item.avatar : item.cover)}
+                       src={getImageUrl(
+                         activeTab === 'artists'
+                           ? item.avatar
+                           : activeTab === 'collections'
+                             ? item.cover || item.items?.[0]?.album?.cover || null
+                             : item.cover,
+                       )}
                        className={`item-image ${activeTab === 'artists' ? 'circle' : 'rounded'}`}
                        mode='aspectFill'
                      />
-                     <Text className='item-name' numberOfLines={1}>{item.name}</Text>
+                     {activeTab === 'albums' && mode === 'AUDIOBOOK' && (item as Album).progress > 0 ? (
+                       <View className='item-progress'>
+                         <View
+                           className='item-progress-bar'
+                           style={{ width: `${Math.min(100, Math.max(0, (item as Album).progress || 0))}%` }}
+                         />
+                       </View>
+                     ) : null}
+                     <Text className={`item-name ${activeTab === 'albums' || activeTab === 'collections' ? 'album' : ''}`} numberOfLines={1}>
+                       {item.name}
+                     </Text>
+                     {activeTab === 'albums' ? (
+                       <Text className='item-sub' numberOfLines={1}>
+                         {(item as Album).artist || '未知艺术家'}
+                       </Text>
+                     ) : activeTab === 'collections' ? (
+                       <Text className='item-sub' numberOfLines={1}>
+                         {`${item._count?.items ?? item.items?.length ?? 0} 张专辑`}
+                       </Text>
+                     ) : null}
                    </View>
                  ))}
                </View>
@@ -420,12 +504,13 @@ export default function Library() {
              {sortedItems.length > 0 && (
                <View className='library-footer'>
                  <Text className='library-footer-text'>
-                   {`共加载 ${sortedItems.length} ${activeTab === 'songs' ? '首' : activeTab === 'artists' ? '位艺术家' : '张专辑'}`}
+                   {`共加载 ${sortedItems.length} ${activeTab === 'songs' ? '首' : activeTab === 'artists' ? '位艺术家' : activeTab === 'albums' ? '张专辑' : '个合集'}`}
                  </Text>
                </View>
              )}
            </>
          )}
+         <View className='page-bottom-spacer' />
          <View id='bottom-anchor' />
       </ScrollView>
 
@@ -468,6 +553,7 @@ export default function Library() {
         onTop={() => scrollToAnchor('top-anchor')}
         onBottom={() => scrollToAnchor('bottom-anchor')}
         onLocate={handleLocateCurrent}
+        showLocate={activeTab !== 'collections'}
         locateDisabled={locateDisabled}
         showHeartbeat={mode === 'MUSIC'}
         heartbeatActive={heartbeatModeActive}

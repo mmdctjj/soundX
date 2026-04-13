@@ -1,20 +1,22 @@
 .mini-player-container {
   position: fixed;
-  bottom: env(safe-area-inset-bottom);
-  left: 0;
-  right: 0;
+  bottom: calc(env(safe-area-inset-bottom) + 24rpx);
+  left: 20rpx;
+  right: 20rpx;
   height: 120rpx;
   background-color: #fff;
-  border-top: 1rpx solid #eee;
-  z-index: 1000;
+  border-radius: 24rpx;
+  box-shadow: 0 16rpx 36rpx rgba(0, 0, 0, 0.14);
+  z-index: 1200;
   display: flex;
+  overflow: hidden;
 
   &.is-native-tab-page {
-    bottom: 0;
+    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 20rpx);
   }
 
   &.has-custom-bottom-tab {
-    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 20rpx);
   }
 }
 
@@ -25,7 +27,7 @@
   justify-content: space-between;
   width: 100%;
   height: 100%;
-  padding: 0 30rpx;
+  padding: 0 24rpx;
 }
 
 .mini-info-container {
