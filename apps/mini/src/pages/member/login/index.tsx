@@ -1,5 +1,5 @@
-import { plusLogin, plusSendCode, setPlusToken } from '@soundx/services';
-import { Image, Text, Textarea, View } from '@tarojs/components';
+import { plusGetMe, plusLogin, plusSendCode, setPlusToken } from '@soundx/services';
+import { Image, Input, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useState } from 'react';
 import './index.scss';
@@ -55,9 +55,21 @@ export default function MemberLogin() {
         const { token: plusToken, userId } = res.data.data;
 
         // 保存 Plus Token
-        wx.setStorageSync('plus_token', plusToken);
-        wx.setStorageSync('plus_user_id', JSON.stringify(userId));
+        Taro.setStorageSync('plus_token', plusToken);
+        Taro.setStorageSync('plus_user_id', JSON.stringify(userId));
         setPlusToken(plusToken);
+
+        // Fetch VIP status after login
+        try {
+          const profileRes = await plusGetMe(userId);
+          const vipTier = profileRes?.data?.data?.vipTier;
+          const isVipUser = vipTier && vipTier !== 'NONE';
+          Taro.setStorageSync('plus_vip_status', isVipUser ? 'true' : 'false');
+          Taro.setStorageSync('plus_vip_data', JSON.stringify(profileRes?.data?.data || {}));
+          Taro.setStorageSync('plus_vip_updated_at', Date.now().toString());
+        } catch (profileErr) {
+          console.warn('Failed to fetch vip status after login', profileErr);
+        }
 
         Taro.showToast({ title: '登录成功', icon: 'success' });
         setTimeout(() => {
@@ -85,7 +97,7 @@ export default function MemberLogin() {
         <View className='form'>
           <Text className='label'>手机号</Text>
           <View className='input-wrapper'>
-            <Textarea
+            <Input
               className='input'
               placeholder='请输入手机号'
               placeholderClass='input-placeholder'
@@ -99,7 +111,7 @@ export default function MemberLogin() {
           <Text className='label'>验证码</Text>
           <View className='code-row'>
             <View className='input-wrapper' style={{ flex: 1 }}>
-              <Textarea
+              <Input
                 className='input'
                 placeholder='请输入验证码'
                 placeholderClass='input-placeholder'
@@ -128,9 +140,9 @@ export default function MemberLogin() {
 
           <View className='footer-links'>
             <Text className='footer-text'>登录即代表同意 </Text>
-            <Text className='link-text' onClick={() => window.location.href = 'https://www.audiodock.cn/docs/privacy-policy/'}>《隐私政策》</Text>
+            <Text className='link-text' onClick={() => Taro.setClipboardData({ data: 'https://www.audiodock.cn/docs/privacy-policy/', success: () => Taro.showToast({ title: '链接已复制，请在浏览器中打开', icon: 'none' }) })}>《隐私政策》</Text>
             <Text className='footer-text'> 和 </Text>
-            <Text className='link-text' onClick={() => window.location.href = 'https://www.audiodock.cn/docs/user-agreement/'}>《用户协议》</Text>
+            <Text className='link-text' onClick={() => Taro.setClipboardData({ data: 'https://www.audiodock.cn/docs/user-agreement/', success: () => Taro.showToast({ title: '链接已复制，请在浏览器中打开', icon: 'none' }) })}>《用户协议》</Text>
           </View>
         </View>
       </View>

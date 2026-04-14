@@ -29,7 +29,7 @@ export default function MemberDetail() {
 
   const fetchVipStatus = async () => {
     try {
-      const plusUserId = wx.getStorageSync('plus_user_id');
+      const plusUserId = Taro.getStorageSync('plus_user_id');
       if (plusUserId) {
         let id = plusUserId;
         try {
@@ -56,8 +56,8 @@ export default function MemberDetail() {
       cancelText: '取消',
       success: async (res) => {
         if (res.confirm) {
-          wx.removeStorageSync('plus_token');
-          wx.removeStorageSync('plus_user_id');
+          Taro.removeStorageSync('plus_token');
+          Taro.removeStorageSync('plus_user_id');
           Taro.redirectTo({ url: '/pages/member/login/index' });
         }
       },

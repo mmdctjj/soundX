@@ -10,11 +10,12 @@ import {
   getRunningImportTask,
   getTrackHistory,
   ImportTask,
+  plusGetMe,
   TaskStatus,
 } from '@soundx/services';
 import { Image, Input, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import MiniPlayer from '../../components/MiniPlayer';
 import SkeletonBlock from '../../components/SkeletonBlock';
 import StackedCover from '../../components/StackedCover';
@@ -24,7 +25,7 @@ import { usePlayMode } from '../../utils/playMode';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
 
-type TabType = 'playlists' | 'favorites' | 'history' | 'downloads';
+type TabType = 'playlists' | 'favorites' | 'history';
 type SubTabType = 'track' | 'album';
 
 export default function Personal() {
@@ -40,7 +41,6 @@ export default function Personal() {
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
-  const [downloads] = useState<any[]>([]);
 
   const [showMenu, setShowMenu] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -51,11 +51,46 @@ export default function Personal() {
   const [importTask, setImportTask] = useState<ImportTask | null>(null);
   const pollTimerRef = useRef<any>(null);
 
-  const refreshSourceType = () => {
-    setSourceType(Taro.getStorageSync('currentSourceType') || 'AudioDock');
+  const [isVip, setIsVip] = useState(false);
+
+  const refreshVipStatus = async () => {
+    const plusToken = Taro.getStorageSync('plus_token');
+    const plusUserId = Taro.getStorageSync('plus_user_id');
+
+    if (!plusToken || !plusUserId) {
+      setIsVip(false);
+      Taro.setStorageSync('plus_vip_status', 'false');
+      return;
+    }
+
+    let id: any = plusUserId;
+    try {
+      id = JSON.parse(plusUserId);
+    } catch {}
+
+    try {
+      const res = await plusGetMe(id);
+      const vipTier = res?.data?.data?.vipTier;
+      const isVipUser = vipTier && vipTier !== 'NONE';
+      setIsVip(!!isVipUser);
+      
+      Taro.setStorageSync('plus_vip_status', isVipUser ? 'true' : 'false');
+      Taro.setStorageSync('plus_vip_data', JSON.stringify(res?.data?.data || {}));
+      Taro.setStorageSync('plus_vip_updated_at', Date.now().toString());
+    } catch (err) {
+      console.warn('Failed to refresh vip status in personal page', err);
+      // Fallback to local cache if network fails
+      const isVipStr = Taro.getStorageSync('plus_vip_status');
+      setIsVip(isVipStr === 'true');
+    }
   };
 
-  const loadData = async () => {
+  const refreshSourceType = () => {
+    setSourceType(Taro.getStorageSync('currentSourceType') || 'AudioDock');
+    refreshVipStatus();
+  };
+
+  const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -84,7 +119,7 @@ export default function Personal() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, activeSubTab, mode, user]);
 
   useDidShow(() => {
     refreshSourceType();
@@ -104,10 +139,10 @@ export default function Personal() {
   }, [sourceType, activeTab]);
 
   useEffect(() => {
-    if (user && activeTab !== 'downloads') {
+    if (user) {
       loadData();
     }
-  }, [activeTab, activeSubTab, mode, user]);
+  }, [activeTab, activeSubTab, mode, user, loadData]);
 
   const pollTaskStatus = async (taskId: string) => {
     try {
@@ -189,9 +224,6 @@ export default function Personal() {
   const handleOpenTtsTasks = async () => {
     setShowMenu(false);
 
-    const isVipStr = Taro.getStorageSync('plus_vip_status');
-    const isVip = isVipStr === 'true';
-
     if (isVip) {
       Taro.navigateTo({ url: '/pages/tts/tasks/index' });
       return;
@@ -245,18 +277,15 @@ export default function Personal() {
     if (activeTab === 'playlists') return playlists;
     if (activeTab === 'favorites') return favorites;
     if (activeTab === 'history') return history;
-    return downloads;
+    return [];
   };
 
   const getEmptyText = () => {
-    if (activeTab === 'downloads') {
-      return '小程序暂不支持离线下载管理';
-    }
     return loading ? '加载中...' : '暂无数据';
   };
 
   const renderList = () => {
-    if (loading && activeTab !== 'downloads') {
+    if (loading) {
       return Array.from({ length: 6 }).map((_, index) => (
         <View key={`skeleton-${index}`} className='item-row'>
           <View className='cover-wrapper'>
@@ -287,15 +316,13 @@ export default function Personal() {
 
     return data.map((item) => {
       const isPlaylist = activeTab === 'playlists';
-      const isAlbum = activeTab !== 'playlists' && activeTab !== 'downloads' && (mode === 'AUDIOBOOK' || activeSubTab === 'album');
+      const isAlbum = activeTab !== 'playlists' && (mode === 'AUDIOBOOK' || activeSubTab === 'album');
 
       return (
         <View
-          key={`${item.id}-${activeTab}`}
+          key={`${item.id}-${activeTab}-${activeSubTab}`}
           className='item-row'
           onClick={() => {
-            if (activeTab === 'downloads') return;
-
             if (isPlaylist) {
               Taro.navigateTo({ url: `/pages/playlist/index?id=${item.id}` });
             } else if (isAlbum) {
@@ -396,8 +423,28 @@ export default function Personal() {
 
       <View className='user-profile'>
         <Image src={getImageUrl((user as any)?.avatar || null)} className='avatar' mode='aspectFill' />
-        <Text className='username'>{user?.username || '未登录'}</Text>
-        <Text className='source-tag'>{sourceType}</Text>
+        <View className='username-row'>
+          <Text className='username'>{user?.username || '未登录'}</Text>
+          {user && (
+            <View
+              className={`vip-crown ${isVip ? 'active' : ''}`}
+              onClick={() => {
+                const plusToken = Taro.getStorageSync('plus_token');
+                if (plusToken) {
+                  if (isVip) {
+                    Taro.navigateTo({ url: '/pages/member/detail/index' });
+                  } else {
+                    Taro.navigateTo({ url: '/pages/member/benefits/index' });
+                  }
+                } else {
+                  Taro.navigateTo({ url: '/pages/member/login/index' });
+                }
+              }}
+            >
+              <Text className='icon icon-crown' style={{ color: isVip ? '#FFD700' : '#999' }} />
+            </View>
+          )}
+        </View>
         {!user && <View className='login-btn' onClick={() => Taro.navigateTo({ url: '/pages/login/index' })}>去登录</View>}
       </View>
 
@@ -406,7 +453,6 @@ export default function Personal() {
           { key: 'playlists', label: '播放列表' },
           { key: 'favorites', label: '收藏' },
           { key: 'history', label: '听过', hidden: sourceType === 'Emby' },
-          { key: 'downloads', label: '下载' },
         ]
           .filter((tab) => !tab.hidden)
           .map((tab) => (
@@ -481,7 +527,6 @@ export default function Personal() {
           </View>
         </View>
       )}
-
       <MiniPlayer />
     </View>
   );

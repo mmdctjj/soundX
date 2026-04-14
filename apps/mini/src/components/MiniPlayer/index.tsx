@@ -10,10 +10,9 @@ const MiniPlayer: React.FC = () => {
   const { currentTrack, isPlaying, pause, resume, playNext, playPrevious, setShowPlaylist } = usePlayer();
   const router = useRouter();
 
-  const tabPages = ['/pages/index/index', '/pages/library/index', '/pages/personal/index'];
-  const isTabPage = tabPages.indexOf(router.path) > -1;
-  const pagesWithBottomTab = ['/pages/album/index', '/pages/artist/index'];
-  const hasCustomBottomTab = pagesWithBottomTab.indexOf(router.path) > -1;
+  const isTabPage = router.path === '/pages/index/index' ||
+                    router.path === '/pages/library/index' ||
+                    router.path === '/pages/personal/index';
 
   if (!currentTrack) return null;
 
@@ -35,7 +34,7 @@ const MiniPlayer: React.FC = () => {
   return (
     <>
       <View
-        className={`mini-player-container ${isTabPage ? 'is-native-tab-page' : ''} ${hasCustomBottomTab ? 'has-custom-bottom-tab' : ''}`}
+        className={`mini-player-container ${isTabPage ? 'is-native-tab-page' : ''}`}
         onClick={() => Taro.navigateTo({ url: '/pages/player/index' })}
       >
         <View className='mini-content'>

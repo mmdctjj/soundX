@@ -42,14 +42,20 @@ export default defineAppConfig({
     list: [
       {
         pagePath: 'pages/index/index',
+        iconPath: 'assets/images/home.png',
+        selectedIconPath: 'assets/images/home-fill.png',
         text: '推荐'
       },
       {
         pagePath: 'pages/library/index',
+        iconPath: 'assets/images/music.png',
+        selectedIconPath: 'assets/images/music-fill.png',
         text: '声仓'
       },
       {
         pagePath: 'pages/personal/index',
+        iconPath: 'assets/images/people.png',
+        selectedIconPath: 'assets/images/people-fill.png',
         text: '我的'
       }
     ]

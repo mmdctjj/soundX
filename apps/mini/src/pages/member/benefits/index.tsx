@@ -21,7 +21,7 @@ export default function MemberBenefits() {
   const [loading, setLoading] = useState(false);
 
   const handlePayment = async (method: 'WECHAT' | 'ALIPAY') => {
-    const userIdStr = wx.getStorageSync('plus_user_id');
+    const userIdStr = Taro.getStorageSync('plus_user_id');
     if (!userIdStr) {
       Taro.showModal({
         title: '提示',
@@ -93,8 +93,8 @@ export default function MemberBenefits() {
       cancelText: '取消',
       success: async (res) => {
         if (res.confirm) {
-          wx.removeStorageSync('plus_user_id');
-          wx.removeStorageSync('plus_token');
+          Taro.removeStorageSync('plus_user_id');
+          Taro.removeStorageSync('plus_token');
           Taro.redirectTo({ url: '/pages/member/login/index' });
         }
       },

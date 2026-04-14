@@ -2,7 +2,6 @@ import { Album, Track, getAlbumById, getAlbumTracks } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
-import BottomTabBar from '../../components/BottomTabBar';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import { useAuth } from '../../context/AuthContext';
@@ -137,8 +136,7 @@ export default function AlbumDetail() {
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
-         <BottomTabBar />
-         <MiniPlayer />
+      <MiniPlayer />
     </View>
   );
 }

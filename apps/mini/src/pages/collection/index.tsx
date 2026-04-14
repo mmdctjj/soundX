@@ -2,7 +2,6 @@ import { Album, getCollectionById } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
-import BottomTabBar from '../../components/BottomTabBar';
 import MiniPlayer from '../../components/MiniPlayer';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
@@ -86,8 +85,6 @@ export default function CollectionPage() {
         </View>
         <View className='page-bottom-spacer' />
       </ScrollView>
-
-      <BottomTabBar />
       <MiniPlayer />
     </View>
   );

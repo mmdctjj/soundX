@@ -170,7 +170,6 @@ export default function FolderPage() {
           </>
         )}
       </ScrollView>
-
       <MiniPlayer />
     </View>
   );

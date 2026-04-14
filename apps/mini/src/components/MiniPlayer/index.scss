@@ -1,22 +1,22 @@
 .mini-player-container {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom) + 24rpx);
-  left: 20rpx;
-  right: 20rpx;
+  left: 0;
+  right: 0;
+  bottom: 0; /* 默认在底部 */
   height: 120rpx;
   background-color: #fff;
-  border-radius: 24rpx;
-  box-shadow: 0 16rpx 36rpx rgba(0, 0, 0, 0.14);
-  z-index: 1200;
+  border-top: 1rpx solid rgba(150, 150, 150, 0.1);
   display: flex;
-  overflow: hidden;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 30rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 800;
 
   &.is-native-tab-page {
-    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 20rpx);
-  }
-
-  &.has-custom-bottom-tab {
-    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 20rpx);
+    /* 配合全局的自定义 TabBar */
+    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+    padding-bottom: 0;
   }
 }
 

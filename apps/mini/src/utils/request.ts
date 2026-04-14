@@ -1,4 +1,4 @@
-import { setAsrBaseURL, setRequestInstance } from '@soundx/services';
+import { setAsrBaseURL, setRequestInstance, plusRequest } from '@soundx/services';
 import Taro from '@tarojs/taro';
 import axios, { AxiosAdapter, AxiosError, AxiosResponse } from 'axios';
 
@@ -17,14 +17,22 @@ const taroAdapter: AxiosAdapter = (config) => {
       headers = headers.toJSON();
     }
     
-    // Explicitly merge generic headers if needed, though Axios usually does this.
-    // In strict environments, we might need to be very explicit.
+    // Extract params correctly, axios config.data might be a stringified JSON
+    let requestData = config.data;
+    if (typeof requestData === 'string') {
+      try {
+        requestData = JSON.parse(requestData);
+      } catch (e) {
+        // Not JSON string
+      }
+    }
+
+    // creating a union of data and params, as Taro uses 'data' for both body and query params depending on method
     const requestConfig: Taro.request.Option = {
       url: url!,
       method: (config.method?.toUpperCase() || 'GET') as any,
       header: headers, // Taro uses 'header' not 'headers'
-      // creating a union of data and params, as Taro uses 'data' for both body and query params depending on method
-      data: config.data || config.params, 
+      data: requestData || config.params, 
       responseType: config.responseType === 'arraybuffer' ? 'arraybuffer' : 'text',
       dataType: config.responseType === 'json' ? 'json' : undefined,
       success: (res) => {
@@ -134,5 +142,6 @@ instance.interceptors.response.use(
 );
 
 setRequestInstance(instance);
+plusRequest.defaults.adapter = taroAdapter;
 
 export default instance;

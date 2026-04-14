@@ -2,7 +2,6 @@ import { Album, Artist, Track, getAlbumsByArtist, getArtistById, getCollaborativ
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
-import BottomTabBar from '../../components/BottomTabBar';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import { usePlayer } from '../../context/PlayerContext';
@@ -172,8 +171,7 @@ export default function ArtistDetail() {
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
-         <BottomTabBar />
-         <MiniPlayer />
+      <MiniPlayer />
     </View>
   );
 }

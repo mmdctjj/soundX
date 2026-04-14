@@ -81,19 +81,29 @@
     margin-bottom: 20rpx;
   }
 
+  .username-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12rpx;
+    margin-top: 12rpx;
+  }
+
   .username {
     font-size: 36rpx;
     font-weight: bold;
     color: #333;
   }
 
-  .source-tag {
-    margin-top: 12rpx;
-    padding: 8rpx 24rpx;
-    border-radius: 999rpx;
-    background: rgba(0, 0, 0, 0.06);
-    color: #666;
-    font-size: 22rpx;
+  .vip-crown {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rpx;
+
+    .icon-crown {
+      font-size: 40rpx;
+    }
   }
 
   .login-btn {
