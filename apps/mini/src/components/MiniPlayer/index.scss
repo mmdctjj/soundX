@@ -12,7 +12,7 @@
   z-index: 1200;
 
   &.is-native-tab-page {
-    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 20rpx);
+    bottom: calc(env(safe-area-inset-bottom) - 50rpx);
   }
 
   &.has-custom-bottom-tab {

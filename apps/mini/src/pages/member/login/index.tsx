@@ -3,9 +3,7 @@ import { Image, Input, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useState } from 'react';
 import './index.scss';
-
-// Logo placeholder - using emoji
-const LogoImage = () => <Text className='logo-emoji'>🎵</Text>;
+import logoImg from '../../../assets/images/logo.png';
 
 export default function MemberLogin() {
   const [phone, setPhone] = useState('');
@@ -89,7 +87,7 @@ export default function MemberLogin() {
     <View className='member-login-container'>
       <View className='content'>
         <View className='logo-container'>
-          <LogoImage />
+          <Image src={logoImg} className='logo-image' mode='aspectFit' />
           <Text className='title'>用户登录</Text>
           <Text className='subtitle'>AudioDock 听见你的声音</Text>
         </View>
