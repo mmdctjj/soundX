@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import MiniPlayer from '../../components/MiniPlayer';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
+import BottomTabBar from '../../components/BottomTabBar';
 
 type CollectionDetail = {
   id: number | string;
@@ -85,6 +86,7 @@ export default function CollectionPage() {
         </View>
         <View className='page-bottom-spacer' />
       </ScrollView>
+      <BottomTabBar />
       <MiniPlayer />
     </View>
   );

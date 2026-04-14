@@ -7,6 +7,7 @@ import QuickLocate from '../../components/QuickLocate';
 import { usePlayer } from '../../context/PlayerContext';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
+import BottomTabBar from '../../components/BottomTabBar';
 
 export default function ArtistDetail() {
   const router = useRouter();
@@ -171,6 +172,7 @@ export default function ArtistDetail() {
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
+      <BottomTabBar />
       <MiniPlayer />
     </View>
   );

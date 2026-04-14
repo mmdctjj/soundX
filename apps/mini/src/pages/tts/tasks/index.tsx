@@ -4,6 +4,7 @@ import Taro from '@tarojs/taro';
 import { useCallback, useEffect, useState } from 'react';
 import MiniPlayer from '../../../components/MiniPlayer';
 import './index.scss';
+import BottomTabBar from '../../../components/BottomTabBar';
 
 type FilterStatus = 'all' | 'pending' | 'processing' | 'completed' | 'paused' | 'failed';
 
@@ -202,6 +203,7 @@ export default function TtsTasks() {
         )}
       </ScrollView>
 
+      <BottomTabBar />
       <MiniPlayer />
     </View>
   );

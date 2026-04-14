@@ -13,6 +13,7 @@ import { usePlayer } from "../../context/PlayerContext";
 import { usePlayMode } from "../../utils/playMode";
 import { getBaseURL } from "../../utils/request";
 import "./index.scss";
+import BottomTabBar from '../../components/BottomTabBar';
 
 type ViewMode = "roots" | "detail";
 
@@ -170,6 +171,7 @@ export default function FolderPage() {
           </>
         )}
       </ScrollView>
+      <BottomTabBar />
       <MiniPlayer />
     </View>
   );

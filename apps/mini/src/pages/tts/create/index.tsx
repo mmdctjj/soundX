@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import MiniPlayer from '../../../components/MiniPlayer';
 import { getBaseURL } from '../../../utils/request';
 import './index.scss';
+import BottomTabBar from '../../../components/BottomTabBar';
 
 type ViewMode = 'select' | 'review';
 
@@ -316,6 +317,7 @@ export default function TtsCreate() {
         {view === 'select' ? renderSelectView() : renderReviewView()}
       </ScrollView>
 
+      <BottomTabBar />
       <MiniPlayer />
     </View>
   );

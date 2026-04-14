@@ -6,6 +6,7 @@ import MiniPlayer from "../../components/MiniPlayer";
 import { usePlayer } from "../../context/PlayerContext";
 import { getBaseURL } from "../../utils/request";
 import "./index.scss";
+import BottomTabBar from '../../components/BottomTabBar';
 
 export default function PlaylistDetail() {
   const router = useRouter();
@@ -105,6 +106,7 @@ export default function PlaylistDetail() {
         <View style={{ height: "180rpx" }} />
       </ScrollView>
 
+      <BottomTabBar />
       <MiniPlayer />
     </View>
   );
