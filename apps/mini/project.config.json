@@ -9,7 +9,7 @@
     "enhance": false,
     "postcss": false,
     "preloadBackgroundData": false,
-    "minified": false,
+    "minified": true,
     "newFeature": true,
     "coverView": true,
     "nodeModules": false,

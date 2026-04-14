@@ -30,6 +30,7 @@ export default defineAppConfig({
     navigationBarTitleText: 'SoundX',
     navigationBarTextStyle: 'black'
   },
+  lazyCodeLoading: "requiredComponents",
   permission: {
     'scope.record': {
       desc: '用于语音搜索'
