@@ -300,7 +300,7 @@ export default function SourceManage() {
 
       {/* 添加数据源按钮 */}
       <View className="add-btn" onClick={handleAddSource}>
-        <Text className="add-icon" style={{ fontSize: '32rpx', color: '#07c160' }}>+</Text>
+        <Text className="add-icon" style={{ fontSize: '32rpx', color: '#000000' }}>+</Text>
         <Text className="add-text">添加数据源</Text>
       </View>
     </View>

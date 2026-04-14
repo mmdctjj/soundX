@@ -76,7 +76,7 @@ export default function TtsTasks() {
 
   const getStatusInfo = (status: string) => {
     const config = statusConfig[status as keyof typeof statusConfig];
-    return config || { color: '#007aff', text: status };
+    return config || { color: '#000000', text: status };
   };
 
   const filterItems = [

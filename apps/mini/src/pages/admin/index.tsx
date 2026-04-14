@@ -116,7 +116,7 @@ export default function Admin() {
          <View className='section'>
              <View className='setting-row'>
                 <Text className='setting-label'>允许注册</Text>
-                <Switch checked={registrationAllowed} onChange={handleToggleRegistration} color='#007aff' />
+                <Switch checked={registrationAllowed} onChange={handleToggleRegistration} color='#000000' />
              </View>
          </View>
 

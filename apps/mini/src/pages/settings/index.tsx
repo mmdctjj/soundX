@@ -178,7 +178,7 @@ export default function Settings() {
         <Text className='setting-label'>{label}</Text>
         <Text className='setting-description'>{description}</Text>
       </View>
-      <Switch checked={value} onChange={(e) => onValueChange(e.detail.value)} color='#007aff' />
+      <Switch checked={value} onChange={(e) => onValueChange(e.detail.value)} color='#000000' />
     </View>
   );
 
@@ -251,7 +251,7 @@ export default function Settings() {
                 step={5}
                 value={recommendationLikeRatio}
                 onChange={(e) => updateSetting('recommendationLikeRatio', e.detail.value)}
-                activeColor='#007aff'
+                activeColor='#000000'
                 backgroundColor='#eee'
                 blockSize={16}
               />
@@ -271,7 +271,7 @@ export default function Settings() {
           {renderSettingRow('参与用户体验计划', '使用数据以改进产品', experienceProgramEnabled, (val) => updateSetting('experienceProgramEnabled', val))}
         </View>
 
-        <View className='section p-0'>
+        <View className='section'>
           <View className='logout-btn' onClick={handleLogout}>
             <Text className='logout-text'>退出登录</Text>
           </View>
@@ -307,7 +307,7 @@ export default function Settings() {
                 step={1}
                 value={screenBottomInset}
                 onChange={(e) => updateSetting('screenBottomInset', e.detail.value)}
-                activeColor='#007aff'
+                activeColor='#000000'
                 backgroundColor='#eee'
                 blockSize={16}
               />

@@ -208,6 +208,8 @@
   .item-info {
     flex: 1;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .item-name {
@@ -215,12 +217,25 @@
     font-weight: 500;
     color: #333;
     margin-bottom: 6rpx;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .item-sub {
     font-size: 24rpx;
     color: #999;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
+}
+
+.skeleton-mb {
+  margin-bottom: 20rpx;
+  margin-top: 6rpx;
 }
 
 .center-msg {

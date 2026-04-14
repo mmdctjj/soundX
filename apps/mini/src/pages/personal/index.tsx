@@ -16,6 +16,7 @@ import { Image, Input, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import { useEffect, useRef, useState } from 'react';
 import MiniPlayer from '../../components/MiniPlayer';
+import SkeletonBlock from '../../components/SkeletonBlock';
 import StackedCover from '../../components/StackedCover';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
@@ -27,7 +28,7 @@ type TabType = 'playlists' | 'favorites' | 'history' | 'downloads';
 type SubTabType = 'track' | 'album';
 
 export default function Personal() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { mode } = usePlayMode();
   const { playTrackList } = usePlayer();
 
@@ -255,6 +256,29 @@ export default function Personal() {
   };
 
   const renderList = () => {
+    if (loading && activeTab !== 'downloads') {
+      return Array.from({ length: 6 }).map((_, index) => (
+        <View key={`skeleton-${index}`} className='item-row'>
+          <View className='cover-wrapper'>
+            <SkeletonBlock width={100} height={100} borderRadius={12} />
+          </View>
+          <View className='item-info'>
+            <SkeletonBlock
+              className='skeleton-mb'
+              width={index % 3 === 0 ? '58%' : index % 3 === 1 ? '72%' : '66%'}
+              height={30}
+              borderRadius={8}
+            />
+            <SkeletonBlock
+              width={index % 2 === 0 ? '42%' : '55%'}
+              height={24}
+              borderRadius={6}
+            />
+          </View>
+        </View>
+      ));
+    }
+
     const data = getListData();
 
     if (data.length === 0) {
@@ -457,10 +481,6 @@ export default function Personal() {
           </View>
         </View>
       )}
-
-      <View className='logout-footer' onClick={logout}>
-        <Text>退出登录</Text>
-      </View>
 
       <MiniPlayer />
     </View>

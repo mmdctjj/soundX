@@ -201,11 +201,17 @@
 .track-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .track-name {
   font-size: 28rpx;
   color: #111827;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .track-name.active {
@@ -217,6 +223,10 @@
   margin-top: 6rpx;
   font-size: 24rpx;
   color: #6b7280;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .track-playing {
@@ -240,6 +250,15 @@
   height: 100%;
   border-radius: 999rpx;
   background: #111;
+}
+
+.skeleton-mb {
+  margin-bottom: 20rpx;
+  margin-top: 6rpx;
+}
+
+.skeleton-mt {
+  margin-top: 14rpx;
 }
 
 .empty-state {

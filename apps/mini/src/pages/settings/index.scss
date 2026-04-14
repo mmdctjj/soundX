@@ -1,7 +1,7 @@
 .settings-container {
   height: 100vh;
   width: 100vw;
-  background-color: #f5f5f5;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
 }
@@ -12,7 +12,6 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30rpx;
   margin-top: 80rpx;
   background-color: #fff;
 }
@@ -34,20 +33,25 @@
 
 .content {
   flex: 1;
-  padding: 0 30rpx;
 }
 
 .section {
-  margin-top: 60rpx;
+  margin-top: 40rpx;
+  background-color: #fff;
+  border-radius: 24rpx;
+  padding: 30rpx 0;
+  overflow: hidden;
 }
 
 .section-title {
   font-size: 28rpx;
   font-weight: bold;
-  color: #007aff;
+  color: #000000;
   margin-bottom: 20rpx;
   opacity: 0.6;
   text-transform: uppercase;
+  padding: 0 40rpx;
+  display: block;
 }
 
 .setting-row {
@@ -55,11 +59,13 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 30rpx 0;
   border-bottom: 1rpx solid rgba(150, 150, 150, 0.1);
-  background-color: #fff;
+  background-color: transparent;
   padding: 30rpx 40rpx;
-  margin-bottom: 2rpx;
+}
+
+.setting-row:last-child {
+  border-bottom: none;
 }
 
 .setting-info {
@@ -146,7 +152,7 @@
 .slider-number {
   font-size: 30rpx;
   font-weight: 700;
-  color: #007aff;
+  color: #000000;
 }
 
 .inset-slider {
@@ -187,7 +193,7 @@
 }
 
 .modal-confirm-btn {
-  background-color: #007aff;
+  background-color: #000000;
 }
 
 .modal-cancel-text {
@@ -231,11 +237,12 @@
 }
 
 .logout-btn {
-  margin-top: 40rpx;
+  margin: 30rpx 40rpx 0;
   background-color: #ff3b30;
   padding: 30rpx;
   border-radius: 24rpx;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .logout-text {
@@ -256,12 +263,13 @@
 }
 
 .delete-member-btn {
-  margin-top: 24rpx;
+  margin: 24rpx 40rpx 0;
   background-color: #FFF1F0;
   border: 1rpx solid #FFCCC7;
   padding: 30rpx;
   border-radius: 24rpx;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .delete-member-text {
@@ -270,11 +278,6 @@
   font-weight: 600;
 }
 
-.p-0 {
-  background-color: transparent !important;
-  border: none !important;
-  padding: 0;
-}
 
 .slider-row {
   display: flex !important;
