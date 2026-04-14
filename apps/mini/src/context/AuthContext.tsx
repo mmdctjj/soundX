@@ -1,4 +1,4 @@
-import { login as loginApi, register as registerApi, setServiceConfig, SOURCEMAP, useEmbyAdapter, useNativeAdapter, useSubsonicAdapter } from '@soundx/services'
+import { login as loginApi, register as registerApi, setPlusToken, setServiceConfig, SOURCEMAP, useEmbyAdapter, useNativeAdapter, useSubsonicAdapter } from '@soundx/services'
 import Taro from '@tarojs/taro'
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '../models'
@@ -75,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const savedToken = Taro.getStorageSync('token')
       const savedUser = Taro.getStorageSync('user')
       const savedDevice = Taro.getStorageSync('device')
+      const savedPlusToken = Taro.getStorageSync('plus_token')
 
       if (savedToken) {
         setToken(savedToken)
@@ -84,6 +85,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       if (savedDevice) {
         setDevice(JSON.parse(savedDevice))
+      }
+      if (savedPlusToken) {
+        setPlusToken(savedPlusToken)
       }
     } catch (error) {
       console.error('Failed to load auth data:', error)

@@ -195,7 +195,7 @@ export default function LoginForm() {
         return
       }
 
-      Taro.reLaunch({ url: '/pages/index/index' })
+      Taro.switchTab({ url: '/pages/personal/index' })
     } catch (error: any) {
       Taro.showToast({ title: error.message || '认证失败', icon: 'none' })
     } finally {
