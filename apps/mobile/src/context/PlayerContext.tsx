@@ -418,7 +418,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         ? mode === "AUDIOBOOK"
           ? historyRes.data.list.map((item: any) => ({
               id: item.trackId ?? item.track?.id ?? item.album?.id,
-              name: item.album?.name || item.album?.title || "未命名",
+              name: item.album?.name || item.album?.title || t('player.untitled'),
               artist: item.album?.artist || "",
               cover: item.album?.cover || "",
               type: item.album?.type || "AUDIOBOOK",

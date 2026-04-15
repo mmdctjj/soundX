@@ -260,7 +260,8 @@
     "seconds": "{{count}}s",
     "bottomInset": "底部间距",
     "moveDown": "更靠下",
-    "moveUp": "更靠上"
+    "moveUp": "更靠上",
+    "controlPositionDescription": "调整歌词或封面下方控制组距离底部的位置"
   },
 
   "equalizer": {

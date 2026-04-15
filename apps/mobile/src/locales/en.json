@@ -260,7 +260,8 @@
     "seconds": "{{count}}s",
     "bottomInset": "Bottom Inset",
     "moveDown": "Move Down",
-    "moveUp": "Move Up"
+    "moveUp": "Move Up",
+    "controlPositionDescription": "Adjust the distance from the bottom of the controls"
   },
 
   "equalizer": {

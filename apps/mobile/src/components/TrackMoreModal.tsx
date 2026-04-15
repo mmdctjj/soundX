@@ -138,7 +138,7 @@ export const TrackMoreModal: React.FC<TrackMoreModalProps> = ({
           >
             <Ionicons name="add-circle-outline" size={24} color={colors.text} />
             <Text style={[styles.menuText, { color: colors.text }]}>
-              添加到播放列表
+              {t('playerMore.addToPlaylist')}
             </Text>
           </TouchableOpacity>
 
@@ -155,7 +155,7 @@ export const TrackMoreModal: React.FC<TrackMoreModalProps> = ({
               style={[styles.menuText, { color: colors.text }]}
               numberOfLines={1}
             >
-              当前播放列表
+              {t('trackMore.addToCurrentQueue')}
             </Text>
           </TouchableOpacity>
 
@@ -171,7 +171,7 @@ export const TrackMoreModal: React.FC<TrackMoreModalProps> = ({
               size={24}
               color={colors.text}
             />
-            <Text style={[styles.menuText, { color: colors.text }]}>属性</Text>
+            <Text style={[styles.menuText, { color: colors.text }]}>{t('trackMore.properties')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -180,7 +180,7 @@ export const TrackMoreModal: React.FC<TrackMoreModalProps> = ({
               onClose();
               const success = await downloadTrack(track);
               if (success) {
-                Alert.alert(t('trackMore.downloadSuccess'), `"${track.name}" ${t('trackMore.downloadSuccess')}`);
+                Alert.alert(t('trackMore.downloadSuccess'), t('trackMore.downloadSuccess'));
               } else {
                 Alert.alert(t('trackMore.downloadFailed'), t('trackMore.downloadFailed'));
               }
@@ -207,7 +207,7 @@ export const TrackMoreModal: React.FC<TrackMoreModalProps> = ({
             onPress={onClose}
           >
             <Text style={[styles.menuText, { color: colors.secondary }]}>
-              取消
+              {t('common.cancel')}
             </Text>
           </TouchableOpacity>
         </View>

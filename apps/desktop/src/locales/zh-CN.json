@@ -25,7 +25,8 @@
     "addToPlaylist": "添加成功",
     "addedToPlaylist": "已添加到播放列表",
     "addToPlaylistFailed": "添加失败",
-    "remove": "移除"
+    "remove": "移除",
+    "download": "下载"
   },
   "nav": {
     "library": "音乐库",

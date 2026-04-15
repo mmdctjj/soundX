@@ -25,7 +25,8 @@
     "addToPlaylist": "Add to Playlist",
     "addedToPlaylist": "Added to playlist",
     "addToPlaylistFailed": "Failed to add to playlist",
-    "remove": "Remove"
+    "remove": "Remove",
+    "download": "Download"
   },
   "nav": {
     "library": "Library",
@@ -535,6 +536,19 @@
     "voiceActor": "Voice Actor",
     "searchHistory": "Search History",
     "hotSearch": "Hot Search"
+  },
+  "trackList": {
+    "title": "Title",
+    "artist": "Artist",
+    "album": "Album",
+    "cover": "Cover",
+    "duration": "Duration",
+    "progress": "Progress",
+    "index": "#",
+    "tracks": "tracks",
+    "getPlaylistsFailed": "Failed to get playlists",
+    "getDeletionImpactFailed": "Failed to get deletion impact",
+    "confirmDelete": "Are you sure you want to delete this audio file?"
   },
   "sectionOrderModal": {
     "title": "Adjust Section Order",

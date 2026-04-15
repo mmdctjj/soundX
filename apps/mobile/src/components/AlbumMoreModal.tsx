@@ -11,6 +11,7 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { Album, Track, TrackType } from "../models";
@@ -39,6 +40,7 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
   onUpdateCover,
   onManageCollections,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -84,7 +86,7 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
             ]}
           >
             <View style={styles.handle} />
-            <Text style={[styles.title, { color: colors.text }]}>专辑选项</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('albumMore.title')}</Text>
             <Text style={[styles.albumName, { color: colors.secondary }]}>{album.name}</Text>
 
             <TouchableOpacity
@@ -95,12 +97,12 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
               }}
             >
               <Ionicons name="image-outline" size={24} color={colors.text} />
-              <Text style={[styles.optionText, { color: colors.text }]}>修改封面</Text>
+              <Text style={[styles.optionText, { color: colors.text }]}>{t('albumMore.editCover')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.option} onPress={onAddToPlaylist}>
               <Ionicons name="add-circle-outline" size={24} color={colors.text} />
-              <Text style={[styles.optionText, { color: colors.text }]}>添加到播放列表</Text>
+              <Text style={[styles.optionText, { color: colors.text }]}>{t('albumMore.addToPlaylist')}</Text>
             </TouchableOpacity>
 
             {(album.type === TrackType.AUDIOBOOK) && (
@@ -112,13 +114,13 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
                 }}
               >
                 <Ionicons name="albums-outline" size={24} color={colors.text} />
-                <Text style={[styles.optionText, { color: colors.text }]}>加入合集</Text>
+                <Text style={[styles.optionText, { color: colors.text }]}>{t('albumMore.addToCollection')}</Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity style={styles.option} onPress={handleCreatePlaylistWithAlbum}>
               <Ionicons name="duplicate-outline" size={24} color={colors.text} />
-              <Text style={[styles.optionText, { color: colors.text }]}>新建与专辑同名播放列表</Text>
+              <Text style={[styles.optionText, { color: colors.text }]}>{t('albumMore.createPlaylistWithSameName')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -129,7 +131,7 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
               }}
             >
               <Ionicons name="list-outline" size={24} color={colors.text} />
-              <Text style={[styles.optionText, { color: colors.text }]}>选择歌曲</Text>
+              <Text style={[styles.optionText, { color: colors.text }]}>{t('albumMore.selectTracks')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -150,7 +152,7 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
               }}
             >
               <Ionicons name="cloud-download-outline" size={24} color={colors.text} />
-              <Text style={[styles.optionText, { color: colors.text }]}>批量下载</Text>
+              <Text style={[styles.optionText, { color: colors.text }]}>{t('albumMore.batchDownload')}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

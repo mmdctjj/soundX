@@ -182,7 +182,7 @@ const TrackList: React.FC<TrackListProps> = ({
               removeTrack(track.id);
               if (onRefresh) onRefresh();
             } else {
-              message.error("删除失败");
+              message.error(t('common.error'));
             }
           } catch (error) {
             message.error("删除失败");
@@ -190,7 +190,7 @@ const TrackList: React.FC<TrackListProps> = ({
         },
       });
     } catch (error) {
-      message.error("获取删除影响失败");
+      message.error(t('trackList.getDeletionImpactFailed'));
     }
   };
 
@@ -210,7 +210,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showCover
       ? [
           {
-            title: "封面",
+            title: t('trackList.cover'),
             key: "cover",
             width: 60,
             render: (_: any, record: Track) => (
@@ -246,7 +246,7 @@ const TrackList: React.FC<TrackListProps> = ({
         ]
       : []),
     {
-      title: "标题",
+      title: t('trackList.title'),
       dataIndex: "name",
       key: "name",
       ellipsis: true,
@@ -268,7 +268,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showArtist
       ? [
           {
-            title: "艺术家",
+            title: t('trackList.artist'),
             dataIndex: "artist",
             key: "artist",
             ellipsis: true,
@@ -279,7 +279,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showAlbum
       ? [
           {
-            title: "专辑",
+            title: t('trackList.album'),
             dataIndex: ["album", "name"] as any, // Handle object or string based on backend?
             key: "album",
             ellipsis: true,
@@ -294,7 +294,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...((type === TrackType.AUDIOBOOK)
       ? [
           {
-            title: "进度",
+            title: t('trackList.progress'),
             dataIndex: "progress",
             key: "progress",
             width: 70,
@@ -316,7 +316,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showDuration
       ? [
           {
-            title: "时长",
+            title: t('trackList.duration'),
             dataIndex: "duration",
             key: "duration",
             width: 80,
@@ -336,7 +336,7 @@ const TrackList: React.FC<TrackListProps> = ({
               const items: MenuProps["items"] = [
                 {
                   key: "play",
-                  label: "播放",
+                  label: t('player.play'),
                   icon: <PlayCircleOutlined />,
                   onClick: (info) => {
                     info.domEvent.stopPropagation();
@@ -348,8 +348,8 @@ const TrackList: React.FC<TrackListProps> = ({
                   label: (record as any).likedByUsers?.some(
                     (like: any) => like.userId === user?.id
                   )
-                    ? "取消收藏"
-                    : "收藏",
+                    ? t('player.unlike')
+                    : t('player.like'),
                   icon: (record as any).likedByUsers?.some(
                     (like: any) => like.userId === user?.id
                   ) ? (
@@ -372,7 +372,7 @@ const TrackList: React.FC<TrackListProps> = ({
                 },
                 {
                   key: "add",
-                  label: "添加到播放列表",
+                  label: t('player.addToPlaylist'),
                   icon: <PlusOutlined />,
                   onClick: (info) => {
                     info.domEvent.stopPropagation();
@@ -381,7 +381,7 @@ const TrackList: React.FC<TrackListProps> = ({
                 },
                 {
                    key: "download",
-                   label: "下载",
+                   label: t('common.download'),
                    icon: <CloudDownloadOutlined />,
                    onClick: (info) => {
                      info.domEvent.stopPropagation();
@@ -394,7 +394,7 @@ const TrackList: React.FC<TrackListProps> = ({
                 },
                 {
                   key: "delete",
-                  label: "删除",
+                  label: t('common.delete'),
                   icon: <DeleteOutlined />,
                   danger: true,
                   onClick: (info) => {
@@ -437,7 +437,7 @@ const TrackList: React.FC<TrackListProps> = ({
       />
 
       <Modal
-        title="添加到播放列表"
+        title={t('addToPlaylistModal.title')}
         open={isAddToPlaylistModalOpen}
         onCancel={() => setIsAddToPlaylistModalOpen(false)}
         footer={null}
@@ -451,7 +451,7 @@ const TrackList: React.FC<TrackListProps> = ({
               className={styles.playlistItem}
             >
               <Text>{item.name}</Text>
-              <Text type="secondary">{item._count?.tracks || 0} 首</Text>
+              <Text type="secondary">{item._count?.tracks || 0} {t('trackList.tracks')}</Text>
             </List.Item>
           )}
         />
