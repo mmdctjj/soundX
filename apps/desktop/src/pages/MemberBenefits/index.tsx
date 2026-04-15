@@ -524,7 +524,7 @@ const MemberBenefits: React.FC = () => {
                 onClick={() => setSelectedPlan("lifetime")}
               >
                 <div className={styles.proBadge}>{t("memberBenefits.recommended")}</div>
-                <Title level={5}>永久卡</Title>
+                <Title level={5}>{t("memberBenefits.permanentCard")}</Title>
                 <div className={styles.price}>
                   <span className={styles.currency}>¥</span>
                   <span className={styles.amount}>
