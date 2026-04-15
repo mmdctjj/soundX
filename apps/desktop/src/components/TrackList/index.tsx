@@ -26,6 +26,7 @@ import {
 } from "antd";
 import type { ColumnProps } from "antd/es/table";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMessage } from "../../context/MessageContext";
 import { type Track, TrackType } from "../../models";
 import { downloadTrack } from "../../services/downloadManager";
@@ -73,6 +74,7 @@ const TrackList: React.FC<TrackListProps> = ({
   playlistSource,
 }) => {
   const message = useMessage();
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const { play, setPlaylist, currentTrack, isPlaying, pause, removeTrack, toggleLike } =
     usePlayerStore();
@@ -127,7 +129,7 @@ const TrackList: React.FC<TrackListProps> = ({
       // Modifying the track object in place is dirty but works for display if valid React update triggers.
       // Better: The parent handles data.
     } catch (error) {
-      message.error("操作失败");
+      message.error(t('common.error'));
     }
   };
 
@@ -141,7 +143,7 @@ const TrackList: React.FC<TrackListProps> = ({
         setPlaylists(res.data);
       }
     } catch (error) {
-      message.error("获取播放列表失败");
+      message.error(t('trackList.getPlaylistsFailed'));
     }
   };
 
@@ -150,10 +152,10 @@ const TrackList: React.FC<TrackListProps> = ({
     try {
       const res = await addTrackToPlaylist(playlistId, selectedTrack.id);
       if (res.code === 200) {
-        message.success("添加成功");
+        message.success(t('common.success'));
         setIsAddToPlaylistModalOpen(false);
       } else {
-        message.error("添加失败");
+        message.error(t('common.error'));
       }
     } catch (error) {
       message.error("添加失败");
@@ -165,18 +167,18 @@ const TrackList: React.FC<TrackListProps> = ({
       const { data: impact } = await getDeletionImpact(track.id);
 
       modalApi.confirm({
-        title: "确定删除该音频文件吗?",
+        title: t('trackList.confirmDelete'),
         content: impact?.isLastTrackInAlbum
           ? `这是专辑《${impact.albumName}》的最后一个音频，删除后该专辑也将被同步删除。`
           : "删除后将无法恢复，且会同步删除本地原文件。",
-        okText: "删除",
+        okText: t('common.delete'),
         okType: "danger",
-        cancelText: "取消",
+        cancelText: t('common.cancel'),
         onOk: async () => {
           try {
             const res = await deleteTrack(track.id, impact?.isLastTrackInAlbum);
             if (res.code === 200) {
-              message.success("删除成功");
+              message.success(t('common.success'));
               removeTrack(track.id);
               if (onRefresh) onRefresh();
             } else {

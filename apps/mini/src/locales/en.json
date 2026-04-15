@@ -554,7 +554,15 @@
     "closerToBottom": "Closer to bottom",
     "pageUp": "Page up",
     "reset": "Reset",
-    "done": "Done"
+    "done": "Done",
+    "moveUp": "Move Up",
+    "skipForward": "Skip Forward",
+    "skipIntro": "Skip Intro",
+    "skipOutro": "Skip Outro",
+    "adjustControlPosition": "Adjust Control Position",
+    "adjustLyricFontSize": "Adjust Lyric Font Size",
+    "fontSize": "Font Size",
+    "setSkipIntro": "Set Auto-skip Intro"
   },
   "index": {
     "title": "Home",

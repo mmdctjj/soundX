@@ -422,42 +422,42 @@ export default function Player() {
                   </View>
                   <View className='player-audiobook-menu-btn' onClick={() => handleSkip(15)}>
                     <Text className='player-audiobook-menu-plain'>+15s</Text>
-                    <Text className='player-audiobook-menu-label'>前进</Text>
+                    <Text className='player-audiobook-menu-label'>{t('player.skipForward')}</Text>
                   </View>
                   <View className='player-audiobook-menu-btn' onClick={() => openSkipConfig('outro')}>
                     <Text className='player-audiobook-menu-icon icon icon-next' />
-                    <Text className='player-audiobook-menu-label'>片尾</Text>
+                    <Text className='player-audiobook-menu-label'>{t('player.skipOutro')}</Text>
                     <Text className='player-audiobook-menu-value'>{skipOutroDuration > 0 ? `${skipOutroDuration}s` : '关'}</Text>
                   </View>
                 </View>
               )}
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowAddToPlaylist(true); }}>
-                <Text className='player-menu-item-text'>添加到播放列表</Text>
+                <Text className='player-menu-item-text'>{t('player.addToPlaylist')}</Text>
               </View>
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowSleepTimerModal(true); }}>
                 <Text className='player-menu-item-text'>{sleepTimer ? `${t('player.sleepTimer')} (${formatRemainingTime()})` : t('player.sleepTimer')}</Text>
               </View>
               {currentTrack?.artistId && (
                 <View className='player-menu-item' onClick={handleNavigateToArtist}>
-                  <Text className='player-menu-item-text'>艺术家详情</Text>
+                  <Text className='player-menu-item-text'>{t('player.artistDetail')}</Text>
                 </View>
               )}
               {currentTrack?.albumId && (
                 <View className='player-menu-item' onClick={handleNavigateToAlbum}>
-                  <Text className='player-menu-item-text'>专辑详情</Text>
+                  <Text className='player-menu-item-text'>{t('player.albumDetail')}</Text>
                 </View>
               )}
               <View className='player-menu-item' onClick={handleShowTrackProperty}>
-                <Text className='player-menu-item-text'>属性</Text>
+                <Text className='player-menu-item-text'>{t('common.property')}</Text>
               </View>
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowLyricsFontModal(true); }}>
                 <Text className='player-menu-item-text'>调节歌词大小</Text>
               </View>
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowControlsOffsetModal(true); }}>
-                <Text className='player-menu-item-text'>控制组位置调整</Text>
+                <Text className='player-menu-item-text'>{t('player.adjustControlPosition')}</Text>
               </View>
               <View className='player-menu-item' onClick={() => setShowMoreMenu(false)}>
-                <Text className='player-menu-item-text cancel'>取消</Text>
+                <Text className='player-menu-item-text cancel'>{t('common.cancel')}</Text>
               </View>
             </View>
           </View>
@@ -471,14 +471,14 @@ export default function Player() {
             <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
               <View className='player-controls-offset-modal'>
                 <View className='player-modal-title-row'>
-                  <Text className='player-modal-title'>控制组位置调整</Text>
+                  <Text className='player-modal-title'>{t('player.adjustControlPosition')}</Text>
                 </View>
                 <View className='player-modal-description-row'>
                   <Text className='player-modal-description'>调整播放控制按钮距离屏幕底部的位置</Text>
                 </View>
                 <View className='player-slider-panel'>
                   <View className='player-slider-header'>
-                    <Text className='player-slider-label'>底部偏移</Text>
+                    <Text className='player-slider-label'>{t('player.bottomOffset')}</Text>
                     <Text className='player-slider-number'>{Math.round(controlsBottomOffset)}</Text>
                   </View>
                   <Slider
@@ -494,7 +494,7 @@ export default function Player() {
                   />
                   <View className='player-slider-hint-row'>
                     <Text className='player-slider-hint'>贴近底部</Text>
-                    <Text className='player-slider-hint'>上移</Text>
+                    <Text className='player-slider-hint'>{t('common.moveUp')}</Text>
                   </View>
                 </View>
                 <View className='player-modal-actions'>
@@ -502,7 +502,7 @@ export default function Player() {
                     <Text className='player-modal-cancel-text'>重置</Text>
                   </View>
                   <View className='player-modal-btn player-modal-confirm-btn' onClick={() => setShowControlsOffsetModal(false)}>
-                    <Text className='player-modal-confirm-text'>完成</Text>
+                    <Text className='player-modal-confirm-text'>{t('common.done')}</Text>
                   </View>
                 </View>
               </View>
@@ -518,11 +518,11 @@ export default function Player() {
                   <Text className='player-modal-title'>调节歌词大小</Text>
                 </View>
                 <View className='player-modal-description-row'>
-                  <Text className='player-modal-description'>调整播放页歌词字号</Text>
+                  <Text className='player-modal-description'>{t('player.adjustLyricFontSize')}</Text>
                 </View>
                 <View className='player-slider-panel'>
                   <View className='player-slider-header'>
-                    <Text className='player-slider-label'>字号</Text>
+                    <Text className='player-slider-label'>{t('common.fontSize')}</Text>
                     <Text className='player-slider-number'>{Math.round(lyricFontSize)}</Text>
                   </View>
                   <Slider
@@ -542,7 +542,7 @@ export default function Player() {
                     <Text className='player-modal-cancel-text'>重置</Text>
                   </View>
                   <View className='player-modal-btn player-modal-confirm-btn' onClick={() => setShowLyricsFontModal(false)}>
-                    <Text className='player-modal-confirm-text'>完成</Text>
+                    <Text className='player-modal-confirm-text'>{t('common.done')}</Text>
                   </View>
                 </View>
               </View>

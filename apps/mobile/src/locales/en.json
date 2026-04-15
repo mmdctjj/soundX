@@ -172,7 +172,8 @@
     "properties": "Properties",
     "download": "Download",
     "downloadSuccess": "Download successful",
-    "downloadFailed": "Download failed"
+    "downloadFailed": "Download failed",
+    "addToCurrentQueue": "Current Playlist"
   },
 
   "albumMore": {
@@ -256,7 +257,10 @@
     "trackDownloaded": "Track \"{{trackName}}\" has been downloaded successfully",
     "downloadFailedAlert": "Download Failed",
     "downloadFailedMsg": "Please check network connection or try again later",
-    "seconds": "{{count}}s"
+    "seconds": "{{count}}s",
+    "bottomInset": "Bottom Inset",
+    "moveDown": "Move Down",
+    "moveUp": "Move Up"
   },
 
   "equalizer": {

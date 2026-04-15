@@ -536,6 +536,11 @@
     "searchHistory": "Search History",
     "hotSearch": "Hot Search"
   },
+  "sectionOrderModal": {
+    "title": "Adjust Section Order",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
   "header": {
     "back": "Back",
     "forward": "Forward",

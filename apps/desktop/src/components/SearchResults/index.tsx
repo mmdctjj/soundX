@@ -187,9 +187,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         {history.length > 0 && (
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>历史搜索</div>
+              <div className={styles.sectionTitle}>{t('searchResults.searchHistory')}</div>
               <div className={styles.clearBtn} onClick={onClearHistory}>
-                清空
+                {t('searchResults.clearHistory')}
               </div>
             </div>
             <div className={styles.tagGroup}>
@@ -208,7 +208,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
         {hotSearches.length > 0 && (
           <div className={styles.section}>
-            <div className={styles.sectionTitle}>热搜榜</div>
+            <div className={styles.sectionTitle}>{t('searchResults.hotSearch')}</div>
             <div className={styles.hotList}>
               {hotSearches.map((item, i) => (
                 <div
@@ -260,7 +260,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     >
       {results.tracks.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>单曲</div>
+          <div className={styles.sectionTitle}>{t('searchResults.single')}</div>
           {results.tracks.map((track) => (
             <Item
               key={track.id}
@@ -293,7 +293,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
       {results.artists.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>艺术家</div>
+          <div className={styles.sectionTitle}>{t('searchResults.artist')}</div>
           {results.artists.map((artist) => (
             <Item
               key={artist.id}
@@ -311,7 +311,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
       {results.albums.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>专辑</div>
+          <div className={styles.sectionTitle}>{t('searchResults.album')}</div>
           {results.albums.map((album) => (
             <Item
               key={album.id}
@@ -327,7 +327,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
       )}
 
       <Modal
-        title="添加到播放列表"
+        title={t('addToPlaylistModal.title')}
         open={isPlaylistModalOpen}
         onCancel={() => setIsPlaylistModalOpen(false)}
         footer={null}

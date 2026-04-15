@@ -172,7 +172,8 @@
     "properties": "属性",
     "download": "下载",
     "downloadSuccess": "下载成功",
-    "downloadFailed": "下载失败"
+    "downloadFailed": "下载失败",
+    "addToCurrentQueue": "当前播放列表"
   },
 
   "albumMore": {
@@ -256,7 +257,10 @@
     "trackDownloaded": "曲目《{{trackName}}》已成功下载到本地",
     "downloadFailedAlert": "下载失败",
     "downloadFailedMsg": "请检查网络连接或稍后重试",
-    "seconds": "{{count}}s"
+    "seconds": "{{count}}s",
+    "bottomInset": "底部间距",
+    "moveDown": "更靠下",
+    "moveUp": "更靠上"
   },
 
   "equalizer": {

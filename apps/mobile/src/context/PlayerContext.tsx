@@ -45,6 +45,7 @@ import {
   resolveTrackUri,
 } from "../services/trackResolver";
 import { usePlayMode } from "../utils/playMode";
+import { useTranslation } from "react-i18next";
 import { updateWidget, updateWidgetCollections } from "../native/WidgetBridge";
 import { cacheCover } from "../services/cache";
 import { resolveArtworkUri } from "../services/trackResolver";
@@ -153,6 +154,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user, device, isLoading: isAuthLoading } = useAuth();
+  const { t } = useTranslation();
   const { mode, setMode } = usePlayMode();
   const { showNotification } = useNotification();
   const { acceptRelay, cacheEnabled, recommendationLikeRatio } = useSettings();
@@ -236,7 +238,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           const playbackState = await TrackPlayer.getPlaybackState();
           const activeTrack: any = await TrackPlayer.getActiveTrack();
           if (activeTrack) {
-            const title = activeTrack.title || activeTrack.name || "未在播放";
+            const title = activeTrack.title || activeTrack.name || t('player.notPlaying');
             const artist = activeTrack.artist || "";
             const artwork = typeof activeTrack.artwork === "string" ? activeTrack.artwork : "";
             let coverPath: string | null = null;
@@ -273,7 +275,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         await updateWidget({
-          title: "未在播放",
+          title: t('player.notPlaying'),
           artist: "",
           coverPath: null,
           isPlaying: false,
@@ -1288,13 +1290,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const handleDisconnect = () => {
-    Alert.alert("结束同步播放", "确定要断开连接吗？", [
+    Alert.alert(t('sync.syncStatus'), t('sync.disconnectConfirm'), [
       {
-        text: "取消",
+        text: t('common.cancel'),
         style: "cancel",
       },
       {
-        text: "确定",
+        text: t('common.confirm'),
         onPress: () => {
           console.log("User confirmed disconnect", sessionId);
           if (sessionId) {
@@ -1472,7 +1474,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const handleSessionEnded = () => {
-      Alert.alert("同步状态", "同步播放已结束");
+      Alert.alert(t('sync.syncStatus'), t('sync.syncEndedNotification'));
       setSynced(false, null);
       setParticipants([]);
       console.log("Sync session ended");
@@ -1482,8 +1484,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       deviceName: string;
     }) => {
       Alert.alert(
-        "同步状态",
-        `${payload.username} (${payload.deviceName}) 已断开同步连接`
+        t('sync.syncStatus'),
+        t('player.userDisconnected', { username: payload.username, deviceName: payload.deviceName })
       );
     };
     socketService.on("session_ended", handleSessionEnded);
@@ -1744,8 +1746,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
               showNotification({
                 type: "resume",
                 track: history.track,
-                title: "继续播放",
-                description: `发现在设备 ${history.deviceName} 上的播放记录，是否从 ${m}:${s} 继续播放？`,
+                title: t('player.continuePlaying'),
+                description: t('player.foundPlaybackHistory', { deviceName: history.deviceName, time: `${m}:${s}` }),
                 onAccept: async () => {
                   const trackData = history.track;
                   trackEvent({

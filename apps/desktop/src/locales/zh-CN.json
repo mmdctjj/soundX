@@ -632,5 +632,10 @@
     "addSuccess": "添加成功",
     "addFailed": "添加失败",
     "voiceActor": "声优"
+  },
+  "sectionOrderModal": {
+    "title": "调整版块顺序",
+    "save": "保存",
+    "cancel": "取消"
   }
 }
