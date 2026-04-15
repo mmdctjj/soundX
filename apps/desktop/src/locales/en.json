@@ -29,7 +29,10 @@
     "download": "Download",
     "downloading": "Downloading {{name}}...",
     "downloadSuccess": "{{name}} downloaded successfully",
-    "downloadFailed": "{{name}} download failed"
+    "downloadFailed": "{{name}} download failed",
+    "operationFailed": "Operation failed",
+    "settings": "Settings",
+    "unknown": "Unknown"
   },
   "nav": {
     "library": "Library",
@@ -238,7 +241,10 @@
     "clearHistoryFailed": "清空历史失败",
     "clearHistorySuccess": "历史已清空",
     "serverSwitch": "切换服务器",
-    "switchedTo": "Switched to {{type}} server: {{url}}"
+    "switchedTo": "Switched to {{type}} server: {{url}}",
+    "externalAddress": "External Address",
+    "internalAddress": "Internal Address",
+    "logout": "Logout"
   },
   "login": {
     "title": "Login",
@@ -330,7 +336,16 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "addedToPlaylist": "Added to playlist",
-    "addToPlaylistFailed": "Failed to add to playlist"
+    "addToPlaylistFailed": "Failed to add to playlist",
+    "afterCurrent": "Stop after current",
+    "cancelAfterCurrent": "Cancel stop after current",
+    "locateCurrentTrack": "Locate current track",
+    "loopList": "Loop List",
+    "sequencePlay": "Sequence Play",
+    "setTimerPrompt": "Set timer to stop",
+    "shufflePlay": "Shuffle Play",
+    "singleLoop": "Single Loop",
+    "willStopAfterCurrent": "Will stop after current track"
   },
   "library": {
     "title": "Library",
@@ -566,13 +581,16 @@
     "currentVersion": "Current Version: v{{version}}",
     "officialAccount": "Follow Official Account: Shengcang",
     "loading": "Loading updates...",
-    "fetchFailed": "Unable to fetch updates, please try again later"
+    "fetchFailed": "Unable to fetch updates, please try again later",
+    "followOfficial": "Follow official updates",
+    "noUpdateNotes": "No update notes"
   },
   "lyricWindow": {
     "close": "Close",
     "openPlayer": "Open Player",
     "waitingForPlayback": "Waiting for playback...",
-    "defaultLyric": "AudioDock - Hear Your Voice"
+    "defaultLyric": "AudioDock - Hear Your Voice",
+    "appName": "Lyric Window"
   },
   "addToPlaylistModal": {
     "title": "Add to Playlist",
@@ -703,7 +721,15 @@
     "createAccountNew": "Create a new account to get started",
     "serverConnected": "{{type}} server connected",
     "serverConnectionFailed": "Failed to connect to {{type}} server, please check the address",
-    "audioDockTagline": "AudioDock - Hear Your Voice"
+    "audioDockTagline": "AudioDock - Hear Your Voice",
+    "confirmPassword": "Confirm Password",
+    "hasAccount": "Have an account?",
+    "login": "Login",
+    "noAccount": "No account?",
+    "password": "Password",
+    "passwordMismatch": "Passwords do not match",
+    "register": "Register",
+    "username": "Username"
   },
   "miniPlayer": {
     "backToMain": "Back to main window",
@@ -734,5 +760,11 @@
     "accepted": "Accepted",
     "rejected": "Rejected",
     "noResponse": "No response"
+  },
+  "addToPlaylist": {
+    "addFailed": "Failed to add to playlist",
+    "addingToPlaylist": "Adding to playlist",
+    "fetchFailed": "Failed to fetch playlist",
+    "title": "Add to Playlist"
   }
 }

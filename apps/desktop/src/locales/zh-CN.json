@@ -29,7 +29,10 @@
     "download": "下载",
     "downloading": "正在下载 {{name}}...",
     "downloadSuccess": "{{name}} 下载成功",
-    "downloadFailed": "{{name}} 下载失败"
+    "downloadFailed": "{{name}} 下载失败",
+    "operationFailed": "操作失败",
+    "settings": "设置",
+    "unknown": "未知"
   },
   "nav": {
     "library": "音乐库",
@@ -227,7 +230,16 @@
     "confirm": "确定",
     "cancel": "取消",
     "addedToPlaylist": "已添加到播放列表",
-    "addToPlaylistFailed": "添加失败"
+    "addToPlaylistFailed": "添加失败",
+    "afterCurrent": "播完当前后停止",
+    "cancelAfterCurrent": "取消播完停止",
+    "locateCurrentTrack": "定位当前曲目",
+    "loopList": "列表循环",
+    "sequencePlay": "顺序播放",
+    "setTimerPrompt": "设置定时停止",
+    "shufflePlay": "随机播放",
+    "singleLoop": "单曲循环",
+    "willStopAfterCurrent": "将在当前曲目后停止"
   },
   "library": {
     "title": "音乐库",
@@ -359,7 +371,10 @@
     "switchedToServer": "已切换至{{type}}服务器：{{url}}",
     "cancelMembership": "注销会员账号",
     "searchPlaceholder": "搜索歌曲、歌手、专辑",
-    "clearCache": "清除缓存文件"
+    "clearCache": "清除缓存文件",
+    "externalAddress": "外部地址",
+    "internalAddress": "内部地址",
+    "logout": "退出登录"
   },
   "favorites": {
     "title": "收藏",
@@ -566,13 +581,16 @@
     "currentVersion": "当前版本: v{{version}}",
     "officialAccount": "关注官方公众号：声仓",
     "loading": "正在加载更新日志...",
-    "fetchFailed": "无法获取更新内容，请稍后再试。"
+    "fetchFailed": "无法获取更新内容，请稍后再试。",
+    "followOfficial": "关注官方动态",
+    "noUpdateNotes": "暂无更新日志"
   },
   "lyricWindow": {
     "close": "关闭",
     "openPlayer": "打开播放器",
     "waitingForPlayback": "等待播放...",
-    "defaultLyric": "AudioDock 听见你的声音"
+    "defaultLyric": "AudioDock 听见你的声音",
+    "appName": "歌词窗口"
   },
   "addToPlaylistModal": {
     "title": "添加到播放列表",
@@ -608,7 +626,8 @@
     "addToPlaylist": "添加到播放列表",
     "addSuccess": "添加成功",
     "addFailed": "添加失败",
-    "voiceActor": "声优"
+    "voiceActor": "声优",
+    "searchHistory": "搜索历史"
   },
   "trackList": {
     "title": "标题",
@@ -689,5 +708,62 @@
     "downloadComplete": "{{count}} 首曲目下载完成",
     "downloadStarted": "开始下载 {{count}} 首曲目",
     "modifyCover": "修改封面"
+  },
+  "addToPlaylist": {
+    "addFailed": "添加到播放列表失败",
+    "addingToPlaylist": "正在添加到播放列表",
+    "fetchFailed": "获取播放列表失败",
+    "title": "添加到播放列表"
+  },
+  "cover": {
+    "add": "添加封面",
+    "addToCollection": "添加到专辑",
+    "addToCollectionFailed": "添加到专辑失败",
+    "added": "已添加",
+    "addedToCollection": "已添加到专辑",
+    "albums": "专辑",
+    "audioDockOnlyCover": "仅 AudioDock 封面",
+    "collectionNameOptional": "专辑名称（可选）",
+    "continuePlaying": "继续播放",
+    "coverUpdated": "封面已更新",
+    "coverUploadFailed": "封面上传失败",
+    "createNew": "创建新封面",
+    "favorite": "收藏",
+    "liked": "已收藏",
+    "loading": "加载中",
+    "modifyCover": "修改封面",
+    "operationFailed": "操作失败",
+    "play": "播放",
+    "playFailed": "播放失败",
+    "startPlaying": "开始播放",
+    "unfavorite": "取消收藏",
+    "unliked": "已取消收藏"
+  },
+  "loginModal": {
+    "addressMustStartWithHttp": "地址必须以 http:// 或 https:// 开头",
+    "audioDockTagline": "您的私人音频中心",
+    "confirmPassword": "确认密码",
+    "createAccountNew": "创建新账号",
+    "enterPassword": "请输入密码",
+    "enterServerAddress": "请输入服务器地址",
+    "enterUsername": "请输入用户名",
+    "hasAccount": "已有账号？",
+    "login": "登录",
+    "loginFailed": "登录失败",
+    "loginSuccess": "登录成功",
+    "noAccount": "没有账号？",
+    "password": "密码",
+    "passwordMismatch": "两次密码不一致",
+    "register": "注册",
+    "registerAndLogin": "注册并登录",
+    "registerSuccess": "注册成功",
+    "rememberMe": "记住我",
+    "username": "用户名",
+    "welcomeBack": "欢迎回来"
+  },
+  "miniPlayer": {
+    "backToMain": "返回主界面",
+    "pin": "置顶",
+    "unpin": "取消置顶"
   }
 }
