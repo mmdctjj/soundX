@@ -1142,7 +1142,7 @@ const Player: React.FC = () => {
                   component={MusiclistOutlined}
                   style={{ fontSize: "24px", fontWeight: "bold" }}
                 />
-                顺序播放
+                {t('player.sequencePlay')}
               </Flex>
             </div>
             <div
@@ -1162,7 +1162,7 @@ const Player: React.FC = () => {
                   component={RandomOutlined}
                   style={{ fontSize: "24px", fontWeight: "bold" }}
                 />
-                随机播放
+                {t('player.shufflePlay')}
               </Flex>
             </div>
             <div
@@ -1180,7 +1180,7 @@ const Player: React.FC = () => {
                   component={LoopOutlined}
                   style={{ fontSize: "24px", fontWeight: "bold" }}
                 />
-                列表循环
+                {t('player.loopList')}
               </Flex>
             </div>
             <div
@@ -1200,7 +1200,7 @@ const Player: React.FC = () => {
                   component={SinglecycleOutlined}
                   style={{ fontSize: "24px", fontWeight: "bold" }}
                 />
-                单曲循环
+                {t('player.singleLoop')}
               </Flex>
             </div>
           </div>
@@ -1506,13 +1506,13 @@ const Player: React.FC = () => {
                       setSleepTimerMode("off");
                     } else {
                       setSleepTimerMode("current");
-                      message.success("将在当前播放结束后停止");
+                      message.success(t('player.willStopAfterCurrent'));
                     }
                   }}
                 >
                   {sleepTimerMode === "current"
-                    ? "取消播放完当前"
-                    : "播放完当前"}
+                    ? t('player.cancelAfterCurrent')
+                    : t('player.afterCurrent')}
                 </Button> */}
               </Flex>
             }
@@ -1724,7 +1724,7 @@ const Player: React.FC = () => {
                 renderPlayOrderButton()}
 
               {/* Skip Backward 15s */}
-              <Tooltip title="后退 15 秒">
+              <Tooltip title={t('player.skipBackward')}>
                 <BackwardOutlined
                   className={styles.controlIcon}
                   onClick={skipBackward}
@@ -1748,7 +1748,7 @@ const Player: React.FC = () => {
               />
 
               {/* Skip Forward 15s */}
-              <Tooltip title="前进 15 秒">
+              <Tooltip title={t('player.skipForward')}>
                 <ForwardOutlined
                   className={styles.controlIcon}
                   onClick={skipForward}
@@ -1845,13 +1845,13 @@ const Player: React.FC = () => {
                       type="text"
                       icon={<AimOutlined />}
                       onClick={handleLocateFullTrack}
-                      title="定位到当前播放歌曲"
+                      title={t('player.locateCurrentTrack')}
                     />
                   ) : undefined
                 }
                 items={[
-                  { key: "lyrics", label: "歌词" },
-                  { key: "playlist", label: `播放列表 (${playlist.length})` },
+                  { key: "lyrics", label: t('player.lyrics') },
+                  { key: "playlist", label: t('player.playlistCount', { count: playlist.length }) },
                 ].filter((item) => item.key !== "lyrics")}
               />
             </div>
@@ -1902,7 +1902,7 @@ const Player: React.FC = () => {
       {notificationContextHolder}
 
       <Drawer
-        title={`播放列表 (${playlist.length})`}
+        title={t('player.playlistTitle', { count: playlist.length })}
         placement="right"
         open={isPlaylistOpen}
         width={"50%"}
@@ -1912,7 +1912,7 @@ const Player: React.FC = () => {
             type="text"
             icon={<AimOutlined />}
             onClick={handleLocateTrack}
-            title="定位到当前播放歌曲"
+            title={t('player.locateCurrentTrack')}
           />
         }
       >
@@ -1934,28 +1934,28 @@ const Player: React.FC = () => {
 
       {/* Timer Modal */}
       <Modal
-        title="定时关闭"
+        title={t('player.sleepTimer')}
         open={isTimerModalOpen}
         onCancel={() => setIsTimerModalOpen(false)}
         onOk={setSleepTimer}
-        okText="确定"
-        cancelText="取消"
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
       >
         <Flex vertical gap={16} style={{ padding: "20px 0" }}>
-          <Text>设置多少分钟后自动暂停播放：</Text>
+          <Text>{t('player.setTimerPrompt')}</Text>
           <InputNumber
             min={1}
             max={180}
             value={timerMinutes}
             onChange={(value: number | null) => setTimerMinutes(value || 30)}
-            addonAfter="分钟"
+            addonAfter={t('player.minutes')}
             style={{ width: "100%" }}
           />
         </Flex>
       </Modal>
 
       <Modal
-        title="添加到播放列表"
+        title={t('player.addToPlaylist')}
         open={isAddToPlaylistModalOpen}
         onCancel={() => setIsAddToPlaylistModalOpen(false)}
         footer={null}
@@ -1969,7 +1969,7 @@ const Player: React.FC = () => {
               className={styles.playlistItem}
             >
               <Text>{item.name}</Text>
-              <Text type="secondary">{item._count?.tracks || 0} 首</Text>
+              <Text type="secondary">{t('player.trackCount', { count: item._count?.tracks || 0 })}</Text>
             </List.Item>
           )}
         />

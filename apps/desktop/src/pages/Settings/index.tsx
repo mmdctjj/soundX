@@ -62,7 +62,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  const [downloadPath, setDownloadPath] = React.useState<string>("");
+  const [, setDownloadPath] = React.useState<string>("");
 
   React.useEffect(() => {
     fetchCacheSize();

@@ -11,6 +11,7 @@ import {
 } from "@soundx/services";
 import { Avatar, Empty, List, message, Modal, theme } from "antd";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuthStore } from "../../store/auth";
@@ -36,6 +37,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   onSelectKeyword,
   onClearHistory,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { play, setPlaylist } = usePlayerStore();
   const { user } = useAuthStore();
@@ -88,11 +90,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     try {
       const res = await addTrackToPlaylist(playlistId, selectedTrackId);
       if (res.code === 200) {
-        message.success("添加成功");
+        message.success(t('searchResults.addSuccess'));
         setIsPlaylistModalOpen(false);
       }
     } catch (e) {
-      message.error("添加失败");
+      message.error(t('searchResults.addFailed'));
     }
   };
 
@@ -239,7 +241,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
         {!history.length && !hotSearches.length && (
           <div className={styles.empty}>
-            <Empty description="暂无搜索结果" />
+            <Empty description={t('searchResults.noResults')} />
           </div>
         )}
       </div>
@@ -300,7 +302,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
               onClick={() => handleArtistClick(artist.id)}
               cover={getCoverUrl(artist, artist.id)}
               title={artist.name}
-              subtitle={artist.type === "MUSIC" ? "音乐人" : "演播者"}
+              subtitle={artist.type === "MUSIC" ? t('searchResults.musician') : t('searchResults.voiceActor')}
               isArtist={true}
             />
           ))}

@@ -30,6 +30,7 @@ import {
   Typography,
 } from "antd";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import emby from "../../assets/emby.png";
 import logo from "../../assets/logo.png";
 import subsonic from "../../assets/subsonic.png";
@@ -40,6 +41,7 @@ import styles from "./index.module.less";
 const { Title, Text } = Typography;
 
 const LoginModal: React.FC = () => {
+  const { t } = useTranslation();
   const message = useMessage();
   const { token, login: setLogin } = useAuthStore();
   const [isLogin, setIsLogin] = useState(true);
@@ -246,7 +248,7 @@ const LoginModal: React.FC = () => {
           }
 
           setLogin(newToken, userData as any, device);
-          message.success("登录成功");
+          message.success(t('loginModal.loginSuccess'));
         }
       } else {
         const res = await register({
@@ -262,12 +264,12 @@ const LoginModal: React.FC = () => {
           if (device) localStorage.setItem(deviceKey, JSON.stringify(device));
 
           setLogin(newToken, userData as any, device);
-          message.success("注册成功");
+          message.success(t('loginModal.registerSuccess'));
         }
       }
     } catch (error: any) {
       console.error(error);
-      message.error(error.message || "登录失败");
+      message.error(error.message || t('loginModal.loginFailed'));
     } finally {
       setLoading(false);
       // Reload is used here to ensure all services pickup the new state correctly
@@ -356,7 +358,7 @@ const LoginModal: React.FC = () => {
           }
           // hasFeedback
           rules={[
-            { required: true, message: "请输入服务端地址" },
+            { required: true, message: t('loginModal.enterServerAddress') },
             {
               validator: (_, value) => {
                 if (!value) return Promise.resolve();
@@ -367,7 +369,7 @@ const LoginModal: React.FC = () => {
                   return Promise.resolve();
                 }
                 return Promise.reject(
-                  new Error("服务端地址必须以 http:// 或 https:// 开头"),
+                  new Error(t('loginModal.addressMustStartWithHttp')),
                 );
               },
             },
@@ -387,7 +389,7 @@ const LoginModal: React.FC = () => {
           >
             <Input
               prefix={<HddOutlined />}
-              placeholder="请输入服务端地址"
+              placeholder={t('loginModal.enterServerAddress')}
               // onBlur={(e) => checkServerConnectivity(e.target.value, sourceType)}
               suffix={
                 serverStatus === "error" ? (
@@ -405,17 +407,17 @@ const LoginModal: React.FC = () => {
           <>
             <Form.Item
               name="username"
-              rules={[{ required: true, message: "请输入用户名!" }]}
+              rules={[{ required: true, message: t('loginModal.enterUsername') }]}
             >
-              <Input prefix={<UserOutlined />} placeholder="请输入用户名" />
+              <Input prefix={<UserOutlined />} placeholder={t('loginModal.enterUsername')} />
             </Form.Item>
             <Form.Item
               name="password"
-              rules={[{ required: true, message: "请输入密码!" }]}
+              rules={[{ required: true, message: t('loginModal.enterPassword') }]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="请输入密码"
+                placeholder={t('loginModal.enterPassword')}
               />
             </Form.Item>
             <Form.Item style={{ marginBottom: 16 }}>
@@ -424,7 +426,7 @@ const LoginModal: React.FC = () => {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 style={{ color: themeToken.colorTextSecondary }}
               >
-                记住我
+                {t('loginModal.rememberMe')}
               </Checkbox>
             </Form.Item>
             <Form.Item style={{ marginBottom: 0 }}>
@@ -438,7 +440,7 @@ const LoginModal: React.FC = () => {
                 loading={loading}
                 className={styles.submitButton}
               >
-                登录
+                {t('loginModal.login')}
               </Button>
             </Form.Item>
           </>
@@ -446,37 +448,37 @@ const LoginModal: React.FC = () => {
           <>
             <Form.Item
               name="username"
-              rules={[{ required: true, message: "请输入用户名!" }]}
+              rules={[{ required: true, message: t('loginModal.enterUsername') }]}
             >
-              <Input prefix={<UserOutlined />} placeholder="User Name" />
+              <Input prefix={<UserOutlined />} placeholder={t('loginModal.username')} />
             </Form.Item>
             <Form.Item
               name="password"
-              rules={[{ required: true, message: "请输入密码!" }]}
+              rules={[{ required: true, message: t('loginModal.enterPassword') }]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Password"
+                placeholder={t('loginModal.password')}
               />
             </Form.Item>
             <Form.Item
               name="confirm"
               dependencies={["password"]}
               rules={[
-                { required: true, message: "请确认密码!" },
+                { required: true, message: t('loginModal.confirmPassword') },
                 ({ getFieldValue }) => ({
                   validator(_, value) {
                     if (!value || getFieldValue("password") === value) {
                       return Promise.resolve();
                     }
-                    return Promise.reject(new Error("两次输入的密码不一致!"));
+                    return Promise.reject(new Error(t('loginModal.passwordMismatch')));
                   },
                 }),
               ]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder="Confirm Password"
+                placeholder={t('loginModal.confirmPassword')}
               />
             </Form.Item>
             <Form.Item style={{ marginBottom: 0 }}>
@@ -490,7 +492,7 @@ const LoginModal: React.FC = () => {
                 loading={loading}
                 className={styles.submitButton}
               >
-                注册并登录
+                {t('loginModal.registerAndLogin')}
               </Button>
             </Form.Item>
           </>
@@ -504,24 +506,24 @@ const LoginModal: React.FC = () => {
         >
           {isLogin ? (
             <>
-              没有账号？
+              {t('loginModal.noAccount')}
               <span
                 className={styles.switchLink}
                 onClick={() => setIsLogin(false)}
                 style={{ color: themeToken.colorPrimary }}
               >
-                注册
+                {t('loginModal.register')}
               </span>
             </>
           ) : (
             <>
-              已有账号？
+              {t('loginModal.hasAccount')}
               <span
                 className={styles.switchLink}
                 onClick={() => setIsLogin(true)}
                 style={{ color: themeToken.colorPrimary }}
               >
-                登陆
+                {t('loginModal.login')}
               </span>
             </>
           )}
