@@ -397,7 +397,21 @@
     "noDataSource": "扫码设备没有提供任何数据源。将仅同步用户自身状态。",
     "unnamedDataSource": "未命名数据源",
     "internalLabel": "无内网地址",
-    "externalLabel": "无外网地址"
+    "externalLabel": "无外网地址",
+    "selectDataSourceToShare": "请勾选要分享给该登录目标设备的数据源，确认登录后目标设备将自动登录。",
+    "nonMember": "非会员",
+    "memberLabel": "会员"
+  },
+  "auth": {
+    "switchServerSuccess": "服务器切换成功，请重新登录"
+  },
+  "memberFeature": {
+    "basicFeatures": "基础功能",
+    "deviceRelay": "设备接力",
+    "syncControlFeature": "同步控制",
+    "ttsAudiobookFeature": "TTS生成有声书",
+    "tvVersionFeature": "TV版",
+    "carVersionFeature": "车机版"
   },
   "collection": {
     "title": "收藏",
@@ -461,7 +475,9 @@
     "internalConnect": "内网连接",
     "externalConnect": "外网连接",
     "cannotConnectMissing": "无法连接 (缺外网)",
-    "noDataSourceConfig": "暂无数据源配置"
+    "noDataSourceConfig": "暂无数据源配置",
+    "internalAddress": "内网地址",
+    "externalAddress": "外网地址"
   },
   "tts": {
     "title": "TTS有声书",
@@ -533,7 +549,12 @@
     "addToPlaylistMenu": "添加到播放列表",
     "artistDetailMenu": "艺术家详情",
     "albumDetailMenu": "专辑详情",
-    "propertiesMenu": "属性"
+    "propertiesMenu": "属性",
+    "bottomInset": "底部边距",
+    "closerToBottom": "更贴近底部",
+    "pageUp": "整页上移",
+    "reset": "重置",
+    "done": "完成"
   },
   "index": {
     "title": "首页",
@@ -555,5 +576,10 @@
     "appSlogan": "AudioDock 听见你的声音",
     "login": "登录",
     "register": "注册"
+  },
+  "loginSelect": {
+    "title": "选择数据源类型",
+    "subtitle": "请选择您要连接的服务器类型",
+    "scanLogin": "扫码登录"
   }
 }

@@ -1,6 +1,7 @@
 import { login as loginApi, register as registerApi, setPlusToken, setServiceConfig, SOURCEMAP, useEmbyAdapter, useNativeAdapter, useSubsonicAdapter } from '@soundx/services'
 import Taro from '@tarojs/taro'
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { User } from '../models'
 import { setBaseURL } from '../utils/request'
 
@@ -31,6 +32,7 @@ export const useAuth = () => useContext(AuthContext)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [device, setDevice] = useState<any | null>(null)
@@ -196,7 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       Taro.removeStorageSync('user')
 
       Taro.showToast({
-        title: '服务器切换成功，请重新登录',
+        title: t('auth.switchServerSuccess'),
         icon: 'success',
         duration: 2000
       })

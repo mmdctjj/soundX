@@ -545,7 +545,7 @@ export default function Library() {
               <Text className='track-more-item-text'>{t('library.properties')}</Text>
             </View>
             <View className='track-more-item' onClick={() => setShowTrackMoreMenu(false)}>
-              <Text className='track-more-item-text cancel'>取消</Text>
+              <Text className='track-more-item-text cancel'>{t('common.cancel')}</Text>
             </View>
           </View>
         </View>

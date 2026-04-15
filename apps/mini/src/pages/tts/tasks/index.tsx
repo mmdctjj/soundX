@@ -2,6 +2,7 @@ import { deleteTtsTask, getTtsTasks, pauseTtsTask, resumeTtsTask, TtsTask } from
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../../components/MiniPlayer';
 import './index.scss';
 import BottomTabBar from '../../../components/BottomTabBar';
@@ -9,14 +10,15 @@ import BottomTabBar from '../../../components/BottomTabBar';
 type FilterStatus = 'all' | 'pending' | 'processing' | 'completed' | 'paused' | 'failed';
 
 const statusConfig = {
-  completed: { color: '#52c41a', text: '已完成' },
-  failed: { color: '#ff4d4f', text: '失败' },
-  processing: { color: '#faad14', text: '处理中' },
-  paused: { color: '#8c8c8c', text: '已暂停' },
-  pending: { color: '#13c2c2', text: '等待中' },
+  completed: { color: '#52c41a', textKey: 'ttsTasks.completed' },
+  failed: { color: '#ff4d4f', textKey: 'ttsTasks.failed' },
+  processing: { color: '#faad14', textKey: 'ttsTasks.processing' },
+  paused: { color: '#8c8c8c', textKey: 'ttsTasks.paused' },
+  pending: { color: '#13c2c2', textKey: 'ttsTasks.pending' },
 };
 
 export default function TtsTasks() {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<TtsTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,8 +52,8 @@ export default function TtsTasks() {
     try {
       if (action === 'delete') {
         const confirm = await Taro.showModal({
-          title: '删除任务',
-          content: '确定要删除这个 TTS 任务吗？',
+          title: t('ttsTasks.deleteTask'),
+          content: t('ttsTasks.confirmDeleteTask'),
         });
         if (confirm.confirm) {
           await deleteTtsTask(id);
@@ -66,7 +68,7 @@ export default function TtsTasks() {
       }
     } catch (error) {
       console.error(`Failed to ${action} task:`, error);
-      Taro.showToast({ title: '操作失败', icon: 'none' });
+      Taro.showToast({ title: t('ttsTasks.actionFailed'), icon: 'none' });
     }
   };
 
@@ -77,16 +79,16 @@ export default function TtsTasks() {
 
   const getStatusInfo = (status: string) => {
     const config = statusConfig[status as keyof typeof statusConfig];
-    return config || { color: '#000000', text: status };
+    return config || { color: '#000000', textKey: '' };
   };
 
   const filterItems = [
-    { label: '全部', value: 'all' as FilterStatus },
-    { label: '等待中', value: 'pending' as FilterStatus },
-    { label: '处理中', value: 'processing' as FilterStatus },
-    { label: '已完成', value: 'completed' as FilterStatus },
-    { label: '已暂停', value: 'paused' as FilterStatus },
-    { label: '失败', value: 'failed' as FilterStatus },
+    { labelKey: 'ttsTasks.all', value: 'all' as FilterStatus },
+    { labelKey: 'ttsTasks.pending', value: 'pending' as FilterStatus },
+    { labelKey: 'ttsTasks.processing', value: 'processing' as FilterStatus },
+    { labelKey: 'ttsTasks.completed', value: 'completed' as FilterStatus },
+    { labelKey: 'ttsTasks.paused', value: 'paused' as FilterStatus },
+    { labelKey: 'ttsTasks.failed', value: 'failed' as FilterStatus },
   ];
 
   return (
@@ -95,7 +97,7 @@ export default function TtsTasks() {
         <View className='back-btn' onClick={() => Taro.navigateBack()}>
           <Text className='back-icon'>←</Text>
         </View>
-        <Text className='header-title'>TTS 任务列表</Text>
+        <Text className='header-title'>{t('ttsTasks.title')}</Text>
         <View className='create-btn' onClick={() => Taro.navigateTo({ url: '/pages/tts/create/index' })}>
           <Text className='create-icon'>+</Text>
         </View>
@@ -111,7 +113,7 @@ export default function TtsTasks() {
                 onClick={() => setFilterStatus(item.value)}
               >
                 <Text className={`filter-text ${filterStatus === item.value ? 'active' : ''}`}>
-                  {item.label}
+                  {t(item.labelKey)}
                 </Text>
               </View>
             ))}
@@ -128,17 +130,17 @@ export default function TtsTasks() {
       >
         {loading ? (
           <View className='loading-container'>
-            <Text className='loading-text'>加载中...</Text>
+            <Text className='loading-text'>{t('common.loading')}</Text>
           </View>
         ) : filteredTasks.length === 0 ? (
           <View className='empty-container'>
             <Text className='empty-icon'>📄</Text>
-            <Text className='empty-text'>暂无转换任务</Text>
+            <Text className='empty-text'>{t('ttsTasks.noTasksYet')}</Text>
             <View
               className='empty-btn'
               onClick={() => Taro.navigateTo({ url: '/pages/tts/create/index' })}
             >
-              <Text className='empty-btn-text'>立即创建</Text>
+              <Text className='empty-btn-text'>{t('ttsTasks.createNow')}</Text>
             </View>
           </View>
         ) : (
@@ -159,7 +161,7 @@ export default function TtsTasks() {
                   </View>
                   <View className='status-tag' style={{ backgroundColor: statusInfo.color + '20' }}>
                     <Text className='status-text' style={{ color: statusInfo.color }}>
-                      {statusInfo.text}
+                      {t(statusInfo.textKey)}
                     </Text>
                   </View>
                 </View>
@@ -172,7 +174,7 @@ export default function TtsTasks() {
                     />
                   </View>
                   <View className='progress-text-row'>
-                    <Text className='progress-count'>{item.completed_chapters} / {item.total_chapters} 章节</Text>
+                    <Text className='progress-count'>{item.completed_chapters} / {item.total_chapters} {t('ttsTasks.chapters')}</Text>
                     <Text className='progress-percent'>{percent}%</Text>
                   </View>
                 </View>

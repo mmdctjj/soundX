@@ -9,12 +9,12 @@ import './index.scss';
 type PaymentPlan = 'annual' | 'lifetime';
 
 const comparisonData = [
-  { feature: '基础功能', free: true, member: true },
-  { feature: '设备接力', free: true, member: true },
-  { feature: '同步控制', free: false, member: true },
-  { feature: 'TTS生成有声书', free: false, member: true },
-  { feature: 'TV版', free: false, member: true },
-  { feature: '车机版', free: false, member: true },
+  { feature: 'memberFeature.basicFeatures', free: true, member: true },
+  { feature: 'memberFeature.deviceRelay', free: true, member: true },
+  { feature: 'memberFeature.syncControlFeature', free: false, member: true },
+  { feature: 'memberFeature.ttsAudiobookFeature', free: false, member: true },
+  { feature: 'memberFeature.tvVersionFeature', free: false, member: true },
+  { feature: 'memberFeature.carVersionFeature', free: false, member: true },
 ];
 
 export default function MemberBenefits() {
@@ -118,15 +118,15 @@ export default function MemberBenefits() {
         <View className='table-card'>
           <View className='table-header'>
             <Text className='table-header-text flex-2'>{t('member.rightsDescription')}</Text>
-            <Text className='table-header-text flex-1 center'>非会员</Text>
-            <Text className='table-header-text flex-1 center'>会员</Text>
+            <Text className='table-header-text flex-1 center'>{t('scanConfirm.nonMember')}</Text>
+            <Text className='table-header-text flex-1 center'>{t('scanConfirm.memberLabel')}</Text>
           </View>
           {comparisonData.map((item, index) => (
             <View
               key={item.feature}
               className={`table-row ${index > 0 ? 'border-top' : ''}`}
             >
-              <Text className='feature-text flex-2'>{item.feature}</Text>
+              <Text className='feature-text flex-2'>{t(item.feature)}</Text>
               <View className='flex-1 center'>
                 <Text className={`check-icon ${item.free ? 'active' : 'inactive'}`}>
                   {item.free ? '✓' : '✗'}
@@ -163,7 +163,7 @@ export default function MemberBenefits() {
           >
             {selectedPlan === 'lifetime' && (
               <View className='recommend-badge'>
-                <Text className='recommend-text'>推荐</Text>
+                <Text className='recommend-text'>{t('member.recommend')}</Text>
               </View>
             )}
             <Text className='plan-name'>{t('member.permanent')}</Text>

@@ -630,6 +630,7 @@
     "narrator": "演播者",
     "addToPlaylist": "添加到播放列表",
     "addSuccess": "添加成功",
-    "addFailed": "添加失败"
+    "addFailed": "添加失败",
+    "voiceActor": "声优"
   }
 }

@@ -12,12 +12,12 @@ interface VipData {
 }
 
 const comparisonData = [
-  { feature: '基础功能', free: true, member: true },
-  { feature: '设备接力', free: true, member: true },
-  { feature: '同步控制', free: false, member: true },
-  { feature: 'TTS生成有声书', free: false, member: true },
-  { feature: 'TV版', free: false, member: true },
-  { feature: '车机版', free: false, member: true },
+  { feature: 'memberFeature.basicFeatures', free: true, member: true },
+  { feature: 'memberFeature.deviceRelay', free: true, member: true },
+  { feature: 'memberFeature.syncControlFeature', free: false, member: true },
+  { feature: 'memberFeature.ttsAudiobookFeature', free: false, member: true },
+  { feature: 'memberFeature.tvVersionFeature', free: false, member: true },
+  { feature: 'memberFeature.carVersionFeature', free: false, member: true },
 ];
 
 export default function MemberDetail() {
@@ -125,15 +125,15 @@ export default function MemberDetail() {
           <View className='benefits-card'>
             <View className='benefits-header'>
               <Text className='benefits-header-text flex-2'>{t('member.rightsDescription')}</Text>
-              <Text className='benefits-header-text flex-1'>非会员</Text>
-              <Text className='benefits-header-text flex-1'>会员</Text>
+              <Text className='benefits-header-text flex-1'>{t('scanConfirm.nonMember')}</Text>
+              <Text className='benefits-header-text flex-1'>{t('scanConfirm.memberLabel')}</Text>
             </View>
             {comparisonData.map((item, index) => (
               <View
                 key={item.feature}
                 className={`benefits-row ${index > 0 ? 'border-top' : ''}`}
               >
-                <Text className='benefits-feature flex-2'>{item.feature}</Text>
+                <Text className='benefits-feature flex-2'>{t(item.feature)}</Text>
                 <View className='flex-1 center'>
                   <Text className={`check-icon ${item.free ? 'active' : 'inactive'}`}>
                     {item.free ? '✓' : '✗'}

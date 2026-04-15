@@ -397,7 +397,21 @@
     "noDataSource": "No data source provided by scan device. Only user status will be synced.",
     "unnamedDataSource": "Unnamed Data Source",
     "internalLabel": "No internal address",
-    "externalLabel": "No external address"
+    "externalLabel": "No external address",
+    "selectDataSourceToShare": "Please select data source to share with this device. After confirmation, the target device will login automatically.",
+    "nonMember": "Non-member",
+    "memberLabel": "Member"
+  },
+  "auth": {
+    "switchServerSuccess": "Server switched successfully, please login again"
+  },
+  "memberFeature": {
+    "basicFeatures": "Basic Features",
+    "deviceRelay": "Device Relay",
+    "syncControlFeature": "Sync Control",
+    "ttsAudiobookFeature": "TTS Audiobook",
+    "tvVersionFeature": "TV Version",
+    "carVersionFeature": "Car Version"
   },
   "collection": {
     "title": "Collection",
@@ -461,7 +475,9 @@
     "internalConnect": "Internal Connect",
     "externalConnect": "External Connect",
     "cannotConnectMissing": "Cannot connect (missing external)",
-    "noDataSourceConfig": "No data source configuration"
+    "noDataSourceConfig": "No data source configuration",
+    "internalAddress": "Internal Address",
+    "externalAddress": "External Address"
   },
   "tts": {
     "title": "TTS Audiobook",
@@ -533,7 +549,12 @@
     "addToPlaylistMenu": "Add to Playlist",
     "artistDetailMenu": "Artist Detail",
     "albumDetailMenu": "Album Detail",
-    "propertiesMenu": "Properties"
+    "propertiesMenu": "Properties",
+    "bottomInset": "Bottom Offset",
+    "closerToBottom": "Closer to bottom",
+    "pageUp": "Page up",
+    "reset": "Reset",
+    "done": "Done"
   },
   "index": {
     "title": "Home",
@@ -555,5 +576,10 @@
     "appSlogan": "AudioDock - Hear Your Voice",
     "login": "Login",
     "register": "Register"
+  },
+  "loginSelect": {
+    "title": "Select Data Source Type",
+    "subtitle": "Please select the server type to connect",
+    "scanLogin": "Scan Login"
   }
 }

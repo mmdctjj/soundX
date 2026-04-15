@@ -532,8 +532,9 @@
     "musician": "Musician",
     "narrator": "Narrator",
     "addToPlaylist": "Add to Playlist",
-    "addSuccess": "Added successfully",
-    "addFailed": "Failed to add"
+    "voiceActor": "Voice Actor",
+    "searchHistory": "Search History",
+    "hotSearch": "Hot Search"
   },
   "header": {
     "back": "Back",

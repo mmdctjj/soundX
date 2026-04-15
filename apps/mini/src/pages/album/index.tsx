@@ -2,6 +2,7 @@ import { Album, Track, getAlbumById, getAlbumTracks } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +12,7 @@ import './index.scss';
 import BottomTabBar from '../../components/BottomTabBar';
 
 export default function AlbumDetail() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = router.params;
   const { playTrackList, currentTrack, isPlaying } = usePlayer();
@@ -76,8 +78,8 @@ export default function AlbumDetail() {
     }
   };
 
-  if (loading) return <View className='loading'><Text>Loading...</Text></View>;
-  if (!album) return <View className='error'><Text>Album not found</Text></View>;
+  if (loading) return <View className='loading'><Text>{t('common.loading')}</Text></View>;
+  if (!album) return <View className='error'><Text>{t('common.noData')}</Text></View>;
 
   return (
     <View className='album-container'>
@@ -96,7 +98,7 @@ export default function AlbumDetail() {
                  <View className='actions'>
                      <View className='album-play-all-btn' onClick={handlePlayAll}>
                          <Text className='album-play-icon icon icon-play' />
-                         <Text className='album-play-text'>播放全部</Text>
+                         <Text className='album-play-text'>{t('album.playAll')}</Text>
                      </View>
                      <View className='like-btn'>
                          <Text className='like-icon icon icon-heart' />
