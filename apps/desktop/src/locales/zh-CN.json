@@ -356,7 +356,10 @@
     "commonError": "错误",
     "error": "错误",
     "logoutSwitchAccount": "退出/切换账号",
-    "switchedToServer": "已切换至{{type}}服务器：{{url}}"
+    "switchedToServer": "已切换至{{type}}服务器：{{url}}",
+    "cancelMembership": "注销会员账号",
+    "searchPlaceholder": "搜索歌曲、歌手、专辑",
+    "clearCache": "清除缓存文件"
   },
   "favorites": {
     "title": "收藏",
