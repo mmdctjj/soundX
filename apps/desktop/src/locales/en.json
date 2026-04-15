@@ -607,5 +607,23 @@
     "title": "Adjust Section Order",
     "save": "Save",
     "cancel": "Cancel"
+  },
+  "inviteListener": {
+    "inviteFromFriend": "Invitation from a friend",
+    "userId": "User {{userId}}",
+    "inviteToListen": "invites you to listen together",
+    "reject": "Reject",
+    "accept": "Accept"
+  },
+  "updateModal": {
+    "newVersion": "New version found {{version}}",
+    "updateLater": "Update later",
+    "goToDownload": "Go to download",
+    "webUpdateNote": "For Web version, please update via Docker image update service. Desktop client does not need to download installation package.",
+    "updateContent": "Update content:"
+  },
+  "sourceManage": {
+    "selectType": "Select data source type",
+    "selectServerType": "Please select the server type you want to connect to"
   }
 }

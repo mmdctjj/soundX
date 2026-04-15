@@ -1,4 +1,5 @@
 import { LeftOutlined, PlusOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import {
     createAdminUser,
     deleteAdminUser,
@@ -27,6 +28,7 @@ import styles from "./index.module.less";
 const { Title } = Typography;
 
 const UserManagement: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -124,7 +126,7 @@ const UserManagement: React.FC = () => {
       dataIndex: "is_admin",
       key: "is_admin",
       render: (val: boolean) =>
-        val ? <Tag color="gold">管理员</Tag> : <Tag>普通用户</Tag>,
+        val ? <Tag color="gold">{t("admin.admin")}</Tag> : <Tag>普通用户</Tag>,
     },
     {
       title: "注册时间",
@@ -138,7 +140,7 @@ const UserManagement: React.FC = () => {
       dataIndex: "expiresAt",
       key: "expiresAt",
       render: (val: string) => {
-        if (!val) return <Tag color="green">永久有效</Tag>;
+        if (!val) return <Tag color="green">{t("admin.permanent")}</Tag>;
         const date = dayjs(val);
         const isExpired = date.isBefore(dayjs());
         return (
@@ -199,7 +201,7 @@ const UserManagement: React.FC = () => {
         </Space>
         <div style={{ marginTop: 16 }}>
           <Space style={{ marginBottom: 16 }}>
-            <Button onClick={fetchUsers}>刷新列表</Button>
+            <Button onClick={fetchUsers}>{t("admin.refreshList")}</Button>
             <Button
               type="primary"
               icon={<PlusOutlined />}

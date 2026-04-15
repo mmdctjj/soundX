@@ -193,11 +193,11 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
           <span style={{ fontSize: 12, color: "#faad14" }}>等待中...</span>
         );
       case "accepted":
-        return <span style={{ fontSize: 12, color: "#52c41a" }}>已接受</span>;
+        return <span style={{ fontSize: 12, color: "#52c41a" }}>{t("sync.accepted")}</span>;
       case "rejected":
-        return <span style={{ fontSize: 12, color: "#ff4d4f" }}>已拒绝</span>;
+        return <span style={{ fontSize: 12, color: "#ff4d4f" }}>{t("sync.rejected")}</span>;
       case "timeout":
-        return <span style={{ fontSize: 12, color: "#999" }}>无响应</span>;
+        return <span style={{ fontSize: 12, color: "#999" }}>{t("common.noResponse")}</span>;
       default:
         return null;
     }

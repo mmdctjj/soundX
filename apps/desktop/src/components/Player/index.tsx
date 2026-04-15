@@ -1479,8 +1479,8 @@ const Player: React.FC = () => {
                       component={MusiclistOutlined}
                       style={{ fontSize: "24px", fontWeight: "bold" }}
                     />
-                    <Text style={{ marginLeft: 8 }}>集数定时</Text>
-                    {sleepTimerMode === "count" && <Text>定时中</Text>}
+                    <Text style={{ marginLeft: 8 }}>{t("player.episodeTimer")}</Text>
+                    {sleepTimerMode === "count" && <Text>{t("player.timerActive")}</Text>}
                   </Flex>
                 </Flex>
                 <Flex>

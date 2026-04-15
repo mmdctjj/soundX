@@ -605,5 +605,23 @@
     "title": "调整版块顺序",
     "save": "保存",
     "cancel": "取消"
+  },
+  "inviteListener": {
+    "inviteFromFriend": "来自好友的邀请",
+    "userId": "用户 {{userId}}",
+    "inviteToListen": "邀请你一同听歌",
+    "reject": "拒绝",
+    "accept": "接受"
+  },
+  "updateModal": {
+    "newVersion": "发现新版本 {{version}}",
+    "updateLater": "暂不更新",
+    "goToDownload": "去下载",
+    "webUpdateNote": "Web 端请通过 Docker 镜像更新服务，客户端无需下载安装包。",
+    "updateContent": "更新内容："
+  },
+  "sourceManage": {
+    "selectType": "选择数据源类型",
+    "selectServerType": "请选择您要连接的服务器类型"
   }
 }

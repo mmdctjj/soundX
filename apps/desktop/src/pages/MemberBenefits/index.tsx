@@ -558,7 +558,7 @@ const MemberBenefits: React.FC = () => {
           </div>
 
           <div style={{ marginTop: 8, marginBottom: 8 }}>
-            <Text>支付方式</Text>
+            <Text>{t("memberBenefits.paymentMethod")}</Text>
             <div>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 虚拟产品售出无法退款，请理性消费

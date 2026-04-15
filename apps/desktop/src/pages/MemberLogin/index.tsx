@@ -14,6 +14,7 @@ import {
   type ScanLoginSessionStatus,
 } from "@soundx/services";
 import { Button, Form, Input, Layout, QRCode, Typography, message, theme } from "antd";
+import { useTranslation } from "react-i18next";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
@@ -30,6 +31,7 @@ type MemberLoginFormValues = {
 };
 
 const MemberLogin: React.FC = () => {
+  const { t } = useTranslation();
   const { mode } = useTheme();
   const { token } = theme.useToken();
   const navigate = useNavigate();
@@ -260,7 +262,7 @@ const MemberLogin: React.FC = () => {
             <div className={styles.scanSection}>
               {scanStatus?.status === "waiting_confirm" ? (
                 <div style={{ textAlign: "center", padding: "40px 0" }}>
-                  <Title level={5}>等待手机端确认</Title>
+                  <Title level={5}>{t("memberLogin.scanWaiting")}</Title>
                   <Text type="secondary">手机已扫码。请在手机屏幕上确认发送...</Text>
                 </div>
               ) : (

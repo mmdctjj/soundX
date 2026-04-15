@@ -4,6 +4,7 @@ import {
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import { getFavoriteAlbums, getFavoriteTracks } from "@soundx/services";
+import { useTranslation } from "react-i18next";
 import { useInfiniteScroll } from "ahooks";
 import {
   Button,
@@ -37,6 +38,7 @@ interface Result {
 }
 
 const Favorites: React.FC = () => {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"album" | "track">("album");
@@ -276,7 +278,7 @@ const Favorites: React.FC = () => {
       )}
 
       {data && !data.hasMore && data.list.length > 0 && (
-        <div className={styles.noMore}>没有更多了</div>
+        <div className={styles.noMore}>{t("favorites.noMore")}</div>
       )}
 
       {data?.list.length === 0 && !loading && (
