@@ -7,11 +7,18 @@
     "done": "Done",
     "save": "Save"
   },
+  "nav": {
+    "home": "Home",
+    "library": "Library",
+    "settings": "Settings"
+  },
   "settings": {
     "title": "Settings",
     "account": "Account",
     "language": "Language",
     "languageDescription": "Select app display language",
+    "sourceManage": "Data Source",
+    "sourceManageDescription": "Switch and manage audio data sources",
     "general": "General",
     "storage": "Storage",
     "about": "About",
@@ -71,6 +78,7 @@
     
     "productUpdates": "Product Updates",
     "productUpdatesDescription": "View latest features and version updates",
+    "productUpdatesNoUpdates": "No updates yet",
     
     "joinBetaTest": "Join Beta Test",
     "betaTestDescription": "Apply and automatically enable beta access for your account",
@@ -83,6 +91,7 @@
     "experienceProgramDescription": "Help improve the product with your usage data",
     
     "logout": "Log Out",
+    "logoutConfirm": "Are you sure you want to log out?",
     "deleteMemberAccount": "Delete Member Account",
     "deleteMemberConfirm": "Are you sure you want to delete? All your data will be cleared!",
     "deleteMemberSuccess": "Member account deleted.",

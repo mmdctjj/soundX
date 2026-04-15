@@ -7,11 +7,18 @@
     "done": "完成",
     "save": "保存"
   },
+  "nav": {
+    "home": "首页",
+    "library": "音乐库",
+    "settings": "设置"
+  },
   "settings": {
     "title": "设置",
     "account": "账户",
     "language": "语言",
     "languageDescription": "选择应用显示语言",
+    "sourceManage": "数据源管理",
+    "sourceManageDescription": "切换和管理音频数据源",
     "general": "通用",
     "storage": "存储管理",
     "about": "关于",
@@ -71,6 +78,7 @@
     
     "productUpdates": "产品动态",
     "productUpdatesDescription": "查看最新功能与版本更新",
+    "productUpdatesNoUpdates": "暂无动态",
     
     "joinBetaTest": "参与内测",
     "betaTestDescription": "一键申请并自动开通当前账号内测权益",
@@ -83,6 +91,7 @@
     "experienceProgramDescription": "使用数据以改进产品",
     
     "logout": "退出登录",
+    "logoutConfirm": "确定要退出登录吗？",
     "deleteMemberAccount": "注销会员账号",
     "deleteMemberConfirm": "确认注销吗？注销之后您的所有数据将会被清空！",
     "deleteMemberSuccess": "会员账号已注销。",

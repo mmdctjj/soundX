@@ -7,6 +7,21 @@
     "done": "Done",
     "save": "Save"
   },
+  "nav": {
+    "home": "Home",
+    "library": "Library",
+    "settings": "Settings"
+  },
+  "home": {
+    "recommend": "Recommend",
+    "searchPlaceholder": "Search tracks, artists, albums",
+    "artists": "Artists",
+    "recentAlbums": "Recent",
+    "recommended": "For You",
+    "newTracks": "New Tracks",
+    "continueListening": "Continue Listening",
+    "unknownArtist": "Unknown Artist"
+  },
   "settings": {
     "title": "Settings",
     "account": "Account",
@@ -15,6 +30,8 @@
     "about": "About",
     "language": "Language",
     "languageDescription": "Select app display language",
+    "sourceManage": "Data Source",
+    "sourceManageDescription": "Switch and manage audio data sources",
     
     "admin": "Admin Panel",
     "adminDescription": "User and system settings",
@@ -71,6 +88,7 @@
     
     "productUpdates": "Product Updates",
     "productUpdatesDescription": "View latest features and version updates",
+    "productUpdatesNoUpdates": "No updates yet",
     
     "joinBetaTest": "Join Beta Test",
     "betaTestDescription": "Apply and automatically enable beta access for your account",

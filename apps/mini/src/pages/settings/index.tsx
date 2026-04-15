@@ -41,8 +41,8 @@ export default function Settings() {
 
   const handleLogout = () => {
     Taro.showModal({
-      title: '退出登录',
-      content: '确定要退出登录吗？',
+      title: t('settings.logout'),
+      content: t('settings.logoutConfirm'),
       success: (res) => {
         if (res.confirm) {
           logout();
@@ -55,10 +55,10 @@ export default function Settings() {
   const handleToggleCarMode = (val: boolean) => {
     if (val && !isVip) {
       Taro.showModal({
-        title: '仅限会员使用',
-        content: '车机模式是会员专属功能，请前往会员页面开启。',
-        confirmText: '去开通',
-        cancelText: '取消',
+        title: t('settings.vipOnly'),
+        content: t('settings.carModeVipOnly'),
+        confirmText: t('settings.goToMemberPage'),
+        cancelText: t('common.cancel'),
         success: (res) => {
           if (res.confirm) {
             Taro.navigateTo({ url: '/pages/member/benefits/index' });
@@ -77,10 +77,10 @@ export default function Settings() {
   const handleToggleVoiceAssistant = (val: boolean) => {
     if (val && !isVip) {
       Taro.showModal({
-        title: '仅限会员使用',
-        content: '语音助手是会员专属功能，请前往会员页面开启。',
-        confirmText: '去开通',
-        cancelText: '取消',
+        title: t('settings.vipOnly'),
+        content: t('settings.voiceAssistantVipOnly'),
+        confirmText: t('settings.goToMemberPage'),
+        cancelText: t('common.cancel'),
         success: (res) => {
           if (res.confirm) {
             Taro.navigateTo({ url: '/pages/member/benefits/index' });
@@ -96,13 +96,13 @@ export default function Settings() {
 
   const handleRedeemInternalTestCode = async () => {
     if (isVip) {
-      Taro.showToast({ title: '已拥有内测权益', icon: 'none' });
+      Taro.showToast({ title: t('settings.betaTestAlreadyHas'), icon: 'none' });
       return;
     }
 
     const plusUserId = Taro.getStorageSync('plus_user_id');
     if (!plusUserId) {
-      Taro.showToast({ title: '请先登录会员', icon: 'none' });
+      Taro.showToast({ title: t('settings.loginFirst'), icon: 'none' });
       return;
     }
 
@@ -122,7 +122,7 @@ export default function Settings() {
       const payload = res.data?.data;
 
       if (res.data?.code !== 200 || !payload?.ok) {
-        throw new Error(res.data?.message || '参与内测失败');
+        throw new Error(res.data?.message || t('settings.betaTestFailed'));
       }
 
       Taro.setStorageSync('plus_vip_status', 'true');
@@ -132,9 +132,9 @@ export default function Settings() {
       }));
       Taro.setStorageSync('plus_vip_updated_at', Date.now().toString());
       setIsVip(true);
-      Taro.showToast({ title: '申请成功', icon: 'success' });
+      Taro.showToast({ title: t('settings.betaTestSuccess'), icon: 'success' });
     } catch (error: any) {
-      Taro.showToast({ title: error.message || '申请失败', icon: 'none' });
+      Taro.showToast({ title: error.message || t('settings.betaTestFailed'), icon: 'none' });
     } finally {
       setRedeemingInternalTestCode(false);
     }
@@ -143,27 +143,27 @@ export default function Settings() {
   const handleDeleteMemberAccount = () => {
     const plusToken = Taro.getStorageSync('plus_token');
     if (!plusToken) {
-      Taro.showToast({ title: '请先登录会员', icon: 'none' });
+      Taro.showToast({ title: t('settings.loginFirst'), icon: 'none' });
       return;
     }
 
     Taro.showModal({
-      title: '注销会员账号',
-      content: '确认注销吗？注销之后您的所有数据将会被清空！',
+      title: t('settings.deleteMemberAccount'),
+      content: t('settings.deleteMemberConfirm'),
       success: async (res) => {
         if (res.confirm) {
           try {
             const result = await plusDeleteMe();
             if (result.data?.code !== 200 || !result.data?.data?.ok) {
-              throw new Error(result.data?.message || '注销失败');
+              throw new Error(result.data?.message || t('settings.deleteMemberFailed'));
             }
             Taro.removeStorageSync('plus_token');
             Taro.removeStorageSync('plus_user_id');
             Taro.removeStorageSync('plus_vip_status');
             setIsVip(false);
-            Taro.showToast({ title: '已注销', icon: 'success' });
+            Taro.showToast({ title: t('settings.deleteMemberSuccess'), icon: 'success' });
           } catch (error: any) {
-            Taro.showToast({ title: error.message || '请稍后重试', icon: 'none' });
+            Taro.showToast({ title: error.message || t('settings.deleteMemberFailed'), icon: 'none' });
           }
         }
       }
@@ -209,46 +209,46 @@ export default function Settings() {
         <View className='back-btn' onClick={() => Taro.navigateBack()}>
           <Text className='back-icon icon icon-back' />
         </View>
-        <Text className='header-title'>设置</Text>
+        <Text className='header-title'>{t('settings.title')}</Text>
         <View style={{ width: '80rpx' }} />
       </View>
 
       <ScrollView scrollY className='content'>
         <View className='section'>
-          <Text className='section-title'>账户</Text>
+          <Text className='section-title'>{t('settings.account')}</Text>
           {user?.is_admin && renderActionRow(
-            '管理后台',
-            '用户与系统设置',
+            t('settings.admin'),
+            t('settings.adminDescription'),
             () => Taro.navigateTo({ url: '/pages/admin/index' })
           )}
           {renderActionRow(
-            '数据源管理',
-            '切换和管理音频数据源',
+            t('settings.sourceManage'),
+            t('settings.sourceManageDescription'),
             () => Taro.navigateTo({ url: '/pages/source-manage/index' })
           )}
         </View>
 
         <View className='section'>
-          <Text className='section-title'>通用</Text>
+          <Text className='section-title'>{t('settings.general')}</Text>
           <LanguageSwitcher />
-          {renderSettingRow('车机模式', '左侧播放器，右侧内容区', carModeActive, handleToggleCarMode)}
+          {renderSettingRow(t('settings.carMode'), t('settings.carModeDescription'), carModeActive, handleToggleCarMode)}
           {carModeActive && renderActionRow(
-            '调整屏幕边距',
-            '调整播放详情页整体距离屏幕底部的位置',
+            t('settings.screenInset'),
+            t('settings.screenInsetDescription'),
             () => setShowScreenInsetModal(true),
             `${Math.round(screenBottomInset)}`
           )}
-          {renderSettingRow('跟随系统主题', '开启后将根据系统设置自动切换浅色/深色模式', autoTheme, (val) => updateSetting('autoTheme', val))}
+          {renderSettingRow(t('settings.autoTheme'), t('settings.autoThemeDescription'), autoTheme, (val) => updateSetting('autoTheme', val))}
           <View style={{ opacity: autoTheme ? 0.5 : 1, pointerEvents: autoTheme ? 'none' : 'auto' }}>
-            {renderSettingRow('深色模式', '开启或关闭应用的深色外观', theme === 'dark', autoTheme ? () => {} : toggleTheme)}
+            {renderSettingRow(t('settings.darkMode'), t('settings.darkModeDescription'), theme === 'dark', autoTheme ? () => {} : toggleTheme)}
           </View>
-          {renderSettingRow('自动横竖屏', '开启后应用将跟随手机重力感应自动旋转', autoOrientation, (val) => updateSetting('autoOrientation', val))}
-          {renderSettingRow('语音助手', '开启后显示全局语音助手小松鼠', voiceAssistantEnabled, handleToggleVoiceAssistant)}
+          {renderSettingRow(t('settings.autoOrientation'), t('settings.autoOrientationDescription'), autoOrientation, (val) => updateSetting('autoOrientation', val))}
+          {renderSettingRow(t('settings.voiceAssistant'), t('settings.voiceAssistantDescription'), voiceAssistantEnabled, handleToggleVoiceAssistant)}
 
           <View className='setting-row slider-row'>
             <View className='setting-info' style={{ width: '100%', marginRight: 0 }}>
-              <Text className='setting-label'>推荐偏好（喜欢/新鲜）</Text>
-              <Text className='setting-description'>喜欢 {recommendationLikeRatio}% · 新鲜 {100 - recommendationLikeRatio}%</Text>
+              <Text className='setting-label'>{t('settings.recommendationPreference')}</Text>
+              <Text className='setting-description'>{t('settings.like')} {recommendationLikeRatio}% · {t('settings.fresh')} {100 - recommendationLikeRatio}%</Text>
               <Slider
                 min={0}
                 max={100}
@@ -262,30 +262,30 @@ export default function Settings() {
             </View>
           </View>
 
-          {renderSettingRow('有声书模式', '切换音乐与有声书的显示内容', mode === 'AUDIOBOOK', (val) => setMode(val ? 'AUDIOBOOK' : 'MUSIC'))}
-          {renderSettingRow('接力播放', '是否接受多设备之间播放接力', acceptRelay, (val) => updateSetting('acceptRelay', val))}
-          {renderSettingRow('同步控制', '是否接受同数据源下其他用户的同步控制请求', acceptSync, (val) => updateSetting('acceptSync', val))}
-          {renderSettingRow('边听边存', '播放时自动缓存到本地，下次播放优先使用本地文件', cacheEnabled, (val) => updateSetting('cacheEnabled', val))}
+          {renderSettingRow(t('settings.audiobookMode'), t('settings.audiobookModeDescription'), mode === 'AUDIOBOOK', (val) => setMode(val ? 'AUDIOBOOK' : 'MUSIC'))}
+          {renderSettingRow(t('settings.relayPlay'), t('settings.relayPlayDescription'), acceptRelay, (val) => updateSetting('acceptRelay', val))}
+          {renderSettingRow(t('settings.syncControl'), t('settings.syncControlDescription'), acceptSync, (val) => updateSetting('acceptSync', val))}
+          {renderSettingRow(t('settings.cacheWhilePlaying'), t('settings.cacheWhilePlayingDescription'), cacheEnabled, (val) => updateSetting('cacheEnabled', val))}
         </View>
 
         <View className='section'>
-          <Text className='section-title'>关于</Text>
-          {renderActionRow('产品动态', '查看最新功能与版本更新', () => Taro.showToast({ title: '暂无动态', icon: 'none' }))}
-          {renderActionRow('参与内测', isVip ? '已拥有内测权益，无需重复申请' : redeemingInternalTestCode ? '正在申请...' : '一键申请并自动开通内测权益', handleRedeemInternalTestCode)}
-          {renderSettingRow('参与用户体验计划', '使用数据以改进产品', experienceProgramEnabled, (val) => updateSetting('experienceProgramEnabled', val))}
+          <Text className='section-title'>{t('settings.about')}</Text>
+          {renderActionRow(t('settings.productUpdates'), t('settings.productUpdatesDescription'), () => Taro.showToast({ title: t('settings.productUpdatesNoUpdates'), icon: 'none' }))}
+          {renderActionRow(t('settings.joinBetaTest'), isVip ? t('settings.betaTestAlreadyHas') : redeemingInternalTestCode ? t('settings.betaTestApplying') : t('settings.betaTestDescription'), handleRedeemInternalTestCode)}
+          {renderSettingRow(t('settings.experienceProgram'), t('settings.experienceProgramDescription'), experienceProgramEnabled, (val) => updateSetting('experienceProgramEnabled', val))}
         </View>
 
         <View className='section'>
           <View className='logout-btn' onClick={handleLogout}>
-            <Text className='logout-text'>退出登录</Text>
+            <Text className='logout-text'>{t('settings.logout')}</Text>
           </View>
           <View className='delete-member-btn' onClick={handleDeleteMemberAccount}>
-            <Text className='delete-member-text'>注销会员账号</Text>
+            <Text className='delete-member-text'>{t('settings.deleteMemberAccount')}</Text>
           </View>
         </View>
 
         <View className='footer'>
-          <Text className='version-text'>SoundX Mini v1.0.0</Text>
+          <Text className='version-text'>{t('settings.version', 'AudioDock Mini v1.0.0')}</Text>
         </View>
       </ScrollView>
 
@@ -294,14 +294,14 @@ export default function Settings() {
         <View className='modal-mask' onClick={() => setShowScreenInsetModal(false)}>
           <View className='modal-content' onClick={(e) => e.stopPropagation()}>
             <View className='modal-title-row'>
-              <Text className='modal-title'>调整屏幕边距</Text>
+              <Text className='modal-title'>{t('settings.screenInset')}</Text>
             </View>
             <View className='modal-description-row'>
-              <Text className='modal-description'>调整播放详情页整体距离屏幕底部的位置</Text>
+              <Text className='modal-description'>{t('settings.screenInsetDescription')}</Text>
             </View>
             <View className='slider-panel'>
               <View className='slider-header'>
-                <Text className='slider-label'>底部边距</Text>
+                <Text className='slider-label'>{t('settings.bottomInset')}</Text>
                 <Text className='slider-number'>{Math.round(screenBottomInset)}</Text>
               </View>
               <Slider
@@ -316,16 +316,16 @@ export default function Settings() {
                 blockSize={16}
               />
               <View className='slider-hint-row'>
-                <Text className='slider-hint'>更贴近底部</Text>
-                <Text className='slider-hint'>整页上移</Text>
+                <Text className='slider-hint'>{t('settings.closerToBottom')}</Text>
+                <Text className='slider-hint'>{t('settings.pageUp')}</Text>
               </View>
             </View>
             <View className='modal-actions'>
               <View className='modal-btn modal-cancel-btn' onClick={() => { updateSetting('screenBottomInset', 0); setShowScreenInsetModal(false); }}>
-                <Text className='modal-cancel-text'>重置</Text>
+                <Text className='modal-cancel-text'>{t('common.reset')}</Text>
               </View>
               <View className='modal-btn modal-confirm-btn' onClick={() => setShowScreenInsetModal(false)}>
-                <Text className='modal-confirm-text'>完成</Text>
+                <Text className='modal-confirm-text'>{t('common.done')}</Text>
               </View>
             </View>
           </View>

@@ -98,17 +98,17 @@ export default function SettingsScreen() {
   };
 
   const handleClearCache = async (
-    category: "covers" | "music" | "audiobooks" | "apks",
+    category: 'covers' | 'music' | 'audiobooks' | 'apks',
     label: string,
   ) => {
-    Alert.alert("清除缓存", `确定要清除${label}缓存吗？`, [
-      { text: "取消", style: "cancel" },
+    Alert.alert(t('settings.clearCache'), t('settings.confirmClearCache', { label }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: "确定",
+        text: t('common.confirm'),
         onPress: async () => {
           await clearSpecificCache(category);
           await fetchCacheSize();
-          Alert.alert("已清除", `${label}缓存已清空`);
+          Alert.alert(t('settings.cacheCleared'), `${label}${t('settings.cacheCleared')}`);
         },
       },
     ]);
@@ -128,7 +128,7 @@ export default function SettingsScreen() {
           {label} ({size})
         </Text>
         <Text style={[styles.settingDescription, { color: colors.secondary }]}>
-          点击清除
+          {t('settings.tapToClear')}
         </Text>
       </View>
       <Ionicons name="trash-outline" size={20} color={colors.secondary} />
@@ -194,9 +194,9 @@ export default function SettingsScreen() {
 
   const handleToggleCarMode = async (val: boolean) => {
     if (val && !isVip) {
-      Alert.alert("仅限会员使用", "车机模式是会员专属功能，请前往会员页面开启。", [
-        { text: "好的" },
-        { text: "前往会员页面", onPress: () => router.push("/member-benefits" as any) }
+      Alert.alert(t('settings.vipOnly'), t('settings.carModeVipOnly'), [
+        { text: t('common.ok') },
+        { text: t('settings.goToMemberPage'), onPress: () => router.push("/member-benefits" as any) }
       ]);
       return;
     }
@@ -215,9 +215,9 @@ export default function SettingsScreen() {
 
   const handleToggleVoiceAssistant = async (val: boolean) => {
     if (val && !isVip) {
-      Alert.alert("仅限会员使用", "语音助手是会员专属功能，请前往会员页面开启。", [
-        { text: "好的" },
-        { text: "前往会员页面", onPress: () => router.push("/member-benefits" as any) }
+      Alert.alert(t('settings.vipOnly'), t('settings.voiceAssistantVipOnly'), [
+        { text: t('common.ok') },
+        { text: t('settings.goToMemberPage'), onPress: () => router.push("/member-benefits" as any) }
       ]);
       return;
     }
@@ -234,13 +234,13 @@ export default function SettingsScreen() {
 
   const handleRedeemInternalTestCode = async () => {
     if (isVip) {
-      Alert.alert("已拥有内测权益", "当前账号已拥有内测权益，无需重复申请。");
+      Alert.alert(t('settings.betaTestAlreadyHas'), t('settings.betaTestAlreadyHas'));
       return;
     }
 
-    const plusUserId = await AsyncStorage.getItem("plus_user_id");
+    const plusUserId = await AsyncStorage.getItem('plus_user_id');
     if (!plusUserId) {
-      Alert.alert("无法提交", "请先登录会员账号后再参与内测。");
+      Alert.alert(t('settings.loginFirst'), t('settings.loginMemberFirst'));
       return;
     }
 
@@ -262,7 +262,7 @@ export default function SettingsScreen() {
       const payload = res.data?.data;
 
       if (res.data?.code !== 200 || !payload?.ok) {
-        throw new Error(res.data?.message || "参与内测失败");
+        throw new Error(res.data?.message || t('settings.betaTestFailed'));
       }
 
       await AsyncStorage.setItem("plus_vip_status", "true");
@@ -282,7 +282,7 @@ export default function SettingsScreen() {
         userId: user?.id ? String(user.id) : undefined,
         deviceId: device?.id ? String(device.id) : undefined,
       });
-      Alert.alert("申请成功", "已为当前账号开通内测权益。");
+      Alert.alert(t('settings.betaTestSuccess'), t('settings.betaTestSuccess'));
     } catch (error) {
       console.error("Failed to redeem internal test code:", error);
       trackEvent({
@@ -295,8 +295,8 @@ export default function SettingsScreen() {
         },
       });
       Alert.alert(
-        "申请失败",
-        error instanceof Error ? error.message : "请稍后重试",
+        t('settings.betaTestFailed'),
+        error instanceof Error ? error.message : t('settings.betaTestFailed'),
       );
     } finally {
       setRedeemingInternalTestCode(false);
@@ -305,36 +305,36 @@ export default function SettingsScreen() {
 
   const handleDeleteMemberAccount = () => {
     if (!plusToken) {
-      Alert.alert("提示", "请先登录会员账号。");
+      Alert.alert(t('settings.loginFirst'), t('settings.loginFirst'));
       router.replace("/member-login");
       return;
     }
 
     Alert.alert(
-      "注销会员账号",
-      "确认注销吗？注销之后您的所有数据将会被清空！",
+      t('settings.deleteMemberAccount'),
+      t('settings.deleteMemberConfirm'),
       [
-        { text: "取消", style: "cancel" },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: "确认",
-          style: "destructive",
+          text: t('common.confirm'),
+          style: 'destructive',
           onPress: async () => {
             try {
               const res = await plusDeleteMe();
               if (res.data?.code !== 200 || !res.data?.data?.ok) {
-                throw new Error(res.data?.message || "注销会员账号失败");
+                throw new Error(res.data?.message || t('settings.deleteMemberFailed'));
               }
 
               await setPlusToken(null);
               await syncWidgetMembership(false);
               setIsVip(false);
-              Alert.alert("已注销", "会员账号已注销。");
+              Alert.alert(t('settings.deleteMemberSuccess'), t('settings.deleteMemberSuccess'));
               router.replace("/member-login");
             } catch (error) {
               console.error("Failed to delete plus member account:", error);
               Alert.alert(
-                "注销失败",
-                error instanceof Error ? error.message : "请稍后重试",
+                t('settings.deleteMemberFailed'),
+                error instanceof Error ? error.message : t('settings.deleteMemberFailed'),
               );
             }
           },
@@ -352,14 +352,14 @@ export default function SettingsScreen() {
         >
           <Ionicons name="chevron-back" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>设置</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('settings.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-            账户
+            {t('settings.account')}
           </Text>
 
           {user?.is_admin && (
@@ -369,7 +369,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.settingInfo}>
                 <Text style={[styles.settingLabel, { color: colors.text }]}>
-                  管理后台
+                  {t('settings.admin')}
                 </Text>
                 <Text
                   style={[
@@ -377,7 +377,7 @@ export default function SettingsScreen() {
                     { color: colors.secondary },
                   ]}
                 >
-                  用户与系统设置
+                  {t('settings.adminDescription')}
                 </Text>
               </View>
               <Ionicons
@@ -394,21 +394,21 @@ export default function SettingsScreen() {
               { color: colors.primary, marginTop: 20 },
             ]}
           >
-            {t("settings.language", "语言")}
+            {t('settings.general')}
           </Text>
           <LanguageSwitcher />
 
           {renderSettingRow(
-            "车机模式",
-            "左侧播放器，右侧内容区",
+            t('settings.carMode'),
+            t('settings.carModeDescription'),
             carModeActive,
             handleToggleCarMode,
           )}
 
           {carModeActive &&
             renderActionRow(
-              "调整屏幕边距",
-              "调整播放详情页整体距离屏幕底部的位置",
+              t('settings.screenInset'),
+              t('settings.screenInsetDescription'),
               () => {
                 trackEvent({
                   feature: "settings",
@@ -422,40 +422,40 @@ export default function SettingsScreen() {
             )}
 
           {renderSettingRow(
-            "跟随系统主题",
-            "开启后将根据系统设置自动切换浅色/深色模式",
+            t('settings.autoTheme'),
+            t('settings.autoThemeDescription'),
             autoTheme,
-            (val) => updateSetting("autoTheme", val),
+            (val) => updateSetting('autoTheme', val),
           )}
 
           <View style={{ opacity: autoTheme ? 0.5 : 1 }}>
             {renderSettingRow(
-              "深色模式",
-              "开启或关闭应用的深色外观",
-              theme === "dark",
+              t('settings.darkMode'),
+              t('settings.darkModeDescription'),
+              theme === 'dark',
               autoTheme ? () => {} : toggleTheme,
             )}
 
             {renderSettingRow(
-              "春日主题",
-              "开启具有新春氛围的红金配色主题",
-              theme === "festive",
+              t('settings.festiveTheme'),
+              t('settings.festiveThemeDescription'),
+              theme === 'festive',
               autoTheme
                 ? () => {}
-                : (val) => setTheme(val ? "festive" : "light"),
+                : (val) => setTheme(val ? 'festive' : 'light'),
             )}
           </View>
 
           {renderSettingRow(
-            "自动横竖屏",
-            "开启后应用将跟随手机重力感应自动旋转",
+            t('settings.autoOrientation'),
+            t('settings.autoOrientationDescription'),
             autoOrientation,
-            (val) => updateSetting("autoOrientation", val),
+            (val) => updateSetting('autoOrientation', val),
           )}
 
           {renderSettingRow(
-            "语音助手",
-            "开启后显示全局语音助手小松鼠",
+            t('settings.voiceAssistant'),
+            t('settings.voiceAssistantDescription'),
             voiceAssistantEnabled,
             (val) => handleToggleVoiceAssistant(val),
           )}
@@ -465,13 +465,12 @@ export default function SettingsScreen() {
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                推荐偏好（喜欢/新鲜）
+                {t('settings.recommendationPreference')}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
-                喜欢 {recommendationLikeRatio}% · 新鲜{" "}
-                {100 - recommendationLikeRatio}%
+                {t('settings.like')} {recommendationLikeRatio}% · {t('settings.fresh')} {100 - recommendationLikeRatio}%
               </Text>
               <Slider
                 minimumValue={0}
@@ -492,33 +491,33 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {sourceType !== "Subsonic" &&
+          {sourceType !== 'Subsonic' &&
             renderSettingRow(
-              "有声书模式",
-              "切换音乐与有声书的显示内容",
-              mode === "AUDIOBOOK",
-              (val) => setMode(val ? "AUDIOBOOK" : "MUSIC"),
+              t('settings.audiobookMode'),
+              t('settings.audiobookModeDescription'),
+              mode === 'AUDIOBOOK',
+              (val) => setMode(val ? 'AUDIOBOOK' : 'MUSIC'),
             )}
 
           {renderSettingRow(
-            "接力播放",
-            "是否接受多设备之间播放接力",
+            t('settings.relayPlay'),
+            t('settings.relayPlayDescription'),
             acceptRelay,
-            (val) => updateSetting("acceptRelay", val),
+            (val) => updateSetting('acceptRelay', val),
           )}
 
           {renderSettingRow(
-            "同步控制",
-            "是否接受同数据源下其他用户的同步控制请求",
+            t('settings.syncControl'),
+            t('settings.syncControlDescription'),
             acceptSync,
-            (val) => updateSetting("acceptSync", val),
+            (val) => updateSetting('acceptSync', val),
           )}
 
           {renderSettingRow(
-            "边听边存",
-            "播放时自动缓存到本地，下次播放优先使用本地文件",
+            t('settings.cacheWhilePlaying'),
+            t('settings.cacheWhilePlayingDescription'),
             cacheEnabled,
-            (val) => updateSetting("cacheEnabled", val),
+            (val) => updateSetting('cacheEnabled', val),
           )}
 
           <Text
@@ -527,17 +526,17 @@ export default function SettingsScreen() {
               { color: colors.primary, marginTop: 20 },
             ]}
           >
-            存储管理
+            {t('settings.storage')}
           </Text>
-          {renderCacheRow("封面缓存", detailedSizes.covers, "covers")}
-          {renderCacheRow("音乐缓存", detailedSizes.music, "music")}
-          {renderCacheRow("有声书缓存", detailedSizes.audiobooks, "audiobooks")}
-          {renderCacheRow("安装包文件", detailedSizes.apks, "apks")}
+          {renderCacheRow(t('settings.coverCache'), detailedSizes.covers, 'covers')}
+          {renderCacheRow(t('settings.musicCache'), detailedSizes.music, 'music')}
+          {renderCacheRow(t('settings.audiobookCache'), detailedSizes.audiobooks, 'audiobooks')}
+          {renderCacheRow(t('settings.apkFiles'), detailedSizes.apks, 'apks')}
         </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-            关于
+            {t('settings.about')}
           </Text>
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: colors.border }]}
@@ -545,12 +544,12 @@ export default function SettingsScreen() {
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                产品动态
+                {t('settings.productUpdates')}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
-                查看最新功能与版本更新
+                {t('settings.productUpdatesDescription')}
               </Text>
             </View>
             <Ionicons
@@ -567,16 +566,16 @@ export default function SettingsScreen() {
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                参与内测
+                {t('settings.joinBetaTest')}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
                 {isVip
-                  ? "已拥有内测权益，无需重复申请"
+                  ? t('settings.betaTestAlreadyHas')
                   : redeemingInternalTestCode
-                    ? "正在为当前账号申请内测权益"
-                    : "一键申请并自动开通当前账号内测权益"}
+                    ? t('settings.betaTestApplying')
+                    : t('settings.betaTestDescription')}
               </Text>
             </View>
             <Ionicons
@@ -587,10 +586,10 @@ export default function SettingsScreen() {
           </TouchableOpacity>
 
           {renderSettingRow(
-            "参与用户体验计划",
-            "使用数据以改进产品",
+            t('settings.experienceProgram'),
+            t('settings.experienceProgramDescription'),
             experienceProgramEnabled,
-            (val) => updateSetting("experienceProgramEnabled", val),
+            (val) => updateSetting('experienceProgramEnabled', val),
           )}
         </View>
 
@@ -605,20 +604,20 @@ export default function SettingsScreen() {
               } as any);
             }}
           >
-            <Text style={styles.logoutText}>退出登录</Text>
+            <Text style={styles.logoutText}>{t('settings.logout')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.deleteMemberButton}
             onPress={handleDeleteMemberAccount}
           >
-            <Text style={styles.deleteMemberText}>注销会员账号</Text>
+            <Text style={styles.deleteMemberText}>{t('settings.deleteMemberAccount')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
           <Text style={[styles.versionText, { color: colors.secondary }]}>
-            AudioDock Mobile v{getLocalVersion()}
+            {t('settings.version', `AudioDock Mobile v${getLocalVersion()}`)}
           </Text>
         </View>
       </ScrollView>
@@ -647,10 +646,10 @@ export default function SettingsScreen() {
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              调整屏幕边距
+              {t('settings.screenInset')}
             </Text>
             <Text style={[styles.modalDescription, { color: colors.secondary }]}>
-              调整播放详情页整体距离屏幕底部的位置
+              {t('settings.screenInsetDescription')}
             </Text>
 
             <View
@@ -661,7 +660,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.sliderHeader}>
                 <Text style={[styles.sliderLabel, { color: colors.text }]}>
-                  底部边距
+                  {t('settings.bottomInset')}
                 </Text>
                 <Text style={[styles.sliderNumber, { color: colors.primary }]}>
                   {Math.round(screenBottomInset)}
@@ -684,10 +683,10 @@ export default function SettingsScreen() {
               />
               <View style={styles.sliderHintRow}>
                 <Text style={[styles.sliderHint, { color: colors.secondary }]}>
-                  更贴近底部
+                  {t('settings.closerToBottom')}
                 </Text>
                 <Text style={[styles.sliderHint, { color: colors.secondary }]}>
-                  整页上移
+                  {t('settings.pageUp')}
                 </Text>
               </View>
             </View>
@@ -702,7 +701,7 @@ export default function SettingsScreen() {
                 onPress={() => void updateSetting("screenBottomInset", 0)}
               >
                 <Text style={[styles.modalCancelText, { color: colors.text }]}>
-                  重置
+                  {t('common.reset')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -713,7 +712,7 @@ export default function SettingsScreen() {
                 ]}
                 onPress={() => setScreenInsetModalVisible(false)}
               >
-                <Text style={styles.modalConfirmText}>完成</Text>
+                <Text style={styles.modalConfirmText}>{t('common.done')}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>

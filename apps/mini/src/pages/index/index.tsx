@@ -2,6 +2,7 @@ import { getAlbumHistory, getAlbumTracks, getLatestArtists, getLatestTracks, get
 import { Image, ScrollView, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import MiniPlayer from '../../components/MiniPlayer'
 import { useAuth } from '../../context/AuthContext'
 import { usePlayer } from '../../context/PlayerContext'
@@ -10,6 +11,7 @@ import { getBaseURL } from '../../utils/request'
 import './index.scss'
 
 export default function Index() {
+  const { t } = useTranslation();
   const { playTrackList } = usePlayer()
   const { mode, setMode } = usePlayMode()
   const { user } = useAuth()
@@ -41,19 +43,19 @@ export default function Index() {
       const newSections = [
         {
           id: 'artists',
-          title: '艺术家',
+          title: t('home.artists'),
           data: artistsRes.code === 200 ? artistsRes.data : [],
           type: 'artist',
         },
         {
           id: 'recent',
-          title: '最近上新',
+          title: t('home.recentAlbums'),
           data: recentRes.code === 200 ? recentRes.data : [],
           type: 'album',
         },
         {
           id: 'recommended',
-          title: '为你推荐',
+          title: t('home.recommended'),
           data: recommendedRes.code === 200 ? recommendedRes.data : [],
           type: 'album',
         },
@@ -62,7 +64,7 @@ export default function Index() {
       if (mode === 'MUSIC' && tracksRes?.code === 200) {
         newSections.push({
           id: 'tracks',
-          title: '上新单曲',
+          title: t('home.newTracks'),
           data: tracksRes.data,
           type: 'track',
         });
@@ -71,7 +73,7 @@ export default function Index() {
       if (mode === 'AUDIOBOOK' && historyRes?.code === 200) {
         newSections.push({
           id: 'history',
-          title: '继续收听',
+          title: t('home.continueListening'),
           data: historyRes.data.list.map((item: any) => item.album),
           type: 'album',
         });
@@ -122,14 +124,14 @@ export default function Index() {
         onRefresherRefresh={loadData}
       >
         <View className='header'>
-          <Text className='header-title'>推荐</Text>
+          <Text className='header-title'>{t('home.recommend')}</Text>
           <View className='mode-toggle' onClick={() => setMode(mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC')}>
             <Text className={`icon ${mode === 'MUSIC' ? 'icon-musical-notes' : 'icon-headset'}`} />
           </View>
         </View>
 
         <View className='search-bar' onClick={() => Taro.navigateTo({ url: '/pages/search/index' })}>
-           <Text className='search-text'>搜索单曲，艺术家，专辑</Text>
+           <Text className='search-text'>{t('home.searchPlaceholder')}</Text>
         </View>
 
         {sections.map((section) => (
@@ -218,7 +220,7 @@ export default function Index() {
                                   )}
                                 </View>
                                 <Text className='item-name album-name-text' numberOfLines={1}>{item.name}</Text>
-                                <Text className='item-sub' numberOfLines={1}>{item.artist || '未知作者'}</Text>
+                                <Text className='item-sub' numberOfLines={1}>{item.artist || t('home.unknownArtist')}</Text>
                               </>
                             )}
                         </View>

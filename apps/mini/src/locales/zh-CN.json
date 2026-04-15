@@ -7,6 +7,21 @@
     "done": "完成",
     "save": "保存"
   },
+  "nav": {
+    "home": "首页",
+    "library": "音乐库",
+    "settings": "设置"
+  },
+  "home": {
+    "recommend": "推荐",
+    "searchPlaceholder": "搜索单曲，艺术家，专辑",
+    "artists": "艺术家",
+    "recentAlbums": "最近上新",
+    "recommended": "为你推荐",
+    "newTracks": "上新单曲",
+    "continueListening": "继续收听",
+    "unknownArtist": "未知作者"
+  },
   "settings": {
     "title": "设置",
     "account": "账户",
@@ -15,6 +30,8 @@
     "about": "关于",
     "language": "语言",
     "languageDescription": "选择应用显示语言",
+    "sourceManage": "数据源管理",
+    "sourceManageDescription": "切换和管理音频数据源",
     
     "admin": "管理后台",
     "adminDescription": "用户与系统设置",
@@ -71,6 +88,7 @@
     
     "productUpdates": "产品动态",
     "productUpdatesDescription": "查看最新功能与版本更新",
+    "productUpdatesNoUpdates": "暂无动态",
     
     "joinBetaTest": "参与内测",
     "betaTestDescription": "一键申请并自动开通当前账号内测权益",
