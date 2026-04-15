@@ -64,7 +64,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
           newSet.delete(otherUserId);
           return newSet;
         });
-        messageApi.success(`用户 ${otherUserId} 已接受邀请`);
+        messageApi.success(t('userSelect.userAccepted', { userId: otherUserId }));
 
         // Close after short delay and start session
         setTimeout(() => {
@@ -84,7 +84,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
           newSet.delete(id);
           return newSet;
         });
-        messageApi.error(`用户 ${id} 拒绝了邀请`);
+        messageApi.error(t('userSelect.userRejected', { userId: id }));
       }
     };
 
@@ -114,7 +114,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
 
   const handleInvite = () => {
     if (selectedUserIds.length === 0) {
-      messageApi.warning("请至少选择一个用户");
+      messageApi.warning(t('userSelect.selectAtLeastOne'));
       return;
     }
 
@@ -160,7 +160,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
 
         const timedOut = Array.from(prev);
         if (timedOut.length > 0) {
-          messageApi.error("邀请超时，用户未响应");
+          messageApi.error(t('userSelect.inviteTimeout'));
           setInviteStatuses((st) => {
             const next = new Map(st);
             timedOut.forEach((id) => next.set(id, "timeout"));
@@ -190,7 +190,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
     switch (status) {
       case "waiting":
         return (
-          <span style={{ fontSize: 12, color: "#faad14" }}>等待中...</span>
+          <span style={{ fontSize: 12, color: "#faad14" }}>{t('userSelect.waiting')}</span>
         );
       case "accepted":
         return <span style={{ fontSize: 12, color: "#52c41a" }}>{t("sync.accepted")}</span>;
@@ -213,7 +213,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
       }}
       onOk={handleInvite}
       confirmLoading={waitingUserIds.size > 0}
-      okText={waitingUserIds.size > 0 ? "等待响应..." : "发送邀请"}
+      okText={waitingUserIds.size > 0 ? t('userSelect.waitingResponse') : t('userSelect.sendInvite')}
       okButtonProps={{ loading }}
       cancelButtonProps={{ disabled: false }}
       closable={true}

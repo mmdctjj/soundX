@@ -274,7 +274,7 @@ const Detail: React.FC = () => {
   const coverMenuItems: MenuProps["items"] = [
     {
       key: "upload",
-      label: "修改封面",
+      label: t('detail.modifyCover'),
       onClick: () => coverInputRef.current?.click(),
       disabled: uploadingCover || !isAudioDockSource,
     },

@@ -158,7 +158,7 @@ const TrackList: React.FC<TrackListProps> = ({
         message.error(t('common.error'));
       }
     } catch (error) {
-      message.error("添加失败");
+      message.error(t('common.error'));
     }
   };
 
@@ -185,7 +185,7 @@ const TrackList: React.FC<TrackListProps> = ({
               message.error(t('common.error'));
             }
           } catch (error) {
-            message.error("删除失败");
+            message.error(t('common.error'));
           }
         },
       });
@@ -385,10 +385,10 @@ const TrackList: React.FC<TrackListProps> = ({
                    icon: <CloudDownloadOutlined />,
                    onClick: (info) => {
                      info.domEvent.stopPropagation();
-                     message.info(`正在下载 ${record.name}...`);
+                     message.info(t('common.downloading', { name: record.name }));
                      downloadTrack(record).then(success => {
-                       if (success) message.success(`${record.name} 下载成功`);
-                       else message.error(`${record.name} 下载失败`);
+                       if (success) message.success(t('common.downloadSuccess', { name: record.name }));
+                       else message.error(t('common.downloadFailed', { name: record.name }));
                      });
                    }
                 },

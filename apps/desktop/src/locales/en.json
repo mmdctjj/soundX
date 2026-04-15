@@ -26,7 +26,10 @@
     "addedToPlaylist": "Added to playlist",
     "addToPlaylistFailed": "Failed to add to playlist",
     "remove": "Remove",
-    "download": "Download"
+    "download": "Download",
+    "downloading": "Downloading {{name}}...",
+    "downloadSuccess": "{{name}} downloaded successfully",
+    "downloadFailed": "{{name}} download failed"
   },
   "nav": {
     "library": "Library",
@@ -397,7 +400,15 @@
     "addToPlaylist": "Add to Playlist",
     "addedTracks": "{{count}} tracks added",
     "clickToDownload": "Click to download selected ({{count}}) tracks",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "enterListName": "Please enter a list name",
+    "moveSuccess": "Moved successfully",
+    "addSuccessRemoveFailed": "Added successfully, failed to remove from original list",
+    "removedSuccess": "Removed successfully",
+    "removeFailed": "Failed to remove",
+    "selectTracksFirst": "Please select tracks first",
+    "startDownload": "Starting download of {{count}} tracks",
+    "downloadComplete": "{{count}} tracks downloaded"
   },
   "artistDetail": {
     "allAlbums": "All Albums ({{count}})",
@@ -575,7 +586,14 @@
     "trackCount": "{{count}} tracks"
   },
   "userSelect": {
-    "title": "Select friends for sync playback"
+    "title": "Select friends for sync playback",
+    "userAccepted": "User {{userId}} accepted the invitation",
+    "userRejected": "User {{userId}} rejected the invitation",
+    "selectAtLeastOne": "Please select at least one user",
+    "inviteTimeout": "Invitation timed out, user did not respond",
+    "waiting": "Waiting...",
+    "waitingResponse": "Waiting for response...",
+    "sendInvite": "Send invitation"
   },
   "searchResults": {
     "historySearch": "History",
@@ -668,7 +686,8 @@
     "downloading": "Downloading ({{count}})",
     "selectTracksFirst": "Please select tracks to download first",
     "downloadComplete": "{{count}} tracks downloaded",
-    "downloadStarted": "Starting download of {{count}} tracks"
+    "downloadStarted": "Starting download of {{count}} tracks",
+    "modifyCover": "Modify Cover"
   },
   "loginModal": {
     "loginSuccess": "Login successful",
@@ -690,5 +709,30 @@
     "backToMain": "Back to main window",
     "pin": "Pin to top",
     "unpin": "Unpin"
+  },
+  "forgotPassword": {
+    "title": "Reset Password",
+    "currentDevice": "Current Device",
+    "stepVerifyDevice": "Verify Device",
+    "stepResetPassword": "Reset Password",
+    "enterUsername": "Please enter username",
+    "usernamePlaceholder": "Enter username",
+    "nextStep": "Next",
+    "enterNewPassword": "Please enter new password",
+    "newPasswordPlaceholder": "New password",
+    "confirmPasswordRequired": "Please confirm password",
+    "passwordMismatch": "Passwords do not match",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "submit": "Submit",
+    "backToLogin": "Back to Login",
+    "deviceVerified": "Device verified",
+    "verifyFailed": "Verification failed, please operate on your usual device",
+    "passwordResetSuccess": "Password reset successful",
+    "resetFailed": "Reset failed"
+  },
+  "sync": {
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "noResponse": "No response"
   }
 }
