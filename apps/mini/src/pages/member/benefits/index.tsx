@@ -2,6 +2,7 @@ import { plusCreatePayment, setPlusToken } from '@soundx/services';
 import { Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../../components/MiniPlayer';
 import './index.scss';
 
@@ -17,6 +18,7 @@ const comparisonData = [
 ];
 
 export default function MemberBenefits() {
+  const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<PaymentPlan>('lifetime');
   const [loading, setLoading] = useState(false);
 
@@ -24,10 +26,10 @@ export default function MemberBenefits() {
     const userIdStr = Taro.getStorageSync('plus_user_id');
     if (!userIdStr) {
       Taro.showModal({
-        title: '提示',
-        content: '请先登录会员账号',
-        confirmText: '去登录',
-        cancelText: '取消',
+        title: t('member.tip'),
+        content: t('member.loginFirst'),
+        confirmText: t('member.goLogin'),
+        cancelText: t('member.cancelBtn'),
         success: (res) => {
           if (res.confirm) {
             Taro.navigateTo({ url: '/pages/member/login/index' });
@@ -56,30 +58,30 @@ export default function MemberBenefits() {
         if (method === 'WECHAT') {
           if (wechatPay) {
             // WeChat payment - in mini program would use wx.requestPayment
-            Taro.showToast({ title: '微信支付暂不支持', icon: 'none' });
+            Taro.showToast({ title: t('member.wechatPay') + ' ' + t('common.vipOnly'), icon: 'none' });
           } else if (paymentUrl) {
-            Taro.showToast({ title: '订单已创建，请在网页端完成支付', icon: 'none' });
+            Taro.showToast({ title: t('memberSuccess.paymentSuccess') + ', ' + t('member.paymentWebDesc'), icon: 'none' });
           } else {
-            Taro.showToast({ title: '支付参数获取失败', icon: 'none' });
+            Taro.showToast({ title: t('common.error'), icon: 'none' });
           }
           return;
         }
 
         if (method === 'ALIPAY') {
           if (alipayPay?.orderString) {
-            Taro.showToast({ title: '支付宝支付暂不支持', icon: 'none' });
+            Taro.showToast({ title: t('member.alipay') + ' ' + t('common.vipOnly'), icon: 'none' });
           } else if (paymentUrl) {
-            Taro.showToast({ title: '订单已创建，请在网页端完成支付', icon: 'none' });
+            Taro.showToast({ title: t('memberSuccess.paymentSuccess') + ', ' + t('member.paymentWebDesc'), icon: 'none' });
           } else {
-            Taro.showToast({ title: '支付参数获取失败', icon: 'none' });
+            Taro.showToast({ title: t('common.error'), icon: 'none' });
           }
           return;
         }
       } else {
-        Taro.showToast({ title: res.data.message || '请求失败', icon: 'none' });
+        Taro.showToast({ title: res.data.message || t('common.error'), icon: 'none' });
       }
     } catch (e: any) {
-      Taro.showToast({ title: e.response?.data?.message || '网络请求失败', icon: 'none' });
+      Taro.showToast({ title: e.response?.data?.message || t('member.networkError'), icon: 'none' });
     } finally {
       setLoading(false);
     }
@@ -87,10 +89,10 @@ export default function MemberBenefits() {
 
   const handleLogout = () => {
     Taro.showModal({
-      title: '退出会员账号',
-      content: '确定要退出会员账号吗？',
-      confirmText: '确定',
-      cancelText: '取消',
+      title: t('member.logoutSwitchAccount'),
+      content: t('member.logoutConfirm'),
+      confirmText: t('member.confirmBtn'),
+      cancelText: t('member.cancelBtn'),
       success: async (res) => {
         if (res.confirm) {
           Taro.removeStorageSync('plus_user_id');
@@ -107,7 +109,7 @@ export default function MemberBenefits() {
         <View className='back-btn' onClick={() => Taro.navigateBack()}>
           <Text className='back-icon'>←</Text>
         </View>
-        <Text className='header-title'>会员权益</Text>
+        <Text className='header-title'>{t('member.benefitsTitle')}</Text>
         <View style={{ width: '80rpx' }} />
       </View>
 
@@ -115,7 +117,7 @@ export default function MemberBenefits() {
         {/* Comparison Table */}
         <View className='table-card'>
           <View className='table-header'>
-            <Text className='table-header-text flex-2'>权益功能</Text>
+            <Text className='table-header-text flex-2'>{t('member.rightsDescription')}</Text>
             <Text className='table-header-text flex-1 center'>非会员</Text>
             <Text className='table-header-text flex-1 center'>会员</Text>
           </View>
@@ -139,7 +141,7 @@ export default function MemberBenefits() {
 
         {/* Pricing Plans */}
         <View className='divider-container'>
-          <Text className='divider-text'>会员方案</Text>
+          <Text className='divider-text'>{t('member.memberPlan')}</Text>
         </View>
 
         <View className='plans-container'>
@@ -147,11 +149,11 @@ export default function MemberBenefits() {
             className={`plan-card ${selectedPlan === 'annual' ? 'active' : ''}`}
             onClick={() => setSelectedPlan('annual')}
           >
-            <Text className='plan-name'>年卡</Text>
+            <Text className='plan-name'>{t('member.annual')}</Text>
             <View className='price-container'>
               <Text className='currency'>¥</Text>
               <Text className='price-amount'>20</Text>
-              <Text className='unit'>/年</Text>
+              <Text className='unit'>/{t('member.annualMember')}</Text>
             </View>
           </View>
 
@@ -164,18 +166,18 @@ export default function MemberBenefits() {
                 <Text className='recommend-text'>推荐</Text>
               </View>
             )}
-            <Text className='plan-name'>永久卡</Text>
+            <Text className='plan-name'>{t('member.permanent')}</Text>
             <View className='price-container'>
               <Text className='currency'>¥</Text>
               <Text className='price-amount'>60</Text>
-              <Text className='unit'>/永久</Text>
+              <Text className='unit'>/{t('member.permanentValid')}</Text>
             </View>
           </View>
         </View>
 
         {/* Payment Methods */}
         <View className='divider-container'>
-          <Text className='divider-text'>支付方式</Text>
+          <Text className='divider-text'>{t('member.paymentMethod')}</Text>
         </View>
 
         <View className='payment-methods'>
@@ -184,20 +186,20 @@ export default function MemberBenefits() {
             onClick={() => handlePayment('WECHAT')}
           >
             <Text className='payment-icon'>💳</Text>
-            <Text className='payment-text'>微信支付</Text>
+            <Text className='payment-text'>{t('member.wechatPay')}</Text>
           </View>
           <View
             className={`payment-item ${loading ? 'disabled' : ''}`}
             onClick={() => handlePayment('ALIPAY')}
           >
             <Text className='payment-icon'>💰</Text>
-            <Text className='payment-text'>支付宝</Text>
+            <Text className='payment-text'>{t('member.alipay')}</Text>
           </View>
         </View>
 
         <View className='logout-button' onClick={handleLogout}>
           <Text className='logout-icon'>🚪</Text>
-          <Text className='logout-text'>退出会员账号</Text>
+          <Text className='logout-text'>{t('member.logoutSwitchAccount')}</Text>
         </View>
       </View>
 

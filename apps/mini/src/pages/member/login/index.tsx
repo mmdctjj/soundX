@@ -2,10 +2,12 @@ import { plusGetMe, plusLogin, plusSendCode, setPlusToken } from '@soundx/servic
 import { Image, Input, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import './index.scss';
 import logoImg from '../../../assets/images/logo.png';
 
 export default function MemberLogin() {
+  const { t } = useTranslation();
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,7 +16,7 @@ export default function MemberLogin() {
 
   const handleSendCode = async () => {
     if (!phone) {
-      Taro.showToast({ title: '请输入手机号', icon: 'none' });
+      Taro.showToast({ title: t('member.enterPhone'), icon: 'none' });
       return;
     }
     setSendingCode(true);
@@ -32,10 +34,10 @@ export default function MemberLogin() {
           });
         }, 1000);
       } else {
-        Taro.showToast({ title: res.data.message || '获取验证码失败', icon: 'none' });
+        Taro.showToast({ title: res.data.message || t('member.getCodeFailed'), icon: 'none' });
       }
     } catch (e: any) {
-      Taro.showToast({ title: e.response?.data?.message || '网络请求失败', icon: 'none' });
+      Taro.showToast({ title: e.response?.data?.message || t('member.networkError'), icon: 'none' });
     } finally {
       setSendingCode(false);
     }
@@ -43,7 +45,7 @@ export default function MemberLogin() {
 
   const handleLogin = async () => {
     if (!phone || !code) {
-      Taro.showToast({ title: '请输入手机号和验证码', icon: 'none' });
+      Taro.showToast({ title: t('member.enterPhoneAndCode'), icon: 'none' });
       return;
     }
     setLoading(true);
@@ -69,15 +71,15 @@ export default function MemberLogin() {
           console.warn('Failed to fetch vip status after login', profileErr);
         }
 
-        Taro.showToast({ title: '登录成功', icon: 'success' });
+        Taro.showToast({ title: t('member.loginSuccess'), icon: 'success' });
         setTimeout(() => {
           Taro.navigateBack();
         }, 1500);
       } else {
-        Taro.showToast({ title: res.data.message || '手机号或验证码错误', icon: 'none' });
+        Taro.showToast({ title: res.data.message || t('member.codeError'), icon: 'none' });
       }
     } catch (e: any) {
-      Taro.showToast({ title: e.response?.data?.message || '登录失败，请重试', icon: 'none' });
+      Taro.showToast({ title: e.response?.data?.message || t('member.loginFailedRetry'), icon: 'none' });
     } finally {
       setLoading(false);
     }
@@ -88,16 +90,16 @@ export default function MemberLogin() {
       <View className='content'>
         <View className='logo-container'>
           <Image src={logoImg} className='logo-image' mode='aspectFit' />
-          <Text className='title'>用户登录</Text>
-          <Text className='subtitle'>AudioDock 听见你的声音</Text>
+          <Text className='title'>{t('member.loginTitle')}</Text>
+          <Text className='subtitle'>{t('loginForm.appSlogan')}</Text>
         </View>
 
         <View className='form'>
-          <Text className='label'>手机号</Text>
+          <Text className='label'>{t('login.phone')}</Text>
           <View className='input-wrapper'>
             <Input
               className='input'
-              placeholder='请输入手机号'
+              placeholder={t('member.enterPhone')}
               placeholderClass='input-placeholder'
               value={phone}
               onInput={(e) => setPhone(e.detail.value)}
@@ -106,12 +108,12 @@ export default function MemberLogin() {
             />
           </View>
 
-          <Text className='label'>验证码</Text>
+          <Text className='label'>{t('login.verificationCode')}</Text>
           <View className='code-row'>
             <View className='input-wrapper' style={{ flex: 1 }}>
               <Input
                 className='input'
-                placeholder='请输入验证码'
+                placeholder={t('member.enterPhoneAndCode')}
                 placeholderClass='input-placeholder'
                 value={code}
                 onInput={(e) => setCode(e.detail.value)}
@@ -124,7 +126,7 @@ export default function MemberLogin() {
               onClick={handleSendCode}
             >
               <Text className='code-button-text'>
-                {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                {countdown > 0 ? `${countdown}s` : t('login.sendCode')}
               </Text>
             </View>
           </View>
@@ -133,14 +135,14 @@ export default function MemberLogin() {
             className={`button ${loading ? 'disabled' : ''}`}
             onClick={handleLogin}
           >
-            <Text className='button-text'>登录</Text>
+            <Text className='button-text'>{t('login.loginButton')}</Text>
           </View>
 
           <View className='footer-links'>
-            <Text className='footer-text'>登录即代表同意 </Text>
-            <Text className='link-text' onClick={() => Taro.setClipboardData({ data: 'https://www.audiodock.cn/docs/privacy-policy/', success: () => Taro.showToast({ title: '链接已复制，请在浏览器中打开', icon: 'none' }) })}>《隐私政策》</Text>
-            <Text className='footer-text'> 和 </Text>
-            <Text className='link-text' onClick={() => Taro.setClipboardData({ data: 'https://www.audiodock.cn/docs/user-agreement/', success: () => Taro.showToast({ title: '链接已复制，请在浏览器中打开', icon: 'none' }) })}>《用户协议》</Text>
+            <Text className='footer-text'>{t('member.loginAgreement')} </Text>
+            <Text className='link-text' onClick={() => Taro.setClipboardData({ data: 'https://www.audiodock.cn/docs/privacy-policy/', success: () => Taro.showToast({ title: t('member.linkCopied'), icon: 'none' }) })}>{t('member.privacyPolicy')}</Text>
+            <Text className='footer-text'> {t('common.and')} </Text>
+            <Text className='link-text' onClick={() => Taro.setClipboardData({ data: 'https://www.audiodock.cn/docs/user-agreement/', success: () => Taro.showToast({ title: t('member.linkCopied'), icon: 'none' }) })}>{t('member.userAgreement')}</Text>
           </View>
         </View>
       </View>

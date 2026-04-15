@@ -5,7 +5,14 @@
     "ok": "好的",
     "reset": "重置",
     "done": "完成",
-    "save": "保存"
+    "save": "保存",
+    "close": "关闭",
+    "delete": "删除",
+    "deleteConfirm": "确定要删除吗？",
+    "error": "错误",
+    "success": "成功",
+    "loading": "加载中...",
+    "noData": "暂无数据"
   },
   "nav": {
     "home": "首页",
@@ -108,5 +115,191 @@
     "confirmLogout": "确认",
     
     "version": "AudioDock Mobile v{{version}}"
+  },
+
+  "player": {
+    "notPlaying": "未在播放",
+    "untitled": "未命名",
+    "continuePlaying": "继续播放",
+    "foundPlaybackHistory": "发现在设备 {{deviceName}} 上的播放记录，是否从 {{time}} 继续播放？",
+    "syncEnded": "同步已结束",
+    "syncDisconnected": "对方已断开同步连接",
+    "userDisconnected": "{{username}} ({{deviceName}}) 已断开同步连接"
+  },
+
+  "sync": {
+    "syncInvite": "同步播放邀请",
+    "fromUser": "来自 {{username}} ({{deviceName}})",
+    "nowPlaying": "正在播放: {{trackName}}",
+    "selectSyncFriends": "选择同步好友",
+    "noOnlineFriends": "暂无在线好友",
+    "initiateSync": "发起同步",
+    "initiateSyncCount": "发起同步 ({{count}})",
+    "disconnectConfirm": "确定要断开连接吗？",
+    "syncStatus": "同步状态",
+    "syncEndedNotification": "同步播放已结束"
+  },
+
+  "navTabs": {
+    "recommend": "推荐",
+    "soundcang": "声仓",
+    "mine": "我的"
+  },
+
+  "playlist": {
+    "currentPlaylist": "当前 ({{count}})",
+    "listened": "听过",
+    "favorited": "收藏",
+    "album": "专辑",
+    "single": "单曲",
+    "noRecords": "暂无记录",
+    "alreadyListened": "已听"
+  },
+
+  "sleepTimer": {
+    "title": "定时关闭",
+    "cancelTimer": "取消定时",
+    "minutes": "{{count}} 分钟",
+    "minutesPlural": "{{count}} 分钟"
+  },
+
+  "trackMore": {
+    "deleteTrack": "删除歌曲",
+    "confirmDelete": "确定要永久删除？",
+    "confirmDeleteTrack": "删除歌曲",
+    "deleteFailed": "删除失败，请稍后重试",
+    "alreadyInPlaylist": "已添加到当前播放列表",
+    "properties": "属性",
+    "download": "下载",
+    "downloadSuccess": "下载成功",
+    "downloadFailed": "下载失败"
+  },
+
+  "albumMore": {
+    "title": "专辑选项",
+    "editCover": "修改封面",
+    "addToPlaylist": "添加到播放列表",
+    "addToCollection": "加入合集",
+    "createPlaylistWithSameName": "新建与专辑同名播放列表",
+    "selectTracks": "选择歌曲",
+    "batchDownload": "批量下载",
+    "confirmBatchDownload": "确定要下载专辑《{{albumName}}》中的所有曲目吗？",
+    "batchDownloadComplete": "专辑《{{albumName}}》下载完成"
+  },
+
+  "artistMore": {
+    "title": "艺人选项",
+    "editCover": "修改封面"
+  },
+
+  "folderMore": {
+    "deleteFolder": "删除文件夹",
+    "confirmDeleteFolder": "确定要永久删除文件夹「{{folderName}}」及其所有内容吗？这将同时从磁盘删除所有相关物理文件，此操作不可恢复。",
+    "deleteFolderConfirm": "确定删除",
+    "deleteFailed": "删除失败，请稍后重试",
+    "playAll": "播放全部",
+    "properties": "属性"
+  },
+
+  "filePath": {
+    "title": "文件路径",
+    "noFilePath": "暂无文件路径",
+    "close": "关闭"
+  },
+
+  "lyricsSize": {
+    "title": "歌词大小调节",
+    "enlarge": "放大",
+    "shrink": "缩小",
+    "reset": "重置",
+    "currentSize": "当前字号",
+    "preview": "实时预览",
+    "noLyricsPreview": "暂无歌词预览\n在这可以实时查看\n歌词的大小调节效果\n调整到舒适的阅读大小"
+  },
+
+  "update": {
+    "updating": "正在更新",
+    "preparing": "准备下载中",
+    "requestingLink": "正在请求下载链接...",
+    "hideDialogBackgroundDownload": "隐藏弹窗（后台继续下载）",
+    "foundNewVersion": "发现新版本",
+    "ignoreThisVersion": "忽略此版本",
+    "preparing2": "准备中...",
+    "updateNow": "立即更新"
+  },
+
+  "playerMore": {
+    "moreOptions": "更多选项",
+    "intro": "片头",
+    "skipIntro": "跳过片头",
+    "back15s": "后退 15s",
+    "forward15s": "前进 15s",
+    "outro": "片尾",
+    "skipOutro": "跳过片尾",
+    "sleepTimer": "定时关闭",
+    "sleepTimerWithTime": "定时关闭 ({{time}})",
+    "addToPlaylist": "添加到播放列表",
+    "trackDetails": "曲目详情",
+    "artistDetails": "艺术家详情",
+    "albumDetails": "专辑详情",
+    "downloading": "正在下载...",
+    "downloaded": "已下载",
+    "download": "下载",
+    "adjustLyricsSize": "调节歌词大小",
+    "controlPosition": "控制组位置调整",
+    "equalizer": "均衡器 (EQ)",
+    "setAutoSkipIntro": "设置自动跳过片头",
+    "setAutoSkipOutro": "设置自动跳过片尾",
+    "appliesToAllAudiobooks": "对所有有声书生效",
+    "turnOff": "关",
+    "downloadComplete": "下载完成",
+    "trackDownloaded": "曲目《{{trackName}}》已成功下载到本地",
+    "downloadFailedAlert": "下载失败",
+    "downloadFailedMsg": "请检查网络连接或稍后重试",
+    "seconds": "{{count}}s"
+  },
+
+  "equalizer": {
+    "title": "均衡器 (EQ)",
+    "reset": "重置",
+    "done": "完成",
+    "subBass": "超低音",
+    "bass": "低音",
+    "mid": "中音",
+    "treble": "高音",
+    "subTreble": "超高音"
+  },
+
+  "addToPlaylist": {
+    "added": "已添加到播放列表",
+    "addToPlaylist": "添加到播放列表",
+    "currentPlaylist": "当前播放列表",
+    "noOtherPlaylists": "暂无其他播放列表"
+  },
+
+  "collection": {
+    "selectCollection": "选择合集",
+    "createNew": "新建合集",
+    "newCollection": "新建合集",
+    "collectionNameRequired": "合集名称（必填）",
+    "cancel": "取消",
+    "createAndAdd": "创建并加入",
+    "noCollections": "暂无合集，点击右上角创建",
+    "albumCount": "{{count}} 张专辑",
+    "albumCountPlural": "{{count}} 张专辑",
+    "enterCollectionName": "请输入合集名称"
+  },
+
+  "squirrel": {
+    "notUnderstood": "我没有听懂，请再试一次"
+  },
+
+  "httpErrors": {
+    "unknown": "未知错误",
+    "createdSuccess": "创建成功",
+    "authFailed": "验证失败",
+    "forbidden": "禁止访问",
+    "notFound": "接口不存在",
+    "serverError": "服务器错误"
   }
 }

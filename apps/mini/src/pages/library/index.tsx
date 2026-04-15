@@ -303,7 +303,7 @@ export default function Library() {
   return (
     <View className='library-container'>
       <View className='header'>
-        <Text className='header-title'>声仓</Text>
+        <Text className='header-title'>{t('library.libraryTitle')}</Text>
         <View className='header-icons'>
           {mode === 'MUSIC' && activeTab === 'songs' && sortedItems.length > 0 && (
             <View className='icon-btn' onClick={handlePlayAll}>
@@ -351,7 +351,7 @@ export default function Library() {
                 className={`tab-item ${activeTab === 'collections' ? 'active' : ''}`}
                 onClick={() => setActiveTab('collections')}
               >
-                {renderTabLabel('合集', tabCounts.collections, activeTab === 'collections')}
+                {renderTabLabel(t('library.collectionTab'), tabCounts.collections, activeTab === 'collections')}
               </View>
             )}
          </View>
@@ -443,7 +443,7 @@ export default function Library() {
                          {item.artist || t('common.unknownArtist')} · {item.album || t('common.unknownAlbum')}
                        </Text>
                      </View>
-                     {currentTrack?.id === item.id && isPlaying ? <Text className='track-playing'>播放中</Text> : null}
+                     {currentTrack?.id === item.id && isPlaying ? <Text className='track-playing'>{t('library.playing')}</Text> : null}
                    </View>
                  ))}
                </View>
@@ -500,7 +500,7 @@ export default function Library() {
              )}
              {sortedItems.length === 0 && !loading && (
                <View className='empty-state'>
-                 <Text className='empty-text'>暂无数据</Text>
+                 <Text className='empty-text'>{t('common.noData')}</Text>
                </View>
              )}
              {sortedItems.length > 0 && (
@@ -528,7 +528,7 @@ export default function Library() {
                 }
               }}
             >
-              <Text className='track-more-item-text'>歌手详情</Text>
+              <Text className='track-more-item-text'>{t('library.artistDetail')}</Text>
             </View>
             <View
               className='track-more-item'
@@ -542,7 +542,7 @@ export default function Library() {
               <Text className='track-more-item-text'>{t('album.title')}</Text>
             </View>
             <View className='track-more-item' onClick={() => showTrackPathModal(selectedTrack)}>
-              <Text className='track-more-item-text'>属性</Text>
+              <Text className='track-more-item-text'>{t('library.properties')}</Text>
             </View>
             <View className='track-more-item' onClick={() => setShowTrackMoreMenu(false)}>
               <Text className='track-more-item-text cancel'>取消</Text>

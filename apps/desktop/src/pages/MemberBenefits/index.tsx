@@ -28,6 +28,7 @@ import {
   theme,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import { useAuthStore } from "../../store/auth";
@@ -37,6 +38,7 @@ const { Title, Text } = Typography;
 const { Content } = Layout;
 
 const MemberBenefits: React.FC = () => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const message = useMessage();
@@ -251,7 +253,7 @@ const MemberBenefits: React.FC = () => {
     stopPollingRef.current = false;
     const popup = openCashierWindow(paymentUrl);
     if (!popup) {
-      message.warning("支付窗口被拦截，请允许弹窗后重试");
+      message.warning(t('memberBenefits.paymentWindowBlocked'));
       return;
     }
 
@@ -261,7 +263,7 @@ const MemberBenefits: React.FC = () => {
         paymentWindowRef.current?.close();
       } catch {}
       paymentWindowRef.current = null;
-      message.success("支付成功，会员权益已生效");
+      message.success(t('memberBenefits.paymentSuccess'));
       navigate("/member-detail", { replace: true });
       return;
     }
@@ -272,7 +274,7 @@ const MemberBenefits: React.FC = () => {
         paymentWindowRef.current?.close();
       } catch {}
       paymentWindowRef.current = null;
-      message.success("支付成功，会员权益已生效");
+      message.success(t('memberBenefits.paymentSuccess'));
       navigate("/member-detail", { replace: true });
       return;
     }

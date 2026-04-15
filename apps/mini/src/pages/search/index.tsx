@@ -199,7 +199,7 @@ export default function Search() {
     } catch (error) {
       setIsRecording(false);
       console.error('Start recording failed:', error);
-      Taro.showToast({ title: '无法开始录音', icon: 'none' });
+      Taro.showToast({ title: t('search.voiceStart'), icon: 'none' });
     }
   };
 
@@ -233,7 +233,7 @@ export default function Search() {
         <View className='item-info'>
           <Text className='item-title' numberOfLines={1}>{item.name}</Text>
           <Text className='item-subtitle' numberOfLines={1}>
-            {type === 'track' ? (item as Track).artist : type === 'album' ? (item as Album).artist : '艺术家'}
+            {type === 'track' ? (item as Track).artist : type === 'album' ? (item as Album).artist : t('search.artistSection')}
           </Text>
         </View>
         <Text className='item-arrow'>›</Text>
@@ -242,9 +242,9 @@ export default function Search() {
   };
 
   const sections = [
-    { title: '艺术家', data: results.artists, type: 'artist' },
-    { title: '专辑', data: results.albums, type: 'album' },
-    { title: '单曲', data: results.tracks, type: 'track' },
+    { title: t('search.artistSection'), data: results.artists, type: 'artist' },
+    { title: t('search.albumSection'), data: results.albums, type: 'album' },
+    { title: t('search.singleSection'), data: results.tracks, type: 'track' },
   ].filter((s) => s.data && s.data.length > 0);
 
   const showSuggestions = keyword.trim().length === 0 && sections.length === 0;
@@ -256,7 +256,7 @@ export default function Search() {
           <Text className='search-icon icon icon-search' />
           <Input
             className='search-input'
-            placeholder='搜索单曲，艺术家，专辑'
+            placeholder={t('home.searchPlaceholder')}
             value={keyword}
             onInput={(e) => setKeyword(e.detail.value)}
             confirmType='search'
@@ -273,19 +273,19 @@ export default function Search() {
             </View>
           )}
         </View>
-        <Text className='cancel-btn' onClick={() => Taro.navigateBack()}>取消</Text>
+        <Text className='cancel-btn' onClick={() => Taro.navigateBack()}>{t('common.cancel')}</Text>
       </View>
 
       <ScrollView scrollY className='content-scroll'>
         {loading ? (
-          <View className='loading-state'><Text>加载中...</Text></View>
+          <View className='loading-state'><Text>{t('common.loading')}</Text></View>
         ) : showSuggestions ? (
           <View>
             {history.length > 0 && (
               <View className='suggest-section'>
                 <View className='suggest-header'>
-                  <Text className='suggest-title'>搜索历史</Text>
-                  <Text className='clear-history' onClick={clearHistory}>清空</Text>
+                  <Text className='suggest-title'>{t('search.searchHistory')}</Text>
+                  <Text className='clear-history' onClick={clearHistory}>{t('search.clear')}</Text>
                 </View>
                 <View className='tag-group'>
                   {history.map((kw, i) => (
@@ -300,7 +300,7 @@ export default function Search() {
             {hotSearches.length > 0 && (
               <View className='suggest-section'>
                 <View className='suggest-header'>
-                  <Text className='suggest-title'>热搜榜</Text>
+                  <Text className='suggest-title'>{t('search.hotSearchList')}</Text>
                 </View>
                 <View className='hot-list'>
                   {hotSearches.map((hot, i) => (
@@ -317,7 +317,7 @@ export default function Search() {
         ) : (
           <View>
             {sections.length === 0 && keyword.trim().length > 0 && !loading && (
-              <View className='empty-state'><Text>未找到相关结果</Text></View>
+              <View className='empty-state'><Text>{t('search.noResults')}</Text></View>
             )}
             {sections.map((section, idx) => (
               <View key={idx} className='result-section'>

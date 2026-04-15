@@ -47,7 +47,8 @@
     "close": "Close",
     "noFilePath": "No file path",
     "loadingCount": "Loaded {{count}}",
-    "operationFailed": "Operation failed"
+    "operationFailed": "Operation failed",
+    "and": "and"
   },
   "nav": {
     "home": "Home",
@@ -239,7 +240,39 @@
     "ttsAudiobook": "TTS Audiobook",
     "tvVersion": "TV Version",
     "carVersion": "Car Version",
-    "tip": "Tip"
+    "tip": "Tip",
+    "logoutSwitch": "Logout/Switch Account",
+    "logoutSwitchConfirm": "Are you sure you want to logout/switch account?",
+    "confirmBtn": "Confirm",
+    "cancelBtn": "Cancel",
+    "vipStatusLabel": "Your Membership Status",
+    "activated": "Activated",
+    "notActivated": "Not Activated",
+    "permanentMember": "Lifetime Member",
+    "annualMember": "Annual Member",
+    "permanentValid": "Forever",
+    "unknown": "Unknown",
+    "expiryTime": "Expiry Time",
+    "understandBenefits": "View Member Benefits",
+    "logoutSwitchAccount": "Logout/Switch Account",
+    "logoutConfirm": "Are you sure you want to logout?",
+    "wechatPay": "WeChat Pay",
+    "alipay": "Alipay",
+    "memberPlan": "Membership Plan",
+    "annual": "Annual",
+    "permanent": "Lifetime",
+    "enterPhone": "Please enter phone number",
+    "getCodeFailed": "Failed to get verification code",
+    "networkError": "Network request failed",
+    "enterPhoneAndCode": "Please enter phone and verification code",
+    "codeError": "Wrong phone or verification code",
+    "loginFailedRetry": "Login failed, please retry",
+    "loginAgreement": "By logging in you agree to ",
+    "privacyPolicy": "Privacy Policy",
+    "userAgreement": "User Agreement",
+    "linkCopied": "Link copied, please open in browser",
+    "paymentMethod": "Payment Method",
+    "paymentWebDesc": "Order created, please complete payment on web"
   },
   "admin": {
     "title": "Admin Panel",
@@ -282,7 +315,14 @@
     "albums": "Albums",
     "artists": "Artists",
     "collections": "Collections",
-    "tracks": "Tracks"
+    "tracks": "Tracks",
+    "libraryTitle": "Library",
+    "noResults": "No results found",
+    "loadingState": "Loading...",
+    "playing": "Playing",
+    "collectionTab": "Collection",
+    "artistDetail": "Artist Detail",
+    "properties": "Properties"
   },
   "search": {
     "placeholder": "Search music, artists, albums...",
@@ -299,7 +339,13 @@
     "microphonePermissionDesc": "Voice search requires microphone permission. Please enable it in settings.",
     "goToSettings": "Go to Settings",
     "noRecordPermission": "Recording permission not granted",
-    "recording": "Recording, tap to stop"
+    "recording": "Recording, tap to stop",
+    "hotSearchList": "Hot Search",
+    "clear": "Clear",
+    "artistSection": "Artists",
+    "albumSection": "Albums",
+    "singleSection": "Tracks",
+    "voiceStart": "Cannot start recording"
   },
   "playlist": {
     "create": "Create Playlist",
@@ -333,7 +379,8 @@
     "scanLogin": "Scan Login",
     "scanQRDesc": "Point at QR code on desktop or landscape device",
     "clickToScan": "Tap button to start scanning",
-    "startScan": "Start Scan"
+    "startScan": "Start Scan",
+    "scanLoginTitle": "Scan Login"
   },
   "scanConfirm": {
     "missingSession": "Missing session parameters",
@@ -343,7 +390,14 @@
     "waitingConfirm": "Confirmed, waiting for target device...",
     "confirmSyncContent": "Confirm Sync Content",
     "confirmSendFailed": "Confirm send failed",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "confirmLogin": "Confirm Login",
+    "waitingTarget": "Waiting for target device...",
+    "confirming": "Confirming...",
+    "noDataSource": "No data source provided by scan device. Only user status will be synced.",
+    "unnamedDataSource": "Unnamed Data Source",
+    "internalLabel": "No internal address",
+    "externalLabel": "No external address"
   },
   "collection": {
     "title": "Collection",
@@ -351,7 +405,8 @@
     "tracks": "Favorite Tracks",
     "albums": "Favorite Albums",
     "notExist": "Collection does not exist",
-    "albumCount": " albums"
+    "albumCount": " albums",
+    "albumsCount": " albums"
   },
   "folder": {
     "title": "Folder",
@@ -362,7 +417,9 @@
     "moveHere": "Move here",
     "copyHere": "Copy here",
     "folderDetail": "Folder Detail",
-    "folder": "Folder"
+    "folder": "Folder",
+    "folderDetailTitle": "Folder Detail",
+    "folderNameTitle": "Folder"
   },
   "album": {
     "title": "Album",
@@ -396,7 +453,15 @@
     "cannotConnectDataSource": "Cannot connect to any address of this data source. Please check network or configuration.",
     "defaultServer": "Default Server",
     "cannotConnect": "Cannot connect to any address of this data source. Please check network or configuration.",
-    "networkError": "Network error"
+    "networkError": "Network error",
+    "switchDataSource": "Switch Data Source",
+    "wifiTip": "Prefer internal network on Wi-Fi, use external network on mobile",
+    "deleteConfirm": "Are you sure you want to delete this data source configuration?",
+    "autoConnect": "Auto Connect",
+    "internalConnect": "Internal Connect",
+    "externalConnect": "External Connect",
+    "cannotConnectMissing": "Cannot connect (missing external)",
+    "noDataSourceConfig": "No data source configuration"
   },
   "tts": {
     "title": "TTS Audiobook",
@@ -419,7 +484,24 @@
     "waiting": "Waiting",
     "deleteTask": "Delete Task",
     "confirmDeleteTask": "Are you sure you want to delete this TTS task?",
-    "successCreate": "Successfully created {{count}} tasks"
+    "successCreate": "Successfully created {{count}} tasks",
+    "taskList": "Task List",
+    "all": "All",
+    "actionFailed": "Operation failed",
+    "chapters": "Chapters",
+    "noTasksYet": "No tasks yet",
+    "createNow": "Create Now",
+    "selectVoice": "Select Voice",
+    "selectFile": "Select File",
+    "selectedCount": "selected",
+    "nextStep": "Next",
+    "confirmTaskInfo": "Confirm Task Info",
+    "titleLabel": "Title",
+    "authorLabel": "Author",
+    "backBtn": "Back",
+    "createTasks": "Create Tasks",
+    "noLocalFiles": "No local files",
+    "generated": "Generated"
   },
   "player": {
     "play": "Play",
@@ -438,7 +520,20 @@
     "intro": "Intro",
     "off": "Off",
     "backward": "Backward",
-    "speed": "Speed"
+    "speed": "Speed",
+    "sleepTimer": "Sleep Timer",
+    "cancelTimer": "Cancel Timer",
+    "adjustControls": "Adjust Controls Position",
+    "adjustLyricsSize": "Adjust Lyrics Size",
+    "forward": "Forward",
+    "outro": "Outro",
+    "saveSettings": "Save Settings",
+    "adjustSkipIntro": "Set Auto-skip Intro",
+    "adjustSkipOutro": "Set Auto-skip Outro",
+    "addToPlaylistMenu": "Add to Playlist",
+    "artistDetailMenu": "Artist Detail",
+    "albumDetailMenu": "Album Detail",
+    "propertiesMenu": "Properties"
   },
   "index": {
     "title": "Home",
@@ -449,5 +544,16 @@
     "paymentDate": "Payment Date",
     "transactionId": "Transaction ID",
     "syncingMemberStatus": "Syncing member status..."
+  },
+  "loginForm": {
+    "switchType": "Switch Type",
+    "externalAddress": "External Address",
+    "internalAddress": "Internal Address",
+    "confirmPasswordLabel": "Confirm Password",
+    "noAccount": "No account? Register",
+    "hasAccount": "Have an account? Login",
+    "appSlogan": "AudioDock - Hear Your Voice",
+    "login": "Login",
+    "register": "Register"
   }
 }

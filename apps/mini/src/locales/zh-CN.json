@@ -47,7 +47,8 @@
     "close": "关闭",
     "noFilePath": "暂无文件路径",
     "loadingCount": "共加载 {{count}}",
-    "operationFailed": "操作失败"
+    "operationFailed": "操作失败",
+    "and": "和"
   },
   "nav": {
     "home": "首页",
@@ -239,7 +240,39 @@
     "ttsAudiobook": "TTS生成有声书",
     "tvVersion": "TV版",
     "carVersion": "车机版",
-    "tip": "提示"
+    "tip": "提示",
+    "logoutSwitch": "退出/切换会员账号",
+    "logoutSwitchConfirm": "确定要退出/切换会员账号吗？",
+    "confirmBtn": "确定",
+    "cancelBtn": "取消",
+    "vipStatusLabel": "您的会员状态",
+    "activated": "已激活",
+    "notActivated": "未激活",
+    "permanentMember": "永久会员",
+    "annualMember": "年度会员",
+    "permanentValid": "永久有效",
+    "unknown": "未知",
+    "expiryTime": "到期时间",
+    "understandBenefits": "了解会员权益",
+    "logoutSwitchAccount": "退出/切换会员账号",
+    "logoutConfirm": "确定要退出会员账号吗？",
+    "wechatPay": "微信支付",
+    "alipay": "支付宝",
+    "memberPlan": "会员方案",
+    "annual": "年卡",
+    "permanent": "永久卡",
+    "enterPhone": "请输入手机号",
+    "getCodeFailed": "获取验证码失败",
+    "networkError": "网络请求失败",
+    "enterPhoneAndCode": "请输入手机号和验证码",
+    "codeError": "手机号或验证码错误",
+    "loginFailedRetry": "登录失败，请重试",
+    "loginAgreement": "登录即代表同意",
+    "privacyPolicy": "《隐私政策》",
+    "userAgreement": "《用户协议》",
+    "linkCopied": "链接已复制，请在浏览器中打开",
+    "paymentMethod": "支付方式",
+    "paymentWebDesc": "订单已创建，请在网页端完成支付"
   },
   "admin": {
     "title": "管理后台",
@@ -282,7 +315,14 @@
     "albums": "专辑",
     "artists": "歌手",
     "collections": "合集",
-    "tracks": "单曲"
+    "tracks": "单曲",
+    "libraryTitle": "声仓",
+    "noResults": "未找到相关结果",
+    "loadingState": "加载中...",
+    "playing": "播放中",
+    "collectionTab": "合集",
+    "artistDetail": "歌手详情",
+    "properties": "属性"
   },
   "search": {
     "placeholder": "搜索音乐、歌手、专辑...",
@@ -299,7 +339,13 @@
     "microphonePermissionDesc": "语音搜索需要麦克风权限，请在设置中开启。",
     "goToSettings": "去设置",
     "noRecordPermission": "未授予录音权限",
-    "recording": "正在录音，点击停止"
+    "recording": "正在录音，点击停止",
+    "hotSearchList": "热搜榜",
+    "clear": "清空",
+    "artistSection": "艺术家",
+    "albumSection": "专辑",
+    "singleSection": "单曲",
+    "voiceStart": "无法开始录音"
   },
   "playlist": {
     "create": "创建歌单",
@@ -333,7 +379,8 @@
     "scanLogin": "扫码登录",
     "scanQRDesc": "请对准桌面端或横屏设备上的二维码",
     "clickToScan": "点击按钮开始扫描",
-    "startScan": "开始扫描"
+    "startScan": "开始扫描",
+    "scanLoginTitle": "扫码登录"
   },
   "scanConfirm": {
     "missingSession": "缺少会话参数",
@@ -343,7 +390,14 @@
     "waitingConfirm": "已确认，等待目标设备...",
     "confirmSyncContent": "确认同步内容",
     "confirmSendFailed": "确认发送失败",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "confirmLogin": "确认登录",
+    "waitingTarget": "等待目标设备...",
+    "confirming": "确认中...",
+    "noDataSource": "扫码设备没有提供任何数据源。将仅同步用户自身状态。",
+    "unnamedDataSource": "未命名数据源",
+    "internalLabel": "无内网地址",
+    "externalLabel": "无外网地址"
   },
   "collection": {
     "title": "收藏",
@@ -351,7 +405,8 @@
     "tracks": "收藏的歌曲",
     "albums": "收藏的专辑",
     "notExist": "合集不存在",
-    "albumCount": "张专辑"
+    "albumCount": "张专辑",
+    "albumsCount": "张专辑"
   },
   "folder": {
     "title": "文件夹",
@@ -362,7 +417,9 @@
     "moveHere": "移动到这里",
     "copyHere": "复制到这里",
     "folderDetail": "文件夹详情",
-    "folder": "文件夹"
+    "folder": "文件夹",
+    "folderDetailTitle": "文件夹详情",
+    "folderNameTitle": "文件夹"
   },
   "album": {
     "title": "专辑",
@@ -396,7 +453,15 @@
     "cannotConnectDataSource": "无法连接到该数据源的任一地址，请检查网络或配置",
     "defaultServer": "默认服务器",
     "cannotConnect": "无法连接到该数据源的任一地址，请检查网络或配置",
-    "networkError": "网络异常"
+    "networkError": "网络异常",
+    "switchDataSource": "切换数据源",
+    "wifiTip": "Wi-Fi 环境下优先选择内网，移动网络环境下只选择外网",
+    "deleteConfirm": "确定要删除这个数据源配置吗？",
+    "autoConnect": "自动连接",
+    "internalConnect": "内网连接",
+    "externalConnect": "外网连接",
+    "cannotConnectMissing": "无法连接 (缺外网)",
+    "noDataSourceConfig": "暂无数据源配置"
   },
   "tts": {
     "title": "TTS有声书",
@@ -419,7 +484,24 @@
     "waiting": "等待中",
     "deleteTask": "删除任务",
     "confirmDeleteTask": "确定要删除这个 TTS 任务吗？",
-    "successCreate": "成功创建 {{count}} 个任务"
+    "successCreate": "成功创建 {{count}} 个任务",
+    "taskList": "任务列表",
+    "all": "全部",
+    "actionFailed": "操作失败",
+    "chapters": "章节",
+    "noTasksYet": "暂无转换任务",
+    "createNow": "立即创建",
+    "selectVoice": "选择音色",
+    "selectFile": "选择文件",
+    "selectedCount": "已选",
+    "nextStep": "下一步",
+    "confirmTaskInfo": "确认任务信息",
+    "titleLabel": "标题",
+    "authorLabel": "作者",
+    "backBtn": "返回",
+    "createTasks": "创建任务",
+    "noLocalFiles": "暂无本地文件",
+    "generated": "已转换"
   },
   "player": {
     "play": "播放",
@@ -438,7 +520,20 @@
     "intro": "片头",
     "off": "关",
     "backward": "后退",
-    "speed": "倍速"
+    "speed": "倍速",
+    "sleepTimer": "定时关闭",
+    "cancelTimer": "取消定时",
+    "adjustControls": "控制组位置调整",
+    "adjustLyricsSize": "调节歌词大小",
+    "forward": "前进",
+    "outro": "片尾",
+    "saveSettings": "保存设置",
+    "adjustSkipIntro": "设置自动跳过片头",
+    "adjustSkipOutro": "设置自动跳过片尾",
+    "addToPlaylistMenu": "添加到播放列表",
+    "artistDetailMenu": "艺术家详情",
+    "albumDetailMenu": "专辑详情",
+    "propertiesMenu": "属性"
   },
   "index": {
     "title": "首页",
@@ -449,5 +544,16 @@
     "paymentDate": "支付日期",
     "transactionId": "交易号",
     "syncingMemberStatus": "正在同步会员状态…"
+  },
+  "loginForm": {
+    "switchType": "切换类型",
+    "externalAddress": "外网地址 (External)",
+    "internalAddress": "内网地址 (Internal)",
+    "confirmPasswordLabel": "确认密码",
+    "noAccount": "没有账号？注册",
+    "hasAccount": "已有账号？登录",
+    "appSlogan": "AudioDock 听见你的声音",
+    "login": "登录",
+    "register": "注册"
   }
 }

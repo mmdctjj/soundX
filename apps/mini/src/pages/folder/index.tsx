@@ -8,6 +8,7 @@ import {
 import { Image, ScrollView, Text, View } from "@tarojs/components";
 import Taro, { useDidShow, useRouter } from "@tarojs/taro";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import MiniPlayer from "../../components/MiniPlayer";
 import { usePlayer } from "../../context/PlayerContext";
 import { usePlayMode } from "../../utils/playMode";
@@ -18,6 +19,7 @@ import BottomTabBar from '../../components/BottomTabBar';
 type ViewMode = "roots" | "detail";
 
 export default function FolderPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const folderId = router.params.id;
   const { mode } = usePlayMode();
@@ -89,7 +91,7 @@ export default function FolderPage() {
 
   const renderRoots = () => {
     if (roots.length === 0) {
-      return <View className="empty"><Text>暂无文件夹</Text></View>;
+      return <View className="empty"><Text>{t('folder.empty')}</Text></View>;
     }
     return roots.map((item) => (
       <View
@@ -140,7 +142,7 @@ export default function FolderPage() {
               <Text className="track-sub" numberOfLines={1}>{track.artist || ""}</Text>
             </View>
             <View className="track-right">
-              {currentTrack?.id === track.id && isPlaying ? <Text className="playing">播放中</Text> : null}
+              {currentTrack?.id === track.id && isPlaying ? <Text className="playing">{t('library.playing')}</Text> : null}
               <Text className="duration">{formatDuration(track.duration || 0)}</Text>
             </View>
           </View>
@@ -156,14 +158,14 @@ export default function FolderPage() {
           <Text className="back-icon icon icon-back" />
         </View>
         <Text className="title" numberOfLines={1}>
-          {viewMode === "detail" ? (detail?.name || "文件夹详情") : "文件夹"}
+          {viewMode === "detail" ? (detail?.name || t('folder.folderDetailTitle')) : t('folder.folderNameTitle')}
         </Text>
         <View className="spacer" />
       </View>
 
       <ScrollView scrollY className="content">
         {loading ? (
-          <View className="empty"><Text>加载中...</Text></View>
+          <View className="empty"><Text>{t('common.loading')}</Text></View>
         ) : (
           <>
             {viewMode === "roots" ? renderRoots() : renderDetail()}

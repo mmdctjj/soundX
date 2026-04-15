@@ -5,7 +5,14 @@
     "ok": "OK",
     "reset": "Reset",
     "done": "Done",
-    "save": "Save"
+    "save": "Save",
+    "close": "Close",
+    "delete": "Delete",
+    "deleteConfirm": "Are you sure you want to delete?",
+    "error": "Error",
+    "success": "Success",
+    "loading": "Loading...",
+    "noData": "No data"
   },
   "nav": {
     "home": "Home",
@@ -108,5 +115,191 @@
     "confirmLogout": "Confirm",
     
     "version": "AudioDock Mobile v{{version}}"
+  },
+
+  "player": {
+    "notPlaying": "Not playing",
+    "untitled": "Untitled",
+    "continuePlaying": "Continue Playing",
+    "foundPlaybackHistory": "Found playback history on device {{deviceName}}, resume from {{time}}?",
+    "syncEnded": "Sync ended",
+    "syncDisconnected": "The other party has disconnected",
+    "userDisconnected": "{{username}} ({{deviceName}}) has disconnected"
+  },
+
+  "sync": {
+    "syncInvite": "Sync Playback Invite",
+    "fromUser": "From {{username}} ({{deviceName}})",
+    "nowPlaying": "Now playing: {{trackName}}",
+    "selectSyncFriends": "Select Sync Friends",
+    "noOnlineFriends": "No online friends",
+    "initiateSync": "Initiate Sync",
+    "initiateSyncCount": "Initiate Sync ({{count}})",
+    "disconnectConfirm": "Are you sure you want to disconnect?",
+    "syncStatus": "Sync Status",
+    "syncEndedNotification": "Sync playback has ended"
+  },
+
+  "navTabs": {
+    "recommend": "Recommend",
+    "soundcang": "Soundcang",
+    "mine": "Mine"
+  },
+
+  "playlist": {
+    "currentPlaylist": "Current ({{count}})",
+    "listened": "Listened",
+    "favorited": "Favorited",
+    "album": "Album",
+    "single": "Single",
+    "noRecords": "No records",
+    "alreadyListened": "Played"
+  },
+
+  "sleepTimer": {
+    "title": "Sleep Timer",
+    "cancelTimer": "Cancel Timer",
+    "minutes": "{{count}} min",
+    "minutesPlural": "{{count}} mins"
+  },
+
+  "trackMore": {
+    "deleteTrack": "Delete Track",
+    "confirmDelete": "Are you sure you want to permanently delete?",
+    "confirmDeleteTrack": "Delete Track",
+    "deleteFailed": "Delete failed, please try again later",
+    "alreadyInPlaylist": "Added to current playlist",
+    "properties": "Properties",
+    "download": "Download",
+    "downloadSuccess": "Download successful",
+    "downloadFailed": "Download failed"
+  },
+
+  "albumMore": {
+    "title": "Album Options",
+    "editCover": "Edit Cover",
+    "addToPlaylist": "Add to Playlist",
+    "addToCollection": "Add to Collection",
+    "createPlaylistWithSameName": "Create playlist with same name",
+    "selectTracks": "Select Tracks",
+    "batchDownload": "Batch Download",
+    "confirmBatchDownload": "Download all tracks from album \"{{albumName}}\"?",
+    "batchDownloadComplete": "Album \"{{albumName}}\" download complete"
+  },
+
+  "artistMore": {
+    "title": "Artist Options",
+    "editCover": "Edit Cover"
+  },
+
+  "folderMore": {
+    "deleteFolder": "Delete Folder",
+    "confirmDeleteFolder": "Permanently delete folder \"{{folderName}}\" and all its contents? This will also delete all physical files from disk and cannot be undone.",
+    "deleteFolderConfirm": "Delete Folder",
+    "deleteFailed": "Delete failed, please try again",
+    "playAll": "Play All",
+    "properties": "Properties"
+  },
+
+  "filePath": {
+    "title": "File Path",
+    "noFilePath": "No file path",
+    "close": "Close"
+  },
+
+  "lyricsSize": {
+    "title": "Lyrics Size",
+    "enlarge": "Enlarge",
+    "shrink": "Shrink",
+    "reset": "Reset",
+    "currentSize": "Current Size",
+    "preview": "Preview",
+    "noLyricsPreview": "No lyrics preview\nPreview lyrics size here\nAdjust for comfortable reading"
+  },
+
+  "update": {
+    "updating": "Updating...",
+    "preparing": "Preparing download...",
+    "requestingLink": "Requesting download link...",
+    "hideDialogBackgroundDownload": "Hide (continue downloading in background)",
+    "foundNewVersion": "New Version Found",
+    "ignoreThisVersion": "Ignore This Version",
+    "preparing2": "Preparing...",
+    "updateNow": "Update Now"
+  },
+
+  "playerMore": {
+    "moreOptions": "More Options",
+    "intro": "Intro",
+    "skipIntro": "Skip Intro",
+    "back15s": "Back 15s",
+    "forward15s": "Forward 15s",
+    "outro": "Outro",
+    "skipOutro": "Skip Outro",
+    "sleepTimer": "Sleep Timer",
+    "sleepTimerWithTime": "Sleep Timer ({{time}})",
+    "addToPlaylist": "Add to Playlist",
+    "trackDetails": "Track Details",
+    "artistDetails": "Artist Details",
+    "albumDetails": "Album Details",
+    "downloading": "Downloading...",
+    "downloaded": "Downloaded",
+    "download": "Download",
+    "adjustLyricsSize": "Adjust Lyrics Size",
+    "controlPosition": "Control Position",
+    "equalizer": "Equalizer (EQ)",
+    "setAutoSkipIntro": "Set Auto-Skip Intro",
+    "setAutoSkipOutro": "Set Auto-Skip Outro",
+    "appliesToAllAudiobooks": "Applies to all audiobooks",
+    "turnOff": "Off",
+    "downloadComplete": "Download Complete",
+    "trackDownloaded": "Track \"{{trackName}}\" has been downloaded successfully",
+    "downloadFailedAlert": "Download Failed",
+    "downloadFailedMsg": "Please check network connection or try again later",
+    "seconds": "{{count}}s"
+  },
+
+  "equalizer": {
+    "title": "Equalizer (EQ)",
+    "reset": "Reset",
+    "done": "Done",
+    "subBass": "Sub Bass",
+    "bass": "Bass",
+    "mid": "Mid",
+    "treble": "Treble",
+    "subTreble": "Sub Treble"
+  },
+
+  "addToPlaylist": {
+    "added": "Added to playlist",
+    "addToPlaylist": "Add to Playlist",
+    "currentPlaylist": "Current Playlist",
+    "noOtherPlaylists": "No other playlists"
+  },
+
+  "collection": {
+    "selectCollection": "Select Collection",
+    "createNew": "Create New",
+    "newCollection": "New Collection",
+    "collectionNameRequired": "Collection name (required)",
+    "cancel": "Cancel",
+    "createAndAdd": "Create & Add",
+    "noCollections": "No collections yet, tap + to create",
+    "albumCount": "{{count}} album",
+    "albumCountPlural": "{{count}} albums",
+    "enterCollectionName": "Please enter collection name"
+  },
+
+  "squirrel": {
+    "notUnderstood": "I didn't understand, please try again"
+  },
+
+  "httpErrors": {
+    "unknown": "Unknown error",
+    "createdSuccess": "Created successfully",
+    "authFailed": "Authentication failed",
+    "forbidden": "Access forbidden",
+    "notFound": "API not found",
+    "serverError": "Server error"
   }
 }

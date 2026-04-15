@@ -1,6 +1,7 @@
 import { Text, View, Button } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { claimScanLoginSession } from '@soundx/services'
 import './index.scss'
 
@@ -48,6 +49,7 @@ async function collectMiniScanLoginPayload(): Promise<any> {
 }
 
 export default function ScanPage() {
+  const { t } = useTranslation();
   const [scanning, setScanning] = useState(false)
 
   useEffect(() => {
@@ -66,12 +68,12 @@ export default function ScanPage() {
       const parsed: ScanLoginPayload = JSON.parse(data)
 
       if (parsed?.kind !== 'soundx-scan-login') {
-        throw new Error('不是有效的扫码登录二维码')
+        throw new Error(t('scan.notValidQR'))
       }
 
       const payload = await collectMiniScanLoginPayload()
       if (!payload.nativeAuth && !payload.plusAuth) {
-        throw new Error('当前设备还没有可供迁移的登录态，请先在本机登录')
+        throw new Error(t('scan.noLoginState'))
       }
 
       await claimScanLoginSession(parsed.sessionId, {
@@ -85,7 +87,7 @@ export default function ScanPage() {
     } catch (error: any) {
       console.error('Scan failed:', error)
       Taro.showToast({
-        title: error.message || '扫码失败',
+        title: error.message || t('scan.scanFailed'),
         icon: 'none',
       })
       setTimeout(() => {
@@ -99,17 +101,17 @@ export default function ScanPage() {
   return (
     <View className='scan-page'>
       <View className='header'>
-        <Text className='title'>扫码登录</Text>
+        <Text className='title'>{t('scan.scanLoginTitle')}</Text>
       </View>
 
       <View className='content'>
-        <Text className='desc'>请对准桌面端或横屏设备上的二维码</Text>
+        <Text className='desc'>{t('scan.scanQRDesc')}</Text>
         <View className='scan-placeholder'>
           <View className='scan-icon'>📷</View>
-          <Text className='scan-text'>点击按钮开始扫描</Text>
+          <Text className='scan-text'>{t('scan.clickToScan')}</Text>
         </View>
         <Button className='scan-btn' onClick={handleScan} disabled={scanning}>
-          {scanning ? '扫描中...' : '开始扫描'}
+          {scanning ? t('scan.scanning') : t('scan.startScan')}
         </Button>
       </View>
     </View>

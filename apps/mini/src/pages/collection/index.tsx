@@ -2,6 +2,7 @@ import { Album, getCollectionById } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
@@ -15,6 +16,7 @@ type CollectionDetail = {
 };
 
 export default function CollectionPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = router.params;
   const [collection, setCollection] = useState<CollectionDetail | null>(null);
@@ -50,7 +52,7 @@ export default function CollectionPage() {
   };
 
   if (loading) return <View className='loading'><Text>Loading...</Text></View>;
-  if (!collection) return <View className='error'><Text>合集不存在</Text></View>;
+  if (!collection) return <View className='error'><Text>{t('collection.notExist')}</Text></View>;
 
   return (
     <View className='collection-container'>
@@ -68,7 +70,7 @@ export default function CollectionPage() {
             mode='aspectFill'
           />
           <Text className='title'>{collection.name}</Text>
-          <Text className='meta'>{`${albums.length} 张专辑`}</Text>
+          <Text className='meta'>{`${albums.length} ${t('collection.albumsCount')}`}</Text>
         </View>
 
         <View className='album-grid'>

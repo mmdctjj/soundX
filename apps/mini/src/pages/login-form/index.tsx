@@ -212,7 +212,7 @@ export default function LoginForm() {
       <ScrollView scrollY className='scroll'>
         <View className='header'>
           <View className='switch-type' onClick={() => Taro.redirectTo({ url: '/pages/login/index' })}>
-            <Text className='switch-type-text'>切换类型</Text>
+            <Text className='switch-type-text'>{t('loginForm.switchType')}</Text>
             <Text className='switch-type-icon'>▦</Text>
           </View>
         </View>
@@ -220,13 +220,13 @@ export default function LoginForm() {
         <View className='content'>
           <View className='logo-wrap'>
             <Image src={getSourceLogo(sourceType)} className='logo' mode='aspectFill' />
-            <Text className='title'>{sourceType} {isLogin ? '登录' : '注册'}</Text>
+            <Text className='title'>{sourceType} {isLogin ? t('loginForm.login') : t('loginForm.register')}</Text>
           </View>
 
           <Text className='tips'>{sourceTip}</Text>
 
           <View className='form'>
-            <Text className='label'>外网地址 (External)</Text>
+            <Text className='label'>{t('loginForm.externalAddress')}</Text>
             <Input
               className='input'
               placeholder='http://music.example.com'
@@ -234,7 +234,7 @@ export default function LoginForm() {
               onInput={(e) => setExternalAddress(e.detail.value)}
             />
 
-            <Text className='label'>内网地址 (Internal)</Text>
+            <Text className='label'>{t('loginForm.internalAddress')}</Text>
             <Input
               className='input'
               placeholder='http://192.168.1.10:3000'
@@ -242,7 +242,7 @@ export default function LoginForm() {
               onInput={(e) => setInternalAddress(e.detail.value)}
             />
 
-            <Text className='label'>用户名</Text>
+            <Text className='label'>{t('login.username')}</Text>
             <Input
               className='input'
               placeholder='用户名'
@@ -250,7 +250,7 @@ export default function LoginForm() {
               onInput={(e) => setUsername(e.detail.value)}
             />
 
-            <Text className='label'>密码</Text>
+            <Text className='label'>{t('login.password')}</Text>
             <Input
               className='input'
               placeholder='密码'
@@ -261,7 +261,7 @@ export default function LoginForm() {
 
             {!isLogin && (
               <>
-                <Text className='label'>确认密码</Text>
+                <Text className='label'>{t('loginForm.confirmPasswordLabel')}</Text>
                 <Input
                   className='input'
                   placeholder='确认密码'
@@ -273,7 +273,7 @@ export default function LoginForm() {
             )}
 
             <Button className='submit-btn' onClick={handleSubmit} disabled={loading}>
-              {loading ? '加载中...' : (isLogin ? '登录' : '注册')}
+              {loading ? t('common.loading') : (isLogin ? t('loginForm.login') : t('loginForm.register'))}
             </Button>
 
             <View className='switch-mode'>
@@ -286,8 +286,8 @@ export default function LoginForm() {
                 }}
               >
                 {canSwitchMode
-                  ? (isLogin ? '没有账号？注册' : '已有账号？登录')
-                  : 'AudioDock 听见你的声音'}
+                  ? (isLogin ? t('loginForm.noAccount') : t('loginForm.hasAccount'))
+                  : t('loginForm.appSlogan')}
               </Text>
             </View>
           </View>

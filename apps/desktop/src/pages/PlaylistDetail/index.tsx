@@ -39,6 +39,7 @@ import {
   type MenuProps,
 } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import PlayingIndicator from "../../components/PlayingIndicator";
 import { useMessage } from "../../context/MessageContext";
@@ -56,6 +57,7 @@ import styles from "../../components/Detail/index.module.less";
 const { Title, Text } = Typography;
 
 const PlaylistDetail: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const message = useMessage();
   const navigate = useNavigate();
@@ -133,13 +135,13 @@ const PlaylistDetail: React.FC = () => {
       selectedRowKeys.includes(t.id),
     );
     if (selectedTracks.length === 0) {
-      message.warning("请先选择要下载的曲目");
+      message.warning(t('playlistDetail.selectTracksFirst'));
       return;
     }
-    message.info(`开始下载 ${selectedTracks.length} 首曲目`);
+    message.info(t('playlistDetail.startDownload', { count: selectedTracks.length }));
     downloadTracks(selectedTracks, (completed: number, total: number) => {
       if (completed === total) {
-        message.success(`${total} 首曲目下载完成`);
+        message.success(t('playlistDetail.downloadComplete', { count: total }));
         setIsSelectionMode(false);
         setSelectedRowKeys([]);
       }
@@ -158,12 +160,12 @@ const PlaylistDetail: React.FC = () => {
     try {
       const res = await deletePlaylist(id);
       if (res.code === 200) {
-        message.success("删除成功");
+        message.success(t('common.success'));
         navigate("/recommended");
         window.location.reload();
       }
     } catch (error) {
-      message.error("删除失败");
+      message.error(t('common.error'));
     }
   };
 
@@ -173,12 +175,12 @@ const PlaylistDetail: React.FC = () => {
       const values = await form.validateFields();
       const res = await updatePlaylist(id, values.name);
       if (res.code === 200) {
-        message.success("更新成功");
+        message.success(t('common.success'));
         setIsEditModalOpen(false);
         fetchPlaylist();
       }
     } catch (error) {
-      message.error("更新失败");
+      message.error(t('common.error'));
     }
   };
 
@@ -187,11 +189,11 @@ const PlaylistDetail: React.FC = () => {
     try {
       const res = await removeTrackFromPlaylist(id, trackId);
       if (res.code === 200) {
-        message.success("移除成功");
+        message.success(t('playlistDetail.removedSuccess'));
         fetchPlaylist();
       }
     } catch (error) {
-      message.error("移除失败");
+      message.error(t('playlistDetail.removeFailed'));
     }
   };
 
@@ -206,7 +208,7 @@ const PlaylistDetail: React.FC = () => {
         setPlaylists(res.data);
       }
     } catch (error) {
-      message.error("获取播放列表失败");
+      message.error(t('player.getPlaylistsFailed'));
     }
   };
 
@@ -226,20 +228,20 @@ const PlaylistDetail: React.FC = () => {
             selectedTrack.id,
           );
           if (removeRes.code === 200) {
-            message.success("移动成功");
+            message.success(t('playlistDetail.moveSuccess'));
             fetchPlaylist();
           } else {
-            message.warning("添加到新列表成功，但从当前列表移除失败");
+            message.warning(t('playlistDetail.addSuccessRemoveFailed'));
           }
         } else {
-          message.success("添加成功");
+          message.success(t('common.success'));
         }
         setIsAddToPlaylistModalOpen(false);
       } else {
-        message.error("操作失败");
+        message.error(t('common.error'));
       }
     } catch (error) {
-      message.error("操作失败");
+      message.error(t('common.error'));
     }
   };
 
@@ -267,7 +269,7 @@ const PlaylistDetail: React.FC = () => {
       },
     },
     {
-      title: "封面",
+      title: t('playlistDetail.cover'),
       key: "cover",
       width: 60,
       render: (_: any, record: Track) => {
@@ -303,7 +305,7 @@ const PlaylistDetail: React.FC = () => {
       },
     },
     {
-      title: "标题",
+      title: t('playlistDetail.trackTitle'),
       dataIndex: "name",
       key: "name",
       ellipsis: true,
@@ -312,7 +314,7 @@ const PlaylistDetail: React.FC = () => {
       ),
     },
     {
-      title: "时长",
+      title: t('playlistDetail.duration'),
       dataIndex: "duration",
       key: "duration",
       width: 80,
@@ -328,7 +330,7 @@ const PlaylistDetail: React.FC = () => {
         const items: MenuProps["items"] = [
           {
             key: "move",
-            label: "移动到播放列表",
+            label: t('playlistDetail.moveToPlaylist'),
             icon: <PlusOutlined />,
             onClick: (info) => {
               info.domEvent.stopPropagation();
@@ -337,7 +339,7 @@ const PlaylistDetail: React.FC = () => {
           },
           {
             key: "remove",
-            label: "从列表移除",
+            label: t('playlistDetail.removeFromList'),
             icon: <DeleteOutlined />,
             danger: true,
             onClick: (info) => {
@@ -348,7 +350,7 @@ const PlaylistDetail: React.FC = () => {
               // Let's use a simple confirm or just direct call for now as it's inside a menu.
               // Actually, let's wrap the logic in a function that shows modal.
               modalApi.confirm({
-                title: "确定从列表中移除?",
+                title: t('playlistDetail.confirmRemove'),
                 onOk: () => handleRemoveTrack(record.id),
               });
             },
@@ -413,7 +415,7 @@ const PlaylistDetail: React.FC = () => {
               {playlist?.name || "Unknown Playlist"}
             </Title>
             <Text type="secondary" style={{ color: "#ccc" }}>
-              创建于{" "}
+              {t('playlistDetail.createdAt')} 
               {playlist?.createdAt
                 ? new Date(playlist.createdAt).toLocaleDateString()
                 : ""}
@@ -454,11 +456,11 @@ const PlaylistDetail: React.FC = () => {
                     }}
                   />
                   <Popconfirm
-                    title="确定解散该播放列表?"
-                    description="解散后无法恢复"
+                    title={t('playlistDetail.confirmDelete')}
+                    description={t('playlistDetail.deleteWarning')}
                     onConfirm={handleDeletePlaylist}
-                    okText="解散"
-                    cancelText="取消"
+                    okText={t('playlistDetail.disband')}
+                    cancelText={t('common.cancel')}
                     okButtonProps={{ danger: true }}
                   >
                     <DeleteOutlined className={styles.actionIcon} />
@@ -476,7 +478,7 @@ const PlaylistDetail: React.FC = () => {
                         size="small"
                         onClick={handleDownloadSelected}
                       >
-                        点击下载已选中的 ({selectedRowKeys.length})首曲目
+                        {t('playlistDetail.clickToDownload', { count: selectedRowKeys.length })}
                       </Button>
                       <Button
                         size="small"
@@ -487,7 +489,7 @@ const PlaylistDetail: React.FC = () => {
                           setSelectedRowKeys([]);
                         }}
                       >
-                        取消
+                        {t('common.cancel')}
                       </Button>
                     </Space>
                   )}
@@ -506,7 +508,7 @@ const PlaylistDetail: React.FC = () => {
                   className={styles.searchInput}
                   onChange={(e) => setKeywordMidValue(e.target.value)}
                   onPressEnter={() => setKeyword(keywordMidValue)}
-                  placeholder="搜索歌曲"
+                  placeholder={t('playlistDetail.searchPlaceholder')}
                 />
                 {sort === "desc" ? (
                   <SortAscendingOutlined
@@ -550,7 +552,7 @@ const PlaylistDetail: React.FC = () => {
       </div>
       {modalContextHolder}
       <Modal
-        title="编辑播放列表"
+        title={t('playlistDetail.editPlaylist')}
         open={isEditModalOpen}
         onOk={handleUpdatePlaylist}
         onCancel={() => setIsEditModalOpen(false)}
@@ -558,8 +560,8 @@ const PlaylistDetail: React.FC = () => {
         <Form form={form} layout="vertical">
           <Form.Item
             name="name"
-            label="列表名称"
-            rules={[{ required: true, message: "请输入列表名称" }]}
+            label={t('playlistDetail.listName')}
+            rules={[{ required: true, message: t('playlistDetail.enterListName') || '' }]}
           >
             <Input />
           </Form.Item>
@@ -567,7 +569,7 @@ const PlaylistDetail: React.FC = () => {
       </Modal>
 
       <Modal
-        title={pendingAction === "move" ? "移动到播放列表" : "添加到播放列表"}
+        title={pendingAction === "move" ? t('playlistDetail.moveToPlaylist') : t('addToPlaylistModal.title')}
         open={isAddToPlaylistModalOpen}
         onCancel={() => setIsAddToPlaylistModalOpen(false)}
         footer={null}
