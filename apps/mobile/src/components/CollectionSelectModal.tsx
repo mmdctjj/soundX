@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { addAlbumToCollection, createCollection, getCollectionMembership, getCollections } from "@soundx/services";
 import { Album, AudiobookCollection } from "../models";
 import { useAuth } from "../context/AuthContext";
@@ -32,6 +33,7 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
   album,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -89,7 +91,7 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
     try {
       const name = nameInput.trim();
       if (!name) {
-        Alert.alert("提示", "请输入合集名称");
+        Alert.alert(t('common.ok'), t('collection.enterCollectionName'));
         return;
       }
       const res = await createCollection(user.id, {
@@ -127,7 +129,7 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
             >
               <View style={styles.handle} />
               <View style={styles.headerRow}>
-                <Text style={[styles.title, { color: colors.text }]}>选择合集</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{t('collection.selectCollection')}</Text>
                 <TouchableOpacity
                   onPress={() => {
                     setCreateVisible(true);
@@ -176,7 +178,7 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
                               {item.name}
                             </Text>
                             <Text style={[styles.countText, { color: colors.secondary }]}>
-                              {count} 张专辑
+                              {t('collection.albumCount', { count })}
                             </Text>
                           </View>
                           <Ionicons
@@ -195,7 +197,7 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
                     }}
                     ListEmptyComponent={
                       <Text style={[styles.emptyText, { color: colors.secondary }]}>
-                        暂无合集，点击右上角创建
+                        {t('collection.noCollections')}
                       </Text>
                     }
                   />
@@ -217,9 +219,9 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
             style={[styles.createBox, { backgroundColor: colors.card }]}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={[styles.title, { color: colors.text }]}>新建合集</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('collection.newCollection')}</Text>
             <TextInput
-              placeholder="合集名称（必填）"
+              placeholder={t('collection.collectionNameRequired')}
               placeholderTextColor={colors.secondary}
               value={nameInput}
               onChangeText={setNameInput}
@@ -227,10 +229,10 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
             />
             <View style={styles.createActions}>
               <TouchableOpacity onPress={() => setCreateVisible(false)}>
-                <Text style={[styles.actionText, { color: colors.secondary }]}>取消</Text>
+                <Text style={[styles.actionText, { color: colors.secondary }]}>{t('collection.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleCreate}>
-                <Text style={[styles.actionText, { color: colors.primary }]}>创建并加入</Text>
+                <Text style={[styles.actionText, { color: colors.primary }]}>{t('collection.createAndAdd')}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>

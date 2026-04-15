@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
 
 interface FolderMoreModalProps {
@@ -29,6 +30,7 @@ export const FolderMoreModal: React.FC<FolderMoreModalProps> = ({
   onShowProperties,
   onDeleteSuccess,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -36,12 +38,12 @@ export const FolderMoreModal: React.FC<FolderMoreModalProps> = ({
 
   const handleDelete = () => {
     Alert.alert(
-      "删除文件夹",
-      `确定要永久删除文件夹“${folder.name}”及其所有内容吗？这将同时从磁盘删除所有相关物理文件，此操作不可恢复。`,
+      t('folderMore.deleteFolder'),
+      t('folderMore.confirmDeleteFolder', { folderName: folder.name }),
       [
-        { text: "取消", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: "确定删除",
+          text: t('folderMore.deleteFolderConfirm'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -52,7 +54,7 @@ export const FolderMoreModal: React.FC<FolderMoreModalProps> = ({
               }
             } catch (e) {
               console.error("Failed to delete folder", e);
-              Alert.alert("错误", "删除失败，请稍后重试");
+              Alert.alert(t('common.error'), t('folderMore.deleteFailed'));
             }
           },
         },
@@ -96,7 +98,7 @@ export const FolderMoreModal: React.FC<FolderMoreModalProps> = ({
             }}
           >
             <Ionicons name="play-circle-outline" size={24} color={colors.text} />
-            <Text style={[styles.menuText, { color: colors.text }]}>播放全部</Text>
+            <Text style={[styles.menuText, { color: colors.text }]}>{t('folderMore.playAll')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -107,7 +109,7 @@ export const FolderMoreModal: React.FC<FolderMoreModalProps> = ({
             }}
           >
             <Ionicons name="information-circle-outline" size={24} color={colors.text} />
-            <Text style={[styles.menuText, { color: colors.text }]}>属性</Text>
+            <Text style={[styles.menuText, { color: colors.text }]}>{t('folderMore.properties')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -115,14 +117,14 @@ export const FolderMoreModal: React.FC<FolderMoreModalProps> = ({
             onPress={handleDelete}
           >
             <Ionicons name="trash-outline" size={24} color="#ff4d4f" />
-            <Text style={[styles.menuText, styles.dangerText]}>删除文件夹</Text>
+            <Text style={[styles.menuText, styles.dangerText]}>{t('folderMore.deleteFolder')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.menuItem, { marginTop: 10, justifyContent: 'center' }]}
             onPress={onClose}
           >
-            <Text style={[styles.menuText, { color: colors.secondary }]}>取消</Text>
+            <Text style={[styles.menuText, { color: colors.secondary }]}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
