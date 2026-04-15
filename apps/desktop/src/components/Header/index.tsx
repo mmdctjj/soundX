@@ -457,31 +457,31 @@ const Header: React.FC = () => {
   const handleDeleteMemberAccount = () => {
     const plusToken = localStorage.getItem("plus_token");
     if (!plusToken) {
-      message.warning("请先登录会员账号");
+      message.warning(t('header.pleaseLoginMemberFirst'));
       navigate("/member-login");
       return;
     }
 
     modal.confirm({
-      title: "注销会员账号",
-      content: "确认注销吗？注销之后您的所有数据将会被清空！",
-      okText: "确认",
-      cancelText: "取消",
+      title: t('header.cancelMembership'),
+      content: t('header.confirmCancelMembership'),
+      okText: t('common.confirm'),
+      cancelText: t('common.cancel'),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
           const res = await plusDeleteMe();
           if (res.data?.code !== 200 || !res.data?.data?.ok) {
-            throw new Error(res.data?.message || "注销会员账号失败");
+            throw new Error(res.data?.message || t('header.cancelMembershipFailed'));
           }
 
           setMemberToken(null);
-          message.success("会员账号已注销");
+          message.success(t('header.membershipCancelled'));
           navigate("/member-login", { replace: true });
         } catch (error) {
           console.error("Failed to delete plus member account:", error);
           message.error(
-            error instanceof Error ? error.message : "注销会员账号失败，请稍后重试",
+            error instanceof Error ? error.message : t('header.cancelMembershipFailedRetry'),
           );
         }
       },
@@ -677,13 +677,13 @@ const Header: React.FC = () => {
 
   const handleRedeemInternalTestCode = async () => {
     if (isPlusVip) {
-      message.info("已拥有内测权益，无需重复申请");
+      message.info(t('header.alreadyHasBetaAccess'));
       return;
     }
 
     const plusUserId = localStorage.getItem("plus_user_id");
     if (!plusUserId) {
-      message.error("请先登录会员账号后再参与内测");
+      message.error(t('header.pleaseLoginMemberFirstBeta'));
       return;
     }
 
@@ -778,7 +778,7 @@ const Header: React.FC = () => {
           prefix={
             <SearchOutlined style={{ color: token.colorTextSecondary }} />
           }
-          placeholder="搜索单曲、艺术家、专辑"
+          placeholder={t('header.searchPlaceholder')}
           bordered={false}
           className={styles.searchInput}
           style={{ color: token.colorText }}
@@ -844,8 +844,8 @@ const Header: React.FC = () => {
           <Tooltip
             title={
               playMode === TrackType.MUSIC
-                ? "切换至有声书模式"
-                : "切换至音乐模式"
+                ? t('header.switchToAudiobookMode')
+                : t('header.switchToMusicMode')
             }
           >
             <div
@@ -863,7 +863,7 @@ const Header: React.FC = () => {
         )}
 
         {!isWeb() && (
-          <Tooltip title="mini播放器">
+          <Tooltip title={t('header.miniPlayer')}>
             <ImportOutlined
               className={styles.actionIcon}
               style={actionIconStyle}
@@ -978,7 +978,7 @@ const Header: React.FC = () => {
             )}
           </div>
         </Tooltip>
-        <Tooltip title="会员服务">
+        <Tooltip title={t('header.memberService')}>
           <div
             className={styles.actionIcon}
             style={{ ...actionIconStyle }}
