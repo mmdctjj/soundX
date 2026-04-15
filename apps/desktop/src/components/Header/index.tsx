@@ -63,6 +63,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -358,6 +359,7 @@ const Header: React.FC = () => {
   const location = useLocation();
   const { themeSetting, toggleTheme } = useTheme();
   const { token } = theme.useToken();
+  const { t } = useTranslation();
   const pollTimerRef = useRef<number | null>(null);
   const [modal, contextHolder] = Modal.useModal();
 

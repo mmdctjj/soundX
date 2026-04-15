@@ -634,6 +634,19 @@
     "addFailed": "添加失败",
     "voiceActor": "声优"
   },
+  "trackList": {
+    "title": "标题",
+    "artist": "艺术家",
+    "album": "专辑",
+    "cover": "封面",
+    "duration": "时长",
+    "progress": "进度",
+    "index": "#",
+    "tracks": "首",
+    "getPlaylistsFailed": "获取播放列表失败",
+    "getDeletionImpactFailed": "获取删除影响失败",
+    "confirmDelete": "确定删除该音频文件吗?"
+  },
   "sectionOrderModal": {
     "title": "调整版块顺序",
     "save": "保存",
