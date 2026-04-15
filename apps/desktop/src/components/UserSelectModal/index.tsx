@@ -1,6 +1,7 @@
 import { getUserList } from "@soundx/services";
 import { Avatar, Checkbox, Col, Flex, Modal, Row, message, theme } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { User } from "../../models";
 import { socketService } from "../../services/socket";
 import { trackEvent } from "../../services/tracking";
@@ -34,6 +35,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
   const { isSynced, sessionId } = useSyncStore();
 
   const { token } = theme.useToken();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (visible) {
@@ -203,7 +205,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
 
   return (
     <Modal
-      title="选择好友同步播放"
+      title={t('userSelect.title')}
       open={visible}
       onCancel={() => {
         setSelectedUserIds([]);

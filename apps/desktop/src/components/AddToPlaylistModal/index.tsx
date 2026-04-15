@@ -122,9 +122,9 @@ const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                   />
                 }
                 title={
-                  <span style={{ color: token.colorText }}>当前播放队列</span>
+                  <span style={{ color: token.colorText }}>{t('addToPlaylistModal.currentQueue')}</span>
                 }
-                description="插入到正在播放之后"
+                description={t('addToPlaylistModal.insertAfterPlaying')}
               />
             </List.Item>
           }

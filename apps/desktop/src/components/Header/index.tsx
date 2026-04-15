@@ -87,6 +87,7 @@ const { Text } = Typography;
 const ServerSwitcherModal: React.FC<{
   onSelect: (url: string, type: string) => void;
 }> = ({ onSelect }) => {
+  const { t } = useTranslation();
   const [configs, setConfigs] = useState<
     Array<{
       type: string;
@@ -140,7 +141,7 @@ const ServerSwitcherModal: React.FC<{
             id: `migrated_${Date.now()}_${index}`,
             internal: h.value,
             external: "",
-            name: `历史记录 ${index + 1}`,
+            name: `${t('header.historyRecord')} ${index + 1}`,
           }));
           localStorage.setItem(configKey, JSON.stringify(migrated));
           allConfigs.push({ type, list: migrated });
@@ -208,7 +209,7 @@ const ServerSwitcherModal: React.FC<{
             const isSourceMatch = currentSource === type;
             const sourceLogo =
               type === "Emby" ? emby : type === "Subsonic" ? subsonic : logo;
-            const displayName = `${type}数据源[${index + 1}]`;
+            const displayName = `${type}${t('header.dataSource')}[${index + 1}]`;
 
             const renderAddressRow = (label: string, address: string) => {
               if (!address) return null;
@@ -248,7 +249,7 @@ const ServerSwitcherModal: React.FC<{
                   <Flex align="center" gap={8}>
                     {isActive ? (
                       <Text type="success" style={{ fontSize: 10 }}>
-                        ● 已连接
+                        ● {t('header.connected')}
                       </Text>
                     ) : (
                       <Button
@@ -258,7 +259,7 @@ const ServerSwitcherModal: React.FC<{
                         }}
                         style={{ fontSize: 10 }}
                       >
-                        连接
+                        {t('header.connect')}
                       </Button>
                     )}
                     {isConnecting && <Spin size="small" />}
@@ -302,8 +303,8 @@ const ServerSwitcherModal: React.FC<{
                     />
                   </Flex>
                   <Flex vertical gap={4}>
-                    {renderAddressRow("内网地址", item.internal)}
-                    {renderAddressRow("外网地址", item.external)}
+                    {renderAddressRow(t('header.internalAddress'), item.internal)}
+                    {renderAddressRow(t('header.externalAddress'), item.external)}
                   </Flex>
                 </Flex>
               </Card>
@@ -313,7 +314,7 @@ const ServerSwitcherModal: React.FC<{
 
         {configs.every((item) => item.list.length === 0) && (
           <Empty
-            description="暂无历史数据源"
+            description={t('header.noHistoryData')}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         )}
@@ -328,7 +329,7 @@ const ServerSwitcherModal: React.FC<{
             navigate("/source-manage");
           }}
         >
-          添加数据源
+          {t('header.addDataSource')}
         </Button>
       </Flex>
     </div>
@@ -425,7 +426,7 @@ const Header: React.FC = () => {
       await clearSearchHistory();
       setSearchHistory([]);
     } catch (e) {
-      message.error("清空历史失败");
+      message.error(t('header.clearHistoryFailed'));
     }
   };
 
@@ -449,7 +450,7 @@ const Header: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    message.success("已退出/切换服务端账号");
+    message.success(t('header.logoutSuccess'));
     // Optionally reload to reset app state
     window.location.reload();
   };
@@ -523,7 +524,11 @@ const Header: React.FC = () => {
     mode: "incremental" | "full" | "compact",
   ) => {
     message.loading(
-      `${mode === "incremental" ? "增量" : mode === "full" ? "全量" : "精简"}任务创建中...`,
+      mode === "incremental"
+        ? t('header.incremental') + t('header.taskCreating')
+        : mode === "full"
+          ? t('header.full') + t('header.taskCreating')
+          : t('header.compact') + t('header.taskCreating'),
     );
 
     try {
@@ -538,7 +543,7 @@ const Header: React.FC = () => {
           id: taskId,
           status: TaskStatus.INITIALIZING,
           mode,
-          message: mode === "compact" ? "正在启动精简任务..." : "正在初始化...",
+          message: mode === "compact" ? t('header.initializingCompact') : t('header.initializing'),
         });
 
         // Clear previous timer if any
@@ -548,11 +553,11 @@ const Header: React.FC = () => {
           pollTaskStatus(taskId);
         }, 1000);
       } else {
-        message.error(res.message || "任务创建失败");
+        message.error(res.message || t('header.taskCreateFailed'));
       }
     } catch (error) {
       console.error("Task creation error:", error);
-      message.error("创建任务失败，请检查网络或后端服务");
+      message.error(t('header.createTaskFailed'));
     }
   };
 
@@ -564,9 +569,9 @@ const Header: React.FC = () => {
         const { status, total } = res.data;
         if (status === TaskStatus.SUCCESS) {
           if (res.data.mode === "compact") {
-            message.success("精简完成");
+            message.success(t('header.compactComplete'));
           } else {
-            message.success(`导入成功！共导入 ${total} 首歌曲`);
+            message.success(t('header.importSuccess', { count: total }));
           }
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           // Auto close modal after a short delay
@@ -601,7 +606,7 @@ const Header: React.FC = () => {
     check().then((res) => {
       if (res.code == 200) {
       } else if (res.code === 401) {
-        message.error("登录信息已过期，请重新登录");
+        message.error(t('header.loginExpired'));
         logout();
       }
     });
@@ -705,7 +710,7 @@ const Header: React.FC = () => {
       const payload = res.data?.data;
 
       if (res.data?.code !== 200 || !payload?.ok) {
-        throw new Error(res.data?.message || "参与内测失败");
+        throw new Error(res.data?.message || t('header.participateInternalTestFailed'));
       }
 
       localStorage.setItem("plus_vip_status", "true");
@@ -725,7 +730,7 @@ const Header: React.FC = () => {
         userId: user?.id ? String(user.id) : undefined,
         deviceId: device?.id ? String(device.id) : undefined,
       });
-      message.success("已为当前账号开通内测权益");
+      message.success(t('header.betaAccessGranted'));
     } catch (error) {
       console.error("Failed to redeem internal test code:", error);
       trackEvent({
@@ -737,7 +742,7 @@ const Header: React.FC = () => {
           message: error instanceof Error ? error.message : "unknown_error",
         },
       });
-      message.error(error instanceof Error ? error.message : "申请失败，请稍后重试");
+      message.error(error instanceof Error ? error.message : t('common.operationFailed'));
     } finally {
       setRedeemingInternalTestCode(false);
     }
@@ -748,21 +753,21 @@ const Header: React.FC = () => {
       {/* Navigation Controls */}
       <div className={styles.navControls}>
         <div className={styles.navGroup}>
-          <Tooltip title="后退">
+          <Tooltip title={t('header.back')}>
             <LeftOutlined
               onClick={() => navigate(-1)}
               className={styles.navIcon}
               style={iconStyle}
             />
           </Tooltip>
-          <Tooltip title="前进">
+          <Tooltip title={t('header.forward')}>
             <RightOutlined
               onClick={() => navigate(1)}
               className={styles.navIcon}
               style={iconStyle}
             />
           </Tooltip>
-          <Tooltip title="刷新">
+          <Tooltip title={t('header.refresh')}>
             <ReloadOutlined
               onClick={() => window.location.reload()}
               className={styles.navIcon}
@@ -811,7 +816,7 @@ const Header: React.FC = () => {
         {playMode === TrackType.MUSIC &&
           !isSubsonicSource() &&
           !isEmbySource() && (
-            <Tooltip title="情景电台">
+            <Tooltip title={t('header.scenarioRadio')}>
               <div
                 className={`${styles.actionIcon} ${isRadioMode ? styles.radioActive : ""}`}
                 style={actionIconStyle}
@@ -877,7 +882,7 @@ const Header: React.FC = () => {
         )}
 
         {!isSubsonicSource() && (
-          <Tooltip title="文件夹">
+          <Tooltip title={t('header.folder')}>
             <div
               className={styles.actionIcon}
               style={actionIconStyle}
@@ -896,7 +901,7 @@ const Header: React.FC = () => {
           </Tooltip>
         )}
 
-        <Tooltip title="切换服务端">
+        <Tooltip title={t('header.switchServer')}>
           <div
             className={styles.actionIcon}
             style={actionIconStyle}
@@ -939,12 +944,12 @@ const Header: React.FC = () => {
 
                 // 5. Cleanup and reload
                 Modal.destroyAll();
-                message.success(`已切换至 ${type} 服务端: ${url}`);
+                message.success(t('header.switchedTo', { type, url }));
                 window.location.reload();
               };
 
               modal.confirm({
-                title: "切换服务端",
+                title: t('header.switchServer'),
                 content: <ServerSwitcherModal onSelect={handleSwitchServer} />,
                 footer: null,
                 closable: true,
@@ -958,10 +963,10 @@ const Header: React.FC = () => {
         <Tooltip
           title={
             themeSetting === "dark"
-              ? "切换至亮色模式"
+              ? t('header.switchToLightMode')
               : themeSetting === "light"
-                ? "切换至跟随系统"
-                : "切换至暗色模式"
+                ? t('header.switchToSystem')
+                : t('header.switchToDarkMode')
           }
         >
           <div
@@ -1007,7 +1012,7 @@ const Header: React.FC = () => {
           content={
             <div className={styles.userMenu}>
               <div className={styles.userMenuItem}>
-                嗨！{user?.username || "未知"}
+                {t('header.hi')}{user?.username || t('common.unknown')}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -1019,10 +1024,10 @@ const Header: React.FC = () => {
               >
                 <CrownOutlined />
                 {isPlusVip
-                  ? "参与内测（已开通）"
+                  ? t('header.internalTestEnabled')
                   : redeemingInternalTestCode
-                    ? "参与内测（申请中）"
-                    : "参与内测"}
+                    ? t('header.internalTestApplying')
+                    : t('header.internalTest')}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -1036,9 +1041,7 @@ const Header: React.FC = () => {
                       try {
                         const res = await uploadUserAvatar(user.id, file);
                         if (res.code === 200) {
-                          message.success(
-                            "头像修改成功，可能需要重新登录以应用部分界面！",
-                          );
+                          message.success(t('header.avatarChangeSuccess'));
                           // Updating user state is handled manually or via re-fetch
                           const url =
                             localStorage.getItem("serverAddress") ||
@@ -1057,10 +1060,10 @@ const Header: React.FC = () => {
                           );
                           useAuthStore.setState({ user: updatedUser as any });
                         } else {
-                          message.error(res.message || "修改头像失败");
+                          message.error(res.message || t('header.avatarChangeFailed'));
                         }
                       } catch (err) {
-                        message.error("上传错误");
+                        message.error(t('header.uploadError'));
                       }
                     }
                   };
@@ -1068,7 +1071,7 @@ const Header: React.FC = () => {
                 }}
               >
                 <PlusOutlined />
-                更换头像
+                {t('header.changeAvatar')}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -1085,59 +1088,59 @@ const Header: React.FC = () => {
                   }
                 }}
               >
-                <GithubOutlined />求 Star！！！
+                <GithubOutlined />{t('header.giveStar')}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: "确认增量更新？",
-                    content: "增量更新只增加新数据，不删除旧数据",
-                    okText: "确认更新",
-                    cancelText: "取消",
+                    title: t('header.confirmIncrementalUpdate'),
+                    content: t('header.incrementalUpdateContent'),
+                    okText: t('header.confirmUpdate'),
+                    cancelText: t('common.cancel'),
                     onOk: () => handleUpdateLibrary("incremental"),
                   });
                 }}
               >
                 <RollbackOutlined />
-                增量更新音频文件
+                {t('header.incrementalUpdate')}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: "确认全量更新？",
+                    title: t('header.confirmFullUpdate'),
                     content:
-                      "全量更新将核对所有音频文件。您的播放历史、收藏记录、歌单由于文件指纹机制将得到保留。仅当文件在磁盘上被物理删除时，对应的记录才会被清除。",
-                    okText: "确认更新",
-                    cancelText: "取消",
+                      t('header.fullUpdateContent'),
+                    okText: t('header.confirmUpdate'),
+                    cancelText: t('common.cancel'),
                     onOk: () => handleUpdateLibrary("full"),
                   });
                 }}
               >
                 <RetweetOutlined />
-                全量更新音频文件
+                {t('header.fullUpdate')}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: "确认精简数据？",
+                    title: t('header.confirmCompactData'),
                     content:
-                      "将清除已标记为假死的数据，并核对数据库单曲路径。若文件不存在，将删除对应单曲及相关收藏/收听记录；若专辑无曲目会删除专辑；若艺术家无曲目和作品也会删除。",
-                    okText: "确认精简",
-                    cancelText: "取消",
+                      t('header.compactDataContent'),
+                    okText: t('header.confirmCompact'),
+                    cancelText: t('common.cancel'),
                     onOk: () => handleUpdateLibrary("compact"),
                   });
                 }}
               >
                 <DeleteOutlined />
-                精简数据
+                {t('header.compactData')}
               </div>
 
               <div className={styles.userMenuItem}>
                 <DeleteOutlined />
-                清空缓存文件
+                {t('header.clearCache')}
               </div>
 
               <div
@@ -1145,18 +1148,18 @@ const Header: React.FC = () => {
                 onClick={() => navigate("/product-updates")}
               >
                 <ReadOutlined className={styles.actionIcon} />
-                产品动态
+                {t('header.productUpdates')}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => navigate("/settings")}
               >
                 <SettingOutlined className={styles.actionIcon} />
-                设置
+                {t('common.settings')}
               </div>
               <div className={styles.userMenuItem} onClick={handleLogout}>
                 <LogoutOutlined />
-                退出/切换服务端账号
+                {t('header.logout')}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -1164,7 +1167,7 @@ const Header: React.FC = () => {
                 style={{ color: "#ff4d4f" }}
               >
                 <DeleteOutlined />
-                注销会员账号
+                {t('header.cancelMembership')}
               </div>
             </div>
           }
@@ -1185,7 +1188,7 @@ const Header: React.FC = () => {
       </div>
       {contextHolder}
       <Modal
-        title={importTask?.mode === "compact" ? "精简数据进度" : "数据入库进度"}
+        title={importTask?.mode === "compact" ? t('header.compactDataProgress') : t('header.importProgress')}
         open={isImportModalOpen}
         onCancel={() => {
           if (
@@ -1194,7 +1197,7 @@ const Header: React.FC = () => {
           ) {
             setIsImportModalOpen(false);
           } else {
-            message.info("任务正在后台运行...");
+            message.info(t('header.taskRunningBackground'));
             setIsImportModalOpen(false);
           }
         }}
@@ -1203,34 +1206,34 @@ const Header: React.FC = () => {
       >
         <div style={{ padding: "20px 0" }}>
           <div style={{ marginBottom: 16 }}>
-            状态：
+            {t('header.status')} 
             {importTask?.message &&
             importTask.status !== TaskStatus.FAILED &&
             importTask.status !== TaskStatus.SUCCESS
               ? importTask.message
               : importTask?.status === TaskStatus.INITIALIZING
                 ? importTask?.mode === "compact"
-                  ? "正在初始化精简任务..."
-                  : "正在初始化..."
+                  ? t('header.initializingCompact')
+                  : t('header.initializing')
                 : importTask?.status === TaskStatus.PREPARING
                   ? importTask?.mode === "compact"
-                    ? "正在精简数据库..."
-                    : "正在准备环境..."
+                    ? t('header.compactingDb')
+                    : t('header.preparingEnv')
                   : importTask?.status === TaskStatus.PARSING
-                    ? "正在解析媒体文件..."
+                    ? t('header.parsing')
                     : importTask?.status === TaskStatus.SUCCESS
                       ? importTask?.mode === "compact"
-                        ? "精简完成"
-                        : "入库完成"
+                        ? t('header.compactComplete')
+                        : t('header.importComplete')
                       : importTask?.status === TaskStatus.FAILED
                         ? importTask?.mode === "compact"
-                          ? "精简失败"
-                          : "入库失败"
-                        : "准备中"}
+                          ? t('header.compactFailed')
+                          : t('header.importFailed')
+                        : t('header.preparingOrDefault') }
           </div>
           {importTask?.status === TaskStatus.FAILED && (
             <div style={{ color: token.colorError, marginBottom: 16 }}>
-              错误：{importTask.message}
+              {t('common.error')}: {importTask.message}
             </div>
           )}
           <Progress
@@ -1253,7 +1256,7 @@ const Header: React.FC = () => {
             <Flex vertical gap={4} style={{ marginTop: 12 }}>
               <Flex justify="space-between" align="center">
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  本地文件入库进度
+                  {t('header.localFileProgress')}
                 </Text>
                 <Text style={{ fontSize: 13 }}>
                   {importTask?.localCurrent || 0} /{" "}
@@ -1262,7 +1265,7 @@ const Header: React.FC = () => {
               </Flex>
               <Flex justify="space-between" align="center">
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  WebDAV 文件入库进度
+                  {t('header.webdavFileProgress')}
                 </Text>
                 <Text style={{ fontSize: 13 }}>
                   {importTask?.webdavCurrent || 0} /{" "}
@@ -1279,7 +1282,7 @@ const Header: React.FC = () => {
                 }}
               >
                 <Text strong style={{ fontSize: 12 }}>
-                  总进度
+                  {t('header.totalProgress')}
                 </Text>
                 <Text strong style={{ fontSize: 13 }}>
                   {importTask?.current || 0} / {importTask?.total || 0}
@@ -1302,7 +1305,7 @@ const Header: React.FC = () => {
                 borderRadius: 4,
               }}
             >
-              正在处理: {importTask.currentFileName}
+              {t('header.processing')} {importTask.currentFileName}
             </div>
           )}
         </div>
