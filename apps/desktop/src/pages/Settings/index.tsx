@@ -6,6 +6,7 @@ import {
   Input,
   InputNumber,
   Select,
+  Segmented,
   Slider,
   Space,
   Switch,
@@ -14,8 +15,10 @@ import {
 } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../store/auth";
 import { useSettingsStore } from "../../store/settings";
+import { languages } from "../../i18n";
 import AdminSettings from "./AdminSettings";
 import styles from "./index.module.less";
 
@@ -23,6 +26,7 @@ const { Title, Text } = Typography;
 
 const Settings: React.FC = () => {
   const { token } = theme.useToken();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const {
@@ -176,16 +180,18 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>语言</div>
+          <div className={styles.label}>{t("settings.language", "语言")}</div>
           <div className={styles.control}>
-            <Select
-              value={general.language}
-              onChange={(val) => updateGeneral("language", val)}
-              options={[
-                { label: "简体中文", value: "zh-CN" },
-                { label: "English", value: "en-US" },
-              ]}
-              className={styles.selectSmall}
+            <Segmented
+              value={i18n.language}
+              onChange={async (val) => {
+                await i18n.changeLanguage(val as string);
+                updateGeneral("language", val === "zh-CN" ? "zh-CN" : "en-US");
+              }}
+              options={languages.map((lang) => ({
+                label: <span>{lang.flag} {lang.label}</span>,
+                value: lang.code,
+              }))}
             />
           </div>
         </div>
