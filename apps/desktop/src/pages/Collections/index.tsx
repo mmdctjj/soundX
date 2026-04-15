@@ -4,11 +4,13 @@ import { useAuthStore } from "../../store/auth";
 import { useMessage } from "../../context/MessageContext";
 import React, { useEffect, useRef, useState } from "react";
 import { Col, Row, Typography, theme } from "antd";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import styles from "./index.module.less";
 import { resolveArtworkUri } from "../../services/trackResolver";
 
 const Collections: React.FC = () => {
+  const { t } = useTranslation();
   const { mode } = usePlayMode();
   const { user } = useAuthStore();
   const message = useMessage();
@@ -31,10 +33,10 @@ const Collections: React.FC = () => {
       if (res.code === 200) {
         setCollections(res.data || []);
       } else {
-        message.error(res.message || "加载合集失败");
+        message.error(res.message || t('collections.loadFailed', { defaultValue: '加载合集失败' }));
       }
     } catch (error) {
-      message.error("加载合集失败");
+      message.error(t('collections.loadFailed', { defaultValue: '加载合集失败' }));
     } finally {
       setLoading(false);
     }
@@ -44,7 +46,7 @@ const Collections: React.FC = () => {
     <div className={styles.container} ref={scrollRef}>
       <div className={styles.pageHeader}>
         <Typography.Title level={2} className={styles.title}>
-          合集
+          {t('collections.title')}
         </Typography.Title>
       </div>
 
@@ -69,7 +71,7 @@ const Collections: React.FC = () => {
                   </div>
                   <div className={styles.name}>{item.name}</div>
                   <div className={styles.count} style={{ color: token.colorTextSecondary }}>
-                    {count} 张专辑
+                    {count} {t('collections.albumCount', { count }).replace(/\d+/, '')}
                   </div>
                 </div>
               </Col>
@@ -77,7 +79,7 @@ const Collections: React.FC = () => {
           })}
           {!loading && collections.length === 0 && (
             <div className={styles.noMore} style={{ color: token.colorTextSecondary }}>
-              暂无合集
+              {t('collections.noData')}
             </div>
           )}
         </Row>

@@ -7,10 +7,16 @@ interface SettingsState {
   cacheEnabled: boolean;
   autoOrientation: boolean;
   autoTheme: boolean;
+  carModeEnabled: boolean;
+  carLayoutMode: boolean;
+  voiceAssistantEnabled: boolean;
+  recommendationLikeRatio: number;
+  screenBottomInset: number;
+  experienceProgramEnabled: boolean;
 }
 
 interface SettingsContextType extends SettingsState {
-  updateSetting: (key: keyof SettingsState, value: boolean) => Promise<void>;
+  updateSetting: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -23,6 +29,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     cacheEnabled: false,
     autoOrientation: true,
     autoTheme: true,
+    carModeEnabled: false,
+    carLayoutMode: false,
+    voiceAssistantEnabled: true,
+    recommendationLikeRatio: 50,
+    screenBottomInset: 0,
+    experienceProgramEnabled: true,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,7 +55,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const updateSetting = async (key: keyof SettingsState, value: boolean) => {
+  const updateSetting = async <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     try {

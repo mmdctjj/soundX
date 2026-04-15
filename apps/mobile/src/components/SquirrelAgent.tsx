@@ -21,6 +21,7 @@ import { usePlayer } from "../context/PlayerContext";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { trackEvent } from "../services/tracking";
+import { useTranslation } from "react-i18next";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SQUIRREL_SIZE = 70;
@@ -28,6 +29,7 @@ const SQUIRREL_SIZE = 70;
 type AgentState = "idle" | "listening" | "processing" | "result";
 
 export const SquirrelAgent: React.FC = () => {
+  const { t } = useTranslation();
   const { colors, theme } = useTheme();
   const { carLayoutMode } = useSettings();
   const { user, device } = useAuth();
@@ -282,7 +284,7 @@ export const SquirrelAgent: React.FC = () => {
               }
             }, 100);
           } else {
-            text = "我没有听懂，请再试一次";
+            text = t('squirrel.notUnderstood');
           }
         }
         setResultText(text);

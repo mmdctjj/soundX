@@ -1,12 +1,14 @@
 import { Button, Image, Input, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import { setBaseURL } from '../../utils/request'
 import { SOURCEMAP, SOURCETIPSMAP, SourceConfig, getSourceLogo, selectBestServer } from '../../utils/sourceUtils'
 import './index.scss'
 
 export default function LoginForm() {
+  const { t } = useTranslation();
   const { login, register, token } = useAuth()
   const params = Taro.getCurrentInstance().router?.params
   const sourceType = params?.type || 'AudioDock'
@@ -114,7 +116,7 @@ export default function LoginForm() {
             id: Date.now().toString(),
             internal: parsed.internal || '',
             external: parsed.external || '',
-            name: '默认服务器',
+            name: t('login.defaultServer'),
           }]
         }
       }
@@ -143,17 +145,17 @@ export default function LoginForm() {
 
   const handleSubmit = async () => {
     if (!externalAddress && !internalAddress) {
-      Taro.showToast({ title: '请至少输入一个地址', icon: 'none' })
+      Taro.showToast({ title: t('login.enterAddress'), icon: 'none' })
       return
     }
 
     if (!username || !password) {
-      Taro.showToast({ title: '请填写用户名和密码', icon: 'none' })
+      Taro.showToast({ title: t('login.fillUsernameAndPassword'), icon: 'none' })
       return
     }
 
     if (!isLogin && password !== confirmPassword) {
-      Taro.showToast({ title: '两次密码不一致', icon: 'none' })
+      Taro.showToast({ title: t('login.passwordMismatch'), icon: 'none' })
       return
     }
 
@@ -162,7 +164,7 @@ export default function LoginForm() {
 
       const bestAddress = await selectBestServer(internalAddress, externalAddress, sourceType)
       if (!bestAddress) {
-        Taro.showToast({ title: '无法连接到任一地址', icon: 'none' })
+        Taro.showToast({ title: t('login.cannotConnectAnyAddress'), icon: 'none' })
         return
       }
 
@@ -182,22 +184,22 @@ export default function LoginForm() {
         await login({ username, password })
       } else {
         if (mappedType === 'subsonic') {
-          throw new Error('Subsonic 数据源不支持注册')
+          throw new Error(t('login.subsonicNoRegisterSupport') || 'Subsonic data source does not support registration')
         }
         await register({ username, password })
       }
 
       if (isAddingSource) {
-        Taro.showToast({ title: '数据源添加成功', icon: 'success' })
+        Taro.showToast({ title: t('login.dataSourceAddedSuccess'), icon: 'success' })
         setTimeout(() => {
           Taro.navigateBack()
         }, 800)
         return
       }
 
-      Taro.reLaunch({ url: '/pages/index/index' })
+      Taro.switchTab({ url: '/pages/personal/index' })
     } catch (error: any) {
-      Taro.showToast({ title: error.message || '认证失败', icon: 'none' })
+      Taro.showToast({ title: error.message || t('login.authFailed'), icon: 'none' })
     } finally {
       setLoading(false)
     }
@@ -210,7 +212,7 @@ export default function LoginForm() {
       <ScrollView scrollY className='scroll'>
         <View className='header'>
           <View className='switch-type' onClick={() => Taro.redirectTo({ url: '/pages/login/index' })}>
-            <Text className='switch-type-text'>切换类型</Text>
+            <Text className='switch-type-text'>{t('loginForm.switchType')}</Text>
             <Text className='switch-type-icon'>▦</Text>
           </View>
         </View>
@@ -218,13 +220,13 @@ export default function LoginForm() {
         <View className='content'>
           <View className='logo-wrap'>
             <Image src={getSourceLogo(sourceType)} className='logo' mode='aspectFill' />
-            <Text className='title'>{sourceType} {isLogin ? '登录' : '注册'}</Text>
+            <Text className='title'>{sourceType} {isLogin ? t('loginForm.login') : t('loginForm.register')}</Text>
           </View>
 
           <Text className='tips'>{sourceTip}</Text>
 
           <View className='form'>
-            <Text className='label'>外网地址 (External)</Text>
+            <Text className='label'>{t('loginForm.externalAddress')}</Text>
             <Input
               className='input'
               placeholder='http://music.example.com'
@@ -232,7 +234,7 @@ export default function LoginForm() {
               onInput={(e) => setExternalAddress(e.detail.value)}
             />
 
-            <Text className='label'>内网地址 (Internal)</Text>
+            <Text className='label'>{t('loginForm.internalAddress')}</Text>
             <Input
               className='input'
               placeholder='http://192.168.1.10:3000'
@@ -240,7 +242,7 @@ export default function LoginForm() {
               onInput={(e) => setInternalAddress(e.detail.value)}
             />
 
-            <Text className='label'>用户名</Text>
+            <Text className='label'>{t('login.username')}</Text>
             <Input
               className='input'
               placeholder='用户名'
@@ -248,7 +250,7 @@ export default function LoginForm() {
               onInput={(e) => setUsername(e.detail.value)}
             />
 
-            <Text className='label'>密码</Text>
+            <Text className='label'>{t('login.password')}</Text>
             <Input
               className='input'
               placeholder='密码'
@@ -259,7 +261,7 @@ export default function LoginForm() {
 
             {!isLogin && (
               <>
-                <Text className='label'>确认密码</Text>
+                <Text className='label'>{t('loginForm.confirmPasswordLabel')}</Text>
                 <Input
                   className='input'
                   placeholder='确认密码'
@@ -271,7 +273,7 @@ export default function LoginForm() {
             )}
 
             <Button className='submit-btn' onClick={handleSubmit} disabled={loading}>
-              {loading ? '加载中...' : (isLogin ? '登录' : '注册')}
+              {loading ? t('common.loading') : (isLogin ? t('loginForm.login') : t('loginForm.register'))}
             </Button>
 
             <View className='switch-mode'>
@@ -284,8 +286,8 @@ export default function LoginForm() {
                 }}
               >
                 {canSwitchMode
-                  ? (isLogin ? '没有账号？注册' : '已有账号？登录')
-                  : 'AudioDock 听见你的声音'}
+                  ? (isLogin ? t('loginForm.noAccount') : t('loginForm.hasAccount'))
+                  : t('loginForm.appSlogan')}
               </Text>
             </View>
           </View>

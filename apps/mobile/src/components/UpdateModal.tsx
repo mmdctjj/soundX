@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
+import { useTranslation } from 'react-i18next';
 import { UpdateInfo } from '../../hooks/useCheckUpdate';
 import { useTheme } from '../context/ThemeContext';
 
@@ -25,10 +26,11 @@ export const UpdateModal = ({
   onCancel,
   onBackground 
 }: UpdateModalProps) => {
+  const { t } = useTranslation();
 
   const isDownloading = isUpdating || progress > 0;
 
-    const { colors } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <Modal transparent={true} animationType="fade" visible={visible} onRequestClose={isDownloading ? onBackground : onCancel}>
@@ -37,7 +39,7 @@ export const UpdateModal = ({
           {isDownloading ? (
             <>
               <Text style={[styles.title, { color: colors.text }]}>
-                {progress > 0 ? "正在更新" : "准备下载中"}
+                {progress > 0 ? t('update.updating') : t('update.preparing')}
               </Text>
               
               {/* 进度条区域 */}
@@ -47,7 +49,7 @@ export const UpdateModal = ({
                 </View>
               </View>
               <Text style={styles.percentText}>
-                {progress > 0 ? `${(progress * 100).toFixed(0)}%` : "正在请求下载链接..."}
+                {progress > 0 ? `${(progress * 100).toFixed(0)}%` : t('update.requestingLink')}
               </Text>
               
               {(isUpdating || progress < 1) && (
@@ -56,12 +58,12 @@ export const UpdateModal = ({
 
               {/* 底部按钮区域 */}
               <TouchableOpacity style={[styles.backgroundBtn, { backgroundColor: colors.background }]} onPress={onBackground}>
-                <Text style={[styles.backgroundBtnText, { color: colors.text }]}>隐藏弹窗（后台继续下载）</Text>
+                <Text style={[styles.backgroundBtnText, { color: colors.text }]}>{t('update.hideDialogBackgroundDownload')}</Text>
               </TouchableOpacity>
             </>
           ) : updateInfo ? (
             <>
-               <Text style={[styles.title, { color: colors.text }]}>发现新版本 {updateInfo.version}</Text>
+               <Text style={[styles.title, { color: colors.text }]}>{t('update.foundNewVersion')} {updateInfo.version}</Text>
                 <ScrollView style={styles.scrollView}>
                   <Markdown
                     style={{
@@ -78,7 +80,7 @@ export const UpdateModal = ({
                
                <View style={styles.buttonContainer}>
                  <TouchableOpacity style={[styles.ignoreBtn, { backgroundColor: colors.background }]} onPress={onIgnore}>
-                   <Text style={[styles.ignoreBtnText, { color: colors.text }]}>忽略此版本</Text>
+                   <Text style={[styles.ignoreBtnText, { color: colors.text }]}>{t('update.ignoreThisVersion')}</Text>
                  </TouchableOpacity>
                  <TouchableOpacity
                    style={[
@@ -89,7 +91,7 @@ export const UpdateModal = ({
                    disabled={isUpdating}
                  >
                    <Text style={[styles.updateBtnText, { color: colors.background }]}>
-                     {isUpdating ? "准备中..." : "立即更新"}
+                     {isUpdating ? t('update.preparing2') : t('update.updateNow')}
                    </Text>
                  </TouchableOpacity>
                </View>

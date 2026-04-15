@@ -8,11 +8,13 @@ import {
 } from "@ant-design/icons";
 import { Button, Space } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "../../store/settings";
 import styles from "./index.module.less";
 
 const LyricWindow: React.FC = () => {
-  const [currentLyric, setCurrentLyric] = useState("等待播放...");
+  const { t } = useTranslation();
+  const [currentLyric, setCurrentLyric] = useState(t('lyricWindow.waitingForPlayback'));
   const [isPlaying, setIsPlaying] = useState(false);
   
   const settings = useSettingsStore((state) => state.desktopLyric);
@@ -28,7 +30,7 @@ const LyricWindow: React.FC = () => {
     };
 
     const handleLyricUpdate = (_event: any, payload: { currentLyric: string }) => {
-      setCurrentLyric(payload.currentLyric || "AudioDock 听见你的声音");
+      setCurrentLyric(payload.currentLyric || t('lyricWindow.defaultLyric'));
     };
 
     const handlePlayerUpdate = (
@@ -80,7 +82,7 @@ const LyricWindow: React.FC = () => {
     >
       <div className={styles.header}>
          <div className={styles.trackInfo}>
-            {trackInfo ? `${trackInfo.name} - ${trackInfo.artist}` : "AudioDock"}
+            {trackInfo ? `${trackInfo.name} - ${trackInfo.artist}` : t('lyricWindow.appName')}
          </div>
       </div>
       
@@ -104,7 +106,7 @@ const LyricWindow: React.FC = () => {
             icon={<CloseOutlined />} 
             onClick={() => useSettingsStore.getState().updateDesktopLyric('enable', false)}
             className={styles.controlBtn}
-            title="关闭"
+            title={t('lyricWindow.close')}
           />
           <Button 
             type="text" 
@@ -130,7 +132,7 @@ const LyricWindow: React.FC = () => {
             icon={<ExportOutlined />} 
             onClick={() => window.ipcRenderer?.send("app:show-main")} 
             className={styles.controlBtn}
-            title="打开播放器"
+            title={t('lyricWindow.openPlayer')}
           />
         </Space>
       </div>

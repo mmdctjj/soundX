@@ -14,13 +14,18 @@
 }
 
 .logo-container {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   margin-bottom: 80rpx;
 }
 
-.logo-emoji {
-  font-size: 160rpx;
+.logo-image {
+  width: 160rpx;
+  height: 160rpx;
   margin-bottom: 30rpx;
+  border-radius: 40rpx;
 }
 
 .title {
@@ -83,7 +88,7 @@
 
 .code-button {
   height: 96rpx;
-  background-color: #007aff;
+  background-color: #000000;
   border-radius: 24rpx;
   display: flex;
   align-items: center;
@@ -104,7 +109,7 @@
 
 .button {
   height: 100rpx;
-  background-color: #007aff;
+  background-color: #000000;
   border-radius: 50rpx;
   display: flex;
   align-items: center;

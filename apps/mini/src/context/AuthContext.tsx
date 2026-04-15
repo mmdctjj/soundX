@@ -1,6 +1,7 @@
-import { login as loginApi, register as registerApi } from '@soundx/services'
+import { login as loginApi, register as registerApi, setPlusToken, setServiceConfig, SOURCEMAP, useEmbyAdapter, useNativeAdapter, useSubsonicAdapter } from '@soundx/services'
 import Taro from '@tarojs/taro'
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { User } from '../models'
 import { setBaseURL } from '../utils/request'
 
@@ -31,6 +32,7 @@ export const useAuth = () => useContext(AuthContext)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [device, setDevice] = useState<any | null>(null)
@@ -43,13 +45,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const loadAuthData = async () => {
     try {
       const serverAddress = Taro.getStorageSync('serverAddress')
+      const sourceType = Taro.getStorageSync('currentSourceType') || 'AudioDock'
       if (serverAddress) {
         setBaseURL(serverAddress)
+      }
+
+      // 加载凭证并切换适配器
+      const mappedType = SOURCEMAP[sourceType as keyof typeof SOURCEMAP] || 'audiodock'
+      const credsKey = `creds_${sourceType}_${serverAddress || ''}`
+      let username: string | undefined
+      let password: string | undefined
+      try {
+        const savedCreds = Taro.getStorageSync(credsKey)
+        if (savedCreds) {
+          const parsed = JSON.parse(savedCreds)
+          username = parsed.username
+          password = parsed.password
+        }
+      } catch (e) {
+        // ignore
+      }
+      setServiceConfig({ username, password, baseUrl: serverAddress || undefined, clientName: 'SoundX Mini' })
+      if (mappedType === 'subsonic') {
+        useSubsonicAdapter()
+      } else if (mappedType === 'emby') {
+        useEmbyAdapter()
+      } else {
+        useNativeAdapter()
       }
 
       const savedToken = Taro.getStorageSync('token')
       const savedUser = Taro.getStorageSync('user')
       const savedDevice = Taro.getStorageSync('device')
+      const savedPlusToken = Taro.getStorageSync('plus_token')
 
       if (savedToken) {
         setToken(savedToken)
@@ -59,6 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       if (savedDevice) {
         setDevice(JSON.parse(savedDevice))
+      }
+      if (savedPlusToken) {
+        setPlusToken(savedPlusToken)
       }
     } catch (error) {
       console.error('Failed to load auth data:', error)
@@ -130,22 +161,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // 保存服务器地址
       Taro.setStorageSync('serverAddress', address)
       Taro.setStorageSync('currentSourceType', sourceType)
-      
+
       // 更新请求基础URL
       setBaseURL(address)
-      
+
+      // 加载保存的凭证
+      const credsKey = `creds_${sourceType}_${address}`
+      let username: string | undefined
+      let password: string | undefined
+      try {
+        const savedCreds = Taro.getStorageSync(credsKey)
+        if (savedCreds) {
+          const parsed = JSON.parse(savedCreds)
+          username = parsed.username
+          password = parsed.password
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      // 配置服务（凭证 + 适配器）
+      const mappedType = SOURCEMAP[sourceType as keyof typeof SOURCEMAP] || 'audiodock'
+      setServiceConfig({ username, password, baseUrl: address, clientName: 'SoundX Mini' })
+      if (mappedType === 'subsonic') {
+        useSubsonicAdapter()
+      } else if (mappedType === 'emby') {
+        useEmbyAdapter()
+      } else {
+        useNativeAdapter()
+      }
+
       // 清除当前用户信息（需要重新登录）
       setToken(null)
       setUser(null)
       Taro.removeStorageSync('token')
       Taro.removeStorageSync('user')
-      
+
       Taro.showToast({
-        title: '服务器切换成功，请重新登录',
+        title: t('auth.switchServerSuccess'),
         icon: 'success',
         duration: 2000
       })
-      
+
       // 跳转到登录页面
       setTimeout(() => {
         Taro.reLaunch({ url: '/pages/login/index' })

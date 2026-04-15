@@ -4,6 +4,7 @@ import { socketService } from "../services/socket";
 import { useAuth } from "./AuthContext";
 import { useNotification } from "./NotificationContext";
 import { useSettings } from "./SettingsContext";
+import { useTranslation } from "react-i18next";
 
 interface Participant {
   userId: number;
@@ -42,6 +43,7 @@ const SyncContext = createContext<SyncContextType | undefined>(undefined);
 export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { t } = useTranslation();
   const { user, token } = useAuth();
   const { showNotification, hideNotification } = useNotification();
   const { acceptSync } = useSettings();
@@ -66,8 +68,8 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({
           showNotification({
             type: "sync",
             track: payload.currentTrack,
-            title: "同步播放邀请",
-            description: `来自 ${payload.fromUsername} (${payload.fromDeviceName})`,
+            title: t('sync.syncInvite'),
+            description: t('sync.fromUser', { username: payload.fromUsername, deviceName: payload.fromDeviceName }),
             onAccept: () => acceptInvite(payload),
             onReject: () => rejectInvite(payload),
           });

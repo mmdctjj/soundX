@@ -100,15 +100,20 @@ export async function selectBestServer(
   return null;
 }
 
+// 引入图片资源，供 Taro 编译工具静态分析
+import embyLogo from '../assets/images/emby.png';
+import subsonicLogo from '../assets/images/subsonic.png';
+import audiodockLogo from '../assets/images/logo.png';
+
 // 获取数据源Logo
 export function getSourceLogo(sourceType: string): string {
   switch (sourceType) {
     case "Emby":
-      return "/assets/images/emby.png";
+      return embyLogo;
     case "Subsonic":
-      return "/assets/images/subsonic.png";
+      return subsonicLogo;
     default:
-      return "/assets/images/logo.png";
+      return audiodockLogo;
   }
 }
 import Taro from "@tarojs/taro";

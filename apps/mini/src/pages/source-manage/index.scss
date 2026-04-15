@@ -121,7 +121,7 @@
         font-weight: bold;
 
         &.primary {
-          background-color: #07c160;
+          background-color: #000000;
           color: #fff;
         }
 
@@ -148,20 +148,20 @@
     align-items: center;
     justify-content: center;
     height: 100rpx;
-    border: 2rpx dashed #07c160;
+    border: 2rpx dashed #000000;
     border-radius: 16rpx;
     background-color: #fff;
     margin-top: 20rpx;
 
     .add-icon {
       margin-right: 10rpx;
-      color: #07c160;
+      color: #000000;
     }
 
     .add-text {
       font-size: 32rpx;
       font-weight: bold;
-      color: #07c160;
+      color: #000000;
     }
   }
 

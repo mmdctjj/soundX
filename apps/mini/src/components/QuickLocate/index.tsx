@@ -25,7 +25,7 @@ export default function QuickLocate({
   return (
     <View className='quick-locate'>
       <View className='quick-locate-btn' onClick={onTop}>
-        <Text className='quick-locate-icon'>↑</Text>
+        <Text className='quick-locate-icon icon icon-arrow-up' />
       </View>
 
       {showLocate && onLocate && (
@@ -35,7 +35,7 @@ export default function QuickLocate({
             if (!locateDisabled) onLocate();
           }}
         >
-          <Text className='quick-locate-icon'>◎</Text>
+          <Text className='quick-locate-icon icon icon-locate' />
         </View>
       )}
 
@@ -44,12 +44,14 @@ export default function QuickLocate({
           className={`quick-locate-btn heartbeat-btn ${heartbeatActive ? 'active' : ''}`}
           onClick={onHeartbeatToggle}
         >
-          <Text className='quick-locate-icon'>♥</Text>
+          <Text
+            className={`quick-locate-icon icon ${heartbeatActive ? 'icon-heart-filled' : 'icon-heart'}`}
+          />
         </View>
       )}
 
       <View className='quick-locate-btn' onClick={onBottom}>
-        <Text className='quick-locate-icon'>↓</Text>
+        <Text className='quick-locate-icon icon icon-arrow-down' />
       </View>
     </View>
   );

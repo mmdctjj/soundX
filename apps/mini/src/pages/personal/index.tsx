@@ -1,8 +1,24 @@
-import { createImportTask, createPlaylist, getAlbumHistory, getFavoriteAlbums, getFavoriteTracks, getImportTask, getPlaylists, getRunningImportTask, getTrackHistory, ImportTask, TaskStatus } from '@soundx/services';
+import {
+  createCompactTask,
+  createImportTask,
+  createPlaylist,
+  getAlbumHistory,
+  getFavoriteAlbums,
+  getFavoriteTracks,
+  getImportTask,
+  getPlaylists,
+  getRunningImportTask,
+  getTrackHistory,
+  ImportTask,
+  plusGetMe,
+  TaskStatus,
+} from '@soundx/services';
 import { Image, Input, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
+import SkeletonBlock from '../../components/SkeletonBlock';
 import StackedCover from '../../components/StackedCover';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
@@ -14,14 +30,16 @@ type TabType = 'playlists' | 'favorites' | 'history';
 type SubTabType = 'track' | 'album';
 
 export default function Personal() {
-  const { user, logout } = useAuth();
+  const { t } = useTranslation();
+  const { user } = useAuth();
   const { mode } = usePlayMode();
   const { playTrackList } = usePlayer();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>('playlists');
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>('track');
   const [loading, setLoading] = useState(false);
-  
+  const [sourceType, setSourceType] = useState('AudioDock');
+
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
@@ -31,12 +49,50 @@ export default function Personal() {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [creating, setCreating] = useState(false);
 
-  // Import task state
   const [showImportModal, setShowImportModal] = useState(false);
   const [importTask, setImportTask] = useState<ImportTask | null>(null);
   const pollTimerRef = useRef<any>(null);
 
-  const loadData = async () => {
+  const [isVip, setIsVip] = useState(false);
+
+  const refreshVipStatus = async () => {
+    const plusToken = Taro.getStorageSync('plus_token');
+    const plusUserId = Taro.getStorageSync('plus_user_id');
+
+    if (!plusToken || !plusUserId) {
+      setIsVip(false);
+      Taro.setStorageSync('plus_vip_status', 'false');
+      return;
+    }
+
+    let id: any = plusUserId;
+    try {
+      id = JSON.parse(plusUserId);
+    } catch {}
+
+    try {
+      const res = await plusGetMe(id);
+      const vipTier = res?.data?.data?.vipTier;
+      const isVipUser = vipTier && vipTier !== 'NONE';
+      setIsVip(!!isVipUser);
+      
+      Taro.setStorageSync('plus_vip_status', isVipUser ? 'true' : 'false');
+      Taro.setStorageSync('plus_vip_data', JSON.stringify(res?.data?.data || {}));
+      Taro.setStorageSync('plus_vip_updated_at', Date.now().toString());
+    } catch (err) {
+      console.warn('Failed to refresh vip status in personal page', err);
+      // Fallback to local cache if network fails
+      const isVipStr = Taro.getStorageSync('plus_vip_status');
+      setIsVip(isVipStr === 'true');
+    }
+  };
+
+  const refreshSourceType = () => {
+    setSourceType(Taro.getStorageSync('currentSourceType') || 'AudioDock');
+    refreshVipStatus();
+  };
+
+  const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -65,19 +121,30 @@ export default function Personal() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, activeSubTab, mode, user]);
 
   useDidShow(() => {
+    refreshSourceType();
     if (user) {
       loadData();
     }
   });
 
   useEffect(() => {
+    refreshSourceType();
+  }, []);
+
+  useEffect(() => {
+    if (sourceType === 'Emby' && activeTab === 'history') {
+      setActiveTab('playlists');
+    }
+  }, [sourceType, activeTab]);
+
+  useEffect(() => {
     if (user) {
       loadData();
     }
-  }, [activeTab, activeSubTab, mode]);
+  }, [activeTab, activeSubTab, mode, user, loadData]);
 
   const pollTaskStatus = async (taskId: string) => {
     try {
@@ -99,7 +166,7 @@ export default function Personal() {
 
   useEffect(() => {
     if (user) {
-      getRunningImportTask().then(res => {
+      getRunningImportTask().then((res) => {
         if (res.code === 200 && res.data) {
           const taskId = res.data.id;
           setImportTask(res.data);
@@ -124,62 +191,138 @@ export default function Personal() {
         setNewPlaylistName('');
         await loadData();
         Taro.navigateTo({ url: `/pages/playlist/index?id=${res.data.id}` });
+      } else {
+        Taro.showToast({ title: res.message || t('personal.createFailed'), icon: 'none' });
       }
     } catch (error) {
-      Taro.showToast({ title: '创建失败', icon: 'none' });
+      Taro.showToast({ title: t('personal.createFailed'), icon: 'none' });
     } finally {
       setCreating(false);
     }
   };
 
-  const handleUpdateLibrary = async (updateMode: 'incremental' | 'full') => {
-    setShowMenu(false);
-    const title = updateMode === 'full' ? '确认全量更新？' : '确认增量更新？';
-    const content = updateMode === 'full' 
-      ? '全量更新将清空所有数据！此操作不可恢复。' 
-      : '增量更新只增加新数据，不删除旧数据';
-
-    const res = await Taro.showModal({ title, content });
-    if (res.confirm) {
-      try {
-        const taskRes = await createImportTask({ mode: updateMode });
-        if (taskRes.code === 200 && taskRes.data) {
-          const taskId = taskRes.data.id;
-          setShowImportModal(true);
-          setImportTask({ id: taskId, status: TaskStatus.INITIALIZING });
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          pollTimerRef.current = setInterval(() => pollTaskStatus(taskId), 1500);
-        }
-      } catch (error) {
-        Taro.showToast({ title: '任务创建失败', icon: 'none' });
+  const startImportTask = async (taskFactory: () => Promise<any>, initialMode: 'incremental' | 'full' | 'compact') => {
+    try {
+      const taskRes = await taskFactory();
+      if (taskRes.code === 200 && taskRes.data) {
+        const taskId = taskRes.data.id;
+        setShowImportModal(true);
+        setImportTask({
+          id: taskId,
+          status: TaskStatus.INITIALIZING,
+          mode: initialMode,
+          message: initialMode === 'compact' ? t('personal.initializingCompact') : t('personal.initializing'),
+        } as ImportTask);
+        if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+        pollTimerRef.current = setInterval(() => pollTaskStatus(taskId), 1500);
+      } else {
+        Taro.showToast({ title: taskRes.message || t('common.taskCreateFailed'), icon: 'none' });
       }
+    } catch (error) {
+      Taro.showToast({ title: t('common.taskCreateFailed'), icon: 'none' });
     }
   };
 
+  const handleOpenTtsTasks = async () => {
+    setShowMenu(false);
+
+    if (isVip) {
+      Taro.navigateTo({ url: '/pages/tts/tasks/index' });
+      return;
+    }
+
+    const modalRes = await Taro.showModal({
+      title: t('common.memberFeature'),
+      content: t('common.ttsVipRequired'),
+      confirmText: t('common.goActivate'),
+      cancelText: t('common.cancel'),
+    });
+
+    if (modalRes.confirm) {
+      Taro.navigateTo({ url: '/pages/member/benefits/index' });
+    }
+  };
+
+  const handleUpdateLibrary = async (updateMode: 'incremental' | 'full' | 'compact') => {
+    setShowMenu(false);
+    const contentMap = {
+      incremental: t('personal.incrementalUpdateDesc'),
+      full: t('personal.fullUpdateDesc'),
+      compact: t('personal.compactDataDesc'),
+    };
+    const titleMap = {
+      incremental: t('personal.confirmIncremental'),
+      full: t('personal.confirmFull'),
+      compact: t('personal.confirmCompact'),
+    };
+
+    const modalRes = await Taro.showModal({
+      title: titleMap[updateMode],
+      content: contentMap[updateMode],
+    });
+
+    if (!modalRes.confirm) return;
+
+    await startImportTask(
+      () => (updateMode === 'compact' ? createCompactTask() : createImportTask({ mode: updateMode })),
+      updateMode,
+    );
+  };
+
   const getImageUrl = (url: string | null) => {
-    if (!url) return `https://picsum.photos/100/100`;
+    if (!url) return 'https://picsum.photos/100/100';
     if (url.startsWith('http')) return url;
     return `${getBaseURL()}${url}`;
   };
 
+  const getListData = () => {
+    if (activeTab === 'playlists') return playlists;
+    if (activeTab === 'favorites') return favorites;
+    if (activeTab === 'history') return history;
+    return [];
+  };
+
+  const getEmptyText = () => {
+    return loading ? t('common.loading') : t('common.noData');
+  };
+
   const renderList = () => {
-    const data = activeTab === 'playlists' ? playlists : (activeTab === 'favorites' ? favorites : history);
-    
-    if (loading && data.length === 0) {
-      return <View className='center-msg'><Text>加载中...</Text></View>;
+    if (loading) {
+      return Array.from({ length: 6 }).map((_, index) => (
+        <View key={`skeleton-${index}`} className='item-row'>
+          <View className='cover-wrapper'>
+            <SkeletonBlock width={100} height={100} borderRadius={12} />
+          </View>
+          <View className='item-info'>
+            <SkeletonBlock
+              className='skeleton-mb'
+              width={index % 3 === 0 ? '58%' : index % 3 === 1 ? '72%' : '66%'}
+              height={30}
+              borderRadius={8}
+            />
+            <SkeletonBlock
+              width={index % 2 === 0 ? '42%' : '55%'}
+              height={24}
+              borderRadius={6}
+            />
+          </View>
+        </View>
+      ));
     }
 
+    const data = getListData();
+
     if (data.length === 0) {
-      return <View className='center-msg'><Text>暂无数据</Text></View>;
+      return <View className='center-msg'><Text>{getEmptyText()}</Text></View>;
     }
 
     return data.map((item) => {
       const isPlaylist = activeTab === 'playlists';
       const isAlbum = activeTab !== 'playlists' && (mode === 'AUDIOBOOK' || activeSubTab === 'album');
-      
+
       return (
-        <View 
-          key={item.id} 
+        <View
+          key={`${item.id}-${activeTab}-${activeSubTab}`}
           className='item-row'
           onClick={() => {
             if (isPlaylist) {
@@ -188,7 +331,7 @@ export default function Personal() {
               Taro.navigateTo({ url: `/pages/album/index?id=${item.id}` });
             } else {
               const list = activeTab === 'favorites' ? favorites : history;
-              const index = list.findIndex(t => t.id === item.id);
+              const index = list.findIndex((track) => track.id === item.id);
               playTrackList(list, index);
             }
           }}
@@ -208,9 +351,11 @@ export default function Personal() {
           <View className='item-info'>
             <Text className='item-name' numberOfLines={1}>{item.name}</Text>
             <Text className='item-sub' numberOfLines={1}>
-              {isPlaylist 
-                ? `${item._count?.tracks || item.tracks?.length || 0} 首` 
-                : (isAlbum ? (item.artist || '') : item.artist)}
+              {isPlaylist
+                ? `${item._count?.tracks || item.tracks?.length || 0} 首`
+                : isAlbum
+                  ? (item.artist || '')
+                  : item.artist}
             </Text>
           </View>
         </View>
@@ -218,55 +363,114 @@ export default function Personal() {
     });
   };
 
+  const importStatusText = () => {
+    if (importTask?.message && importTask.status !== TaskStatus.SUCCESS && importTask.status !== TaskStatus.FAILED) {
+      return importTask.message;
+    }
+    if (importTask?.status === TaskStatus.INITIALIZING) {
+      return importTask?.mode === 'compact' ? t('personal.initializingCompact') : t('personal.initializing');
+    }
+    if (importTask?.status === TaskStatus.PREPARING) return t('personal.preparingEnv');
+    if (importTask?.status === TaskStatus.PARSING) return t('personal.parsingMedia');
+    if (importTask?.status === TaskStatus.SUCCESS) {
+      return importTask?.mode === 'compact' ? t('personal.compactComplete') : t('personal.importComplete');
+    }
+    if (importTask?.status === TaskStatus.FAILED) {
+      return importTask?.mode === 'compact' ? t('personal.compactFailed') : t('personal.importFailed');
+    }
+    return t('common.loading');
+  };
+
   return (
     <View className='personal-container'>
       <View className='header-actions'>
-        <View className='action-btn' onClick={() => setShowMenu(!showMenu)}>
-          <Text className='icon icon-add' />
+        <View className='left-actions'>
+          <View className='action-btn' onClick={() => setShowMenu(!showMenu)}>
+            <Text className='icon icon-add' />
+          </View>
+          <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/scan/index' })}>
+            <Text className='header-icon icon icon-scan' />
+          </View>
         </View>
         {showMenu && (
           <View className='menu-dropdown'>
             <View className='menu-item' onClick={() => { setShowMenu(false); setShowCreateModal(true); }}>
-              <Text>新建播放列表</Text>
+              <Text>{t('personal.createPlaylist')}</Text>
             </View>
             <View className='menu-item' onClick={() => handleUpdateLibrary('incremental')}>
-              <Text>增量音频入库</Text>
+              <Text>{t('personal.incrementalUpdate')}</Text>
             </View>
             <View className='menu-item' onClick={() => handleUpdateLibrary('full')}>
-              <Text>全量重置库</Text>
+              <Text>{t('personal.fullUpdate')}</Text>
+            </View>
+            {sourceType !== 'Emby' && mode !== 'MUSIC' && (
+              <View className='menu-item' onClick={handleOpenTtsTasks}>
+                <Text>{t('personal.ttsConversion')}</Text>
+              </View>
+            )}
+            <View className='menu-item' onClick={() => handleUpdateLibrary('compact')}>
+              <Text>{t('personal.compactData')}</Text>
             </View>
           </View>
         )}
-        <View className='action-btn' onClick={() => {/* Future: Settings */}}>
-          <Text className='icon icon-settings' />
+        <View className='right-actions'>
+          <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/source-manage/index' })}>
+            <Text className='header-icon icon icon-server' />
+          </View>
+          <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/settings/index' })}>
+            <Text className='icon icon-settings' />
+          </View>
         </View>
       </View>
 
       <View className='user-profile'>
-        <Image src='https://picsum.photos/200/200' className='avatar' />
-        <Text className='username'>{user?.username || '未登录'}</Text>
-        {!user && <View className='login-btn' onClick={() => Taro.navigateTo({ url: '/pages/login/index' })}>去登录</View>}
+        <Image src={getImageUrl((user as any)?.avatar || null)} className='avatar' mode='aspectFill' />
+        <View className='username-row'>
+          <Text className='username'>{user?.username || t('common.notLoggedIn')}</Text>
+          {user && (
+            <View
+              className={`vip-crown ${isVip ? 'active' : ''}`}
+              onClick={() => {
+                const plusToken = Taro.getStorageSync('plus_token');
+                if (plusToken) {
+                  if (isVip) {
+                    Taro.navigateTo({ url: '/pages/member/detail/index' });
+                  } else {
+                    Taro.navigateTo({ url: '/pages/member/benefits/index' });
+                  }
+                } else {
+                  Taro.navigateTo({ url: '/pages/member/login/index' });
+                }
+              }}
+            >
+              <Text className='icon icon-crown' style={{ color: isVip ? '#FFD700' : '#999' }} />
+            </View>
+          )}
+        </View>
+        {!user && <View className='login-btn' onClick={() => Taro.navigateTo({ url: '/pages/login/index' })}>{t('common.goLogin')}</View>}
       </View>
 
       <View className='tabs-row'>
-        <View className={`tab ${activeTab === 'playlists' ? 'active' : ''}`} onClick={() => setActiveTab('playlists')}>
-          <Text>播放列表</Text>
-        </View>
-        <View className={`tab ${activeTab === 'favorites' ? 'active' : ''}`} onClick={() => setActiveTab('favorites')}>
-          <Text>收藏</Text>
-        </View>
-        <View className={`tab ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
-          <Text>听过</Text>
-        </View>
+        {[
+          { key: 'playlists', label: t('nav.playlists') },
+          { key: 'favorites', label: t('common.favorites') },
+          { key: 'history', label: t('common.listened'), hidden: sourceType === 'Emby' },
+        ]
+          .filter((tab) => !tab.hidden)
+          .map((tab) => (
+            <View key={tab.key} className={`tab ${activeTab === tab.key ? 'active' : ''}`} onClick={() => setActiveTab(tab.key as TabType)}>
+              <Text>{tab.label}</Text>
+            </View>
+          ))}
       </View>
 
       {mode === 'MUSIC' && (activeTab === 'favorites' || activeTab === 'history') && (
         <View className='sub-tabs-row'>
           <View className={`sub-tab ${activeSubTab === 'album' ? 'active' : ''}`} onClick={() => setActiveSubTab('album')}>
-            <Text>专辑</Text>
+            <Text>{t('nav.albums')}</Text>
           </View>
           <View className={`sub-tab ${activeSubTab === 'track' ? 'active' : ''}`} onClick={() => setActiveSubTab('track')}>
-            <Text>单曲</Text>
+            <Text>{t('nav.tracks')}</Text>
           </View>
         </View>
       )}
@@ -274,65 +478,57 @@ export default function Personal() {
       <ScrollView scrollY className='list-scroll'>
         <View className='list-content'>
           {renderList()}
+          <View className='page-bottom-spacer' />
         </View>
       </ScrollView>
 
-      {/* Create Playlist Modal */}
       {showCreateModal && (
         <View className='modal-overlay' onClick={() => setShowCreateModal(false)}>
-          <View className='modal-content' onClick={e => e.stopPropagation()}>
-            <Text className='modal-title'>新建播放列表</Text>
-            <Input 
-              className='modal-input' 
-              placeholder='请输入列表名称' 
+          <View className='modal-content' onClick={(e) => e.stopPropagation()}>
+            <Text className='modal-title'>{t('personal.createPlaylist')}</Text>
+            <Input
+              className='modal-input'
+              placeholder={t('playlist.namePlaceholder')}
               value={newPlaylistName}
-              onInput={e => setNewPlaylistName(e.detail.value)}
+              onInput={(e) => setNewPlaylistName(e.detail.value)}
               focus
             />
             <View className='modal-btns'>
-              <View className='modal-btn cancel' onClick={() => setShowCreateModal(false)}>取消</View>
+              <View className='modal-btn cancel' onClick={() => setShowCreateModal(false)}>{t('common.cancel')}</View>
               <View className='modal-btn confirm' onClick={handleCreatePlaylist}>
-                {creating ? '创建中...' : '确定'}
+                {creating ? t('common.creating') : t('common.confirm')}
               </View>
             </View>
           </View>
         </View>
       )}
 
-      {/* Import Task Modal */}
       {showImportModal && (
         <View className='modal-overlay'>
           <View className='modal-content'>
-            <Text className='modal-title'>库文件入库进度</Text>
+            <Text className='modal-title'>{importTask?.mode === 'compact' ? t('personal.compactProgress') : t('personal.importProgress')}</Text>
             <View className='status-row'>
-              <Text>状态：</Text>
-              <Text className='status-val'>
-                {importTask?.status === TaskStatus.INITIALIZING ? '初始化...' : 
-                 importTask?.status === TaskStatus.PARSING ? '解析媒体...' :
-                 importTask?.status === TaskStatus.SUCCESS ? '完成' :
-                 importTask?.status === TaskStatus.FAILED ? '失败' : '准备中'}
-              </Text>
+              <Text>{t('common.status')}</Text>
+              <Text className='status-val'>{importStatusText()}</Text>
             </View>
             <View className='progress-container'>
-              <View 
-                className='progress-fill' 
-                style={{ width: `${importTask?.total ? Math.round((importTask.current || 0) / importTask.total * 100) : 0}%` }} 
+              <View
+                className='progress-fill'
+                style={{ width: `${importTask?.total ? Math.round((importTask.current || 0) / importTask.total * 100) : 0}%` }}
               />
             </View>
             <Text className='progress-text'>
-              进度：{importTask?.current || 0} / {importTask?.total || 0}
+              {t('common.progress')}{importTask?.current || 0} / {importTask?.total || 0}
             </Text>
+            {importTask?.status === TaskStatus.FAILED && importTask?.message ? (
+              <Text className='error-text'>{importTask.message}</Text>
+            ) : null}
             <View className='modal-btns'>
-              <View className='modal-btn single' onClick={() => setShowImportModal(false)}>后台运行</View>
+              <View className='modal-btn single' onClick={() => setShowImportModal(false)}>{t('common.runInBackground')}</View>
             </View>
           </View>
         </View>
       )}
-
-      <View className='logout-footer' onClick={logout}>
-        <Text>退出登录</Text>
-      </View>
-
       <MiniPlayer />
     </View>
   );

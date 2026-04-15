@@ -1,16 +1,20 @@
-import { getLatestArtists, getLatestTracks, getRecentAlbums, getRecommendedAlbums } from '@soundx/services'
+import { getAlbumHistory, getAlbumTracks, getLatestArtists, getLatestTracks, getRecentAlbums, getRecommendedAlbums } from '@soundx/services'
 import { Image, ScrollView, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import MiniPlayer from '../../components/MiniPlayer'
+import { useAuth } from '../../context/AuthContext'
 import { usePlayer } from '../../context/PlayerContext'
 import { usePlayMode } from '../../utils/playMode'
 import { getBaseURL } from '../../utils/request'
 import './index.scss'
 
 export default function Index() {
+  const { t } = useTranslation();
   const { playTrackList } = usePlayer()
   const { mode, setMode } = usePlayMode()
+  const { user } = useAuth()
   const [sections, setSections] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -27,26 +31,31 @@ export default function Index() {
         promises.push(getLatestTracks('MUSIC', true, 8));
       }
 
+      if (mode === 'AUDIOBOOK' && user) {
+        promises.push(getAlbumHistory(user.id, 0, 8, 'AUDIOBOOK'));
+      }
+
       const results = await Promise.all(promises);
       const [artistsRes, recentRes, recommendedRes] = results;
       const tracksRes = mode === 'MUSIC' ? results[3] : null;
+      const historyRes = mode === 'AUDIOBOOK' ? results[3] : null;
 
       const newSections = [
         {
           id: 'artists',
-          title: '艺术家',
+          title: t('home.artists'),
           data: artistsRes.code === 200 ? artistsRes.data : [],
           type: 'artist',
         },
         {
           id: 'recent',
-          title: '最近上新',
+          title: t('home.recentAlbums'),
           data: recentRes.code === 200 ? recentRes.data : [],
           type: 'album',
         },
         {
           id: 'recommended',
-          title: '为你推荐',
+          title: t('home.recommended'),
           data: recommendedRes.code === 200 ? recommendedRes.data : [],
           type: 'album',
         },
@@ -55,9 +64,18 @@ export default function Index() {
       if (mode === 'MUSIC' && tracksRes?.code === 200) {
         newSections.push({
           id: 'tracks',
-          title: '上新单曲',
+          title: t('home.newTracks'),
           data: tracksRes.data,
           type: 'track',
+        });
+      }
+
+      if (mode === 'AUDIOBOOK' && historyRes?.code === 200) {
+        newSections.push({
+          id: 'history',
+          title: t('home.continueListening'),
+          data: historyRes.data.list.map((item: any) => item.album),
+          type: 'album',
         });
       }
 
@@ -71,7 +89,7 @@ export default function Index() {
 
   useEffect(() => {
     loadData()
-  }, [mode])
+  }, [mode, user])
 
   // Need to handle page show refresh if needed, for now standard load is fine
   useDidShow(() => {
@@ -88,6 +106,14 @@ export default function Index() {
       return `${getBaseURL()}${url}`;
   }
 
+  const chunkTracks = (tracks = [], size = 2) => {
+    const chunks: any[][] = [];
+    for (let i = 0; i < tracks.length; i += size) {
+      chunks.push(tracks.slice(i, i + size));
+    }
+    return chunks;
+  };
+
   return (
     <View className='index-container'>
       <ScrollView
@@ -98,14 +124,14 @@ export default function Index() {
         onRefresherRefresh={loadData}
       >
         <View className='header'>
-          <Text className='header-title'>推荐</Text>
+          <Text className='header-title'>{t('home.recommend')}</Text>
           <View className='mode-toggle' onClick={() => setMode(mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC')}>
-            <Text className={`icon ${mode === 'MUSIC' ? 'icon-music' : 'icon-headset'}`} />
+            <Text className={`icon ${mode === 'MUSIC' ? 'icon-musical-notes' : 'icon-headset'}`} />
           </View>
         </View>
 
         <View className='search-bar' onClick={() => Taro.navigateTo({ url: '/pages/search/index' })}>
-           <Text className='search-text'>搜索单曲，艺术家，专辑</Text>
+           <Text className='search-text'>{t('home.searchPlaceholder')}</Text>
         </View>
 
         {sections.map((section) => (
@@ -117,14 +143,20 @@ export default function Index() {
             <ScrollView scrollX className='horizontal-list' showScrollbar={false}>
                <View className='flex-row'>
                 {section.type === 'track' ? (
-                   // Simply horizontally list tracks for now, chunking logic can be added later if needed
-                   section.data.map((track, index) => (
-                       <View key={track.id} className='track-card' onClick={() => handleTrackPlay(section.data, index)}>
-                          <Image src={getImageUrl(track.cover)} className='track-image' mode='aspectFill'/>
-                          <View className='track-info'>
-                             <Text className='track-title' numberOfLines={1}>{track.name}</Text>
-                             <Text className='track-artist' numberOfLines={1}>{track.artist}</Text>
-                          </View>
+                   chunkTracks(section.data, 2).map((group, groupIndex) => (
+                       <View key={`track-group-${groupIndex}`} className='track-column'>
+                         {group.map((track, trackIndex) => {
+                           const actualIndex = groupIndex * 2 + trackIndex;
+                           return (
+                             <View key={track.id} className='track-card' onClick={() => handleTrackPlay(section.data, actualIndex)}>
+                                <Image src={getImageUrl(track.cover)} className='track-image' mode='aspectFill'/>
+                                <View className='track-info'>
+                                   <Text className='track-title' numberOfLines={1}>{track.name}</Text>
+                                   <Text className='track-artist' numberOfLines={1}>{track.artist}</Text>
+                                </View>
+                             </View>
+                           );
+                         })}
                        </View>
                    ))
                 ) : (
@@ -132,20 +164,65 @@ export default function Index() {
                         <View 
                             key={item.id} 
                             className={section.type === 'artist' ? 'artist-card' : 'album-card'}
-                            onClick={() => {
-                                // Navigate to artist or album page
-                                const url = section.type === 'artist' 
-                                    ? `/pages/artist/index?id=${item.id}` 
-                                    : `/pages/album/index?id=${item.id}`;
-                                Taro.navigateTo({ url });
+                            onClick={async () => {
+                                if (section.type === 'artist') {
+                                  Taro.navigateTo({ url: `/pages/artist/index?id=${item.id}` });
+                                  return;
+                                }
+
+                                if (section.id === 'history') {
+                                  const resumeTrackId = item.resumeTrackId;
+                                  const resumeProgress = item.resumeProgress;
+
+                                  if (resumeTrackId) {
+                                    try {
+                                      const res = await getAlbumTracks(item.id, 1000, 0);
+                                      if (res.code === 200 && res.data.list.length > 0) {
+                                        const tracks = res.data.list;
+                                        let targetIndex = tracks.findIndex((track: any) => track.id === resumeTrackId);
+                                        if (targetIndex === -1) targetIndex = 0;
+                                        await playTrackList(tracks, targetIndex, resumeProgress);
+                                        return;
+                                      }
+                                    } catch (error) {
+                                      console.error('Resume audiobook failed:', error);
+                                    }
+                                  }
+                                }
+
+                                Taro.navigateTo({ url: `/pages/album/index?id=${item.id}` });
                             }}
                         >
-                            <Image 
-                                src={getImageUrl(section.type === 'artist' ? item.avatar : item.cover)} 
-                                className={section.type === 'artist' ? 'artist-image' : 'album-image'} 
-                                mode='aspectFill'
-                            />
-                            <Text className='item-name' numberOfLines={1}>{item.name}</Text>
+                            {section.type === 'artist' ? (
+                              <>
+                                <Image 
+                                    src={getImageUrl(item.avatar)} 
+                                    className='artist-image' 
+                                    mode='aspectFill'
+                                />
+                                <Text className='item-name' numberOfLines={1}>{item.name}</Text>
+                              </>
+                            ) : (
+                              <>
+                                <View className='album-image-wrap'>
+                                  <Image 
+                                      src={getImageUrl(item.cover)} 
+                                      className='album-image' 
+                                      mode='aspectFill'
+                                  />
+                                  {mode === 'AUDIOBOOK' && item.progress > 0 && (
+                                    <View className='album-progress'>
+                                      <View
+                                        className='album-progress-fill'
+                                        style={{ width: `${Math.min(100, Math.max(0, item.progress || 0))}%` }}
+                                      />
+                                    </View>
+                                  )}
+                                </View>
+                                <Text className='item-name album-name-text' numberOfLines={1}>{item.name}</Text>
+                                <Text className='item-sub' numberOfLines={1}>{item.artist || t('home.unknownArtist')}</Text>
+                              </>
+                            )}
                         </View>
                     ))
                 )}
@@ -153,6 +230,7 @@ export default function Index() {
             </ScrollView>
           </View>
         ))}
+        <View className='page-bottom-spacer' />
       </ScrollView>
       <MiniPlayer />
     </View>

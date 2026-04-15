@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { parseLyrics } from "../../app/player";
 
 interface LyricsFontSizeModalProps {
@@ -28,6 +29,7 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
   setLyricFontSize,
   previewLyrics,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [internalSize, setInternalSize] = useState(lyricFontSize);
@@ -67,7 +69,7 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
         >
           <View style={styles.handle} />
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>歌词大小调节</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('lyricsSize.title')}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
@@ -81,7 +83,7 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
                 onPress={() => handleUpdateSize(internalSize + 2)}
               >
                 <Ionicons name="add" size={24} color={colors.text} />
-                <Text style={[styles.btnText, { color: colors.text }]}>放大</Text>
+                <Text style={[styles.btnText, { color: colors.text }]}>{t('lyricsSize.enlarge')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -89,7 +91,7 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
                 onPress={() => handleUpdateSize(internalSize - 2)}
               >
                 <Ionicons name="remove" size={24} color={colors.text} />
-                <Text style={[styles.btnText, { color: colors.text }]}>缩小</Text>
+                <Text style={[styles.btnText, { color: colors.text }]}>{t('lyricsSize.shrink')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -97,18 +99,18 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
                 onPress={handleReset}
               >
                 <Ionicons name="refresh-outline" size={22} color={colors.text} />
-                <Text style={[styles.btnText, { color: colors.text }]}>重置</Text>
+                <Text style={[styles.btnText, { color: colors.text }]}>{t('lyricsSize.reset')}</Text>
               </TouchableOpacity>
               
               <View style={styles.sizeIndicator}>
-                <Text style={[styles.sizeLabel, { color: colors.secondary }]}>当前字号</Text>
+                <Text style={[styles.sizeLabel, { color: colors.secondary }]}>{t('lyricsSize.currentSize')}</Text>
                 <Text style={[styles.sizeValue, { color: colors.primary }]}>{internalSize}</Text>
               </View>
             </View>
 
             {/* Right side: Preview */}
             <View style={[styles.preview, { borderLeftColor: colors.border }]}>
-               <Text style={[styles.previewLabel, { color: colors.secondary }]}>实时预览</Text>
+               <Text style={[styles.previewLabel, { color: colors.secondary }]}>{t('lyricsSize.preview')}</Text>
                <View style={styles.previewContent}>
                   <Text 
                     style={[
@@ -122,7 +124,7 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
                     numberOfLines={5}
                   >
                     {(() => {
-                      if (!previewLyrics) return "暂无歌词预览\n在这可以实时查看\n歌词的大小调节效果\n调整到舒适的阅读大小";
+                      if (!previewLyrics) return t('lyricsSize.noLyricsPreview');
                       const parsed = parseLyrics(previewLyrics);
                       return parsed.map(line => line.text).join('\n');
                     })()}

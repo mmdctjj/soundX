@@ -2,16 +2,21 @@ import { Album, Track, getAlbumById, getAlbumTracks } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
+import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
+import BottomTabBar from '../../components/BottomTabBar';
 
 export default function AlbumDetail() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = router.params;
   const { playTrackList, currentTrack, isPlaying } = usePlayer();
+  const { user } = useAuth();
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -29,7 +34,7 @@ export default function AlbumDetail() {
     try {
       const [albumRes, tracksRes] = await Promise.all([
           getAlbumById(albumId),
-          getAlbumTracks(albumId, 200, 0, 'asc', '')
+          getAlbumTracks(albumId, 200, 0, 'asc', undefined, user?.id)
       ]);
 
       if (albumRes.code === 200) setAlbum(albumRes.data);
@@ -73,8 +78,8 @@ export default function AlbumDetail() {
     }
   };
 
-  if (loading) return <View className='loading'><Text>Loading...</Text></View>;
-  if (!album) return <View className='error'><Text>Album not found</Text></View>;
+  if (loading) return <View className='loading'><Text>{t('common.loading')}</Text></View>;
+  if (!album) return <View className='error'><Text>{t('common.noData')}</Text></View>;
 
   return (
     <View className='album-container'>
@@ -91,9 +96,9 @@ export default function AlbumDetail() {
                  <Text className='artist'>{album.artist}</Text>
                  
                  <View className='actions'>
-                     <View className='play-all-btn' onClick={handlePlayAll}>
-                         <Text className='play-icon icon icon-play' />
-                         <Text className='play-text'>播放全部</Text>
+                     <View className='album-play-all-btn' onClick={handlePlayAll}>
+                         <Text className='album-play-icon icon icon-play' />
+                         <Text className='album-play-text'>{t('album.playAll')}</Text>
                      </View>
                      <View className='like-btn'>
                          <Text className='like-icon icon icon-heart' />
@@ -126,7 +131,7 @@ export default function AlbumDetail() {
              </View>
 
              <View id='bottom-anchor' />
-             <View style={{ height: '160rpx' }}></View>
+             <View style={{ height: '260rpx' }}></View>
          </ScrollView>
          <QuickLocate
             onTop={() => scrollToAnchor('top-anchor')}
@@ -134,7 +139,8 @@ export default function AlbumDetail() {
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
-         <MiniPlayer />
+      <BottomTabBar />
+      <MiniPlayer />
     </View>
   );
 }

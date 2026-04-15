@@ -1,6 +1,7 @@
 import { ArrowDownOutlined, ArrowUpOutlined } from "@ant-design/icons";
 import { Button, List, Modal, Typography } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface SectionOrderModalProps {
   visible: boolean;
@@ -15,6 +16,7 @@ const SectionOrderModal: React.FC<SectionOrderModalProps> = ({
   sections,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const [orderedSections, setOrderedSections] = useState(sections);
 
   useEffect(() => {
@@ -50,12 +52,12 @@ const SectionOrderModal: React.FC<SectionOrderModalProps> = ({
 
   return (
     <Modal
-      title="调整版块顺序"
+      title={t('sectionOrderModal.title')}
       open={visible}
       onCancel={onClose}
       onOk={handleSave}
-      okText="保存"
-      cancelText="取消"
+      okText={t('common.save')}
+      cancelText={t('common.cancel')}
     >
       <List
         dataSource={orderedSections}

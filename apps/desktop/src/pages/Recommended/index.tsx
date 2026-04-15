@@ -37,6 +37,8 @@ import { cacheUtils } from "../../utils/cache";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 import SectionOrderModal from "./SectionOrderModal";
+import { useTranslation } from "react-i18next";
+
 
 const { Title, Text } = Typography;
 
@@ -55,6 +57,7 @@ interface RecommendedSection {
 }
 
 const Recommended: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [sections, setSections] = useState<RecommendedSection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,19 +184,19 @@ const Recommended: React.FC = () => {
           const newSections: RecommendedSection[] = [
             {
               id: "recommended",
-              title: "为你推荐",
+              title: t("recommended.recommendedForYou"),
               items: recommendedAlbums,
               type: "album",
             },
             {
               id: "recent",
-              title: "最近上新",
+              title: t("recommended.recentlyAdded"),
               items: recentAlbums,
               type: "album",
             },
             {
               id: "artists",
-              title: "艺术家",
+              title: t("common.artists"),
               items: latestArtists,
               type: "artist",
             },
@@ -202,7 +205,7 @@ const Recommended: React.FC = () => {
           if (playMode === "MUSIC") {
             newSections.push({
               id: "tracks",
-              title: "上新单曲",
+              title: t("recommended.newTracks"),
               items: latestTracks,
               type: "track",
             });
@@ -211,7 +214,7 @@ const Recommended: React.FC = () => {
           if (playMode === "AUDIOBOOK" && historyAlbums.length > 0) {
             newSections.push({
               id: "history",
-              title: "继续收听",
+              title: t("recommended.continueListening"),
               items: historyAlbums,
               type: "album",
             });
@@ -264,14 +267,14 @@ const Recommended: React.FC = () => {
       const newSections: RecommendedSection[] = [
         {
           id: "recommended",
-          title: "为你推荐",
+          title: t("recommended.recommendedForYou"),
           items: recommendedAlbums,
           type: "album",
         },
-        { id: "recent", title: "最近上新", items: recentAlbums, type: "album" },
+        { id: "recent", title: t("recommended.recentlyAdded"), items: recentAlbums, type: "album" },
         {
           id: "artists",
-          title: "艺术家",
+          title: t("common.artists"),
           items: latestArtists,
           type: "artist",
         },
@@ -280,7 +283,7 @@ const Recommended: React.FC = () => {
       if (playMode === "MUSIC") {
         newSections.push({
           id: "tracks",
-          title: "上新单曲",
+          title: t("recommended.newTracks"),
           items: latestTracks,
           type: "track",
         });
@@ -289,7 +292,7 @@ const Recommended: React.FC = () => {
       if (playMode === "AUDIOBOOK" && historyAlbums.length > 0) {
         newSections.push({
           id: "history",
-          title: "继续收听",
+          title: t("recommended.continueListening"),
           items: historyAlbums,
           type: "album",
         });
@@ -443,7 +446,7 @@ const Recommended: React.FC = () => {
                   size="small"
                   onClick={() => handlePlaySection(section.id)}
                 >
-                  播放
+                  {t("player.play")}
                   <CaretRightOutlined />
                 </Button>
               )}
@@ -453,7 +456,7 @@ const Recommended: React.FC = () => {
                 onClick={() => refreshSection(section.id)}
                 loading={refreshing === section.id}
               >
-                换一批 <SyncOutlined spin={refreshing === section.id} />
+                {t("recommended.refreshMore")} <SyncOutlined spin={refreshing === section.id} />
               </Button>
             </div>
           </div>
@@ -726,7 +729,7 @@ const Recommended: React.FC = () => {
           icon={<SettingOutlined />}
           onClick={() => setIsOrderModalOpen(true)}
         >
-          调整版块顺序
+          {t("recommended.adjustSectionOrder")}
         </Button>
       </div>
 

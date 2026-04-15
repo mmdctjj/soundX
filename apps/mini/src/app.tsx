@@ -1,6 +1,7 @@
 import Taro from '@tarojs/taro';
 import React, { PropsWithChildren } from 'react';
 import './app.scss';
+import './i18n';
 import { AuthProvider } from './context/AuthContext';
 import './utils/request'; // Initialize request instance
 

@@ -11,6 +11,7 @@ import {
 } from "@soundx/services";
 import { Avatar, Empty, List, message, Modal, theme } from "antd";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuthStore } from "../../store/auth";
@@ -36,6 +37,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   onSelectKeyword,
   onClearHistory,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { play, setPlaylist } = usePlayerStore();
   const { user } = useAuthStore();
@@ -88,11 +90,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     try {
       const res = await addTrackToPlaylist(playlistId, selectedTrackId);
       if (res.code === 200) {
-        message.success("添加成功");
+        message.success(t('searchResults.addSuccess'));
         setIsPlaylistModalOpen(false);
       }
     } catch (e) {
-      message.error("添加失败");
+      message.error(t('searchResults.addFailed'));
     }
   };
 
@@ -185,9 +187,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         {history.length > 0 && (
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>历史搜索</div>
+              <div className={styles.sectionTitle}>{t('searchResults.searchHistory')}</div>
               <div className={styles.clearBtn} onClick={onClearHistory}>
-                清空
+                {t('searchResults.clearHistory')}
               </div>
             </div>
             <div className={styles.tagGroup}>
@@ -206,7 +208,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
         {hotSearches.length > 0 && (
           <div className={styles.section}>
-            <div className={styles.sectionTitle}>热搜榜</div>
+            <div className={styles.sectionTitle}>{t('searchResults.hotSearch')}</div>
             <div className={styles.hotList}>
               {hotSearches.map((item, i) => (
                 <div
@@ -239,7 +241,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
         {!history.length && !hotSearches.length && (
           <div className={styles.empty}>
-            <Empty description="暂无搜索结果" />
+            <Empty description={t('searchResults.noResults')} />
           </div>
         )}
       </div>
@@ -258,7 +260,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     >
       {results.tracks.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>单曲</div>
+          <div className={styles.sectionTitle}>{t('searchResults.single')}</div>
           {results.tracks.map((track) => (
             <Item
               key={track.id}
@@ -291,7 +293,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
       {results.artists.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>艺术家</div>
+          <div className={styles.sectionTitle}>{t('searchResults.artist')}</div>
           {results.artists.map((artist) => (
             <Item
               key={artist.id}
@@ -300,7 +302,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
               onClick={() => handleArtistClick(artist.id)}
               cover={getCoverUrl(artist, artist.id)}
               title={artist.name}
-              subtitle={artist.type === "MUSIC" ? "音乐人" : "演播者"}
+              subtitle={artist.type === "MUSIC" ? t('searchResults.musician') : t('searchResults.voiceActor')}
               isArtist={true}
             />
           ))}
@@ -309,7 +311,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
 
       {results.albums.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle}>专辑</div>
+          <div className={styles.sectionTitle}>{t('searchResults.album')}</div>
           {results.albums.map((album) => (
             <Item
               key={album.id}
@@ -325,7 +327,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
       )}
 
       <Modal
-        title="添加到播放列表"
+        title={t('addToPlaylistModal.title')}
         open={isPlaylistModalOpen}
         onCancel={() => setIsPlaylistModalOpen(false)}
         footer={null}

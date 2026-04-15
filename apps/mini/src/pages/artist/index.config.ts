@@ -1,3 +1,4 @@
 export default {
-  navigationBarTitleText: '艺术家',
+  navigationStyle: 'custom',
+  navigationBarTitleText: '艺术家'
 }

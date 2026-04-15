@@ -5,6 +5,7 @@ import {
   LockOutlined,
   UserOutlined,
 } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import {
   useEmbyAdapter as activateEmbyAdapter,
   useNativeAdapter as activateNativeAdapter,
@@ -64,6 +65,7 @@ type LoginFormValues = {
 };
 
 const Login: React.FC = () => {
+  const { t } = useTranslation();
   const { mode } = useTheme();
   const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
@@ -145,7 +147,7 @@ const Login: React.FC = () => {
       });
     } catch (error) {
       console.error(error);
-      messageApi.error("创建扫码会话失败");
+      messageApi.error(t("login.scanSessionCreateFailed"));
     }
   };
 
@@ -200,7 +202,7 @@ const Login: React.FC = () => {
           userId: user?.id ? String(user.id) : undefined,
           deviceId: device?.id ? String(device.id) : undefined,
         });
-        messageApi.success("扫码登录成功");
+        messageApi.success(t("login.scanLoginSuccess"));
         navigate("/");
       } catch (error) {
         console.error(error);
@@ -213,7 +215,7 @@ const Login: React.FC = () => {
             message: error instanceof Error ? error.message : "unknown_error",
           },
         });
-        messageApi.error(error instanceof Error ? error.message : "扫码登录失败");
+        messageApi.error(error instanceof Error ? error.message : t("login.scanLoginFailed"));
         createTargetSession();
       }
     };
@@ -325,7 +327,7 @@ const Login: React.FC = () => {
         id: Date.now().toString(),
         internal: internal || "",
         external: external || "",
-        name: `服务器 ${existingConfigs.length + 1}`,
+        name: t("login.server", { index: existingConfigs.length + 1 }),
       });
     }
     localStorage.setItem(configKey, JSON.stringify(existingConfigs));
@@ -398,7 +400,7 @@ const Login: React.FC = () => {
       return external;
     }
 
-    throw new Error("无法连接到服务器，请检查地址");
+    throw new Error(t("login.connectionFailed"));
   };
 
   const handleFinish = async (values: LoginFormValues) => {
@@ -423,7 +425,7 @@ const Login: React.FC = () => {
     }
 
     if (!internalAddress && !externalAddress) {
-      messageApi.error("请至少输入一个地址");
+      messageApi.error(t("login.enterAddress"));
       setLoading(false);
       return;
     }
@@ -473,7 +475,7 @@ const Login: React.FC = () => {
               sourceType,
             },
           });
-          messageApi.success("登录成功");
+          messageApi.success(t("login.loginSuccess"));
           navigate("/");
         }
       } else {
@@ -494,7 +496,7 @@ const Login: React.FC = () => {
               sourceType,
             },
           });
-          messageApi.success("注册成功");
+          messageApi.success(t("login.registerSuccess"));
           navigate("/");
         }
       }
@@ -510,7 +512,7 @@ const Login: React.FC = () => {
           message: error instanceof Error ? error.message : "unknown_error",
         },
       });
-      messageApi.error(error instanceof Error ? error.message : "操作失败");
+      messageApi.error(error instanceof Error ? error.message : t("login.operationFailed"));
     } finally {
       setLoading(false);
     }
@@ -535,7 +537,7 @@ const Login: React.FC = () => {
         className={styles.backButton}
         onClick={() => navigate("/source-manage")}
       >
-        返回选择
+        {t("login.backToSelect")}
       </Button>
       {contextHolder}
 
@@ -561,16 +563,16 @@ const Login: React.FC = () => {
                 }}
               >
                 <Title level={5} style={{ marginBottom: 16 }}>
-                  等待手机端确认
+                  {t("login.waitingConfirm")}
                 </Title>
                 <Text type="secondary" style={{ textAlign: "center" }}>
-                  手机已扫码。请在手机屏幕上勾选要导入的数据源，并在手机上点击确认发送...
+                  {t("login.scanInstructions")}
                 </Text>
               </div>
             ) : (
               <div className={styles.qrPanel}>
                 {qrValue ? <QRCode value={qrValue} size={180} bordered={false} /> : null}
-                <Button onClick={createTargetSession}>刷新二维码</Button>
+                <Button onClick={createTargetSession}>{t("login.refreshQR")}</Button>
               </div>
             )}
           </div>
@@ -579,7 +581,7 @@ const Login: React.FC = () => {
           <div className={styles.header} style={{ marginBottom: isWeb() ? 20 : 0 }}>
             <img src={getLogo(sourceType)} alt={sourceType} className={styles.logo} />
             <Title style={{ margin: 0 }} level={4}>
-              {sourceType} {isLogin ? "登录" : "注册"}
+              {sourceType} {isLogin ? t("login.login") : t("login.register")}
             </Title>
             <Text type="secondary">
               {SOURCETIPSMAP[sourceType as keyof typeof SOURCETIPSMAP]}
@@ -593,7 +595,7 @@ const Login: React.FC = () => {
             className={styles.form}
             onFinish={handleFinish}
           >
-            <Form.Item label="内网地址" name="internalAddress">
+            <Form.Item label={t("login.internalAddress")} name="internalAddress">
               <AutoComplete
                 options={serverHistory.map((item) => ({
                   value: item.value,
@@ -618,7 +620,7 @@ const Login: React.FC = () => {
               </AutoComplete>
             </Form.Item>
 
-            <Form.Item label="外网地址" name="externalAddress">
+            <Form.Item label={t("login.externalAddress")} name="externalAddress">
               <AutoComplete
                 options={serverHistory.map((item) => ({
                   value: item.value,
@@ -641,28 +643,28 @@ const Login: React.FC = () => {
             </Form.Item>
 
             <Form.Item name="username" rules={[{ required: true }]}>
-              <Input prefix={<UserOutlined />} placeholder="用户名" />
+              <Input prefix={<UserOutlined />} placeholder={t("login.username")} />
             </Form.Item>
             <Form.Item name="password" rules={[{ required: true }]}>
-              <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+              <Input.Password prefix={<LockOutlined />} placeholder={t("login.password")} />
             </Form.Item>
 
             {!isLogin && (
               <Form.Item
                 name="confirmPassword"
                 rules={[
-                  { required: true, message: "请确认密码" },
+                  { required: true, message: t("login.confirmPasswordRequired") },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
                       if (!value || getFieldValue("password") === value) {
                         return Promise.resolve();
                       }
-                      return Promise.reject(new Error("两次输入的密码不一致"));
+                      return Promise.reject(new Error(t("login.passwordMismatch")));
                     },
                   }),
                 ]}
               >
-                <Input.Password prefix={<LockOutlined />} placeholder="确认密码" />
+                <Input.Password prefix={<LockOutlined />} placeholder={t("login.confirmPassword")} />
               </Form.Item>
             )}
 
@@ -674,7 +676,7 @@ const Login: React.FC = () => {
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
                     >
-                      记住我
+                      {t("login.rememberMe")}
                     </Checkbox>
                     {sourceType === "AudioDock" && (
                       <Button
@@ -683,18 +685,18 @@ const Login: React.FC = () => {
                         onClick={() => navigate("/forgot-password")}
                         style={{ padding: 0 }}
                       >
-                        忘记密码?
+                        {t("login.forgotPassword")}
                       </Button>
                     )}
                   </div>
                 </Form.Item>
                 <Button htmlType="submit" block loading={loading}>
-                  登录
+                  {t("login.login")}
                 </Button>
               </>
             ) : (
               <Button htmlType="submit" type="primary" block loading={loading}>
-                注册
+                {t("login.register")}
               </Button>
             )}
 
@@ -704,7 +706,7 @@ const Login: React.FC = () => {
               onClick={() => setIsLogin((prev) => !prev)}
               style={{ marginTop: 12 }}
             >
-              {isLogin ? "没有账号？去注册" : "已有账号？去登录"}
+              {isLogin ? t("login.noAccount") : t("login.hasAccount")}
             </Button>
           </Form>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   createTtsBatchTasks,
   getTtsLocalFiles,
@@ -14,10 +15,12 @@ import { useEffect, useRef, useState } from 'react';
 import MiniPlayer from '../../../components/MiniPlayer';
 import { getBaseURL } from '../../../utils/request';
 import './index.scss';
+import BottomTabBar from '../../../components/BottomTabBar';
 
 type ViewMode = 'select' | 'review';
 
 export default function TtsCreate() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewMode>('select');
   const [voices, setVoices] = useState<TtsVoice[]>([]);
@@ -181,7 +184,7 @@ export default function TtsCreate() {
     <>
       <View className='section'>
         <View className='section-header'>
-          <Text className='section-title'>选择音色</Text>
+          <Text className='section-title'>{t("tts.selectVoice")}</Text>
         </View>
         <ScrollView scrollX className='voice-scroll'>
           <View className='voice-list'>
@@ -211,7 +214,7 @@ export default function TtsCreate() {
 
       <View className='section'>
         <View className='section-header'>
-          <Text className='section-title'>选择文件</Text>
+          <Text className='section-title'>{t("tts.selectFile")}</Text>
           <Text className='section-count'>{selectedPaths.length} 已选</Text>
         </View>
         <View className='file-list'>
@@ -221,7 +224,7 @@ export default function TtsCreate() {
             </View>
           ) : localFiles.length === 0 ? (
             <View className='empty-container'>
-              <Text className='empty-text'>暂无本地文件</Text>
+              <Text className='empty-text'>{t("tts.noLocalFiles")}</Text>
             </View>
           ) : (
             localFiles.map((file) => (
@@ -239,7 +242,7 @@ export default function TtsCreate() {
                   <Text className='file-name' numberOfLines={1}>{file.filename}</Text>
                   {file.is_generated && (
                     <View className='generated-tag'>
-                      <Text className='generated-text'>已转换</Text>
+                      <Text className='generated-text'>{t("tts.converted")}</Text>
                     </View>
                   )}
                 </View>
@@ -254,7 +257,7 @@ export default function TtsCreate() {
           className={`next-btn ${selectedPaths.length === 0 ? 'disabled' : ''}`}
           onClick={handleNextStep}
         >
-          <Text className='next-btn-text'>下一步</Text>
+          <Text className='next-btn-text'>{t("common.next")}</Text>
         </View>
       </View>
     </>
@@ -264,18 +267,18 @@ export default function TtsCreate() {
     <>
       <View className='section'>
         <View className='section-header'>
-          <Text className='section-title'>确认任务信息</Text>
+          <Text className='section-title'>{t("tts.confirmTaskInfo")}</Text>
         </View>
         <View className='review-list'>
           {reviewData.map((item) => (
             <View key={item.key} className='review-item'>
-              <Text className='review-label'>标题</Text>
+              <Text className='review-label'>{t("tts.title")}</Text>
               <View className='review-input-wrapper'>
                 <View className='review-input'>
                   <Text className='review-input-text'>{item.title}</Text>
                 </View>
               </View>
-              <Text className='review-label' style={{ marginTop: '20rpx' }}>作者</Text>
+              <Text className='review-label' style={{ marginTop: '20rpx' }}>{t("tts.author")}</Text>
               <View className='review-input-wrapper'>
                 <View className='review-input'>
                   <Text className='review-input-text'>{item.author}</Text>
@@ -288,13 +291,13 @@ export default function TtsCreate() {
 
       <View className='bottom-actions'>
         <View className='back-btn' onClick={() => setView('select')}>
-          <Text className='back-btn-text'>返回</Text>
+          <Text className='back-btn-text'>{t("common.back")}</Text>
         </View>
         <View
           className={`create-btn ${loading ? 'disabled' : ''}`}
           onClick={handleCreateTasks}
         >
-          <Text className='create-btn-text'>创建任务</Text>
+          <Text className='create-btn-text'>{t("tts.createTask")}</Text>
         </View>
       </View>
     </>
@@ -316,6 +319,7 @@ export default function TtsCreate() {
         {view === 'select' ? renderSelectView() : renderReviewView()}
       </ScrollView>
 
+      <BottomTabBar />
       <MiniPlayer />
     </View>
   );

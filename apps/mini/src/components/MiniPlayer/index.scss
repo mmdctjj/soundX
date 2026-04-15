@@ -1,16 +1,22 @@
 .mini-player-container {
   position: fixed;
-  bottom: env(safe-area-inset-bottom);
-  left: 0;
-  right: 0;
+  left: 20rpx;
+  right: 20rpx;
+  bottom: calc(env(safe-area-inset-bottom) + 24rpx);
   height: 120rpx;
   background-color: #fff;
-  border-top: 1rpx solid #eee;
-  z-index: 1000;
+  border-radius: 24rpx;
+  box-shadow: 0 16rpx 36rpx rgba(0, 0, 0, 0.14);
   display: flex;
+  overflow: hidden;
+  z-index: 1200;
 
-  &.is-tab-page {
-    bottom: 0;
+  &.is-native-tab-page {
+    bottom: calc(env(safe-area-inset-bottom) - 50rpx);
+  }
+
+  &.has-custom-bottom-tab {
+    bottom: calc(100rpx + env(safe-area-inset-bottom) + 20rpx);
   }
 }
 
@@ -21,7 +27,7 @@
   justify-content: space-between;
   width: 100%;
   height: 100%;
-  padding: 0 30rpx;
+  padding: 0 24rpx;
 }
 
 .mini-info-container {
@@ -80,11 +86,13 @@
   justify-content: center;
   align-items: center;
   margin-left: 10rpx;
+}
 
-  &.play-btn {
-    .mini-icon {
-      color: #000;
-    }
+.mini-play-btn {
+  background-color: transparent;
+
+  .mini-icon {
+    color: #000;
   }
 }
 
@@ -92,4 +100,3 @@
   font-size: 36rpx;
   color: #333;
 }
-

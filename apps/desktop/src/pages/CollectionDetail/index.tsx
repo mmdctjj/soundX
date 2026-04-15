@@ -28,6 +28,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import Cover from "../../components/Cover";
 import type { Album } from "../../models";
@@ -35,6 +36,7 @@ import { resolveArtworkUri } from "../../services/trackResolver";
 import styles from "./index.module.less";
 
 const CollectionDetail: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { token } = theme.useToken();
@@ -92,13 +94,13 @@ const CollectionDetail: React.FC = () => {
       const res = await uploadCollectionCover(collection.id, file);
       if (res.code === 200) {
         setCollection(res.data);
-        message.success("封面已更新");
+        message.success(t("collectionDetail.coverUpdated"));
         setCoverOpen(false);
       } else {
-        message.error(res.message || "封面上传失败");
+        message.error(res.message || t("collectionDetail.coverUploadFailed"));
       }
     } catch (error) {
-      message.error("封面上传失败");
+      message.error(t("collectionDetail.coverUploadFailed"));
     } finally {
       setUploadingCover(false);
     }
@@ -125,12 +127,12 @@ const CollectionDetail: React.FC = () => {
       const res = await removeAlbumFromCollection(collection.id, album.id);
       if (res.code === 200) {
         setAlbums((prev) => prev.filter((item) => item.id !== album.id));
-        message.success("已移除");
+        message.success(t("collectionDetail.removed"));
       } else {
-        message.error(res.message || "移除失败");
+        message.error(res.message || t("collectionDetail.removeFailed", { defaultValue: "移除失败" }));
       }
     } catch (error) {
-      message.error("移除失败");
+      message.error(t("collectionDetail.removeFailed", { defaultValue: "移除失败" }));
     }
   };
 
@@ -139,13 +141,13 @@ const CollectionDetail: React.FC = () => {
     try {
       const res = await deleteCollection(collection.id);
       if (res.code === 200) {
-        message.success("合集已解散");
+        message.success(t("collectionDetail.collectionDisbanded", { defaultValue: "合集已解散" }));
         navigate("/collections");
       } else {
-        message.error(res.message || "删除合集失败");
+        message.error(res.message || t("collectionDetail.disbandFailed", { defaultValue: "删除合集失败" }));
       }
     } catch (error) {
-      message.error("删除合集失败");
+      message.error(t("collectionDetail.disbandFailed", { defaultValue: "删除合集失败" }));
     }
   };
 
@@ -165,7 +167,7 @@ const CollectionDetail: React.FC = () => {
   const menuItems = [
     {
       key: "rename",
-      label: "修改名称",
+      label: t("collectionDetail.rename"),
       icon: <EditOutlined />,
       onClick: () => {
         setNameInput(collection.name);
@@ -174,26 +176,26 @@ const CollectionDetail: React.FC = () => {
     },
     {
       key: "cover",
-      label: "选定封面",
+      label: t("collectionDetail.selectCover"),
       icon: <PictureOutlined />,
       onClick: () => setCoverOpen(true),
     },
     {
       key: "manage",
-      label: "管理专辑",
+      label: t("collectionDetail.manageAlbums"),
       icon: <UnorderedListOutlined />,
       onClick: () => setManageOpen(true),
     },
     {
       key: "delete",
-      label: "解散合集",
+      label: t("collectionDetail.disbandCollection"),
       icon: <DeleteOutlined />,
       onClick: () =>
         modal.confirm({
-          title: "确认解散该合集？",
-          content: "删除后无法恢复。",
-          okText: "解散",
-          cancelText: "取消",
+          title: t("collectionDetail.confirmDisband"),
+          content: t("collectionDetail.disbandWarning"),
+          okText: t("collectionDetail.disband"),
+          cancelText: t("common.cancel"),
           okButtonProps: { danger: true },
           onOk: handleDeleteCollection,
         }),
@@ -221,14 +223,14 @@ const CollectionDetail: React.FC = () => {
             className={styles.subtitle}
             style={{ color: token.colorTextSecondary }}
           >
-            {albums.length} 张专辑
+            {t("collectionDetail.albumCount", { count: albums.length })}
           </div>
         </div>
       </div>
 
       <div className={styles.content}>
         <Typography.Title level={4} className={styles.sectionTitle}>
-          专辑 ({albums.length})
+          {t("collectionDetail.albums", { count: albums.length })}
         </Typography.Title>
         <Row gutter={[24, 24]}>
           {albums.map((album) => (
@@ -242,7 +244,7 @@ const CollectionDetail: React.FC = () => {
       </div>
 
       <Modal
-        title="修改名称"
+        title={t("collectionDetail.rename")}
         open={renameOpen}
         onOk={handleRename}
         onCancel={() => setRenameOpen(false)}
@@ -254,7 +256,7 @@ const CollectionDetail: React.FC = () => {
       </Modal>
 
       <Modal
-        title="选定封面"
+        title={t("collectionDetail.selectCover")}
         open={coverOpen}
         onCancel={() => setCoverOpen(false)}
         footer={null}
@@ -289,13 +291,13 @@ const CollectionDetail: React.FC = () => {
               document.getElementById("collection-cover-upload")?.click()
             }
           >
-            上传图片设置封面
+            {t("collectionDetail.uploadImageAsCover")}
           </Button>
         </div>
       </Modal>
 
       <Modal
-        title="管理专辑"
+        title={t("collectionDetail.manageAlbums")}
         open={manageOpen}
         onCancel={() => setManageOpen(false)}
         footer={null}
@@ -328,9 +330,9 @@ const CollectionDetail: React.FC = () => {
                   onClick={() => moveAlbum(index, 1)}
                 />
                 <Popconfirm
-                  title="确认移除该专辑？"
-                  okText="移除"
-                  cancelText="取消"
+                  title={t("collectionDetail.confirmRemoveAlbum")}
+                  okText={t("collectionDetail.remove")}
+                  cancelText={t("common.cancel")}
                   placement="topRight"
                   onConfirm={() => handleRemoveAlbum(album)}
                 >

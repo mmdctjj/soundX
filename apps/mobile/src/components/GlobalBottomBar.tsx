@@ -3,17 +3,19 @@ import { useRouter, useSegments } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useSettings } from "../context/SettingsContext";
 import { useTheme } from "../context/ThemeContext";
 import { MiniPlayer } from "./MiniPlayer";
 
 const tabs = [
-  { label: "推荐", icon: "home", href: "/(tabs)" },
-  { label: "声仓", icon: "musical-notes", href: "/(tabs)/library" },
-  { label: "我的", icon: "person", href: "/(tabs)/personal" },
+  { label: "navTabs.recommend", icon: "home", href: "/(tabs)" },
+  { label: "navTabs.soundcang", icon: "musical-notes", href: "/(tabs)/library" },
+  { label: "navTabs.mine", icon: "person", href: "/(tabs)/personal" },
 ];
 
 export const GlobalBottomBar = () => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -55,7 +57,7 @@ export const GlobalBottomBar = () => {
             >
               <Ionicons size={28} name={tab.icon as any} color={iconColor} />
               <Text style={[styles.tabLabel, { color: textColor }]}>
-                {tab.label}
+                {t(tab.label)}
               </Text>
             </TouchableOpacity>
           );

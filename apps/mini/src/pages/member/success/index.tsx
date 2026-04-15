@@ -2,10 +2,12 @@ import { plusGetMe, setPlusToken } from '@soundx/services';
 import { Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../../components/MiniPlayer';
 import './index.scss';
 
 export default function MemberPaymentSuccess() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(true);
 
@@ -62,27 +64,27 @@ export default function MemberPaymentSuccess() {
         <View className='back-btn' onClick={() => Taro.navigateBack()}>
           <Text className='back-icon'>←</Text>
         </View>
-        <Text className='header-title'>支付成功</Text>
+        <Text className='header-title'>{t('memberSuccess.paymentSuccess')}</Text>
         <View style={{ width: '80rpx' }} />
       </View>
 
       <View className='card'>
         <Text className='success-icon'>✓</Text>
-        <Text className='success-text'>支付成功</Text>
+        <Text className='success-text'>{t('memberSuccess.paymentSuccess')}</Text>
 
         <View className='info-block'>
-          <Text className='info-label'>支付日期</Text>
+          <Text className='info-label'>{t('memberSuccess.paymentDate')}</Text>
           <Text className='info-value'>{paidAt || '-'}</Text>
         </View>
 
         <View className='info-block'>
-          <Text className='info-label'>交易号</Text>
+          <Text className='info-label'>{t('memberSuccess.transactionId')}</Text>
           <Text className='info-value'>{tradeNo || '-'}</Text>
         </View>
 
         {refreshing && (
           <View className='refresh-row'>
-            <Text className='refresh-text'>正在同步会员状态…</Text>
+            <Text className='refresh-text'>{t('memberSuccess.syncingMemberStatus')}</Text>
           </View>
         )}
 
@@ -90,7 +92,7 @@ export default function MemberPaymentSuccess() {
           className='primary-button'
           onClick={() => Taro.redirectTo({ url: '/pages/member/detail/index' })}
         >
-          <Text className='primary-button-text'>查看会员详情</Text>
+          <Text className='primary-button-text'>{t('member.detailTitle')}</Text>
         </View>
       </View>
 
