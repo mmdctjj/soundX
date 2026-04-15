@@ -48,7 +48,8 @@
     "noFilePath": "No file path",
     "loadingCount": "Loaded {{count}}",
     "operationFailed": "Operation failed",
-    "and": "and"
+    "and": "and",
+    "property": "Property"
   },
   "nav": {
     "home": "Home",
@@ -272,7 +273,10 @@
     "userAgreement": "User Agreement",
     "linkCopied": "Link copied, please open in browser",
     "paymentMethod": "Payment Method",
-    "paymentWebDesc": "Order created, please complete payment on web"
+    "paymentWebDesc": "Order created, please complete payment on web",
+    "goLogin": "Go to Login",
+    "loginFirst": "Please login first",
+    "recommend": "Recommend"
   },
   "admin": {
     "title": "Admin Panel",
@@ -562,7 +566,11 @@
     "adjustControlPosition": "Adjust Control Position",
     "adjustLyricFontSize": "Adjust Lyric Font Size",
     "fontSize": "Font Size",
-    "setSkipIntro": "Set Auto-skip Intro"
+    "setSkipIntro": "Set Auto-skip Intro",
+    "albumDetail": "Album Detail",
+    "artistDetail": "Artist Detail",
+    "bottomOffset": "Bottom Offset",
+    "playOrderSequence": "Sequence Play"
   },
   "index": {
     "title": "Home",
@@ -589,5 +597,14 @@
     "title": "Select Data Source Type",
     "subtitle": "Please select the server type to connect",
     "scanLogin": "Scan Login"
+  },
+  "ttsTasks": {
+    "actionFailed": "Action failed",
+    "chapters": "Chapters",
+    "confirmDeleteTask": "Confirm delete task",
+    "createNow": "Create Now",
+    "deleteTask": "Delete Task",
+    "noTasksYet": "No tasks yet",
+    "title": "Task Title"
   }
 }

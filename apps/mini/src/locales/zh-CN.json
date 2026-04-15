@@ -56,7 +56,8 @@
     "noFilePath": "暂无文件路径",
     "loadingCount": "共加载 {{count}}",
     "operationFailed": "操作失败",
-    "and": "和"
+    "and": "和",
+    "property": "属性"
   },
   "nav": {
     "home": "首页",
@@ -280,7 +281,10 @@
     "userAgreement": "《用户协议》",
     "linkCopied": "链接已复制，请在浏览器中打开",
     "paymentMethod": "支付方式",
-    "paymentWebDesc": "订单已创建，请在网页端完成支付"
+    "paymentWebDesc": "订单已创建，请在网页端完成支付",
+    "goLogin": "去登录",
+    "loginFirst": "请先登录",
+    "recommend": "推荐"
   },
   "admin": {
     "title": "管理后台",
@@ -570,7 +574,11 @@
     "adjustControlPosition": "控制组位置调整",
     "adjustLyricFontSize": "调整播放页歌词字号",
     "fontSize": "字号",
-    "setSkipIntro": "设置自动跳过片头"
+    "setSkipIntro": "设置自动跳过片头",
+    "albumDetail": "专辑详情",
+    "artistDetail": "歌手详情",
+    "bottomOffset": "底部偏移",
+    "playOrderSequence": "顺序播放"
   },
   "index": {
     "title": "首页",
@@ -597,5 +605,14 @@
     "title": "选择数据源类型",
     "subtitle": "请选择您要连接的服务器类型",
     "scanLogin": "扫码登录"
+  },
+  "ttsTasks": {
+    "actionFailed": "操作失败",
+    "chapters": "章节",
+    "confirmDeleteTask": "确认删除任务",
+    "createNow": "立即创建",
+    "deleteTask": "删除任务",
+    "noTasksYet": "暂无任务",
+    "title": "任务标题"
   }
 }
