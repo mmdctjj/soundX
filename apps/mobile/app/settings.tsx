@@ -15,10 +15,12 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../src/context/AuthContext";
 import { useSettings } from "../src/context/SettingsContext";
 import { useTheme } from "../src/context/ThemeContext";
 import { syncWidgetMembership } from "../src/native/WidgetBridge";
+import { LanguageSwitcher } from "../src/components/LanguageSwitcher";
 import {
   clearSpecificCache,
   getDetailedCacheSize,
@@ -30,6 +32,7 @@ import { getCachedVipStatus } from "../src/utils/vipStatus";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { colors, theme, toggleTheme, setTheme } = useTheme();
   const { mode, setMode } = usePlayMode();
@@ -391,8 +394,9 @@ export default function SettingsScreen() {
               { color: colors.primary, marginTop: 20 },
             ]}
           >
-            通用
+            {t("settings.language", "语言")}
           </Text>
+          <LanguageSwitcher />
 
           {renderSettingRow(
             "车机模式",

@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import "react-native-reanimated";
+import "../src/i18n";
 import { AuthProvider, useAuth } from "../src/context/AuthContext";
 import { PlayerProvider, usePlayer } from "../src/context/PlayerContext";
 import { getAlbumHistory, getAlbumTracks, getLatestTracks, getPlaylistById, getTrackHistory, plusGetMe, toggleTrackLike, toggleTrackUnLike } from "@soundx/services";
