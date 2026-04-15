@@ -1097,13 +1097,13 @@ const Player: React.FC = () => {
           try {
             const res = await deleteTrack(track.id, impact?.isLastTrackInAlbum);
             if (res.code === 200) {
-              message.success("删除成功");
+              message.success(t("player.deleteSuccess"));
               removeTrack(track.id);
             } else {
-              message.error("删除失败");
+              message.error(t("player.deleteFailed"));
             }
           } catch (error) {
-            message.error("删除失败");
+            message.error(t("player.deleteFailed"));
           }
         },
       });
@@ -1469,7 +1469,7 @@ const Player: React.FC = () => {
                         setSleepTimerMode("off");
                       }
                     }}
-                    tooltip={{ formatter: (val) => `${val} 分钟` }}
+                    tooltip={{ formatter: (val) => `${val} ${t("player.minutes")}` }}
                   />
                 </Flex>
 
@@ -1495,7 +1495,7 @@ const Player: React.FC = () => {
                         setSleepTimerMode("count");
                         setSleepTimerCount(val);
                     }}
-                    tooltip={{ formatter: (val) => `${val} 集` }}
+                    tooltip={{ formatter: (val) => `${val} ${t("player.episodes")}` }}
                   />
                 </Flex>
                 <Button
@@ -1573,7 +1573,7 @@ const Player: React.FC = () => {
         <Popover
           content={
             <Flex vertical justify="center">
-              <Text style={{ fontSize: "12px" }}>音量: {volume}%</Text>
+              <Text style={{ fontSize: "12px" }}>{t("player.volume")}: {volume}%</Text>
               <Slider
                 style={{ width: "100px" }}
                 value={volume}
@@ -1585,7 +1585,7 @@ const Player: React.FC = () => {
           trigger="click"
           placement="top"
         >
-          <Tooltip title="音量">
+          <Tooltip title={t("player.volume")}>
             <SoundOutlined className={styles.settingIcon} />
           </Tooltip>
         </Popover>
@@ -1603,7 +1603,7 @@ const Player: React.FC = () => {
                       marginBottom: "5px",
                     }}
                   >
-                    <span>跳过片头：{skipStart}s</span>
+                    <span>{t("player.skipIntro")}: {skipStart}s</span>
                   </div>
                   <Slider
                     value={skipStart}
@@ -1620,7 +1620,7 @@ const Player: React.FC = () => {
                       marginBottom: "5px",
                     }}
                   >
-                    <span>跳过片尾：{skipEnd}s</span>
+                    <span>{t("player.skipOutro")}: {skipEnd}s</span>
                   </div>
                   <Slider
                     value={skipEnd}
@@ -1634,7 +1634,7 @@ const Player: React.FC = () => {
             trigger="click"
             placement="top"
           >
-            <Tooltip title="跳过片头/片尾">
+            <Tooltip title={t("player.skipIntroOutro")}>
               <DeliveredProcedureOutlined className={styles.settingIcon} />
             </Tooltip>
           </Popover>
