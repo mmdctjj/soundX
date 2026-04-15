@@ -126,7 +126,7 @@ const UserManagement: React.FC = () => {
       dataIndex: "is_admin",
       key: "is_admin",
       render: (val: boolean) =>
-        val ? <Tag color="gold">{t("admin.admin")}</Tag> : <Tag>普通用户</Tag>,
+        val ? <Tag color="gold">{t("admin.admin")}</Tag> : <Tag>{t("admin.normalUser")}</Tag>,
     },
     {
       title: "注册时间",
@@ -246,7 +246,7 @@ const UserManagement: React.FC = () => {
             <Input.Password placeholder="请输入密码" />
           </Form.Item>
           <Form.Item name="is_admin" valuePropName="checked">
-            <Checkbox>设为管理员</Checkbox>
+            <Checkbox>{t("admin.setAsAdmin")}</Checkbox>
           </Form.Item>
         </Form>
       </Modal>

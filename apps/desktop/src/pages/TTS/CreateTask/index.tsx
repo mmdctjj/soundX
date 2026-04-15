@@ -33,6 +33,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { trackEvent } from "../../../services/tracking";
+import { useTranslation } from "react-i18next";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -40,6 +41,7 @@ const { Option } = Select;
 // Types are now imported from @soundx/services
 
 const CreateTask: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement>(null);
   const previewObjectUrlRef = useRef<string | null>(null);
@@ -265,9 +267,9 @@ const CreateTask: React.FC = () => {
       width: 100,
       render: (done: boolean) =>
         done ? (
-          <Tag color="success">已生成</Tag>
+          <Tag color="success">{t("tts.generated")}</Tag>
         ) : (
-          <Tag color="default">未生成</Tag>
+          <Tag color="default">{t("tts.notGenerated")}</Tag>
         ),
     },
     {

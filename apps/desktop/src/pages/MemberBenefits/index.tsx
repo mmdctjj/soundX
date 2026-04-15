@@ -471,7 +471,7 @@ const MemberBenefits: React.FC = () => {
           />
 
           <div style={{ marginTop: 40, marginBottom: 20 }}>
-            <Text style={{ textAlign: "center" }}>会员方案</Text>
+            <Text style={{ textAlign: "center" }}>{t("memberBenefits.memberPlan")}</Text>
             <Flex gap={20} justify="space-between" style={{ marginTop: 24 }}>
               <Card
                 className={`${styles.priceCard} ${selectedPlan === "annual" ? styles.selectedCard : ""}`}
@@ -483,7 +483,7 @@ const MemberBenefits: React.FC = () => {
                   borderWidth: selectedPlan === "annual" ? 2 : 1,
                 }}
               >
-                <Title level={5}>年卡</Title>
+                <Title level={5}>{t("memberBenefits.annualCard")}</Title>
                 <div className={styles.price}>
                   <span className={styles.currency}>¥</span>
                   <span className={styles.amount}>
@@ -523,7 +523,7 @@ const MemberBenefits: React.FC = () => {
                 hoverable
                 onClick={() => setSelectedPlan("lifetime")}
               >
-                <div className={styles.proBadge}>推荐</div>
+                <div className={styles.proBadge}>{t("memberBenefits.recommended")}</div>
                 <Title level={5}>永久卡</Title>
                 <div className={styles.price}>
                   <span className={styles.currency}>¥</span>
@@ -586,7 +586,7 @@ const MemberBenefits: React.FC = () => {
               }}
             >
               <WechatFilled style={{ fontSize: 24, color: "#1AAD19" }} />
-              <Text style={{ fontWeight: 500 }}>微信</Text>
+              <Text style={{ fontWeight: 500 }}>{t("memberBenefits.wechatPay")}</Text>
             </Flex>
             <Flex
               align="center"
@@ -604,7 +604,7 @@ const MemberBenefits: React.FC = () => {
               }}
             >
               <AlipayCircleFilled style={{ fontSize: 24, color: "#02A9F1" }} />
-              <Text style={{ fontWeight: 500 }}>支付宝</Text>
+              <Text style={{ fontWeight: 500 }}>{t("memberBenefits.alipay")}</Text>
             </Flex>
           </Flex>
 
