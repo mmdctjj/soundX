@@ -451,7 +451,7 @@ export default function Player() {
                 <Text className='player-menu-item-text'>{t('common.property')}</Text>
               </View>
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowLyricsFontModal(true); }}>
-                <Text className='player-menu-item-text'>调节歌词大小</Text>
+                <Text className='player-menu-item-text'>{t("player.adjustLyricSize")}</Text>
               </View>
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowControlsOffsetModal(true); }}>
                 <Text className='player-menu-item-text'>{t('player.adjustControlPosition')}</Text>
@@ -515,7 +515,7 @@ export default function Player() {
             <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
               <View className='player-controls-offset-modal'>
                 <View className='player-modal-title-row'>
-                  <Text className='player-modal-title'>调节歌词大小</Text>
+                  <Text className='player-modal-title'>{t("player.adjustLyricSize")}</Text>
                 </View>
                 <View className='player-modal-description-row'>
                   <Text className='player-modal-description'>{t('player.adjustLyricFontSize')}</Text>
@@ -615,7 +615,7 @@ export default function Player() {
                     <Text className='player-modal-cancel-text'>{t('player.close')} {t('common.cancel')}</Text>
                   </View>
                   <View className='player-modal-btn player-modal-confirm-btn' onClick={confirmSkipConfig}>
-                    <Text className='player-modal-confirm-text'>保存设置</Text>
+                    <Text className='player-modal-confirm-text'>{t("common.saveSettings")}</Text>
                   </View>
                 </View>
               </View>
