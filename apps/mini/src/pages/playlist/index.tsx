@@ -2,6 +2,7 @@ import { getPlaylistById, Track } from "@soundx/services";
 import { Image, ScrollView, Text, View } from "@tarojs/components";
 import Taro, { useRouter } from "@tarojs/taro";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import MiniPlayer from "../../components/MiniPlayer";
 import { usePlayer } from "../../context/PlayerContext";
 import { getBaseURL } from "../../utils/request";
@@ -9,12 +10,13 @@ import "./index.scss";
 import BottomTabBar from '../../components/BottomTabBar';
 
 export default function PlaylistDetail() {
+  const { t } = useTranslation();
   const router = useRouter();
   const playlistId = useMemo(() => Number(router.params.id), [router.params.id]);
   const { playTrackList, currentTrack, isPlaying } = usePlayer();
 
   const [loading, setLoading] = useState(true);
-  const [playlistName, setPlaylistName] = useState("播放列表");
+  const [playlistName, setPlaylistName] = useState(t('nav.playlists'));
   const [tracks, setTracks] = useState<Track[]>([]);
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function PlaylistDetail() {
     try {
       const res = await getPlaylistById(id);
       if (res.code === 200 && res.data) {
-        setPlaylistName(res.data.name || "播放列表");
+        setPlaylistName(res.data.name || t('nav.playlists'));
         setTracks((res.data.tracks || []) as unknown as Track[]);
       }
     } catch (error) {
@@ -70,7 +72,7 @@ export default function PlaylistDetail() {
   if (loading) {
     return (
       <View className="playlist-page">
-        <View className="center-msg"><Text>加载中...</Text></View>
+        <View className="center-msg"><Text>{t('common.loading')}</Text></View>
       </View>
     );
   }
@@ -113,13 +115,13 @@ export default function PlaylistDetail() {
             className={`play-all ${tracks.length === 0 ? "disabled" : ""}`}
             onClick={() => tracks.length > 0 && playTrackList(tracks as any, 0)}
           >
-            <Text>播放全部</Text>
+            <Text>{t('playlist.playAll')}</Text>
           </View>
         </View>
 
         <View className="track-list">
           {tracks.length === 0 ? (
-            <View className="center-msg"><Text>暂无曲目</Text></View>
+            <View className="center-msg"><Text>{t('playlist.noTracks')}</Text></View>
           ) : (
               tracks.map((item, index) => (
                 <View
@@ -133,11 +135,11 @@ export default function PlaylistDetail() {
                       {item.name}
                     </Text>
                     <Text className="sub" numberOfLines={1}>
-                      {item.artist || "未知艺术家"}
+                      {item.artist || t('common.unknownArtist')}
                     </Text>
                   </View>
                   <View className="right">
-                    {currentTrack?.id === item.id && isPlaying ? <Text className="playing">播放中</Text> : null}
+                    {currentTrack?.id === item.id && isPlaying ? <Text className="playing">{t('playlist.playing')}</Text> : null}
                     <Text className="duration">{formatDuration(item.duration || 0)}</Text>
                   </View>
                 </View>

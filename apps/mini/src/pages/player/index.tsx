@@ -2,6 +2,7 @@ import { getFavoriteTracks, toggleTrackLike, toggleTrackUnLike } from '@soundx/s
 import { Image, ScrollView, Slider, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import AddToPlaylistModal from '../../components/AddToPlaylistModal';
 import PlaylistModal from '../../components/PlaylistModal';
 import { useAuth } from '../../context/AuthContext';
@@ -44,6 +45,7 @@ const parseLyrics = (lyrics: string): LyricLine[] => {
 };
 
 export default function Player() {
+  const { t } = useTranslation();
   const {
     currentTrack,
     isPlaying,
@@ -167,7 +169,7 @@ export default function Player() {
     } catch (error) {
       console.error('Failed to toggle like', error);
       setLiked(previousLiked);
-      Taro.showToast({ title: '操作失败', icon: 'none' });
+      Taro.showToast({ title: t('common.operationFailed'), icon: 'none' });
     }
   };
 
@@ -188,9 +190,9 @@ export default function Player() {
     setShowMoreMenu(false);
     await Taro.showModal({
       title: `曲目属性 · ${currentTrack.name}`,
-      content: currentTrack.path?.trim() || '暂无文件路径',
+      content: currentTrack.path?.trim() || t('common.noData'),
       showCancel: false,
-      confirmText: '关闭',
+      confirmText: t('player.close'),
     });
   };
 
@@ -335,7 +337,7 @@ export default function Player() {
                             </ScrollView>
                         ) : (
                             <View className='player-no-lyrics'>
-                                <Text>暂无歌词</Text>
+                                <Text>{t('player.noLyrics')}</Text>
                             </View>
                         )}
                     </View>
@@ -406,16 +408,16 @@ export default function Player() {
                 <View className='player-audiobook-menu-controls'>
                   <View className='player-audiobook-menu-btn' onClick={() => openSkipConfig('intro')}>
                     <Text className='player-audiobook-menu-icon icon icon-prev' />
-                    <Text className='player-audiobook-menu-label'>片头</Text>
+                    <Text className='player-audiobook-menu-label'>{t('player.intro')}</Text>
                     <Text className='player-audiobook-menu-value'>{skipIntroDuration > 0 ? `${skipIntroDuration}s` : '关'}</Text>
                   </View>
                   <View className='player-audiobook-menu-btn' onClick={() => handleSkip(-15)}>
                     <Text className='player-audiobook-menu-plain'>-15s</Text>
-                    <Text className='player-audiobook-menu-label'>后退</Text>
+                    <Text className='player-audiobook-menu-label'>{t('player.backward')}</Text>
                   </View>
                   <View className='player-audiobook-menu-btn' onClick={togglePlaybackRate}>
                     <Text className='player-audiobook-menu-icon icon icon-headset' />
-                    <Text className='player-audiobook-menu-label'>倍速</Text>
+                    <Text className='player-audiobook-menu-label'>{t('player.speed')}</Text>
                     <Text className='player-audiobook-menu-value'>{playbackRate}x</Text>
                   </View>
                   <View className='player-audiobook-menu-btn' onClick={() => handleSkip(15)}>
@@ -433,7 +435,7 @@ export default function Player() {
                 <Text className='player-menu-item-text'>添加到播放列表</Text>
               </View>
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowSleepTimerModal(true); }}>
-                <Text className='player-menu-item-text'>{sleepTimer ? `定时关闭 (${formatRemainingTime()})` : '定时关闭'}</Text>
+                <Text className='player-menu-item-text'>{sleepTimer ? `${t('player.sleepTimer')} (${formatRemainingTime()})` : t('player.sleepTimer')}</Text>
               </View>
               {currentTrack?.artistId && (
                 <View className='player-menu-item' onClick={handleNavigateToArtist}>
@@ -553,7 +555,7 @@ export default function Player() {
             <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
               <View className='player-controls-offset-modal'>
                 <View className='player-modal-title-row'>
-                  <Text className='player-modal-title'>定时关闭</Text>
+                  <Text className='player-modal-title'>{t('player.sleepTimer')}</Text>
                 </View>
                 <View className='player-sleep-grid'>
                   {[15, 30, 60, 90].map((minutes) => (
@@ -568,7 +570,7 @@ export default function Player() {
                 </View>
                 {sleepTimer && (
                   <View className='player-menu-item' onClick={() => { clearSleepTimer(); setShowSleepTimerModal(false); }}>
-                    <Text className='player-menu-item-text'>关闭当前定时</Text>
+                    <Text className='player-menu-item-text'>{t('player.cancelTimer')}</Text>
                   </View>
                 )}
               </View>
@@ -610,7 +612,7 @@ export default function Player() {
                 </View>
                 <View className='player-modal-actions'>
                   <View className='player-modal-btn player-modal-cancel-btn' onClick={clearSkipConfig}>
-                    <Text className='player-modal-cancel-text'>关闭此功能</Text>
+                    <Text className='player-modal-cancel-text'>{t('player.close')} {t('common.cancel')}</Text>
                   </View>
                   <View className='player-modal-btn player-modal-confirm-btn' onClick={confirmSkipConfig}>
                     <Text className='player-modal-confirm-text'>保存设置</Text>

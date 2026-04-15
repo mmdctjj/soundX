@@ -9,6 +9,7 @@ import {
 import { Image, Input, ScrollView, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { speechToText } from '../../services/asr';
 import { usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
@@ -16,6 +17,7 @@ import { getBaseURL } from '../../utils/request';
 import './index.scss';
 
 export default function Search() {
+  const { t } = useTranslation();
   const { mode } = usePlayMode();
   const { playTrack } = usePlayer();
   const recorderRef = useRef<Taro.RecorderManager | null>(null);
@@ -47,7 +49,7 @@ export default function Search() {
     const handleStop = async (res: Taro.RecorderManager.OnStopCallbackResult) => {
       setIsRecording(false);
       if (!res.tempFilePath) {
-        Taro.showToast({ title: '录音失败', icon: 'none' });
+        Taro.showToast({ title: t('search.recordFailed'), icon: 'none' });
         return;
       }
 
@@ -57,7 +59,7 @@ export default function Search() {
         setKeyword(text);
       } catch (error) {
         console.error('Speech to text failed:', error);
-        Taro.showToast({ title: '语音识别失败', icon: 'none' });
+        Taro.showToast({ title: t('search.recognizeFailed'), icon: 'none' });
       } finally {
         setLoading(false);
       }
@@ -66,7 +68,7 @@ export default function Search() {
     const handleError = (error: TaroGeneral.CallbackResult) => {
       setIsRecording(false);
       console.error('Recorder error:', error);
-      Taro.showToast({ title: '录音异常', icon: 'none' });
+      Taro.showToast({ title: t('search.recordError'), icon: 'none' });
     };
 
     manager.onStop(handleStop);
@@ -153,9 +155,9 @@ export default function Search() {
       const settings = await Taro.getSetting();
       if (settings.authSetting['scope.record'] === false) {
         const modalRes = await Taro.showModal({
-          title: '麦克风权限',
-          content: '语音搜索需要麦克风权限，请在设置中开启。',
-          confirmText: '去设置'
+          title: t('search.microphonePermission'),
+          content: t('search.microphonePermissionDesc'),
+          confirmText: t('search.goToSettings')
         });
         if (modalRes.confirm) {
           await Taro.openSetting();
@@ -180,7 +182,7 @@ export default function Search() {
 
     const granted = await requestRecordPermission();
     if (!granted) {
-      Taro.showToast({ title: '未授予录音权限', icon: 'none' });
+      Taro.showToast({ title: t('search.noRecordPermission'), icon: 'none' });
       return;
     }
 
@@ -193,7 +195,7 @@ export default function Search() {
         format: 'mp3'
       });
       setIsRecording(true);
-      Taro.showToast({ title: '正在录音，点击停止', icon: 'none' });
+      Taro.showToast({ title: t('search.recording'), icon: 'none' });
     } catch (error) {
       setIsRecording(false);
       console.error('Start recording failed:', error);

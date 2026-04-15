@@ -16,6 +16,7 @@ import {
 import { Image, Input, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
 import SkeletonBlock from '../../components/SkeletonBlock';
 import StackedCover from '../../components/StackedCover';
@@ -29,6 +30,7 @@ type TabType = 'playlists' | 'favorites' | 'history';
 type SubTabType = 'track' | 'album';
 
 export default function Personal() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { mode } = usePlayMode();
   const { playTrackList } = usePlayer();
@@ -190,10 +192,10 @@ export default function Personal() {
         await loadData();
         Taro.navigateTo({ url: `/pages/playlist/index?id=${res.data.id}` });
       } else {
-        Taro.showToast({ title: res.message || '创建失败', icon: 'none' });
+        Taro.showToast({ title: res.message || t('personal.createFailed'), icon: 'none' });
       }
     } catch (error) {
-      Taro.showToast({ title: '创建失败', icon: 'none' });
+      Taro.showToast({ title: t('personal.createFailed'), icon: 'none' });
     } finally {
       setCreating(false);
     }
@@ -209,15 +211,15 @@ export default function Personal() {
           id: taskId,
           status: TaskStatus.INITIALIZING,
           mode: initialMode,
-          message: initialMode === 'compact' ? '正在启动精简任务...' : '正在初始化...',
+          message: initialMode === 'compact' ? t('personal.initializingCompact') : t('personal.initializing'),
         } as ImportTask);
         if (pollTimerRef.current) clearInterval(pollTimerRef.current);
         pollTimerRef.current = setInterval(() => pollTaskStatus(taskId), 1500);
       } else {
-        Taro.showToast({ title: taskRes.message || '任务创建失败', icon: 'none' });
+        Taro.showToast({ title: taskRes.message || t('common.taskCreateFailed'), icon: 'none' });
       }
     } catch (error) {
-      Taro.showToast({ title: '任务创建失败', icon: 'none' });
+      Taro.showToast({ title: t('common.taskCreateFailed'), icon: 'none' });
     }
   };
 
@@ -230,10 +232,10 @@ export default function Personal() {
     }
 
     const modalRes = await Taro.showModal({
-      title: '会员功能',
-      content: '开通会员才能使用 TTS 有声书转换功能',
-      confirmText: '去开通',
-      cancelText: '取消',
+      title: t('common.memberFeature'),
+      content: t('common.ttsVipRequired'),
+      confirmText: t('common.goActivate'),
+      cancelText: t('common.cancel'),
     });
 
     if (modalRes.confirm) {
@@ -244,14 +246,14 @@ export default function Personal() {
   const handleUpdateLibrary = async (updateMode: 'incremental' | 'full' | 'compact') => {
     setShowMenu(false);
     const contentMap = {
-      incremental: '增量更新只增加新数据，不删除旧数据',
-      full: '全量更新会完整扫描音频文件，用于修正库数据',
-      compact: '精简数据会清理失效记录并校验文件状态',
+      incremental: t('personal.incrementalUpdateDesc'),
+      full: t('personal.fullUpdateDesc'),
+      compact: t('personal.compactDataDesc'),
     };
     const titleMap = {
-      incremental: '确认增量更新？',
-      full: '确认全量更新？',
-      compact: '确认精简数据？',
+      incremental: t('personal.confirmIncremental'),
+      full: t('personal.confirmFull'),
+      compact: t('personal.confirmCompact'),
     };
 
     const modalRes = await Taro.showModal({
@@ -281,7 +283,7 @@ export default function Personal() {
   };
 
   const getEmptyText = () => {
-    return loading ? '加载中...' : '暂无数据';
+    return loading ? t('common.loading') : t('common.noData');
   };
 
   const renderList = () => {
@@ -366,17 +368,17 @@ export default function Personal() {
       return importTask.message;
     }
     if (importTask?.status === TaskStatus.INITIALIZING) {
-      return importTask?.mode === 'compact' ? '正在初始化精简任务...' : '正在初始化...';
+      return importTask?.mode === 'compact' ? t('personal.initializingCompact') : t('personal.initializing');
     }
-    if (importTask?.status === TaskStatus.PREPARING) return '正在准备环境...';
-    if (importTask?.status === TaskStatus.PARSING) return '正在解析媒体文件...';
+    if (importTask?.status === TaskStatus.PREPARING) return t('personal.preparingEnv');
+    if (importTask?.status === TaskStatus.PARSING) return t('personal.parsingMedia');
     if (importTask?.status === TaskStatus.SUCCESS) {
-      return importTask?.mode === 'compact' ? '精简完成' : '入库完成';
+      return importTask?.mode === 'compact' ? t('personal.compactComplete') : t('personal.importComplete');
     }
     if (importTask?.status === TaskStatus.FAILED) {
-      return importTask?.mode === 'compact' ? '精简失败' : '入库失败';
+      return importTask?.mode === 'compact' ? t('personal.compactFailed') : t('personal.importFailed');
     }
-    return '准备中';
+    return t('common.loading');
   };
 
   return (
@@ -393,21 +395,21 @@ export default function Personal() {
         {showMenu && (
           <View className='menu-dropdown'>
             <View className='menu-item' onClick={() => { setShowMenu(false); setShowCreateModal(true); }}>
-              <Text>新建播放列表</Text>
+              <Text>{t('personal.createPlaylist')}</Text>
             </View>
             <View className='menu-item' onClick={() => handleUpdateLibrary('incremental')}>
-              <Text>增量更新音频文件</Text>
+              <Text>{t('personal.incrementalUpdate')}</Text>
             </View>
             <View className='menu-item' onClick={() => handleUpdateLibrary('full')}>
-              <Text>全量更新音频文件</Text>
+              <Text>{t('personal.fullUpdate')}</Text>
             </View>
             {sourceType !== 'Emby' && mode !== 'MUSIC' && (
               <View className='menu-item' onClick={handleOpenTtsTasks}>
-                <Text>TTS 有声书转换</Text>
+                <Text>{t('personal.ttsConversion')}</Text>
               </View>
             )}
             <View className='menu-item' onClick={() => handleUpdateLibrary('compact')}>
-              <Text>精简数据</Text>
+              <Text>{t('personal.compactData')}</Text>
             </View>
           </View>
         )}
@@ -424,7 +426,7 @@ export default function Personal() {
       <View className='user-profile'>
         <Image src={getImageUrl((user as any)?.avatar || null)} className='avatar' mode='aspectFill' />
         <View className='username-row'>
-          <Text className='username'>{user?.username || '未登录'}</Text>
+          <Text className='username'>{user?.username || t('common.notLoggedIn')}</Text>
           {user && (
             <View
               className={`vip-crown ${isVip ? 'active' : ''}`}
@@ -445,14 +447,14 @@ export default function Personal() {
             </View>
           )}
         </View>
-        {!user && <View className='login-btn' onClick={() => Taro.navigateTo({ url: '/pages/login/index' })}>去登录</View>}
+        {!user && <View className='login-btn' onClick={() => Taro.navigateTo({ url: '/pages/login/index' })}>{t('common.goLogin')}</View>}
       </View>
 
       <View className='tabs-row'>
         {[
-          { key: 'playlists', label: '播放列表' },
-          { key: 'favorites', label: '收藏' },
-          { key: 'history', label: '听过', hidden: sourceType === 'Emby' },
+          { key: 'playlists', label: t('nav.playlists') },
+          { key: 'favorites', label: t('common.favorites') },
+          { key: 'history', label: t('common.listened'), hidden: sourceType === 'Emby' },
         ]
           .filter((tab) => !tab.hidden)
           .map((tab) => (
@@ -465,10 +467,10 @@ export default function Personal() {
       {mode === 'MUSIC' && (activeTab === 'favorites' || activeTab === 'history') && (
         <View className='sub-tabs-row'>
           <View className={`sub-tab ${activeSubTab === 'album' ? 'active' : ''}`} onClick={() => setActiveSubTab('album')}>
-            <Text>专辑</Text>
+            <Text>{t('nav.albums')}</Text>
           </View>
           <View className={`sub-tab ${activeSubTab === 'track' ? 'active' : ''}`} onClick={() => setActiveSubTab('track')}>
-            <Text>单曲</Text>
+            <Text>{t('nav.tracks')}</Text>
           </View>
         </View>
       )}
@@ -483,18 +485,18 @@ export default function Personal() {
       {showCreateModal && (
         <View className='modal-overlay' onClick={() => setShowCreateModal(false)}>
           <View className='modal-content' onClick={(e) => e.stopPropagation()}>
-            <Text className='modal-title'>新建播放列表</Text>
+            <Text className='modal-title'>{t('personal.createPlaylist')}</Text>
             <Input
               className='modal-input'
-              placeholder='请输入列表名称'
+              placeholder={t('playlist.namePlaceholder')}
               value={newPlaylistName}
               onInput={(e) => setNewPlaylistName(e.detail.value)}
               focus
             />
             <View className='modal-btns'>
-              <View className='modal-btn cancel' onClick={() => setShowCreateModal(false)}>取消</View>
+              <View className='modal-btn cancel' onClick={() => setShowCreateModal(false)}>{t('common.cancel')}</View>
               <View className='modal-btn confirm' onClick={handleCreatePlaylist}>
-                {creating ? '创建中...' : '确定'}
+                {creating ? t('common.creating') : t('common.confirm')}
               </View>
             </View>
           </View>
@@ -504,9 +506,9 @@ export default function Personal() {
       {showImportModal && (
         <View className='modal-overlay'>
           <View className='modal-content'>
-            <Text className='modal-title'>{importTask?.mode === 'compact' ? '精简数据进度' : '库文件入库进度'}</Text>
+            <Text className='modal-title'>{importTask?.mode === 'compact' ? t('personal.compactProgress') : t('personal.importProgress')}</Text>
             <View className='status-row'>
-              <Text>状态：</Text>
+              <Text>{t('common.status')}</Text>
               <Text className='status-val'>{importStatusText()}</Text>
             </View>
             <View className='progress-container'>
@@ -516,13 +518,13 @@ export default function Personal() {
               />
             </View>
             <Text className='progress-text'>
-              进度：{importTask?.current || 0} / {importTask?.total || 0}
+              {t('common.progress')}{importTask?.current || 0} / {importTask?.total || 0}
             </Text>
             {importTask?.status === TaskStatus.FAILED && importTask?.message ? (
               <Text className='error-text'>{importTask.message}</Text>
             ) : null}
             <View className='modal-btns'>
-              <View className='modal-btn single' onClick={() => setShowImportModal(false)}>后台运行</View>
+              <View className='modal-btn single' onClick={() => setShowImportModal(false)}>{t('common.runInBackground')}</View>
             </View>
           </View>
         </View>

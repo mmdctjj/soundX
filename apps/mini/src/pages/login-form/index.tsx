@@ -1,12 +1,14 @@
 import { Button, Image, Input, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import { setBaseURL } from '../../utils/request'
 import { SOURCEMAP, SOURCETIPSMAP, SourceConfig, getSourceLogo, selectBestServer } from '../../utils/sourceUtils'
 import './index.scss'
 
 export default function LoginForm() {
+  const { t } = useTranslation();
   const { login, register, token } = useAuth()
   const params = Taro.getCurrentInstance().router?.params
   const sourceType = params?.type || 'AudioDock'
@@ -114,7 +116,7 @@ export default function LoginForm() {
             id: Date.now().toString(),
             internal: parsed.internal || '',
             external: parsed.external || '',
-            name: '默认服务器',
+            name: t('login.defaultServer'),
           }]
         }
       }
@@ -143,17 +145,17 @@ export default function LoginForm() {
 
   const handleSubmit = async () => {
     if (!externalAddress && !internalAddress) {
-      Taro.showToast({ title: '请至少输入一个地址', icon: 'none' })
+      Taro.showToast({ title: t('login.enterAddress'), icon: 'none' })
       return
     }
 
     if (!username || !password) {
-      Taro.showToast({ title: '请填写用户名和密码', icon: 'none' })
+      Taro.showToast({ title: t('login.fillUsernameAndPassword'), icon: 'none' })
       return
     }
 
     if (!isLogin && password !== confirmPassword) {
-      Taro.showToast({ title: '两次密码不一致', icon: 'none' })
+      Taro.showToast({ title: t('login.passwordMismatch'), icon: 'none' })
       return
     }
 
@@ -162,7 +164,7 @@ export default function LoginForm() {
 
       const bestAddress = await selectBestServer(internalAddress, externalAddress, sourceType)
       if (!bestAddress) {
-        Taro.showToast({ title: '无法连接到任一地址', icon: 'none' })
+        Taro.showToast({ title: t('login.cannotConnectAnyAddress'), icon: 'none' })
         return
       }
 
@@ -182,13 +184,13 @@ export default function LoginForm() {
         await login({ username, password })
       } else {
         if (mappedType === 'subsonic') {
-          throw new Error('Subsonic 数据源不支持注册')
+          throw new Error(t('login.subsonicNoRegisterSupport') || 'Subsonic data source does not support registration')
         }
         await register({ username, password })
       }
 
       if (isAddingSource) {
-        Taro.showToast({ title: '数据源添加成功', icon: 'success' })
+        Taro.showToast({ title: t('login.dataSourceAddedSuccess'), icon: 'success' })
         setTimeout(() => {
           Taro.navigateBack()
         }, 800)
@@ -197,7 +199,7 @@ export default function LoginForm() {
 
       Taro.switchTab({ url: '/pages/personal/index' })
     } catch (error: any) {
-      Taro.showToast({ title: error.message || '认证失败', icon: 'none' })
+      Taro.showToast({ title: error.message || t('login.authFailed'), icon: 'none' })
     } finally {
       setLoading(false)
     }

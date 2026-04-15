@@ -2,6 +2,7 @@ import { Album, Artist, Track, getCollections, loadMoreAlbum, loadMoreArtist, lo
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import SkeletonBlock from '../../components/SkeletonBlock';
@@ -25,6 +26,7 @@ type CollectionItem = {
 type LibraryTab = 'songs' | 'artists' | 'albums' | 'collections';
 
 export default function Library() {
+  const { t } = useTranslation();
   const { mode, setMode } = usePlayMode();
   const { user } = useAuth();
   const { playTrackList, currentTrack, isPlaying } = usePlayer();
@@ -283,9 +285,9 @@ export default function Library() {
     setShowTrackMoreMenu(false);
     await Taro.showModal({
       title: `曲目属性 · ${track.name}`,
-      content: track.path?.trim() || '暂无文件路径',
+      content: track.path?.trim() || t('common.noData'),
       showCancel: false,
-      confirmText: '关闭',
+      confirmText: t('common.cancel'),
     });
   };
 
@@ -329,20 +331,20 @@ export default function Library() {
                   className={`tab-item ${activeTab === 'songs' ? 'active' : ''}`}
                   onClick={() => setActiveTab('songs')}
               >
-                  {renderTabLabel('单曲', tabCounts.songs, activeTab === 'songs')}
+                  {renderTabLabel(t('nav.tracks'), tabCounts.songs, activeTab === 'songs')}
               </View>
             )}
             <View 
                 className={`tab-item ${activeTab === 'artists' ? 'active' : ''}`} 
                 onClick={() => setActiveTab('artists')}
             >
-                {renderTabLabel('艺术家', tabCounts.artists, activeTab === 'artists')}
+                {renderTabLabel(t('nav.artists'), tabCounts.artists, activeTab === 'artists')}
             </View>
             <View 
                 className={`tab-item ${activeTab === 'albums' ? 'active' : ''}`} 
                 onClick={() => setActiveTab('albums')}
             >
-                {renderTabLabel('专辑', tabCounts.albums, activeTab === 'albums')}
+                {renderTabLabel(t('nav.albums'), tabCounts.albums, activeTab === 'albums')}
             </View>
             {mode === 'AUDIOBOOK' && (
               <View
@@ -438,7 +440,7 @@ export default function Library() {
                          {item.name}
                        </Text>
                        <Text className='track-sub' numberOfLines={1}>
-                         {item.artist || '未知艺术家'} · {item.album || '未知专辑'}
+                         {item.artist || t('common.unknownArtist')} · {item.album || t('common.unknownAlbum')}
                        </Text>
                      </View>
                      {currentTrack?.id === item.id && isPlaying ? <Text className='track-playing'>播放中</Text> : null}
@@ -485,11 +487,11 @@ export default function Library() {
                      </Text>
                      {activeTab === 'albums' ? (
                        <Text className='item-sub' numberOfLines={1}>
-                         {(item as Album).artist || '未知艺术家'}
+                         {(item as Album).artist || t('common.unknownArtist')}
                        </Text>
                      ) : activeTab === 'collections' ? (
                        <Text className='item-sub' numberOfLines={1}>
-                         {`${item._count?.items ?? item.items?.length ?? 0} 张专辑`}
+                         {`${item._count?.items ?? item.items?.length ?? 0} ${t('library.albums')}`}
                        </Text>
                      ) : null}
                    </View>
@@ -504,7 +506,7 @@ export default function Library() {
              {sortedItems.length > 0 && (
                <View className='library-footer'>
                  <Text className='library-footer-text'>
-                   {`共加载 ${sortedItems.length} ${activeTab === 'songs' ? '首' : activeTab === 'artists' ? '位艺术家' : activeTab === 'albums' ? '张专辑' : '个合集'}`}
+                   {`${t('common.loading')} ${sortedItems.length} ${activeTab === 'songs' ? t('nav.tracks') : activeTab === 'artists' ? t('nav.artists') : activeTab === 'albums' ? t('nav.albums') : t('library.collections')}`}
                  </Text>
                </View>
              )}
@@ -537,7 +539,7 @@ export default function Library() {
                 }
               }}
             >
-              <Text className='track-more-item-text'>专辑详情</Text>
+              <Text className='track-more-item-text'>{t('album.title')}</Text>
             </View>
             <View className='track-more-item' onClick={() => showTrackPathModal(selectedTrack)}>
               <Text className='track-more-item-text'>属性</Text>

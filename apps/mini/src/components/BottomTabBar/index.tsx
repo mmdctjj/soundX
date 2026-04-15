@@ -1,6 +1,7 @@
 import { Image, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import './index.scss';
 
 // 使用相对路径导入图片
@@ -11,14 +12,17 @@ import musicFillIcon from '../../assets/images/music-fill.png';
 import peopleIcon from '../../assets/images/people.png';
 import peopleFillIcon from '../../assets/images/people-fill.png';
 
-const tabs = [
-  { pagePath: '/pages/index/index', text: '推荐', icon: homeIcon, selectedIcon: homeFillIcon },
-  { pagePath: '/pages/library/index', text: '声仓', icon: musicIcon, selectedIcon: musicFillIcon },
-  { pagePath: '/pages/personal/index', text: '我的', icon: peopleIcon, selectedIcon: peopleFillIcon },
-];
+
 
 const BottomTabBar: React.FC = () => {
+  const { t } = useTranslation();
   const router = useRouter();
+
+  const tabs = [
+    { pagePath: '/pages/index/index', text: t('home.recommend'), icon: homeIcon, selectedIcon: homeFillIcon },
+    { pagePath: '/pages/library/index', text: t('nav.library'), icon: musicIcon, selectedIcon: musicFillIcon },
+    { pagePath: '/pages/personal/index', text: t('nav.personal'), icon: peopleIcon, selectedIcon: peopleFillIcon },
+  ];
 
   const handleTabClick = (pagePath: string) => {
     Taro.switchTab({ url: pagePath });
