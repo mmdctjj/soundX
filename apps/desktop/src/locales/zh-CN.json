@@ -5,7 +5,21 @@
     "ok": "好的",
     "reset": "重置",
     "done": "完成",
-    "save": "保存"
+    "save": "保存",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "添加",
+    "search": "搜索",
+    "noData": "暂无数据"
+  },
+  "nav": {
+    "library": "音乐库",
+    "search": "搜索",
+    "personal": "我的",
+    "settings": "设置"
   },
   "settings": {
     "title": "设置",
@@ -15,90 +29,116 @@
     "about": "关于",
     "language": "语言",
     "languageDescription": "选择应用显示语言",
-    
     "admin": "管理后台",
     "adminDescription": "用户与系统设置",
-    
-    "carMode": "车机模式",
-    "carModeDescription": "左侧播放器，右侧内容区",
-    "carModeVipOnly": "车机模式是会员专属功能，请前往会员页面开启。",
-    "goToMemberPage": "前往会员页面",
-    
-    "screenInset": "调整屏幕边距",
-    "screenInsetDescription": "调整播放详情页整体距离屏幕底部的位置",
-    "bottomInset": "底部边距",
-    "closerToBottom": "更贴近底部",
-    "pageUp": "整页上移",
-    
-    "autoTheme": "跟随系统主题",
-    "autoThemeDescription": "开启后将根据系统设置自动切换浅色/深色模式",
-    
-    "darkMode": "深色模式",
-    "darkModeDescription": "开启或关闭应用的深色外观",
-    
-    "festiveTheme": "春日主题",
-    "festiveThemeDescription": "开启具有新春氛围的红金配色主题",
-    
-    "autoOrientation": "自动横竖屏",
-    "autoOrientationDescription": "开启后应用将跟随手机重力感应自动旋转",
-    
-    "voiceAssistant": "语音助手",
-    "voiceAssistantDescription": "开启后显示全局语音助手小松鼠",
-    "voiceAssistantVipOnly": "语音助手是会员专属功能，请前往会员页面开启。",
-    
-    "recommendationPreference": "推荐偏好（喜欢/新鲜）",
-    "like": "喜欢",
-    "fresh": "新鲜",
-    
-    "audiobookMode": "有声书模式",
-    "audiobookModeDescription": "切换音乐与有声书的显示内容",
-    
+    "sourceManage": "数据源管理",
+    "sourceManageDescription": "切换和管理音频数据源",
+    "autoLaunch": "开机启动",
+    "autoLaunchDescription": "系统启动时自动运行应用",
+    "minimizeToTray": "最小化到托盘",
+    "minimizeToTrayDescription": "关闭窗口时最小化到系统托盘",
     "relayPlay": "接力播放",
     "relayPlayDescription": "是否接受多设备之间播放接力",
-    
     "syncControl": "同步控制",
     "syncControlDescription": "是否接受同数据源下其他用户的同步控制请求",
-    
-    "cacheWhilePlaying": "边听边存",
-    "cacheWhilePlayingDescription": "播放时自动缓存到本地，下次播放优先使用本地文件",
-    
+    "recommendationPreference": "推荐偏好",
+    "like": "喜欢",
+    "fresh": "新鲜",
+    "theme": "主题",
+    "themeSystem": "跟随系统",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "desktopLyric": "桌面歌词",
+    "desktopLyricEnable": "启用桌面歌词",
+    "lockPosition": "位置锁定",
+    "lockPositionDescription": "锁定歌词窗口位置",
+    "fontSize": "字体大小",
+    "fontWeight": "字体粗细",
+    "fontWeight100": "更细 (100)",
+    "fontWeight200": "细 (200)",
+    "fontWeight300": "较细 (300)",
+    "fontWeight400": "常规 (400)",
+    "fontWeight500": "中等 (500)",
+    "fontWeight600": "较粗 (600)",
+    "fontWeight700": "粗 (700)",
+    "fontWeight800": "很粗 (800)",
+    "fontWeight900": "黑体 (900)",
+    "fontColor": "字体颜色",
+    "backgroundOpacity": "背景透明度",
+    "downloadPath": "下载路径",
+    "selectDirectory": "选择目录",
+    "downloadSettings": "下载设置",
+    "maxDownloadThreads": "最大下载线程数",
     "coverCache": "封面缓存",
     "musicCache": "音乐缓存",
     "audiobookCache": "有声书缓存",
     "apkFiles": "安装包文件",
     "tapToClear": "点击清除",
     "cacheCleared": "缓存已清空",
-    
-    "productUpdates": "产品动态",
-    "productUpdatesDescription": "查看最新功能与版本更新",
-    
-    "joinBetaTest": "参与内测",
-    "betaTestDescription": "一键申请并自动开通当前账号内测权益",
-    "betaTestApplying": "正在为当前账号申请内测权益",
-    "betaTestAlreadyHas": "已拥有内测权益，无需重复申请",
-    "betaTestSuccess": "已为当前账号开通内测权益。",
-    "betaTestFailed": "申请内测失败",
-    
-    "experienceProgram": "参与用户体验计划",
-    "experienceProgramDescription": "使用数据以改进产品",
-    
+    "clearCache": "清除缓存",
+    "confirmClearCache": "确定要清除{{label}}缓存吗？",
     "logout": "退出登录",
     "logoutConfirm": "确定要退出登录吗？",
     "deleteMemberAccount": "注销会员账号",
     "deleteMemberConfirm": "确认注销吗？注销之后您的所有数据将会被清空！",
     "deleteMemberSuccess": "会员账号已注销。",
     "deleteMemberFailed": "注销会员账号失败",
-    
-    "clearCache": "清除缓存",
-    "confirmClearCache": "确定要清除{{label}}缓存吗？",
-    
+    "productUpdates": "产品动态",
+    "productUpdatesDescription": "查看最新功能与版本更新",
+    "joinBetaTest": "参与内测",
+    "betaTestDescription": "一键申请并自动开通当前账号内测权益",
+    "betaTestApplying": "正在为当前账号申请内测权益",
+    "betaTestAlreadyHas": "已拥有内测权益，无需重复申请",
+    "betaTestSuccess": "已为当前账号开通内测权益。",
+    "betaTestFailed": "申请内测失败",
+    "experienceProgram": "参与用户体验计划",
+    "experienceProgramDescription": "使用数据以改进产品",
     "vipOnly": "仅限会员使用",
     "loginFirst": "请先登录会员账号",
-    "loginMemberFirst": "请先登录会员账号后再参与内测。",
-    
     "cancelLogout": "取消",
     "confirmLogout": "确认",
-    
     "version": "AudioDock Desktop v{{version}}"
+  },
+  "login": {
+    "title": "登录",
+    "phone": "手机号",
+    "verificationCode": "验证码",
+    "sendCode": "发送验证码",
+    "loginButton": "登录",
+    "loggingIn": "登录中...",
+    "invalidPhone": "请输入正确的手机号",
+    "invalidCode": "请输入验证码"
+  },
+  "player": {
+    "play": "播放",
+    "pause": "暂停",
+    "next": "下一首",
+    "previous": "上一首",
+    "like": "喜欢",
+    "unlike": "取消喜欢",
+    "addToPlaylist": "添加到播放列表",
+    "lyrics": "歌词"
+  },
+  "library": {
+    "title": "音乐库",
+    "recommend": "推荐",
+    "newest": "最新",
+    "playlists": "歌单",
+    "albums": "专辑",
+    "artists": "歌手"
+  },
+  "search": {
+    "placeholder": "搜索音乐、歌手、专辑...",
+    "hotSearch": "热门搜索",
+    "searchHistory": "搜索历史",
+    "clearHistory": "清除历史"
+  },
+  "playlist": {
+    "create": "创建歌单",
+    "edit": "编辑歌单",
+    "delete": "删除歌单",
+    "歌单名称": "歌单名称",
+    "歌单描述": "歌单描述",
+    "trackCount": "{{count}}首"
   }
 }

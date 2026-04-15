@@ -1,8 +1,5 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { ConfigProvider } from "antd";
-import zhCN from "antd/locale/zh_CN";
-import enUS from "antd/locale/en_US";
 import BrowserLanguageDetector from "i18next-browser-languagedetector";
 
 import zhCNTranslation from "./locales/zh-CN.json";
@@ -30,8 +27,8 @@ i18n
   });
 
 export const antdLocales = {
-  "zh-CN": zhCN,
-  en: enUS,
+  "zh-CN": null,
+  en: null,
 };
 
 export const languages = [

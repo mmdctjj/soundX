@@ -5,7 +5,21 @@
     "ok": "OK",
     "reset": "Reset",
     "done": "Done",
-    "save": "Save"
+    "save": "Save",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "noData": "No Data"
+  },
+  "nav": {
+    "library": "Library",
+    "search": "Search",
+    "personal": "Personal",
+    "settings": "Settings"
   },
   "settings": {
     "title": "Settings",
@@ -15,90 +29,116 @@
     "about": "About",
     "language": "Language",
     "languageDescription": "Select app display language",
-    
     "admin": "Admin Panel",
     "adminDescription": "User and system settings",
-    
-    "carMode": "Car Mode",
-    "carModeDescription": "Player on left, content on right",
-    "carModeVipOnly": "Car mode is a VIP-only feature. Go to the membership page to enable it.",
-    "goToMemberPage": "Go to Membership",
-    
-    "screenInset": "Screen Inset",
-    "screenInsetDescription": "Adjust the distance from the bottom of the screen",
-    "bottomInset": "Bottom Inset",
-    "closerToBottom": "Closer to bottom",
-    "pageUp": "Page moves up",
-    
-    "autoTheme": "Follow System Theme",
-    "autoThemeDescription": "Automatically switch between light/dark mode based on system settings",
-    
-    "darkMode": "Dark Mode",
-    "darkModeDescription": "Enable or disable dark appearance",
-    
-    "festiveTheme": "Spring Festival Theme",
-    "festiveThemeDescription": "Enable the festive red-gold color scheme",
-    
-    "autoOrientation": "Auto Rotation",
-    "autoOrientationDescription": "App will automatically rotate with device orientation",
-    
-    "voiceAssistant": "Voice Assistant",
-    "voiceAssistantDescription": "Show the global voice assistant squirrel",
-    "voiceAssistantVipOnly": "Voice assistant is a VIP-only feature. Go to the membership page to enable it.",
-    
-    "recommendationPreference": "Recommendation Preference (Like/Fresh)",
-    "like": "Like",
-    "fresh": "Fresh",
-    
-    "audiobookMode": "Audiobook Mode",
-    "audiobookModeDescription": "Switch between music and audiobook display",
-    
+    "sourceManage": "Data Source",
+    "sourceManageDescription": "Switch and manage audio data sources",
+    "autoLaunch": "Auto Launch",
+    "autoLaunchDescription": "Automatically run app on system startup",
+    "minimizeToTray": "Minimize to Tray",
+    "minimizeToTrayDescription": "Minimize to system tray when closing window",
     "relayPlay": "Relay Playback",
     "relayPlayDescription": "Accept playback relay between devices",
-    
     "syncControl": "Sync Control",
-    "syncControlDescription": "Accept sync control requests from other users on the same data source",
-    
-    "cacheWhilePlaying": "Cache While Playing",
-    "cacheWhilePlayingDescription": "Automatically cache to local storage during playback",
-    
+    "syncControlDescription": "Accept sync control from other users on same data source",
+    "recommendationPreference": "Recommendation",
+    "like": "Like",
+    "fresh": "Fresh",
+    "theme": "Theme",
+    "themeSystem": "Follow System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "desktopLyric": "Desktop Lyrics",
+    "desktopLyricEnable": "Enable Desktop Lyrics",
+    "lockPosition": "Lock Position",
+    "lockPositionDescription": "Lock lyrics window position",
+    "fontSize": "Font Size",
+    "fontWeight": "Font Weight",
+    "fontWeight100": "Thin (100)",
+    "fontWeight200": "Extra Light (200)",
+    "fontWeight300": "Light (300)",
+    "fontWeight400": "Regular (400)",
+    "fontWeight500": "Medium (500)",
+    "fontWeight600": "Semi Bold (600)",
+    "fontWeight700": "Bold (700)",
+    "fontWeight800": "Extra Bold (800)",
+    "fontWeight900": "Black (900)",
+    "fontColor": "Font Color",
+    "backgroundOpacity": "Background Opacity",
+    "downloadPath": "Download Path",
+    "selectDirectory": "Select Directory",
+    "downloadSettings": "Download Settings",
+    "maxDownloadThreads": "Max Download Threads",
     "coverCache": "Cover Cache",
     "musicCache": "Music Cache",
     "audiobookCache": "Audiobook Cache",
     "apkFiles": "APK Files",
     "tapToClear": "Tap to clear",
     "cacheCleared": "Cache cleared",
-    
-    "productUpdates": "Product Updates",
-    "productUpdatesDescription": "View latest features and version updates",
-    
-    "joinBetaTest": "Join Beta Test",
-    "betaTestDescription": "Apply and automatically enable beta access for your account",
-    "betaTestApplying": "Applying for beta access...",
-    "betaTestAlreadyHas": "You already have beta access",
-    "betaTestSuccess": "Beta access enabled for your account.",
-    "betaTestFailed": "Failed to join beta test",
-    
-    "experienceProgram": "Join Experience Program",
-    "experienceProgramDescription": "Help improve the product with your usage data",
-    
+    "clearCache": "Clear Cache",
+    "confirmClearCache": "Are you sure you want to clear {{label}} cache?",
     "logout": "Log Out",
     "logoutConfirm": "Are you sure you want to log out?",
     "deleteMemberAccount": "Delete Member Account",
     "deleteMemberConfirm": "Are you sure you want to delete? All your data will be cleared!",
     "deleteMemberSuccess": "Member account deleted.",
     "deleteMemberFailed": "Failed to delete member account",
-    
-    "clearCache": "Clear Cache",
-    "confirmClearCache": "Are you sure you want to clear {{label}} cache?",
-    
+    "productUpdates": "Product Updates",
+    "productUpdatesDescription": "View latest features and version updates",
+    "joinBetaTest": "Join Beta Test",
+    "betaTestDescription": "Apply and automatically enable beta access for your account",
+    "betaTestApplying": "Applying for beta access...",
+    "betaTestAlreadyHas": "You already have beta access",
+    "betaTestSuccess": "Beta access enabled for your account.",
+    "betaTestFailed": "Failed to join beta test",
+    "experienceProgram": "Join Experience Program",
+    "experienceProgramDescription": "Help improve the product with your usage data",
     "vipOnly": "VIP Only",
     "loginFirst": "Please log in first",
-    "loginMemberFirst": "Please log in with your member account first.",
-    
     "cancelLogout": "Cancel",
     "confirmLogout": "Confirm",
-    
     "version": "AudioDock Desktop v{{version}}"
+  },
+  "login": {
+    "title": "Login",
+    "phone": "Phone Number",
+    "verificationCode": "Verification Code",
+    "sendCode": "Send Code",
+    "loginButton": "Login",
+    "loggingIn": "Logging in...",
+    "invalidPhone": "Please enter a valid phone number",
+    "invalidCode": "Please enter the verification code"
+  },
+  "player": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "previous": "Previous",
+    "like": "Like",
+    "unlike": "Unlike",
+    "addToPlaylist": "Add to Playlist",
+    "lyrics": "Lyrics"
+  },
+  "library": {
+    "title": "Library",
+    "recommend": "Recommend",
+    "newest": "Newest",
+    "playlists": "Playlists",
+    "albums": "Albums",
+    "artists": "Artists"
+  },
+  "search": {
+    "placeholder": "Search music, artists, albums...",
+    "hotSearch": "Hot Search",
+    "searchHistory": "Search History",
+    "clearHistory": "Clear History"
+  },
+  "playlist": {
+    "create": "Create Playlist",
+    "edit": "Edit Playlist",
+    "delete": "Delete Playlist",
+    "playlistName": "Playlist Name",
+    "playlistDescription": "Playlist Description",
+    "trackCount": "{{count}} tracks"
   }
 }

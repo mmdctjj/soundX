@@ -38,7 +38,7 @@ const Settings: React.FC = () => {
     updateDownload,
   } = useSettingsStore();
 
-  const [cacheSize, setCacheSize] = React.useState<string>("正在计算...");
+  const [cacheSize, setCacheSize] = React.useState<string>(t("common.loading"));
 
   const fetchCacheSize = async () => {
     if ((window as any).ipcRenderer) {
@@ -62,9 +62,19 @@ const Settings: React.FC = () => {
     }
   };
 
+  const [downloadPath, setDownloadPath] = React.useState<string>("");
+
   React.useEffect(() => {
     fetchCacheSize();
+    loadDownloadPath();
   }, []);
+
+  const loadDownloadPath = async () => {
+    if ((window as any).ipcRenderer) {
+      const path = await (window as any).ipcRenderer.invoke("download:get-path");
+      setDownloadPath(path || "");
+    }
+  };
 
   const handleSelectDirectory = async () => {
     if (
@@ -82,7 +92,7 @@ const Settings: React.FC = () => {
     <div className={styles.settingsPage} style={{ color: token.colorText }}>
       <header className={styles.header}>
         <Title level={2} className={styles.title}>
-          设置
+          {t("settings.title")}
         </Title>
       </header>
 
@@ -90,7 +100,7 @@ const Settings: React.FC = () => {
         <>
           <section className={styles.section}>
             <Title level={4} className={styles.sectionTitle}>
-              管理后台
+              {t("settings.admin")}
             </Title>
             <AdminSettings />
           </section>
@@ -103,22 +113,22 @@ const Settings: React.FC = () => {
       {/* General Settings */}
       <section className={styles.section}>
         <Title level={4} className={styles.sectionTitle}>
-          通用
+          {t("settings.general")}
         </Title>
         <div className={styles.settingItem}>
-          <div className={styles.label}>开机启动</div>
+          <div className={styles.label}>{t("settings.autoLaunch")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
                 checked={general.autoLaunch}
                 onChange={(val) => updateGeneral("autoLaunch", val)}
               />
-              <Text className={styles.description}>系统启动时自动运行应用</Text>
+              <Text className={styles.description}>{t("settings.autoLaunchDescription")}</Text>
             </Space>
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>最小化到托盘</div>
+          <div className={styles.label}>{t("settings.minimizeToTray")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
@@ -126,13 +136,13 @@ const Settings: React.FC = () => {
                 onChange={(val) => updateGeneral("minimizeToTray", val)}
               />
               <Text className={styles.description}>
-                关闭窗口时最小化到系统托盘
+                {t("settings.minimizeToTrayDescription")}
               </Text>
             </Space>
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>接力播放</div>
+          <div className={styles.label}>{t("settings.relayPlay")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
@@ -140,13 +150,13 @@ const Settings: React.FC = () => {
                 onChange={(val) => updateGeneral("acceptRelay", val)}
               />
               <Text className={styles.description}>
-                是否接受多设备之间播放接力
+                {t("settings.relayPlayDescription")}
               </Text>
             </Space>
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>同步控制</div>
+          <div className={styles.label}>{t("settings.syncControl")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
@@ -154,13 +164,13 @@ const Settings: React.FC = () => {
                 onChange={(val) => updateGeneral("acceptSync", val)}
               />
               <Text className={styles.description}>
-                是否接受同数据源下其他用户的同步控制请求
+                {t("settings.syncControlDescription")}
               </Text>
             </Space>
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>推荐偏好</div>
+          <div className={styles.label}>{t("settings.recommendationPreference")}</div>
           <div className={styles.control}>
             <div style={{ minWidth: 260 }}>
               <Slider
@@ -173,7 +183,7 @@ const Settings: React.FC = () => {
                 }
               />
               <Text className={styles.description}>
-                喜欢 {general.recommendationLikeRatio}% · 新鲜{" "}
+                {t("settings.like")} {general.recommendationLikeRatio}% · {t("settings.fresh")}{" "}
                 {100 - general.recommendationLikeRatio}%
               </Text>
             </div>
@@ -196,15 +206,15 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>主题</div>
+          <div className={styles.label}>{t("settings.theme")}</div>
           <div className={styles.control}>
             <Select
               value={general.theme}
               onChange={(val) => updateGeneral("theme", val)}
               options={[
-                { label: "跟随系统", value: "system" },
-                { label: "浅色", value: "light" },
-                { label: "深色", value: "dark" },
+                { label: t("settings.themeSystem"), value: "system" },
+                { label: t("settings.themeLight"), value: "light" },
+                { label: t("settings.themeDark"), value: "dark" },
               ]}
               className={styles.selectSmall}
             />
@@ -217,34 +227,34 @@ const Settings: React.FC = () => {
       {/* Desktop Lyric Settings */}
       <section className={styles.section}>
         <Title level={4} className={styles.sectionTitle}>
-          桌面歌词
+          {t("settings.desktopLyric")}
         </Title>
         <div className={styles.settingItem}>
-          <div className={styles.label}>桌面歌词</div>
+          <div className={styles.label}>{t("settings.desktopLyricEnable")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
                 checked={desktopLyric.enable}
                 onChange={(val) => updateDesktopLyric("enable", val)}
               />
-              <Text className={styles.description}>启用桌面歌词</Text>
+              <Text className={styles.description}>{t("settings.desktopLyricEnable")}</Text>
             </Space>
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>位置锁定</div>
+          <div className={styles.label}>{t("settings.lockPosition")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
                 checked={desktopLyric.lockPosition}
                 onChange={(val) => updateDesktopLyric("lockPosition", val)}
               />
-              <Text className={styles.description}>锁定歌词窗口位置</Text>
+              <Text className={styles.description}>{t("settings.lockPositionDescription")}</Text>
             </Space>
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>字体大小</div>
+          <div className={styles.label}>{t("settings.fontSize")}</div>
           <div className={styles.control}>
             <InputNumber
               min={16}
@@ -257,21 +267,21 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>字体粗细</div>
+          <div className={styles.label}>{t("settings.fontWeight")}</div>
           <div className={styles.control}>
             <Select
               value={desktopLyric.fontWeight}
               onChange={(val) => updateDesktopLyric("fontWeight", val)}
               options={[
-                { label: "更细 (100)", value: 100 },
-                { label: "细 (200)", value: 200 },
-                { label: "较细 (300)", value: 300 },
-                { label: "常规 (400)", value: 400 },
-                { label: "中等 (500)", value: 500 },
-                { label: "较粗 (600)", value: 600 },
-                { label: "粗 (700)", value: 700 },
-                { label: "很粗 (800)", value: 800 },
-                { label: "黑体 (900)", value: 900 },
+                { label: t("settings.fontWeight100"), value: 100 },
+                { label: t("settings.fontWeight200"), value: 200 },
+                { label: t("settings.fontWeight300"), value: 300 },
+                { label: t("settings.fontWeight400"), value: 400 },
+                { label: t("settings.fontWeight500"), value: 500 },
+                { label: t("settings.fontWeight600"), value: 600 },
+                { label: t("settings.fontWeight700"), value: 700 },
+                { label: t("settings.fontWeight800"), value: 800 },
+                { label: t("settings.fontWeight900"), value: 900 },
               ]}
               className={styles.selectSmall}
             />
@@ -347,10 +357,10 @@ const Settings: React.FC = () => {
       {/* Download Settings */}
       <section className={styles.section}>
         <Title level={4} className={styles.sectionTitle}>
-          下载设置
+          {t("settings.downloadSettings")}
         </Title>
         <div className={styles.settingItem}>
-          <div className={styles.label}>存储位置</div>
+          <div className={styles.label}>{t("settings.downloadPath")}</div>
           <div className={styles.control}>
             <Input
               value={download.downloadPath}
@@ -364,7 +374,7 @@ const Settings: React.FC = () => {
                 />
               }
               className={styles.pathInput}
-              placeholder="音频文件和缓存文件的保存位置"
+              placeholder={t("settings.downloadPathDescription")}
             />
           </div>
         </div>
@@ -384,7 +394,7 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>同时下载数</div>
+          <div className={styles.label}>{t("settings.maxDownloadThreads")}</div>
           <div className={styles.control}>
             <InputNumber
               min={1}
@@ -396,7 +406,7 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>边听边存</div>
+          <div className={styles.label}>{t("settings.cacheWhilePlaying")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
@@ -404,18 +414,18 @@ const Settings: React.FC = () => {
                 onChange={(val) => updateDownload("cacheEnabled", val)}
               />
               <Text className={styles.description}>
-                播放网络音频时自动缓存到本地，下次播放优先使用缓存
+                {t("settings.cacheWhilePlayingDescription")}
               </Text>
             </Space>
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>清除缓存</div>
+          <div className={styles.label}>{t("settings.clearCache")}</div>
           <div className={styles.control}>
             <Space>
-              <Button onClick={handleClearCache}>立即清理</Button>
+              <Button onClick={handleClearCache}>{t("settings.clearCache")}</Button>
               <Text className={styles.description}>
-                当前已用缓存: {cacheSize}
+                {t("settings.tapToClear")}: {cacheSize}
               </Text>
             </Space>
           </div>
@@ -427,18 +437,18 @@ const Settings: React.FC = () => {
       {/* About */}
       <section className={styles.section}>
         <Title level={4} className={styles.sectionTitle}>
-          关于
+          {t("settings.about")}
         </Title>
         <div className={styles.settingItem}>
-          <div className={styles.label}>产品动态</div>
+          <div className={styles.label}>{t("settings.productUpdates")}</div>
           <div className={styles.control}>
             <Button type="link" onClick={() => navigate("/product-updates")}>
-              查看最新功能与版本更新
+              {t("settings.productUpdatesDescription")}
             </Button>
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>参与用户体验计划</div>
+          <div className={styles.label}>{t("settings.experienceProgram")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
@@ -447,7 +457,7 @@ const Settings: React.FC = () => {
                   updateGeneral("experienceProgramEnabled", val)
                 }
               />
-              <Text className={styles.description}>使用数据以改进产品</Text>
+              <Text className={styles.description}>{t("settings.experienceProgramDescription")}</Text>
             </Space>
           </div>
         </div>
