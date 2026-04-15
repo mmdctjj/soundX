@@ -22,6 +22,7 @@ import {
   Typography
 } from "antd";
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
 import TrackList from "../../components/TrackList";
 import { type Track } from "../../models";
@@ -41,6 +42,7 @@ interface Result {
 }
 
 const Songs: React.FC = () => {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { token } = theme.useToken();
   const { play, setPlaylist, currentTrack } = usePlayerStore();
@@ -121,10 +123,10 @@ const Songs: React.FC = () => {
 
   const handleBatchDownload = async () => {
     if (!selectedTracks.length) return;
-    messageApi.info(`开始下载 ${selectedTracks.length} 首歌曲`);
+    messageApi.info(`${t("songs.startDownload")} ${selectedTracks.length} ${t("songs.trackCount")}`);
     await downloadTracks(selectedTracks, (completed, total) => {
         if (completed === total) {
-            messageApi.success(`成功下载 ${total} 首歌曲`);
+            messageApi.success(`${t("songs.downloadSuccess")} ${total} ${t("songs.trackCount")}`);
             setIsSelectionMode(false);
             setSelectedRowKeys([]);
         }
