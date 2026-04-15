@@ -46,9 +46,11 @@
     "@tarojs/taro": "3.6.34",
     "axios": "^1.13.2",
     "dayjs": "^1.11.19",
+    "i18next": "^26.0.4",
     "pinyin-pro": "^3.27.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-i18next": "^17.0.3",
     "taro-ui": "^3.3.0"
   },
   "devDependencies": {

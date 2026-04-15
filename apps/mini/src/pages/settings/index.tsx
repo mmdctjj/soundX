@@ -2,13 +2,16 @@ import { plusDeleteMe, plusParticipateInternalTest } from '@soundx/services';
 import { ScrollView, Slider, Switch, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useTheme } from '../../context/ThemeContext';
 import { usePlayMode } from '../../utils/playMode';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 import './index.scss';
 
 export default function Settings() {
+  const { t } = useTranslation();
   const { logout, user } = useAuth();
   const { mode, setMode } = usePlayMode();
   const {
@@ -227,6 +230,7 @@ export default function Settings() {
 
         <View className='section'>
           <Text className='section-title'>通用</Text>
+          <LanguageSwitcher />
           {renderSettingRow('车机模式', '左侧播放器，右侧内容区', carModeActive, handleToggleCarMode)}
           {carModeActive && renderActionRow(
             '调整屏幕边距',
