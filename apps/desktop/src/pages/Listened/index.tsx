@@ -24,6 +24,7 @@ import type { Album, TimelineItem, Track } from "../../models";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { usePlayMode } from "../../utils/playMode";
+import { useTranslation } from "react-i18next";
 import { formatTimeLabel } from "../../utils/timeFormat";
 import styles from "./index.module.less";
 
@@ -36,6 +37,7 @@ interface Result {
 }
 
 const Listened: React.FC = () => {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"album" | "track">("album");
@@ -227,11 +229,11 @@ const Listened: React.FC = () => {
           {type === "MUSIC" && (
             <Segmented
               options={[
-                { value: "album", icon: <AppstoreOutlined />, label: "专辑" },
+                { value: "album", icon: <AppstoreOutlined />, label: t("listened.album") },
                 {
                   value: "track",
                   icon: <UnorderedListOutlined />,
-                  label: "歌曲",
+                  label: t("listened.songs"),
                 },
               ]}
               value={viewMode}
@@ -281,7 +283,7 @@ const Listened: React.FC = () => {
 
       {data?.list.length === 0 && !loading && (
         <div className={styles.noData}>
-          <Empty description="暂无记录" />
+          <Empty description={t("listened.noListened")} />
         </div>
       )}
     </div>

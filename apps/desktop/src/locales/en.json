@@ -32,7 +32,9 @@
     "downloadFailed": "{{name}} download failed",
     "operationFailed": "Operation failed",
     "settings": "Settings",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "artists": "Artists",
+    "selectAll": "Select All"
   },
   "nav": {
     "library": "Library",
@@ -384,7 +386,11 @@
     "tracks": "Tracks",
     "refresh": "Refresh",
     "noMore": "No more",
-    "noData": "No favorites yet"
+    "noData": "No favorites yet",
+    "song": "Song",
+    "songs": "Songs",
+    "noFavorites": "No favorites yet",
+    "noListened": "No listening history"
   },
   "listened": {
     "title": "Listened",
@@ -394,7 +400,11 @@
     "tracks": "Tracks",
     "refresh": "Refresh",
     "noMore": "No more",
-    "noData": "No listening history"
+    "noData": "No listening history",
+    "song": "Song",
+    "songs": "Songs",
+    "noFavorites": "No favorites yet",
+    "noListened": "No listening history"
   },
   "playlistDetail": {
     "title": "Playlist",
@@ -467,7 +477,7 @@
     "noData": "No artists yet"
   },
   "songs": {
-    "title": "Tracks",
+    "title": "Songs",
     "heartbeatMode": "Heartbeat Mode",
     "playAll": "Play All",
     "cancel": "Cancel",
@@ -476,7 +486,8 @@
     "download": "Download",
     "batchActions": "Batch Actions",
     "totalTracks": "{{count}} tracks total, {{loaded}} loaded",
-    "noData": "No tracks yet"
+    "noData": "No tracks yet",
+    "noSongs": "No songs"
   },
   "memberBenefits": {
     "title": "Member Benefits",
@@ -766,5 +777,21 @@
     "addingToPlaylist": "Adding to playlist",
     "fetchFailed": "Failed to fetch playlist",
     "title": "Add to Playlist"
+  },
+  "folder": {
+    "title": "Downloads",
+    "refresh": "Refresh",
+    "downloadDirectory": "Download Directory",
+    "playAll": "Play All",
+    "noSelection": "No items selected",
+    "confirmBatchDelete": "Confirm batch delete",
+    "confirmDelete": "Confirm delete",
+    "cancel": "Cancel",
+    "batchDeleteSuccess": "Batch delete successful",
+    "deleteFailed": "Delete failed",
+    "fetchingSongs": "Fetching all songs...",
+    "noPlayableTracks": "No playable tracks in this folder",
+    "playFailed": "Play failed",
+    "noSelectedSongs": "No songs selected"
   }
 }

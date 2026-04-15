@@ -311,7 +311,7 @@ const Songs: React.FC = () => {
           className={styles.noData}
           style={{ color: token.colorTextSecondary }}
         >
-          <Empty description="暂无歌曲" />
+          <Empty description={t("songs.noSongs")} />
         </div>
       )}
     </div>

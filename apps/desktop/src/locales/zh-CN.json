@@ -32,7 +32,9 @@
     "downloadFailed": "{{name}} 下载失败",
     "operationFailed": "操作失败",
     "settings": "设置",
-    "unknown": "未知"
+    "unknown": "未知",
+    "artists": "艺术家",
+    "selectAll": "全选"
   },
   "nav": {
     "library": "音乐库",
@@ -384,7 +386,11 @@
     "tracks": "歌曲",
     "refresh": "刷新",
     "noMore": "没有更多了",
-    "noData": "暂无收藏"
+    "noData": "暂无收藏",
+    "song": "歌曲",
+    "songs": "歌曲",
+    "noFavorites": "暂无收藏",
+    "noListened": "暂无记录"
   },
   "listened": {
     "title": "听过",
@@ -394,7 +400,11 @@
     "tracks": "歌曲",
     "refresh": "刷新",
     "noMore": "没有更多了",
-    "noData": "暂无记录"
+    "noData": "暂无记录",
+    "song": "歌曲",
+    "songs": "歌曲",
+    "noFavorites": "暂无收藏",
+    "noListened": "暂无记录"
   },
   "playlistDetail": {
     "title": "播放列表",
@@ -467,7 +477,7 @@
     "noData": "暂无艺术家"
   },
   "songs": {
-    "title": "单曲",
+    "title": "歌曲",
     "heartbeatMode": "心动模式",
     "playAll": "播放全部",
     "cancel": "取消",
@@ -476,7 +486,8 @@
     "download": "下载",
     "batchActions": "批量操作",
     "totalTracks": "共 {{count}} 首歌曲，已加载 {{loaded}} 首",
-    "noData": "暂无歌曲"
+    "noData": "暂无歌曲",
+    "noSongs": "暂无歌曲"
   },
   "memberBenefits": {
     "title": "会员权益",
@@ -765,5 +776,21 @@
     "backToMain": "返回主界面",
     "pin": "置顶",
     "unpin": "取消置顶"
+  },
+  "folder": {
+    "title": "下载管理",
+    "refresh": "刷新",
+    "downloadDirectory": "下载目录",
+    "playAll": "播放全部",
+    "noSelection": "未选中任何项目",
+    "confirmBatchDelete": "确认批量删除",
+    "confirmDelete": "确定删除",
+    "cancel": "取消",
+    "batchDeleteSuccess": "批量删除成功",
+    "deleteFailed": "删除失败",
+    "fetchingSongs": "正在获取所有歌曲...",
+    "noPlayableTracks": "该文件夹下没有可播放的音轨",
+    "playFailed": "播放失败",
+    "noSelectedSongs": "没有选中的歌曲"
   }
 }

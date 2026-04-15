@@ -234,11 +234,11 @@ const Favorites: React.FC = () => {
           {type === "MUSIC" && (
             <Segmented
               options={[
-                { value: "album", icon: <AppstoreOutlined />, label: "专辑" },
+                { value: "album", icon: <AppstoreOutlined />, label: t("favorites.album") },
                 {
                   value: "track",
                   icon: <UnorderedListOutlined />,
-                  label: "歌曲",
+                  label: t("favorites.songs"),
                 },
               ]}
               value={viewMode}
@@ -286,7 +286,7 @@ const Favorites: React.FC = () => {
           className={styles.noData}
           style={{ color: token.colorTextSecondary }}
         >
-          <Empty description="暂无收藏" />
+          <Empty description={t("favorites.noFavorites")} />
         </div>
       )}
     </div>

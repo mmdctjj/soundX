@@ -43,11 +43,13 @@ import { usePlayerStore } from "../../store/player";
 import { usePlaylistStore } from "../../store/playlist";
 import { getCoverUrl } from "../../utils";
 import { usePlayMode } from "../../utils/playMode";
+import { useTranslation } from "react-i18next";
 import styles from "./index.module.less";
 
 const { Text } = Typography;
 
 const FolderPage: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { mode } = usePlayMode();
@@ -157,16 +159,16 @@ const FolderPage: React.FC = () => {
 
   const handleBatchDelete = () => {
     if (selectedFolders.length === 0 && selectedTracks.length === 0) {
-      messageApi.info("未选中任何项目");
+      messageApi.info(t("folder.noSelection"));
       return;
     }
 
     modalAPI.confirm({
-      title: "确认批量删除",
+      title: t("folder.confirmBatchDelete"),
       content: `将会物理删除选中的 ${selectedFolders.length} 个文件夹和 ${selectedTracks.length} 个音轨及其所有内容，此操作不可恢复。确定要继续吗？`,
-      okText: "确定删除",
+      okText: t("folder.confirmDelete"),
       okType: "danger",
-      cancelText: "取消",
+      cancelText: t("common.cancel"),
       onOk: async () => {
         try {
           const res = await batchDeleteItems({
@@ -174,14 +176,14 @@ const FolderPage: React.FC = () => {
             trackIds: selectedTracks,
           });
           if (res.code === 200) {
-            messageApi.success("批量删除成功");
+            messageApi.success(t("folder.batchDeleteSuccess"));
             setIsSelectionMode(false);
             setSelectedFolders([]);
             setSelectedTracks([]);
             fetchData();
           }
         } catch (error) {
-          messageApi.error("删除失败");
+          messageApi.error(t("folder.deleteFailed"));
         }
       },
     });
@@ -211,7 +213,7 @@ const FolderPage: React.FC = () => {
   };
 
   const handlePlayAll = async (folderId: number | string) => {
-    const hide = messageApi.loading('正在获取所有歌曲...', 0);
+    const hide = messageApi.loading(t('folder.fetchingSongs'), 0);
     try {
       const tracks = await getAllTracks(folderId);
       hide();
@@ -220,17 +222,17 @@ const FolderPage: React.FC = () => {
         play(tracks[0]);
         messageApi.success(`已添加 ${tracks.length} 首歌曲到播放列表`);
       } else {
-        messageApi.info("该文件夹下没有可播放的音轨");
+        messageApi.info(t("folder.noPlayableTracks"));
       }
     } catch (error) {
       hide();
-      messageApi.error("播放失败");
+      messageApi.error(t("folder.playFailed"));
     }
   };
 
   const openAddToPlaylistModal = async (tracks: any[]) => {
     if (tracks.length === 0) {
-      messageApi.info("没有选中的歌曲");
+      messageApi.info(t("folder.noSelectedSongs"));
       return;
     }
     setTargetTracks(tracks);
@@ -284,7 +286,7 @@ const FolderPage: React.FC = () => {
       title: "创建同名播放列表",
       content: `将会创建一个名为 "${folder.name}" 的播放列表，并添加该文件夹下的所有歌曲。是否继续？`,
       okText: "确认创建",
-      cancelText: "取消",
+      cancelText: t("common.cancel"),
       onOk: async () => {
         const hide = messageApi.loading(
           `正在为文件夹 "${folder.name}" 创建同名歌单...`,
@@ -335,7 +337,7 @@ const FolderPage: React.FC = () => {
 
   const handlePlayCurrent = async () => {
     if (!data) return;
-    const hide = messageApi.loading("正在获取所有歌曲...", 0);
+    const hide = messageApi.loading(t("folder.fetchingSongs"), 0);
     try {
       let tracks: any[] = [];
       if (id) {
@@ -368,9 +370,9 @@ const FolderPage: React.FC = () => {
     modalAPI.confirm({
       title: "确认删除文件夹",
       content: `将会物理删除文件夹 "${folder.name}" 及其所有内容（包括音频文件和历史记录），此操作不可恢复。确定要继续吗？`,
-      okText: "确定删除",
+      okText: t("folder.confirmDelete"),
       okType: "danger",
-      cancelText: "取消",
+      cancelText: t("common.cancel"),
       onOk: async () => {
         try {
           const res = await deleteFolder(folder.id);
@@ -379,7 +381,7 @@ const FolderPage: React.FC = () => {
             fetchData();
           }
         } catch (error) {
-          messageApi.error("删除失败");
+          messageApi.error(t("folder.deleteFailed"));
         }
       },
     });
@@ -389,9 +391,9 @@ const FolderPage: React.FC = () => {
     modalAPI.confirm({
       title: "确认删除音轨",
       content: `将会物理删除音轨 "${track.name}" 及其历史记录，此操作不可恢复。确定要继续吗？`,
-      okText: "确定删除",
+      okText: t("folder.confirmDelete"),
       okType: "danger",
-      cancelText: "取消",
+      cancelText: t("common.cancel"),
       onOk: async () => {
         try {
           const res = await deleteTrack(track.id);
@@ -400,7 +402,7 @@ const FolderPage: React.FC = () => {
             fetchData();
           }
         } catch (error) {
-          messageApi.error("删除失败");
+          messageApi.error(t("folder.deleteFailed"));
         }
       },
     });
@@ -510,7 +512,7 @@ const FolderPage: React.FC = () => {
                 onClick={handlePlayCurrent}
                 disabled={!data?.children.length && !data?.tracks.length}
               >
-                播放全部
+                t("folder.playAll")
               </Button>
               <Button
                 size="small"
@@ -525,7 +527,7 @@ const FolderPage: React.FC = () => {
               <Button size="small" onClick={handleSelectAll}>
                 {selectedFolders.length === (data?.children.length || 0) &&
                 selectedTracks.length === (data?.tracks.length || 0)
-                  ? "取消全选"
+                  ? t("common.cancel") + " " + t("common.selectAll")
                   : "全选"}
               </Button>
               <Button
@@ -605,7 +607,7 @@ const FolderPage: React.FC = () => {
                             items: [
                               {
                                 key: "play",
-                                label: "播放全部",
+                                label: t("folder.playAll"),
                                 icon: <PlayCircleOutlined />,
                                 onClick: ({ domEvent }) => {
                                   domEvent.stopPropagation();

@@ -190,7 +190,7 @@ const Recommended: React.FC = () => {
             },
             {
               id: "recent",
-              title: "最近上新",
+              title: t("recommended.recentlyAdded"),
               items: recentAlbums,
               type: "album",
             },
@@ -271,7 +271,7 @@ const Recommended: React.FC = () => {
           items: recommendedAlbums,
           type: "album",
         },
-        { id: "recent", title: "最近上新", items: recentAlbums, type: "album" },
+        { id: "recent", title: t("recommended.recentlyAdded"), items: recentAlbums, type: "album" },
         {
           id: "artists",
           title: t("common.artists"),
