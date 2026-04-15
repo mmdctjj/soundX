@@ -1323,7 +1323,7 @@ const Player: React.FC = () => {
                         item.username +
                         `${
                           item.userId === useAuthStore.getState().user?.id
-                            ? "(你)"
+                            ? t("common.you")
                             : ""
                         }`
                       }

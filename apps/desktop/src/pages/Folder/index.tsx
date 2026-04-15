@@ -165,7 +165,7 @@ const FolderPage: React.FC = () => {
 
     modalAPI.confirm({
       title: t("folder.confirmBatchDelete"),
-      content: `将会物理删除选中的 ${selectedFolders.length} 个文件夹和 ${selectedTracks.length} 个音轨及其所有内容，此操作不可恢复。确定要继续吗？`,
+      content: t("folder.confirmBatchDeleteContent", { folders: selectedFolders.length, tracks: selectedTracks.length }),
       okText: t("folder.confirmDelete"),
       okType: "danger",
       cancelText: t("common.cancel"),
@@ -220,7 +220,7 @@ const FolderPage: React.FC = () => {
       if (tracks.length > 0) {
         setPlaylist(tracks);
         play(tracks[0]);
-        messageApi.success(`已添加 ${tracks.length} 首歌曲到播放列表`);
+        messageApi.success(t("folder.addedTracksToPlaylist", { count: tracks.length }));
       } else {
         messageApi.info(t("folder.noPlayableTracks"));
       }
@@ -240,19 +240,19 @@ const FolderPage: React.FC = () => {
   };
 
   const handleFolderAddToPlaylist = async (folderId: number | string) => {
-    const hide = messageApi.loading('正在提取所有歌曲...', 0);
+    const hide = messageApi.loading(t("folder.fetchingAllSongs"), 0);
     try {
       const tracks = await getAllTracks(folderId);
       hide();
       openAddToPlaylistModal(tracks);
     } catch (error) {
       hide();
-      messageApi.error("操作失败");
+      messageApi.error(t("folder.operationFailed"));
     }
   };
 
   const handleBatchAddToPlaylist = async () => {
-    const hide = messageApi.loading('正在处理选中的文件夹...', 0);
+    const hide = messageApi.loading(t("folder.processingSelectedFolders"), 0);
     try {
       let allTracks = [...data?.tracks.filter(t => selectedTracks.includes(t.id)) || []];
       
@@ -271,25 +271,25 @@ const FolderPage: React.FC = () => {
       openAddToPlaylistModal(uniqueTracks);
     } catch (error) {
       hide();
-      messageApi.error("获取数据失败");
+      messageApi.error(t("folder.fetchDataFailed"));
     }
   };
 
   const handleCreatePlaylistFromFolder = (folder: FolderType) => {
     if (!user) {
-      messageApi.error("请先登录");
+      messageApi.error(t("folder.pleaseLoginFirst"));
       return;
     }
     const userId = user.id;
 
     modalAPI.confirm({
-      title: "创建同名播放列表",
-      content: `将会创建一个名为 "${folder.name}" 的播放列表，并添加该文件夹下的所有歌曲。是否继续？`,
-      okText: "确认创建",
+      title: t("folder.createSameNamePlaylist"),
+      content: t("folder.confirmCreateSameNamePlaylist", { name: folder.name }),
+      okText: t("folder.confirmCreate"),
       cancelText: t("common.cancel"),
       onOk: async () => {
         const hide = messageApi.loading(
-          `正在为文件夹 "${folder.name}" 创建同名歌单...`,
+          t("folder.creatingSameNamePlaylist", { name: folder.name }),
           0
         );
         try {
@@ -297,7 +297,7 @@ const FolderPage: React.FC = () => {
           const tracks = await getAllTracks(folder.id);
           if (tracks.length === 0) {
             hide();
-            messageApi.info("该文件夹下没有歌曲");
+            messageApi.info(t("folder.noSongsInFolder"));
             return;
           }
 
@@ -308,7 +308,7 @@ const FolderPage: React.FC = () => {
             userId
           );
           if (playlistRes.code !== 200 || !playlistRes.data) {
-            throw new Error("创建歌单失败");
+            throw new Error(t("folder.createPlaylistFailed"));
           }
           const playlistId = playlistRes.data.id;
 
@@ -319,17 +319,17 @@ const FolderPage: React.FC = () => {
           hide();
           if (addRes.code === 200) {
             messageApi.success(
-              `成功创建歌单 "${folder.name}" 并添加 ${tracks.length} 首歌曲`
+              t("folder.createSameNamePlaylistSuccess", { name: folder.name, count: tracks.length })
             );
             // Update sidebar playlists
             usePlaylistStore.getState().fetchPlaylists(mode, userId);
           } else {
-            messageApi.error("添加歌曲到歌单失败");
+            messageApi.error(t("folder.addSongsToPlaylistFailed"));
           }
         } catch (error) {
           hide();
           console.error(error);
-          messageApi.error("操作失败");
+          messageApi.error(t("folder.operationFailed"));
         }
       },
     });
@@ -356,20 +356,20 @@ const FolderPage: React.FC = () => {
       if (tracks.length > 0) {
         setPlaylist(tracks);
         play(tracks[0]);
-        messageApi.success(`已添加 ${tracks.length} 首歌曲到播放列表`);
+        messageApi.success(t("folder.addedTracksToPlaylist", { count: tracks.length }));
       } else {
-        messageApi.info("没有可播放的歌曲");
+        messageApi.info(t("folder.noPlayableSongs"));
       }
     } catch (e) {
       hide();
-      messageApi.error("操作失败");
+      messageApi.error(t("folder.operationFailed"));
     }
   };
 
   const handleDeleteFolder = (folder: FolderType) => {
     modalAPI.confirm({
-      title: "确认删除文件夹",
-      content: `将会物理删除文件夹 "${folder.name}" 及其所有内容（包括音频文件和历史记录），此操作不可恢复。确定要继续吗？`,
+      title: t("folder.confirmDeleteFolder"),
+      content: t("folder.deleteFolderContent", { name: folder.name }),
       okText: t("folder.confirmDelete"),
       okType: "danger",
       cancelText: t("common.cancel"),
@@ -377,7 +377,7 @@ const FolderPage: React.FC = () => {
         try {
           const res = await deleteFolder(folder.id);
           if (res.code === 200) {
-            messageApi.success("文件夹已删除");
+            messageApi.success(t("folder.folderDeleted"));
             fetchData();
           }
         } catch (error) {
@@ -389,8 +389,8 @@ const FolderPage: React.FC = () => {
 
   const handleDeleteTrack = (track: any) => {
     modalAPI.confirm({
-      title: "确认删除音轨",
-      content: `将会物理删除音轨 "${track.name}" 及其历史记录，此操作不可恢复。确定要继续吗？`,
+      title: t("folder.confirmDeleteTrack"),
+      content: t("folder.deleteTrackContent", { name: track.name }),
       okText: t("folder.confirmDelete"),
       okType: "danger",
       cancelText: t("common.cancel"),
@@ -398,7 +398,7 @@ const FolderPage: React.FC = () => {
         try {
           const res = await deleteTrack(track.id);
           if (res.code === 200) {
-            messageApi.success("音轨已删除");
+            messageApi.success(t("folder.trackDeleted"));
             fetchData();
           }
         } catch (error) {
@@ -413,55 +413,55 @@ const FolderPage: React.FC = () => {
       const res = await getFolderStats(folder.id);
       if (res.code === 200) {
         modalAPI.info({
-          title: "文件夹属性",
+          title: t("folder.folderProperties"),
           content: (
             <div>
               <p>
-                <b>名称:</b> {folder.name}
+                <b>{t("folder.nameLabel")}</b> {folder.name}
               </p>
               <p>
-                <b>路径:</b> {res.data.path}
+                <b>{t("folder.pathLabel")}</b> {res.data.path}
               </p>
               <p>
-                <b>包含单曲:</b> {res.data.trackCount} 个
+                <b>{t("folder.containsTracksLabel")}</b> {res.data.trackCount} {t("folder.itemCountUnit")}
               </p>
               <p>
-                <b>包含文件夹:</b> {res.data.folderCount} 个
+                <b>{t("folder.containsFoldersLabel")}</b> {res.data.folderCount} {t("folder.itemCountUnit")}
               </p>
             </div>
           ),
         });
       }
     } catch (error) {
-      messageApi.error("获取属性失败");
+      messageApi.error(t("folder.getPropertiesFailed"));
     }
   };
 
   const handleShowTrackProperties = (track: any) => {
     modalAPI.info({
-      title: "音轨属性",
+      title: t("folder.trackProperties"),
       content: (
         <div>
           <p>
-            <b>标题:</b> {track.name}
+            <b>{t("folder.titleLabel")}</b> {track.name}
           </p>
           <p>
-            <b>艺术家:</b> {track.artist || "未知"}
+            <b>{t("common.artists")}:</b> {track.artist || t("common.unknown")}
           </p>
           <p>
-            <b>专辑:</b> {track.album || "未知"}
+            <b>{t("nav.albums")}:</b> {track.album || t("common.unknown")}
           </p>
           <p>
-            <b>路径:</b> {track.path}
+            <b>{t("folder.pathLabel")}</b> {track.path}
           </p>
           {track.cover && (
             <div style={{ marginTop: 12 }}>
               <p>
-                <b>封面:</b>
+                <b>{t("folder.coverLabel")}</b>
               </p>
               <img
                 src={getCoverUrl(track, track.id)}
-                alt="封面"
+                alt={t("folder.coverLabel")}
                 style={{
                   width: 120,
                   height: 120,
@@ -483,7 +483,7 @@ const FolderPage: React.FC = () => {
           onClick={() => navigate("/folders")}
           style={{ cursor: "pointer" }}
         >
-          <HomeOutlined /> 全部
+          <HomeOutlined /> {t("folder.all")}
         </span>
       ),
     },
@@ -512,14 +512,14 @@ const FolderPage: React.FC = () => {
                 onClick={handlePlayCurrent}
                 disabled={!data?.children.length && !data?.tracks.length}
               >
-                t("folder.playAll")
+                {t("folder.playAll")}
               </Button>
               <Button
                 size="small"
                 onClick={() => setIsSelectionMode(true)}
                 disabled={!data?.children.length && !data?.tracks.length}
               >
-                批量编辑
+                {t("folder.batchEdit")}
               </Button>
             </Space>
           ) : (
@@ -527,8 +527,8 @@ const FolderPage: React.FC = () => {
               <Button size="small" onClick={handleSelectAll}>
                 {selectedFolders.length === (data?.children.length || 0) &&
                 selectedTracks.length === (data?.tracks.length || 0)
-                  ? t("common.cancel") + " " + t("common.selectAll")
-                  : "全选"}
+                  ? t("common.cancel") + " " + t("folder.selectAll")
+                  : t("folder.selectAll")}
               </Button>
               <Button
                 size="small"
@@ -536,7 +536,7 @@ const FolderPage: React.FC = () => {
                 onClick={handleBatchAddToPlaylist}
                 disabled={selectedFolders.length === 0 && selectedTracks.length === 0}
               >
-                添加到...
+                {t("folder.addTo")}
               </Button>
               <Button
                 size="small"
@@ -545,7 +545,7 @@ const FolderPage: React.FC = () => {
                 onClick={handleBatchDelete}
                 disabled={selectedFolders.length === 0 && selectedTracks.length === 0}
               >
-                批量删除
+                {t("folder.batchDelete")}
               </Button>
               <Button
                 size="small"
@@ -555,7 +555,7 @@ const FolderPage: React.FC = () => {
                   setSelectedTracks([]);
                 }}
               >
-                完成
+                {t("folder.done")}
               </Button>
             </Space>
           )}
@@ -567,7 +567,7 @@ const FolderPage: React.FC = () => {
       <Spin spinning={loading}>
         <div className={styles.content}>
           {!loading && !data?.children?.length && !data?.tracks?.length ? (
-            <Empty description="暂无内容" style={{ marginTop: 100 }} />
+            <Empty description={t("folder.noContent")} style={{ marginTop: 100 }} />
           ) : (
             <Row gutter={[16, 16]}>
               {/* Folders */}
@@ -616,7 +616,7 @@ const FolderPage: React.FC = () => {
                               },
                               {
                                 key: "add",
-                                label: "添加到播放列表",
+                                label: t("folder.addToPlaylist"),
                                 icon: <PlusOutlined />,
                                 onClick: ({ domEvent }) => {
                                   domEvent.stopPropagation();
@@ -625,7 +625,7 @@ const FolderPage: React.FC = () => {
                               },
                               {
                                 key: "createPlaylist",
-                                label: "创建同名播放列表",
+                                label: t("folder.createSameNamePlaylist"),
                                 icon: <FolderAddOutlined />,
                                 onClick: ({ domEvent }) => {
                                   domEvent.stopPropagation();
@@ -634,7 +634,7 @@ const FolderPage: React.FC = () => {
                               },
                               {
                                 key: "properties",
-                                label: "属性",
+                                label: t("folder.properties"),
                                 icon: <InfoCircleOutlined />,
                                 onClick: ({ domEvent }) => {
                                   domEvent.stopPropagation();
@@ -646,7 +646,7 @@ const FolderPage: React.FC = () => {
                               },
                               {
                                 key: "delete",
-                                label: "删除",
+                                label: t("folder.delete"),
                                 danger: true,
                                 icon: <DeleteOutlined />,
                                 onClick: ({ domEvent }) => {
@@ -723,7 +723,7 @@ const FolderPage: React.FC = () => {
                             items: [
                               {
                                 key: "play",
-                                label: "播放",
+                                label: t("folder.play"),
                                 icon: <PlayCircleOutlined />,
                                 onClick: ({ domEvent }) => {
                                   domEvent.stopPropagation();
@@ -732,7 +732,7 @@ const FolderPage: React.FC = () => {
                               },
                               {
                                 key: "add",
-                                label: "添加到播放列表",
+                                label: t("folder.addToPlaylist"),
                                 icon: <PlusOutlined />,
                                 onClick: ({ domEvent }) => {
                                   domEvent.stopPropagation();
@@ -741,7 +741,7 @@ const FolderPage: React.FC = () => {
                               },
                               {
                                 key: "properties",
-                                label: "属性",
+                                label: t("folder.properties"),
                                 icon: <InfoCircleOutlined />,
                                 onClick: ({ domEvent }) => {
                                   domEvent.stopPropagation();
@@ -753,7 +753,7 @@ const FolderPage: React.FC = () => {
                               },
                               {
                                 key: "delete",
-                                label: "删除",
+                                label: t("folder.delete"),
                                 danger: true,
                                 icon: <DeleteOutlined />,
                                 onClick: ({ domEvent }) => {

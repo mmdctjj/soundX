@@ -13,6 +13,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Cover from "../../components/Cover/index";
 import TrackList from "../../components/TrackList";
 import { type Album } from "../../models";
@@ -24,6 +25,7 @@ import styles from "./index.module.less";
 const { Title } = Typography;
 
 const Downloads: React.FC = () => {
+  const { t } = useTranslation();
   const [localItems, setLocalItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState<any | null>(null);
@@ -166,7 +168,7 @@ const Downloads: React.FC = () => {
             />
           )}
           <Title level={2} className={styles.title} style={{ margin: 0 }}>
-            {selectedAlbum ? selectedAlbum.name : "下载"}
+            {selectedAlbum ? selectedAlbum.name : t("nav.downloads")}
           </Title>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
@@ -183,7 +185,7 @@ const Downloads: React.FC = () => {
             onClick={fetchLocalItems}
             loading={loading}
           >
-            刷新
+            {t("favorites.refresh")}
           </Button>
         </div>
       </div>

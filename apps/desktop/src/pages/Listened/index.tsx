@@ -223,7 +223,7 @@ const Listened: React.FC = () => {
     <div ref={scrollRef} className={styles.container}>
       <div className={styles.pageHeader}>
         <Title level={2} className={styles.title}>
-          听过
+          {t("listened.title")}
         </Title>
         <Flex gap={8} align="center">
           {type === "MUSIC" && (
@@ -247,7 +247,7 @@ const Listened: React.FC = () => {
             loading={refreshing}
             className={styles.refreshButton}
           >
-            刷新
+            {t("listened.refresh")}
           </Button>
         </Flex>
       </div>
@@ -277,7 +277,7 @@ const Listened: React.FC = () => {
           className={styles.noMore}
           style={{ color: token.colorTextSecondary }}
         >
-          没有更多了
+          {t("listened.noMore")}
         </div>
       )}
 

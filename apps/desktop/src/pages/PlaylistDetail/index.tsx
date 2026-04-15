@@ -583,7 +583,7 @@ const PlaylistDetail: React.FC = () => {
               className={styles.playlistItem}
             >
               <Text>{item.name}</Text>
-              <Text type="secondary">{item._count?.tracks || 0} 首</Text>
+              <Text type="secondary">{item._count?.tracks || 0} {t("playlist.trackCount", { count: "" }).replace("首", "")}首</Text>
             </List.Item>
           )}
         />

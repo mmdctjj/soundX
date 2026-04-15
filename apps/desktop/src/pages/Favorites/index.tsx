@@ -228,7 +228,7 @@ const Favorites: React.FC = () => {
     <div ref={scrollRef} className={styles.container}>
       <div className={styles.pageHeader}>
         <Title level={2} className={styles.title}>
-          收藏
+          {t("favorites.title")}
         </Title>
         <Flex gap={8} align="center">
           {type === "MUSIC" && (
@@ -252,7 +252,7 @@ const Favorites: React.FC = () => {
             loading={refreshing}
             className={styles.refreshButton}
           >
-            刷新
+            {t("favorites.refresh")}
           </Button>
         </Flex>
       </div>

@@ -27,6 +27,7 @@ import {
     Typography
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
 import Cover from "../../components/Cover";
@@ -42,6 +43,7 @@ import styles from "./index.module.less";
 const { Title } = Typography;
 
 const ArtistDetail: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   // const message = useMessage(); // Use messageApi from antd 5
@@ -142,10 +144,10 @@ const ArtistDetail: React.FC = () => {
 
   const handleBatchDownload = async () => {
     if (!selectedTracks.length) return;
-    messageApi.info(`开始下载 ${selectedTracks.length} 首歌曲`);
+    messageApi.info(t("playlistDetail.startDownload", { count: selectedTracks.length }));
     await downloadTracks(selectedTracks, (completed, total) => {
         if (completed === total) {
-            messageApi.success(`成功下载 ${total} 首歌曲`);
+            messageApi.success(t("playlistDetail.downloadComplete", { count: total }));
             setIsSelectionMode(false);
             setSelectedRowKeys([]);
         }
@@ -159,7 +161,7 @@ const ArtistDetail: React.FC = () => {
     event.target.value = "";
     if (!file || !artist) return;
     if (!isAudioDockSource) {
-      messageApi.warning("仅 AudioDock 源支持修改封面");
+      messageApi.warning(t("artistDetail.audioDockOnly"));
       return;
     }
     try {
@@ -167,13 +169,13 @@ const ArtistDetail: React.FC = () => {
       const res = await uploadArtistAvatar(artist.id, file);
       if (res.code === 200) {
         setArtist(res.data);
-        messageApi.success("封面已更新");
+        messageApi.success(t("artistDetail.coverUpdated"));
       } else {
-        messageApi.error(res.message || "封面上传失败");
+        messageApi.error(res.message || t("artistDetail.coverUploadFailed"));
       }
     } catch (error) {
       console.error("Failed to upload artist cover:", error);
-      messageApi.error("封面上传失败");
+      messageApi.error(t("artistDetail.coverUploadFailed"));
     } finally {
       setUploadingAvatar(false);
     }
@@ -182,7 +184,7 @@ const ArtistDetail: React.FC = () => {
   const avatarMenuItems: MenuProps["items"] = [
     {
       key: "upload",
-      label: "修改封面",
+      label: t("artistDetail.modifyCover"),
       onClick: () => avatarInputRef.current?.click(),
       disabled: uploadingAvatar || !isAudioDockSource,
     },
@@ -269,10 +271,10 @@ const ArtistDetail: React.FC = () => {
       </div>
 
       {albums.length > 0 && (
-        <div className={styles.content}>
-          <Title level={4} className={styles.sectionTitle}>
-            所有专辑 ({albums.length})
-          </Title>
+            <div className={styles.section}>
+              <Title level={4} className={styles.sectionTitle}>
+                {t("artistDetail.allAlbums", { count: albums.length })}
+              </Title>
           <Row gutter={[24, 24]}>
             {albums.map((album) => (
               <Col key={album.id}>
@@ -286,7 +288,7 @@ const ArtistDetail: React.FC = () => {
       {collaborativeAlbums.length > 0 && (
         <div className={styles.content} style={{ marginTop: "48px" }}>
           <Title level={4} className={styles.sectionTitle}>
-            合作专辑 ({collaborativeAlbums.length})
+            {t("artistDetail.collaborativeAlbums", { count: collaborativeAlbums.length })}
           </Title>
           <Row gutter={[24, 24]}>
             {collaborativeAlbums.map((album) => (
@@ -326,7 +328,7 @@ const ArtistDetail: React.FC = () => {
                     </div>
                     <div className={styles.collectionName}>{col.name}</div>
                     <div className={styles.collectionCount}>
-                      {count} 张专辑
+                      {t("collectionDetail.albumCount", { count })}
                     </div>
                   </div>
                 </Col>

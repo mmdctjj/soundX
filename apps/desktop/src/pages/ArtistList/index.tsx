@@ -13,6 +13,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useLayoutEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { getBaseURL } from "../../https";
 import { type Artist } from "../../models";
@@ -31,6 +32,7 @@ interface Result {
 }
 
 const ArtistList: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { mode } = usePlayMode();
@@ -138,7 +140,7 @@ const ArtistList: React.FC = () => {
     <div ref={scrollRef} className={styles.container}>
       <div className={styles.pageHeader}>
         <Typography.Title level={2} className={styles.title}>
-          艺术家
+          {t("artistList.title")}
         </Typography.Title>
         {mode === "MUSIC" && (
           <Button
@@ -146,7 +148,7 @@ const ArtistList: React.FC = () => {
             icon={heartbeatModeActive ? <HeartFilled /> : <HeartOutlined />}
             onClick={toggleHeartbeatMode}
           >
-            心动模式
+            {t("artistList.heartbeatMode")}
           </Button>
         )}
       </div>
@@ -205,19 +207,19 @@ const ArtistList: React.FC = () => {
             ))}
         </Row>
 
-        {data && data.list.length > 0 && (
-          <div
-            className={styles.noMore}
-            style={{ color: token.colorTextSecondary }}
-          >
-            {data.hasMore
-              ? `${data.total > 0 ? `共 ${data.total} 位艺术家` : `共 ${data.list.length} 位艺术家`}，已加载 ${data.list.length} 位艺术家`
-              : `${data.total > 0 ? `共 ${data.total} 位艺术家` : `共 ${data.list.length} 位艺术家`}，没有更多了`}
-          </div>
-        )}
+        <div
+          className={styles.noMore}
+          style={{ color: token.colorTextSecondary }}
+        >
+          {data && data.list.length > 0
+            ? data.hasMore
+              ? `${t("artistList.totalArtists", { count: data.total > 0 ? data.total : data.list.length })}, ${t("artistList.loadedArtists", { count: data.list.length })}`
+              : `${t("artistList.totalArtists", { count: data.total > 0 ? data.total : data.list.length })}, ${t("artistList.noMore")}`
+            : t("artistList.noData")}
+        </div>
 
         {!loading && !loadingMore && (!data || data.list.length === 0) && (
-          <Empty description="暂无艺术家" />
+          <Empty description={t("artistList.noData")} />
         )}
       </div>
     </div>
