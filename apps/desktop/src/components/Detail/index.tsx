@@ -35,6 +35,7 @@ import {
     Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useSearchParams } from "react-router-dom";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
 import { useMessage } from "../../context/MessageContext";
@@ -50,6 +51,7 @@ const { Title, Text } = Typography;
 
 const Detail: React.FC = () => {
   const message = useMessage();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
   const { user } = useAuthStore();
@@ -96,7 +98,7 @@ const Detail: React.FC = () => {
     onSuccess: (res) => {
       if (res.code === 200) {
         setIsLiked(true);
-        message.success("收藏成功");
+        message.success(t('detail.liked'));
       }
     },
   });
@@ -106,7 +108,7 @@ const Detail: React.FC = () => {
     onSuccess: (res) => {
       if (res.code === 200) {
         setIsLiked(false);
-        message.success("已取消收藏");
+        message.success(t('detail.unliked'));
       }
     },
   });
@@ -248,7 +250,7 @@ const Detail: React.FC = () => {
     event.target.value = "";
     if (!file || !album) return;
     if (!isAudioDockSource) {
-      message.warning("仅 AudioDock 源支持修改封面");
+      message.warning(t('detail.audioDockOnlyCover'));
       return;
     }
     try {
@@ -256,13 +258,13 @@ const Detail: React.FC = () => {
       const res = await uploadAlbumCover(album.id, file);
       if (res.code === 200) {
         setAlbum(res.data);
-        message.success("封面已更新");
+        message.success(t('detail.coverUpdated'));
       } else {
-        message.error(res.message || "封面上传失败");
+        message.error(res.message || t('detail.coverUploadFailed'));
       }
     } catch (error) {
       console.error("Failed to upload album cover:", error);
-      message.error("封面上传失败");
+      message.error(t('detail.coverUploadFailed'));
     } finally {
       setUploadingCover(false);
     }
@@ -323,13 +325,13 @@ const Detail: React.FC = () => {
   const handleDownloadSelected = () => {
     const selectedTracks = tracks.filter((t) => selectedRowKeys.includes(t.id));
     if (selectedTracks.length === 0) {
-      message.warning("请先选择要下载的曲目");
+      message.warning(t('detail.selectTracksFirst'));
       return;
     }
-    message.info(`开始下载 ${selectedTracks.length} 首曲目`);
+    message.info(t('detail.downloadStarted', { count: selectedTracks.length }));
     downloadTracks(selectedTracks, (completed: number, total: number) => {
       if (completed === total) {
-        message.success(`${total} 首曲目下载完成`);
+        message.success(t('detail.downloadComplete', { count: total }));
         setIsSelectionMode(false);
         setSelectedRowKeys([]);
       }
@@ -509,14 +511,14 @@ const Detail: React.FC = () => {
                           size="small"
                           onClick={() => setIsBatchAddModalOpen(true)}
                         >
-                          添加到...
+                          {t('detail.addTo')}...
                         </Button>
                         <Button
                           type="text"
                           size="small"
                           onClick={handleDownloadSelected}
                         >
-                          下载 ({selectedRowKeys.length})
+                          {t('detail.downloading', { count: selectedRowKeys.length })}
                         </Button>
                         <Button
                           size="small"
@@ -569,10 +571,10 @@ const Detail: React.FC = () => {
                       }}
                     >
                       {sortBy === "id"
-                        ? "入库顺序"
+                        ? t('detail.sortById')
                         : sortBy === "index"
-                          ? "专辑顺序"
-                          : "优化排序"}
+                          ? t('detail.sortByIndex')
+                          : t('detail.sortByOptimized')}
                     </Button>
                     {sort === "desc" ? (
                       <SortAscendingOutlined
@@ -629,7 +631,7 @@ const Detail: React.FC = () => {
                 }}
               >
                 {loading && page > 0 ? (
-                  <Text type="secondary">正在努力加载中...</Text>
+                  <Text type="secondary">{t('detail.loading')}</Text>
                 ) : hasMore ? (
                   <Button
                     type="text"
@@ -638,13 +640,13 @@ const Detail: React.FC = () => {
                     }
                     style={{ color: token.colorTextSecondary }}
                   >
-                    加载更多
+                    {t('detail.loadMore')}
                   </Button>
                 ) : (
                   tracks.length > 0 && (
                     <div style={{ opacity: 0.4 }}>
                       <Text type="secondary" style={{ fontSize: "12px" }}>
-                        — 已经到底啦 —
+                        — {t('detail.noMore')} —
                       </Text>
                     </div>
                   )

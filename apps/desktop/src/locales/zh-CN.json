@@ -510,7 +510,8 @@
   "collections": {
     "title": "合集",
     "albumCount": "{{count}} 张专辑",
-    "noData": "暂无合集"
+    "noData": "暂无合集",
+    "loadFailed": "加载合集失败"
   },
   "downloads": {
     "title": "下载",

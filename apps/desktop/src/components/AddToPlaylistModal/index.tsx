@@ -137,7 +137,7 @@ const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
               <List.Item.Meta
                 avatar={<UnorderedListOutlined style={{ fontSize: 20 }} />}
                 title={item.name}
-                description={`${item._count?.tracks || 0} 首`}
+                description={t('addToPlaylistModal.trackCount', { count: item._count?.tracks || 0 })}
               />
             </List.Item>
           )}

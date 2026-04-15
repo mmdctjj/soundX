@@ -1,4 +1,5 @@
 import { DownloadOutlined } from '@ant-design/icons';
+import { useTranslation } from "react-i18next";
 import { Button, Modal, Typography } from 'antd';
 import React from 'react';
 import type { UpdateInfo } from '../hooks/useCheckUpdate';
@@ -16,6 +17,7 @@ interface UpdateModalProps {
 }
 
 const UpdateModal: React.FC<UpdateModalProps> = ({ visible, updateInfo, onCancel }) => {
+  const { t } = useTranslation();
   if (!updateInfo) return null;
   const isWebRuntime = isWeb();
 
@@ -31,12 +33,12 @@ const UpdateModal: React.FC<UpdateModalProps> = ({ visible, updateInfo, onCancel
 
   return (
     <Modal
-      title={`发现新版本 ${updateInfo.version}`}
+      title={t('updateModal.newVersion', { version: updateInfo.version })}
       open={visible}
       onCancel={onCancel}
       footer={[
         <Button key="cancel" onClick={onCancel}>
-          {isWebRuntime ? "我知道了" : "暂不更新"}
+          {isWebRuntime ? t('common.ok') : t('updateModal.updateLater')}
         </Button>,
         ...(!isWebRuntime
           ? [
@@ -46,7 +48,7 @@ const UpdateModal: React.FC<UpdateModalProps> = ({ visible, updateInfo, onCancel
                 icon={<DownloadOutlined />}
                 onClick={handleDownload}
               >
-                去下载
+                {t('updateModal.goToDownload')}
               </Button>,
             ]
           : []),
@@ -55,13 +57,13 @@ const UpdateModal: React.FC<UpdateModalProps> = ({ visible, updateInfo, onCancel
       {isWebRuntime && (
         <Paragraph>
           <Text type="secondary">
-            Web 端请通过 Docker 镜像更新服务，客户端无需下载安装包。
+            {t('updateModal.webUpdateNote')}
           </Text>
         </Paragraph>
       )}
       <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '10px 0' }}>
         <Paragraph>
-          <Text strong>更新内容：</Text>
+          <Text strong>{t('updateModal.updateContent')}</Text>
         </Paragraph>
         <div style={{ lineHeight: '1.6' }}>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>

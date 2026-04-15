@@ -37,7 +37,7 @@ const SourceManage: React.FC = () => {
         <div className={styles.header}>
           <img src={logo} className={styles.appLogo} alt="Logo" />
           <Title style={{ margin: 0 }} level={4}>
-            选择数据源类型
+            {t('sourceManage.selectType')}
           </Title>
           <Text type="secondary">{t("sourceManage.selectServerType")}</Text>
         </div>

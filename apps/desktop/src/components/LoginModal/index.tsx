@@ -145,7 +145,7 @@ const LoginModal: React.FC = () => {
 
       if (response) {
         setServerStatus("success");
-        message.success(`${type} 服务已连接`);
+        message.success(t('loginModal.serverConnected', { type }));
         return;
       }
       // Special handling for Subsonic: if we get a response but code isn't 200, it might be auth error
@@ -159,7 +159,7 @@ const LoginModal: React.FC = () => {
     } catch (error) {
       console.error("Connectivity check failed:", error);
       setServerStatus("error");
-      message.error(`${type} 服务连接失败，请检查地址是否正确`);
+      message.error(t('loginModal.serverConnectionFailed', { type }));
     }
   };
 
@@ -317,7 +317,7 @@ const LoginModal: React.FC = () => {
           className={styles.subtitle}
           style={{ color: themeToken.colorTextSecondary }}
         >
-          {isLogin ? "欢迎回来" : "创建一个新账户开始"}
+          {isLogin ? t('loginModal.welcomeBack') : t('loginModal.createAccountNew')}
         </Text>
       </div>
 
@@ -533,7 +533,7 @@ const LoginModal: React.FC = () => {
           className={styles.switchText}
           style={{ color: themeToken.colorTextSecondary }}
         >
-          AudioDock 听见你的声音
+          {t('loginModal.audioDockTagline')}
         </div>
       )}
 
