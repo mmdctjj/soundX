@@ -13,6 +13,7 @@ import {
 import { createPlaylist, TrackType } from "@soundx/services";
 import { Form, Input, Modal, theme, Typography } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import { useAuthStore } from "../../store/auth";
@@ -25,6 +26,7 @@ import styles from "./index.module.less";
 const { Text, Title } = Typography;
 
 const Sidebar: React.FC = () => {
+  const { t } = useTranslation();
   const message = useMessage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,12 +55,12 @@ const Sidebar: React.FC = () => {
       const res = await createPlaylist(values.name, mode, user.id);
 
       if (res.code === 200) {
-        message.success("创建成功");
+        message.success(t("playlist.createSuccess"));
         setIsModalOpen(false);
         form.resetFields();
         fetchPlaylists(mode, user.id);
       } else {
-        message.error("创建失败");
+        message.error(t("playlist.createFailed"));
       }
     } catch (error) {
       console.error("Create playlist error:", error);
@@ -81,27 +83,27 @@ const Sidebar: React.FC = () => {
       <div className={styles.menuGroup}>
         <MenuItem
           icon={<CompassOutlined />}
-          text="推荐"
+          text={t("nav.recommended")}
           onClick={() => navigate("/recommended")}
           active={isActive("/recommended")}
         />
         <MenuItem
           icon={<AppstoreOutlined />}
-          text="专辑"
+          text={t("nav.albums")}
           onClick={() => navigate("/category")}
           active={isActive("/category")}
         />
         {mode === TrackType.AUDIOBOOK && (
           <MenuItem
             icon={<AppstoreAddOutlined />}
-            text="合集"
+            text={t("nav.collections")}
             onClick={() => navigate("/collections")}
             active={isActive("/collections")}
           />
         )}
         <MenuItem
           icon={<TeamOutlined />}
-          text="艺术家"
+          text={t("nav.artists")}
           onClick={() => navigate("/artists")}
           active={isActive("/artists")}
         />
@@ -109,7 +111,7 @@ const Sidebar: React.FC = () => {
           mode === TrackType.MUSIC && (
             <MenuItem
               icon={<AudioOutlined />}
-              text="单曲"
+              text={t("nav.tracks")}
               onClick={() => navigate("/songs")}
               active={isActive("/songs")}
             />
@@ -119,7 +121,7 @@ const Sidebar: React.FC = () => {
 
       <div className={styles.playlistHeader}>
         <Title level={5} style={{ margin: 0, color: token.colorText }}>
-          播放列表
+          {t("nav.playlists")}
         </Title>
         <CustomerServiceOutlined style={{ color: token.colorTextSecondary }} />
       </div>
@@ -128,21 +130,21 @@ const Sidebar: React.FC = () => {
         {!isWeb() && (
           <MenuItem
             icon={<CloudDownloadOutlined />}
-            text="下载"
+            text={t("nav.downloads")}
             onClick={() => navigate("/downloads")}
             active={isActive("/downloads")}
           />
         )}
         <MenuItem
           icon={<HeartOutlined />}
-          text="收藏"
+          text={t("nav.favorites")}
           onClick={() => navigate("/favorites")}
           active={isActive("/favorites")}
         />
         {!isSubsonicSource() && !isEmbySource() && (
           <MenuItem
             icon={<SoundOutlined />}
-            text="听过"
+            text={t("nav.listened")}
             onClick={() => navigate("/listened")}
             active={isActive("/listened")}
           />
@@ -170,12 +172,12 @@ const Sidebar: React.FC = () => {
           >
             <PlusOutlined style={{ fontSize: "14px" }} />
           </div>
-          <Text style={{ color: "inherit" }}>添加播放列表</Text>
+          <Text style={{ color: "inherit" }}>{t("nav.addPlaylist")}</Text>
         </div>
       </div>
 
       <Modal
-        title="新建播放列表"
+        title={t("playlist.newPlaylist")}
         open={isModalOpen}
         onOk={handleCreatePlaylist}
         onCancel={() => setIsModalOpen(false)}
@@ -184,10 +186,10 @@ const Sidebar: React.FC = () => {
         <Form form={form} layout="vertical">
           <Form.Item
             name="name"
-            label="列表名称"
-            rules={[{ required: true, message: "请输入列表名称" }]}
+            label={t("playlist.playlistName")}
+            rules={[{ required: true, message: t("playlist.playlistNamePlaceholder") }]}
           >
-            <Input placeholder="请输入播放列表名称" />
+            <Input placeholder={t("playlist.playlistNamePlaceholder")} />
           </Form.Item>
         </Form>
       </Modal>

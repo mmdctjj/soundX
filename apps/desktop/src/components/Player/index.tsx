@@ -42,6 +42,7 @@ import {
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import ClockOutlined from "../../assets/clock.svg?react";
 import LoopOutlined from "../../assets/loop.svg?react";
 import MusiclistOutlined from "../../assets/musiclist.svg?react";
@@ -72,6 +73,7 @@ import { QueueList, type QueueListRef } from "./QueueList";
 const { Text, Title } = Typography;
 
 const Player: React.FC = () => {
+  const { t } = useTranslation();
   const message = useMessage();
   const {
     currentTrack,
@@ -266,11 +268,11 @@ const Player: React.FC = () => {
           if (isRecent && isOtherDevice && history.track) {
             const key = `resume-${Date.now()}`;
             notificationApi.open({
-              message: "发现其他设备播放记录",
+              message: t("player.resumePromptTitle"),
               description: (
                 <div>
                   <p>
-                    上次使用设备 <b>{history.deviceName}</b> 播放了
+                    {t("player.resumePromptDesc1")} <b>{history.deviceName}</b>
                   </p>
                   {history.track && (
                     <div
@@ -321,7 +323,7 @@ const Player: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  <p>从 {formatDuration(history.progress)} 继续播放吗？</p>
+                  <p>{t("player.resumePromptResume", { time: formatDuration(history.progress) })}</p>
                 </div>
               ),
               key,
@@ -353,13 +355,13 @@ const Player: React.FC = () => {
                       notificationApi.destroy(key);
                     }}
                   >
-                    继续播放
+                    {t("common.resume")}
                   </Button>
                   <Button
                     size="small"
                     onClick={() => notificationApi.destroy(key)}
                   >
-                    忽略
+                    {t("common.ignore")}
                   </Button>
                 </Space>
               ),
@@ -395,7 +397,7 @@ const Player: React.FC = () => {
 
     const handleSessionEnded = (payload: any) => {
       console.log("handleSessionEnded", payload);
-      message.info("对方已结束同步播放");
+      message.info(t("player.syncEnded"));
       setSynced(false, null);
       // Optionally pause or continue? Usually continue is fine.
     };
@@ -476,7 +478,7 @@ const Player: React.FC = () => {
       deviceName: string;
     }) => {
       message.info(
-        `${payload.username} (${payload.deviceName}) 离开了同步播放`,
+        `${payload.username} (${payload.deviceName}) ${t("player.userLeftSync")}`,
       );
       // We might want to remove them from list locally too, though update usually follows
     };
@@ -500,16 +502,16 @@ const Player: React.FC = () => {
 
   const handleDisconnect = () => {
     modalApi.confirm({
-      title: "结束同步播放",
-      content: "确定要断开连接吗？对方将收到断开提示。",
-      okText: "确定",
-      cancelText: "取消",
+      title: t("player.disconnectConfirm").split("？")[0],
+      content: t("player.disconnectConfirm"),
+      okText: t("common.confirm"),
+      cancelText: t("common.cancel"),
       onOk: () => {
         if (sessionId) {
           socketService.emit("player_left", { sessionId });
           setSynced(false, null);
           setParticipants([]);
-          message.success("已结束同步播放");
+          message.success(t("player.syncDisconnected"));
         }
       },
     });
@@ -745,7 +747,7 @@ const Player: React.FC = () => {
           pause();
           setSleepTimerMode("off");
           setSleepTimerEndTime(null);
-          message.success("定时关闭已触发");
+          message.success(t("player.sleepTimerTriggered"));
           setDuration(0);
           localStorage.removeItem("sleepTimerEndTime");
           localStorage.setItem("sleepTimerMode", "off");
@@ -781,7 +783,7 @@ const Player: React.FC = () => {
     if (sleepTimerMode === "current") {
       pause();
       setSleepTimerMode("off");
-      message.success("播放已结束 (定时关闭)");
+      message.success(t("player.sleepTimerEndedCurrent"));
       return;
     }
 
@@ -790,7 +792,7 @@ const Player: React.FC = () => {
         pause();
         setSleepTimerMode("off");
         setSleepTimerCount(0);
-        message.success("定时关闭已触发");
+        message.success(t("player.sleepTimerTriggered"));
         return;
       } else {
         setSleepTimerCount((prev) => prev - 1);
@@ -1060,7 +1062,7 @@ const Player: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      message.error("获取播放列表失败");
+      message.error(t("player.getPlaylistsFailed"));
     }
   };
 
@@ -1069,13 +1071,13 @@ const Player: React.FC = () => {
     try {
       const res = await addTrackToPlaylist(playlistId, selectedTrack.id);
       if (res.code === 200) {
-        message.success("添加成功");
+        message.success(t("common.addedToPlaylist"));
         setIsAddToPlaylistModalOpen(false);
       } else {
-        message.error("添加失败");
+        message.error(t("common.addToPlaylistFailed"));
       }
     } catch (error) {
-      message.error("添加失败");
+      message.error(t("common.addToPlaylistFailed"));
     }
   };
 
@@ -1084,13 +1086,13 @@ const Player: React.FC = () => {
       const { data: impact } = await getDeletionImpact(track.id);
 
       modalApi.confirm({
-        title: "确定删除该音频文件吗?",
+        title: t("player.confirmDelete"),
         content: impact?.isLastTrackInAlbum
-          ? `这是专辑《${impact.albumName}》的最后一个音频，删除后该专辑也将被同步删除。`
-          : "删除后将无法恢复，且会同步删除本地原文件。",
-        okText: "删除",
+          ? t("player.deleteLastTrackInAlbum", { albumName: impact.albumName })
+          : t("player.deleteWarning"),
+        okText: t("common.delete"),
         okType: "danger",
-        cancelText: "取消",
+        cancelText: t("common.cancel"),
         onOk: async () => {
           try {
             const res = await deleteTrack(track.id, impact?.isLastTrackInAlbum);
@@ -1106,7 +1108,7 @@ const Player: React.FC = () => {
         },
       });
     } catch (error) {
-      message.error("获取删除影响失败");
+      message.error(t("player.getDeletionImpactFailed"));
     }
   };
 
@@ -1207,7 +1209,7 @@ const Player: React.FC = () => {
         trigger="click"
         placement="top"
       >
-        <Tooltip title="播放顺序">
+        <Tooltip title={t("player.playOrder")}>
           {playMode === "sequence" ? (
             <Icon
               component={MusiclistOutlined}
@@ -1237,7 +1239,7 @@ const Player: React.FC = () => {
   const renderPlaylistButton = (className: string) => {
     if (isRadioMode) return null;
     return (
-      <Tooltip title="播放列表">
+      <Tooltip title={t("player.playlist")}>
         <OrderedListOutlined
           onClick={() => setIsPlaylistOpen(true)}
           className={className}
@@ -1302,7 +1304,7 @@ const Player: React.FC = () => {
             content={
               <List
                 size="small"
-                header={<Text strong>正在同步播放</Text>}
+                header={<Text strong>{t("player.syncingUsers")}</Text>}
                 dataSource={useSyncStore.getState().participants}
                 renderItem={(item: any) => (
                   <List.Item>
@@ -1422,10 +1424,10 @@ const Player: React.FC = () => {
                       component={ClockOutlined}
                       style={{ fontSize: "24px", fontWeight: "bold" }}
                     />
-                    <Text>定时关闭</Text>
+                    <Text>{t("player.sleepTimer")}</Text>
                     {sleepTimerMode === "time" && (
                       <Text>
-                        剩余
+                        {t("common.remaining")}
                         {formatDuration(
                           (sleepTimerEndTime! - Date.now()) / 1000,
                         )}
@@ -1439,7 +1441,7 @@ const Player: React.FC = () => {
                         }}
                         size="small"
                       >
-                        取消定时
+                        {t("common.cancelTimer")}
                       </Button>
                     )}
                   </Flex>
@@ -1517,7 +1519,7 @@ const Player: React.FC = () => {
             trigger="click"
             placement="top"
           >
-            <Tooltip title="定时关闭">
+            <Tooltip title={t("player.sleepTimer")}>
               <Icon
                 component={ClockOutlined}
                 className={styles.settingIcon}
@@ -1547,14 +1549,14 @@ const Player: React.FC = () => {
             trigger="click"
             placement="top"
           >
-            <Tooltip title="播放速度">
-              <div className={styles.playbackRateIcon}>{playbackRate}倍</div>
+            <Tooltip title={t("player.playbackSpeed")}>
+              <div className={styles.playbackRateIcon}>{playbackRate}{t("common.times")}</div>
             </Tooltip>
           </Popover>
         )}
 
         {appMode === TrackType.MUSIC && (
-          <Tooltip title="桌面歌词">
+          <Tooltip title={t("player.desktopLyrics")}>
             <div
               className={`${styles.lyricButton} ${
                 desktopLyricEnable ? styles.activeLyricButton : ""

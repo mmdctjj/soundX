@@ -288,7 +288,7 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>字体颜色</div>
+          <div className={styles.label}>{t("settings.fontColor")}</div>
           <div className={styles.control}>
             <ColorPicker
               value={desktopLyric.fontColor}
@@ -300,7 +300,7 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>描边粗细</div>
+          <div className={styles.label}>{t("settings.strokeWidth")}</div>
           <div className={styles.control}>
             <InputNumber
               min={0}
@@ -313,7 +313,7 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>描边颜色</div>
+          <div className={styles.label}>{t("settings.strokeColor")}</div>
           <div className={styles.control}>
             <ColorPicker
               value={desktopLyric.strokeColor}
@@ -325,19 +325,19 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>文字阴影</div>
+          <div className={styles.label}>{t("settings.textShadow")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
                 checked={desktopLyric.shadow}
                 onChange={(val) => updateDesktopLyric("shadow", val)}
               />
-              <Text className={styles.description}>启用文字阴影效果</Text>
+              <Text className={styles.description}>{t("settings.textShadowDescription")}</Text>
             </Space>
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>窗口置顶</div>
+          <div className={styles.label}>{t("settings.alwaysOnTop")}</div>
           <div className={styles.control}>
             <Space>
               <Switch
@@ -345,7 +345,7 @@ const Settings: React.FC = () => {
                 onChange={(val) => updateDesktopLyric("alwaysOnTop", val)}
               />
               <Text className={styles.description}>
-                歌词窗口始终保持在最前端
+                {t("settings.alwaysOnTopDescription")}
               </Text>
             </Space>
           </div>
@@ -379,15 +379,15 @@ const Settings: React.FC = () => {
           </div>
         </div>
         <div className={styles.settingItem}>
-          <div className={styles.label}>下载品质</div>
+          <div className={styles.label}>{t("settings.downloadQuality")}</div>
           <div className={styles.control}>
             <Select
               value={download.quality}
               onChange={(val) => updateDownload("quality", val)}
               options={[
-                { label: "标准 (128K)", value: "128k" },
-                { label: "高品质 (320K)", value: "320k" },
-                { label: "无损 (FLAC)", value: "flac" },
+                { label: t("settings.downloadQualityStandard"), value: "128k" },
+                { label: t("settings.downloadQualityHigh"), value: "320k" },
+                { label: t("settings.downloadQualityLossless"), value: "flac" },
               ]}
               className={styles.selectMedium}
             />
