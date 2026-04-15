@@ -182,7 +182,7 @@ export default function TtsCreate() {
     <>
       <View className='section'>
         <View className='section-header'>
-          <Text className='section-title'>选择音色</Text>
+          <Text className='section-title'>{t("tts.selectVoice")}</Text>
         </View>
         <ScrollView scrollX className='voice-scroll'>
           <View className='voice-list'>
@@ -270,7 +270,7 @@ export default function TtsCreate() {
         <View className='review-list'>
           {reviewData.map((item) => (
             <View key={item.key} className='review-item'>
-              <Text className='review-label'>标题</Text>
+              <Text className='review-label'>{t("tts.title")}</Text>
               <View className='review-input-wrapper'>
                 <View className='review-input'>
                   <Text className='review-input-text'>{item.title}</Text>
@@ -295,7 +295,7 @@ export default function TtsCreate() {
           className={`create-btn ${loading ? 'disabled' : ''}`}
           onClick={handleCreateTasks}
         >
-          <Text className='create-btn-text'>创建任务</Text>
+          <Text className='create-btn-text'>{t("tts.createTask")}</Text>
         </View>
       </View>
     </>

@@ -474,7 +474,7 @@ export default function Player() {
                   <Text className='player-modal-title'>{t('player.adjustControlPosition')}</Text>
                 </View>
                 <View className='player-modal-description-row'>
-                  <Text className='player-modal-description'>调整播放控制按钮距离屏幕底部的位置</Text>
+                  <Text className='player-modal-description'>{t("player.adjustControlPosition")}</Text>
                 </View>
                 <View className='player-slider-panel'>
                   <View className='player-slider-header'>
@@ -493,13 +493,13 @@ export default function Player() {
                     blockSize={16}
                   />
                   <View className='player-slider-hint-row'>
-                    <Text className='player-slider-hint'>贴近底部</Text>
+                    <Text className='player-slider-hint'>{t("player.closerToBottom")}</Text>
                     <Text className='player-slider-hint'>{t('common.moveUp')}</Text>
                   </View>
                 </View>
                 <View className='player-modal-actions'>
                   <View className='player-modal-btn player-modal-cancel-btn' onClick={() => { setControlsBottomOffset(0); setShowControlsOffsetModal(false); }}>
-                    <Text className='player-modal-cancel-text'>重置</Text>
+                    <Text className='player-modal-cancel-text'>{t("player.reset")}</Text>
                   </View>
                   <View className='player-modal-btn player-modal-confirm-btn' onClick={() => setShowControlsOffsetModal(false)}>
                     <Text className='player-modal-confirm-text'>{t('common.done')}</Text>
@@ -539,7 +539,7 @@ export default function Player() {
                 </View>
                 <View className='player-modal-actions'>
                   <View className='player-modal-btn player-modal-cancel-btn' onClick={() => { setLyricFontSize(32); setShowLyricsFontModal(false); }}>
-                    <Text className='player-modal-cancel-text'>重置</Text>
+                    <Text className='player-modal-cancel-text'>{t("player.reset")}</Text>
                   </View>
                   <View className='player-modal-btn player-modal-confirm-btn' onClick={() => setShowLyricsFontModal(false)}>
                     <Text className='player-modal-confirm-text'>{t('common.done')}</Text>
