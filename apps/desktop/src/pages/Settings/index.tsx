@@ -192,16 +192,26 @@ const Settings: React.FC = () => {
         <div className={styles.settingItem}>
           <div className={styles.label}>{t("settings.language", "语言")}</div>
           <div className={styles.control}>
-            <Segmented
-              value={i18n.language}
+            <Select
+              value={general.language || "system"}
               onChange={async (val) => {
-                await i18n.changeLanguage(val as string);
-                updateGeneral("language", val === "zh-CN" ? "zh-CN" : "en-US");
+                if (val === "system") {
+                  localStorage.removeItem("i18nextLng");
+                  const systemLang = navigator.language.startsWith("zh") ? "zh-CN" : "en";
+                  await i18n.changeLanguage(systemLang);
+                } else {
+                  await i18n.changeLanguage(val);
+                }
+                updateGeneral("language", val);
               }}
-              options={languages.map((lang) => ({
-                label: <span>{lang.flag} {lang.label}</span>,
-                value: lang.code,
-              }))}
+              options={[
+                { label: t("settings.themeSystem", "跟随系统"), value: "system" },
+                ...languages.map((lang) => ({
+                  label: `${lang.flag} ${lang.label}`,
+                  value: lang.code,
+                })),
+              ]}
+              style={{ width: 140 }}
             />
           </div>
         </div>

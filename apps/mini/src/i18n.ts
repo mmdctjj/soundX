@@ -12,29 +12,37 @@ const resources = {
   en: { translation: en },
 };
 
+const getDeviceLanguage = () => {
+  try {
+    const { language } = Taro.getSystemInfoSync();
+    if (language) {
+      return language.startsWith('zh') ? 'zh-CN' : 'en';
+    }
+  } catch (e) {
+    console.error("Error getting system language:", e);
+  }
+  return "zh-CN";
+};
+
 const languageDetector = {
   type: "languageDetector" as const,
   async: true,
   detect: (callback: (lng: string) => void) => {
     try {
       const savedLanguage = Taro.getStorageSync(LANGUAGE_KEY);
-      if (savedLanguage) {
+      if (savedLanguage && savedLanguage !== 'system') {
         callback(savedLanguage);
         return;
       }
+      callback(getDeviceLanguage());
     } catch (error) {
       console.error("Error reading language from storage:", error);
+      callback(getDeviceLanguage());
     }
-    // Default to Chinese
-    callback("zh-CN");
   },
   init: () => {},
   cacheUserLanguage: (language: string) => {
-    try {
-      Taro.setStorageSync(LANGUAGE_KEY, language);
-    } catch (error) {
-      console.error("Error saving language to storage:", error);
-    }
+    // handled manually
   },
 };
 

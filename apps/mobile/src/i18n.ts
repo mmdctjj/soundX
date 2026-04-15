@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform, NativeModules } from "react-native";
 
 import zhCN from "./locales/zh-CN.json";
 import en from "./locales/en.json";
@@ -12,29 +13,41 @@ const resources = {
   en: { translation: en },
 };
 
+const getDeviceLanguage = () => {
+  try {
+    const locale =
+      Platform.OS === 'ios'
+        ? NativeModules.SettingsManager.settings.AppleLocale ||
+          NativeModules.SettingsManager.settings.AppleLanguages[0] // iOS 13
+        : NativeModules.I18nManager.localeIdentifier;
+    if (locale) {
+      return locale.startsWith('zh') ? 'zh-CN' : 'en';
+    }
+  } catch (e) {
+    console.error("Failed to get device language", e);
+  }
+  return "zh-CN";
+};
+
 const languageDetector = {
   type: "languageDetector" as const,
   async: true,
   detect: async (callback: (lng: string) => void) => {
     try {
       const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
-      if (savedLanguage) {
+      if (savedLanguage && savedLanguage !== 'system') {
         callback(savedLanguage);
         return;
       }
+      callback(getDeviceLanguage());
     } catch (error) {
       console.error("Error reading language from storage:", error);
+      callback(getDeviceLanguage());
     }
-    // Default to Chinese
-    callback("zh-CN");
   },
   init: () => {},
   cacheUserLanguage: async (language: string) => {
-    try {
-      await AsyncStorage.setItem(LANGUAGE_KEY, language);
-    } catch (error) {
-      console.error("Error saving language to storage:", error);
-    }
+    // We handle caching manually when switching, to differentiate 'system' from explicit lang
   },
 };
 
