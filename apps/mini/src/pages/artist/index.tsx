@@ -2,13 +2,16 @@ import { Album, Artist, Track, getAlbumsByArtist, getArtistById, getCollaborativ
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import { usePlayer } from '../../context/PlayerContext';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
+import BottomTabBar from '../../components/BottomTabBar';
 
 export default function ArtistDetail() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = router.params;
   const { playTrackList, currentTrack, isPlaying } = usePlayer();
@@ -76,8 +79,8 @@ export default function ArtistDetail() {
     }
   };
 
-  if (loading) return <View className='loading'><Text>Loading...</Text></View>;
-  if (!artist) return <View className='error'><Text>Artist not found</Text></View>;
+  if (loading) return <View className='loading'><Text>{t('common.loading')}</Text></View>;
+  if (!artist) return <View className='error'><Text>{t('common.noData')}</Text></View>;
 
   return (
     <View className='artist-container'>
@@ -95,7 +98,7 @@ export default function ArtistDetail() {
 
              {albums.length > 0 && (
                  <View className='section'>
-                     <Text className='section-title'>所有专辑 ({albums.length})</Text>
+                     <Text className='section-title'>{t('artist.allAlbums')} ({albums.length})</Text>
                      <ScrollView scrollX className='horizontal-list'>
                          {albums.map(album => (
                              <View 
@@ -113,7 +116,7 @@ export default function ArtistDetail() {
 
              {collabAlbums.length > 0 && (
                  <View className='section'>
-                     <Text className='section-title'>合作专辑 ({collabAlbums.length})</Text>
+                     <Text className='section-title'>{t('artist.collabAlbums')} ({collabAlbums.length})</Text>
                      <ScrollView scrollX className='horizontal-list'>
                          {collabAlbums.map(album => (
                              <View 
@@ -131,9 +134,9 @@ export default function ArtistDetail() {
 
              <View className='section'>
                  <View className='section-header-row'>
-                     <Text className='section-title'>所有单曲 ({tracks.length})</Text>
-                     <View className='play-btn' onClick={() => tracks.length > 0 && playTrackList(tracks, 0)}>
-                         <Text className='play-icon icon icon-play' />
+                     <Text className='section-title'>{t('artist.allTracks')} ({tracks.length})</Text>
+                     <View className='artist-play-btn' onClick={() => tracks.length > 0 && playTrackList(tracks as any, 0)}>
+                         <Text className='artist-play-icon icon icon-play' />
                      </View>
                  </View>
                  <View className='track-list'>
@@ -142,7 +145,7 @@ export default function ArtistDetail() {
                             key={track.id} 
                             id={`track-${index}`}
                             className='track-item'
-                            onClick={() => playTrackList(tracks, index)}
+                            onClick={() => playTrackList(tracks as any, index)}
                          >
                              <View className='track-idx-container'>
                                 {currentTrack?.id === track.id && isPlaying ? (
@@ -163,7 +166,7 @@ export default function ArtistDetail() {
              
              {/* Padding for MiniPlayer */}
              <View id='bottom-anchor' />
-             <View style={{ height: '160rpx' }}></View>
+             <View style={{ height: '260rpx' }}></View>
          </ScrollView>
          <QuickLocate
             onTop={() => scrollToAnchor('top-anchor')}
@@ -171,7 +174,8 @@ export default function ArtistDetail() {
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
-         <MiniPlayer />
+      <BottomTabBar />
+      <MiniPlayer />
     </View>
   );
 }

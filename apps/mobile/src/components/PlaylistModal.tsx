@@ -20,6 +20,7 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { getBaseURL } from "../https";
 import { FloatingActionButtons } from "./FloatingActionButtons";
 
@@ -27,6 +28,7 @@ type TabType = "current" | "history" | "favorites";
 type SubTabType = "track" | "album";
 
 export const PlaylistModal = () => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user, sourceType } = useAuth();
@@ -234,9 +236,9 @@ export const PlaylistModal = () => {
             <View style={styles.modalHeader}>
               <View style={styles.tabRow}>
                 {[
-                  { id: "current", label: `当前 (${trackList.length})` },
-                  { id: "history", label: "听过" },
-                  { id: "favorites", label: "收藏" },
+                  { id: "current", label: t('playlist.currentPlaylist', { count: trackList.length }) },
+                  { id: "history", label: t('playlist.listened') },
+                  { id: "favorites", label: t('playlist.favorited') },
                 ].filter((tab) => !(sourceType === "Emby" && tab.id === "history")).map((tab) => (
                   <TouchableOpacity
                     key={tab.id}
@@ -272,8 +274,8 @@ export const PlaylistModal = () => {
             {mode === "MUSIC" && activeTab !== "current" && (
               <View style={styles.subTabContainer}>
                 {[
-                  { id: "album", label: "专辑" },
-                  { id: "track", label: "单曲" },
+                  { id: "album", label: t('playlist.album') },
+                  { id: "track", label: t('playlist.single') },
                 ].map((sub) => (
                   <TouchableOpacity
                     key={sub.id}

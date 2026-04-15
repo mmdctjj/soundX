@@ -82,8 +82,8 @@
   min-width: 180rpx;
 
   &.active {
-    background-color: #e6f4ff;
-    border: 2rpx solid #007aff;
+    background-color: #fff;
+    border: 2rpx solid #000;
   }
 }
 
@@ -96,7 +96,7 @@
 
 .voice-preview-btn {
   padding: 12rpx 24rpx;
-  background-color: #007aff;
+  background-color: #000;
   border-radius: 30rpx;
 }
 
@@ -121,7 +121,7 @@
   }
 
   &.selected {
-    background-color: #f0f9ff;
+    background-color: #f9f9f9;
   }
 }
 
@@ -136,8 +136,8 @@
   justify-content: center;
 
   .selected & {
-    background-color: #007aff;
-    border-color: #007aff;
+    background-color: #000;
+    border-color: #000;
   }
 }
 
@@ -247,7 +247,7 @@
 .next-btn, .create-btn {
   flex: 1;
   padding: 28rpx;
-  background-color: #007aff;
+  background-color: #000;
   border-radius: 48rpx;
   display: flex;
   align-items: center;

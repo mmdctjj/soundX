@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 interface FilePathModalProps {
   visible: boolean;
@@ -13,13 +14,14 @@ interface FilePathModalProps {
 
 export const FilePathModal: React.FC<FilePathModalProps> = ({
   visible,
-  title = "文件路径",
+  title,
   path,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const displayPath = path?.trim() || "暂无文件路径";
+  const displayPath = path?.trim() || t('filePath.noFilePath');
 
   return (
     <Modal
@@ -43,7 +45,7 @@ export const FilePathModal: React.FC<FilePathModalProps> = ({
             <View style={styles.header}>
               <Ionicons name="document-text-outline" size={20} color={colors.text} />
               <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-                {title}
+                {title || t('filePath.title')}
               </Text>
             </View>
             <Text style={[styles.path, { color: colors.secondary }]} selectable>
@@ -53,7 +55,7 @@ export const FilePathModal: React.FC<FilePathModalProps> = ({
               style={[styles.button, { borderColor: colors.border }]}
               onPress={onClose}
             >
-              <Text style={[styles.buttonText, { color: colors.text }]}>关闭</Text>
+              <Text style={[styles.buttonText, { color: colors.text }]}>{t('filePath.close')}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

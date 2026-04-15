@@ -30,13 +30,20 @@
 }
 
 .create-btn {
-  padding: 8px;
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 30rpx;
+  background-color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .create-icon {
-  font-size: 48rpx;
-  color: #007aff;
+  font-size: 40rpx;
+  color: #fff;
   font-weight: bold;
+  line-height: 1;
 }
 
 .filter-container {
@@ -58,7 +65,7 @@
   background-color: rgba(150, 150, 150, 0.1);
 
   &.active {
-    background-color: #007aff;
+    background-color: #000;
   }
 }
 
@@ -109,7 +116,7 @@
 }
 
 .empty-btn {
-  background-color: #007aff;
+  background-color: #000;
   padding: 24rpx 48rpx;
   border-radius: 48rpx;
 }

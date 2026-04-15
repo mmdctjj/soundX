@@ -1,5 +1,6 @@
 import { Spin, Typography, theme } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import pkg from "../../../package.json";
@@ -19,6 +20,7 @@ interface ReleaseItem {
 }
 
 const ProductUpdates: React.FC = () => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const [loading, setLoading] = useState(true);
   const [releases, setReleases] = useState<ReleaseItem[]>([]);
@@ -35,7 +37,7 @@ const ProductUpdates: React.FC = () => {
           .map((item) => ({
             id: item.id,
             tag_name: item.tag_name || "",
-            body: item.body || "暂无更新说明",
+            body: item.body || t('productUpdates.noUpdateNotes'),
             published_at: item.published_at || item.created_at || "",
           }))
           .sort(
@@ -60,7 +62,7 @@ const ProductUpdates: React.FC = () => {
   return (
     <div className={styles.productUpdatesPage} style={{ color: token.colorText }}>
       <header className={styles.header}>
-        <Title level={2} className={styles.title}>产品动态</Title>
+        <Title level={2} className={styles.title}>{t('productUpdates.title')}</Title>
         <Text className={styles.version} type="secondary">
           当前版本: v{pkg.version}
         </Text>
@@ -69,7 +71,7 @@ const ProductUpdates: React.FC = () => {
       <div className={styles.qrSection}>
         <img src={qrImg} alt="公众号二维码" className={styles.qrCode} />
         <Text className={styles.qrLabel} type="secondary">
-          关注官方公众号：声仓
+          {t('productUpdates.followOfficial')}
         </Text>
       </div>
 
@@ -77,7 +79,7 @@ const ProductUpdates: React.FC = () => {
         
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
-            <Spin size="large" tip="正在加载更新日志..." />
+            <Spin size="large" tip={t('productUpdates.loading')} />
           </div>
         ) : releases.length === 0 ? (
           <div className={styles.emptyText}>无法获取更新内容，请稍后再试。</div>

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSettings } from '../context/SettingsContext';
 import { useSync } from '../context/SyncContext';
 import { useTheme } from '../context/ThemeContext';
@@ -8,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { trackEvent } from '../services/tracking';
 
 const InviteNotification: React.FC = () => {
+  const { t } = useTranslation();
   const { invites, acceptInvite, rejectInvite } = useSync();
   const { colors } = useTheme();
   const { carLayoutMode } = useSettings();
@@ -85,13 +87,13 @@ const InviteNotification: React.FC = () => {
         >
           <View style={[styles.content, { backgroundColor: colors.card }]}>
             <View style={styles.textContainer}>
-              <Text style={[styles.title, { color: colors.text }]}>同步播放邀请</Text>
+              <Text style={[styles.title, { color: colors.text }]}>{t('sync.syncInvite')}</Text>
               <Text style={[styles.desc, { color: colors.secondary }]}>
-                来自 {currentInvite.fromUsername} ({currentInvite.fromDeviceName})
+                {t('sync.fromUser', { username: currentInvite.fromUsername, deviceName: currentInvite.fromDeviceName })}
               </Text>
               {currentInvite.currentTrack && (
                 <Text style={[styles.track, { color: colors.secondary }]} numberOfLines={1}>
-                  正在播放: {currentInvite.currentTrack.name}
+                  {t('sync.nowPlaying', { trackName: currentInvite.currentTrack.name })}
                 </Text>
               )}
             </View>

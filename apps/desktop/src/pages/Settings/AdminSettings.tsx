@@ -1,10 +1,12 @@
 
 import { getRegistrationSetting, toggleRegistrationSetting } from "@soundx/services";
+import { useTranslation } from "react-i18next";
 import { Button, message, Space, Switch } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const AdminSettings: React.FC = () => {
+  const { t } = useTranslation();
     const navigate = useNavigate();
     const [registrationAllowed, setRegistrationAllowed] = useState(true);
     const [settingLoading, setSettingLoading] = useState(false);
@@ -42,7 +44,7 @@ const AdminSettings: React.FC = () => {
            <Space style={{ marginBottom: 16 }}>
                <span>允许新用户注册:</span>
                <Switch checked={registrationAllowed} onChange={toggleRegistration} loading={settingLoading} />
-               <Button onClick={() => navigate("/admin/users")}>用户管理</Button>
+               <Button onClick={() => navigate("/admin/users")}>{t("admin.userManagement")}</Button>
            </Space>
         </div>
     );

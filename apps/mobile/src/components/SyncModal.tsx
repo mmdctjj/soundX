@@ -12,6 +12,7 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
 import { useSettings } from '../context/SettingsContext';
@@ -27,6 +28,7 @@ interface SyncModalProps {
 }
 
 const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -142,7 +144,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
             onPress={() => {}}
         >
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>选择同步好友</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('sync.selectSyncFriends')}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.secondary} />
             </TouchableOpacity>
@@ -156,7 +158,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
               renderItem={renderItem}
               keyExtractor={item => item.id.toString()}
               style={styles.list}
-              ListEmptyComponent={<Text style={[styles.empty, { color: colors.secondary }]}>暂无在线好友</Text>}
+              ListEmptyComponent={<Text style={[styles.empty, { color: colors.secondary }]}>{t('sync.noOnlineFriends')}</Text>}
             />
           )}
 
@@ -170,7 +172,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
             onPress={handleInvite}
           >
             <Text style={[styles.inviteButtonText, { color: colors.background }]}>
-              发起同步 {selectedUserIds.size > 0 && `(${selectedUserIds.size})`}
+              {t(selectedUserIds.size > 0 ? 'sync.initiateSyncCount' : 'sync.initiateSync', { count: selectedUserIds.size })}
             </Text>
           </TouchableOpacity>
         </TouchableOpacity>

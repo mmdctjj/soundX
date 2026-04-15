@@ -6,6 +6,7 @@ import {
 } from "@soundx/services";
 import { List, message, Modal, theme } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Track } from "../../models";
 import { trackEvent } from "../../services/tracking";
 import { useAuthStore } from "../../store/auth";
@@ -25,6 +26,7 @@ const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   tracks,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const { user, device } = useAuthStore();
   const { mode } = usePlayMode();
@@ -42,7 +44,7 @@ const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
         setPlaylists(res.data);
       }
     } catch (error) {
-      messageApi.error("获取播放列表失败");
+      messageApi.error(t('addToPlaylist.fetchFailed'));
     } finally {
       setLoading(false);
     }
@@ -66,29 +68,29 @@ const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
         trackCount: tracks.length,
       },
     });
-    messageApi.success(`已添加 ${tracks.length} 首歌曲到播放队列`);
+    messageApi.success(t('addToPlaylist.addedToQueue', { count: tracks.length }));
     if (onSuccess) onSuccess();
     onCancel();
   };
 
   const handleAddToSpecificPlaylist = async (playlistId: number | string) => {
     if (tracks.length === 0) return;
-    const hide = messageApi.loading("正在添加到播放列表...", 0);
+    const hide = messageApi.loading(t('addToPlaylist.addingToPlaylist'), 0);
     try {
       const trackIds = tracks.map((t) => t.id);
       const res = await addTracksToPlaylist(playlistId, trackIds);
       if (res.code === 200) {
         hide();
-        messageApi.success(`成功添加 ${tracks.length} 首歌曲`);
+        messageApi.success(t('addToPlaylist.addSuccess', { count: tracks.length }));
         if (onSuccess) onSuccess();
         onCancel();
       } else {
         hide();
-        messageApi.error("添加失败");
+        messageApi.error(t('addToPlaylist.addFailed'));
       }
     } catch (error) {
       hide();
-      messageApi.error("添加失败");
+      messageApi.error(t('addToPlaylist.addFailed'));
     }
   };
 
@@ -96,7 +98,7 @@ const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
     <>
       {contextHolder}
       <Modal
-        title="添加到播放列表"
+        title={t('addToPlaylist.title')}
         open={open}
         onCancel={onCancel}
         footer={null}
@@ -120,9 +122,9 @@ const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                   />
                 }
                 title={
-                  <span style={{ color: token.colorText }}>当前播放队列</span>
+                  <span style={{ color: token.colorText }}>{t('addToPlaylistModal.currentQueue')}</span>
                 }
-                description="插入到正在播放之后"
+                description={t('addToPlaylistModal.insertAfterPlaying')}
               />
             </List.Item>
           }
@@ -135,7 +137,7 @@ const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
               <List.Item.Meta
                 avatar={<UnorderedListOutlined style={{ fontSize: 20 }} />}
                 title={item.name}
-                description={`${item._count?.tracks || 0} 首`}
+                description={t('addToPlaylistModal.trackCount', { count: item._count?.tracks || 0 })}
               />
             </List.Item>
           )}

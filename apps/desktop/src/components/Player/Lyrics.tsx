@@ -1,4 +1,5 @@
 import { Typography, theme } from "antd";
+import { useTranslation } from "react-i18next";
 import React, { useEffect, useRef, useState } from "react";
 import styles from "./index.module.less";
 
@@ -15,6 +16,7 @@ interface LyricLine {
 }
 
 const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const [parsedLyrics, setParsedLyrics] = useState<LyricLine[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -163,7 +165,7 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
     return (
       <div className={styles.noLyrics}>
         <Text type="secondary" style={{ fontSize: "16px" }}>
-          暂无歌词
+          {t("player.noLyrics")}
         </Text>
       </div>
     );

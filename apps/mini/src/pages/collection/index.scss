@@ -1,0 +1,116 @@
+.collection-container {
+  height: 100vh;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.nav-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding-top: 80rpx;
+  padding-left: 30rpx;
+  z-index: 10;
+}
+
+.back-btn {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.content-scroll {
+  flex: 1;
+}
+
+.header {
+  padding: 120rpx 40rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cover {
+  width: 300rpx;
+  height: 300rpx;
+  border-radius: 28rpx;
+  background-color: #eee;
+  margin-bottom: 28rpx;
+}
+
+.title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #111;
+  text-align: center;
+}
+
+.meta {
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.album-grid {
+  padding: 0 30rpx 30rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.album-card {
+  width: 31%;
+  display: flex;
+  flex-direction: column;
+}
+
+.album-cover {
+  width: 100%;
+  height: 220rpx;
+  border-radius: 16rpx;
+  background-color: #eee;
+  margin-bottom: 12rpx;
+}
+
+.album-name {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-artist {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-bottom-spacer {
+  height: calc(var(--mini-player-height) + var(--tab-bar-height) + env(safe-area-inset-bottom) + 56rpx);
+}
+
+.loading,
+.error {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #999;
+}

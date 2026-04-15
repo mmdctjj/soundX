@@ -1,6 +1,7 @@
 import { Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { confirmScanLoginSession, getScanLoginSession, reportScanLoginResultViaSocket } from '@soundx/services'
 import './index.scss'
 
@@ -26,6 +27,7 @@ interface ScanStatus {
 }
 
 export default function ScanConfirmPage() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true)
   const [confirming, setConfirming] = useState(false)
   const [scanStatus, setScanStatus] = useState<ScanStatus | null>(null)
@@ -42,7 +44,7 @@ export default function ScanConfirmPage() {
     const secret = params?.secret
 
     if (!sessionId || !secret) {
-      Taro.showToast({ title: '缺少会话参数', icon: 'none' })
+      Taro.showToast({ title: t('scanConfirm.missingSession'), icon: 'none' })
       Taro.navigateBack()
       return
     }
@@ -71,7 +73,7 @@ export default function ScanConfirmPage() {
       })
       setSelectedConfigIds(initialSelected)
     } catch (error: any) {
-      Taro.showToast({ title: error.message || '获取信息失败', icon: 'none' })
+      Taro.showToast({ title: error.message || t('scanConfirm.getInfoFailed'), icon: 'none' })
       setTimeout(() => {
         Taro.navigateBack()
       }, 1500)
@@ -88,7 +90,7 @@ export default function ScanConfirmPage() {
       if (status === 'success') {
         stopPolling()
         setConfirming(false)
-        Taro.showToast({ title: '登录成功', icon: 'success' })
+        Taro.showToast({ title: t('scanConfirm.loginSuccess'), icon: 'success' })
         // Report success via socket so desktop knows
         reportScanLoginResultViaSocket(sessionIdRef.current, secretRef.current, true)
         setTimeout(() => {
@@ -97,7 +99,7 @@ export default function ScanConfirmPage() {
       } else if (status === 'failed') {
         stopPolling()
         setConfirming(false)
-        Taro.showToast({ title: '登录失败', icon: 'none' })
+        Taro.showToast({ title: t('scanConfirm.loginFailed'), icon: 'none' })
         reportScanLoginResultViaSocket(sessionIdRef.current, secretRef.current, false, 'User rejected')
         setTimeout(() => {
           Taro.reLaunch({ url: '/pages/index/index' })
@@ -152,9 +154,9 @@ export default function ScanConfirmPage() {
       startPolling()
 
       // Show waiting message
-      Taro.showToast({ title: '已确认，等待目标设备...', icon: 'none', duration: 3000 })
+      Taro.showToast({ title: t('scanConfirm.waitingConfirm'), icon: 'none', duration: 3000 })
     } catch (error: any) {
-      Taro.showToast({ title: error.message || '确认发送失败', icon: 'none' })
+      Taro.showToast({ title: error.message || t('scanConfirm.confirmSendFailed'), icon: 'none' })
       setConfirming(false)
       setWaitResult(false)
     }
@@ -163,7 +165,7 @@ export default function ScanConfirmPage() {
   if (loading || !scanStatus) {
     return (
       <View className='scan-confirm-page'>
-        <View className='loading'>加载中...</View>
+        <View className='loading'>{t('scanConfirm.loading')}</View>
       </View>
     )
   }
@@ -171,12 +173,12 @@ export default function ScanConfirmPage() {
   return (
     <View className='scan-confirm-page'>
       <View className='header'>
-        <Text className='title'>确认同步内容</Text>
+        <Text className='title'>{t('scanConfirm.confirmSyncContent')}</Text>
       </View>
 
       <View className='content'>
         <Text className='desc'>
-          请勾选要分享给该登录目标设备的数据源，确认登录后目标设备将自动登录。
+          {t('scanConfirm.selectDataSourceToShare')}
         </Text>
 
         <View className='list'>
@@ -195,9 +197,9 @@ export default function ScanConfirmPage() {
                       {checked && <Text className='checkmark'>✓</Text>}
                     </View>
                     <View className='bundle-item-info'>
-                      <Text className='bundle-item-title'>{config.name || '未命名数据源'}</Text>
+                      <Text className='bundle-item-title'>{config.name || t('scanConfirm.unnamedDataSource')}</Text>
                       <Text className='bundle-item-meta'>
-                        {config.internal || '无内网地址'} / {config.external || '无外网地址'}
+                        {config.internal || t('scanConfirm.internalLabel')} / {config.external || t('scanConfirm.externalLabel')}
                       </Text>
                     </View>
                   </View>
@@ -207,7 +209,7 @@ export default function ScanConfirmPage() {
           ))}
           {scanStatus.sourceBundles.length === 0 && (
             <Text className='desc-empty'>
-              扫码设备没有提供任何数据源。将仅同步用户自身状态。
+              {t('scanConfirm.noDataSource')}
             </Text>
           )}
         </View>
@@ -218,7 +220,7 @@ export default function ScanConfirmPage() {
             onClick={handleConfirmScan}
           >
             <Text className='confirm-btn-text'>
-              {waitResult ? '等待目标设备...' : (confirming ? '确认中...' : '确认登录')}
+              {waitResult ? t('scanConfirm.waitingTarget') : (confirming ? t('scanConfirm.confirming') : t('scanConfirm.confirmLogin'))}
             </Text>
           </View>
         </View>

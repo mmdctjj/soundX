@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import { Dropdown, List, theme, Typography } from "antd";
 import React, { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { TrackType, type Album, type Track } from "../../models";
 import { resolveArtworkUri } from "../../services/trackResolver";
 import { useAuthStore } from "../../store/auth";
@@ -65,6 +66,7 @@ export const QueueList = forwardRef<QueueListRef, QueueListProps>(({
   const { token } = theme.useToken();
   const { user } = useAuthStore();
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   const scrollToActive = () => {
     if (containerRef.current && currentTrack) {
@@ -135,7 +137,7 @@ export const QueueList = forwardRef<QueueListRef, QueueListProps>(({
                   items: [
                     {
                       key: "play",
-                      label: "播放",
+                      label: t('player.play'),
                       icon: <PlayCircleOutlined />,
                       onClick: (info) => {
                         info.domEvent.stopPropagation();
@@ -144,7 +146,7 @@ export const QueueList = forwardRef<QueueListRef, QueueListProps>(({
                     },
                     {
                       key: "like",
-                      label: isLiked ? "取消收藏" : "收藏",
+                      label: isLiked ? t('player.unlike') : t('player.like'),
                       icon: isLiked ? (
                         <HeartFilled style={{ color: "#ff4d4f" }} />
                       ) : (
@@ -161,7 +163,7 @@ export const QueueList = forwardRef<QueueListRef, QueueListProps>(({
                     },
                     {
                       key: "add",
-                      label: "添加到播放列表",
+                      label: t('player.addToPlaylist'),
                       icon: <PlusOutlined />,
                       onClick: (info) => {
                         info.domEvent.stopPropagation();
@@ -170,7 +172,7 @@ export const QueueList = forwardRef<QueueListRef, QueueListProps>(({
                     },
                     {
                       key: "delete",
-                      label: "删除",
+                      label: t('common.delete'),
                       icon: <DeleteOutlined />,
                       danger: true,
                       onClick: (info) => {
@@ -269,7 +271,7 @@ export const QueueList = forwardRef<QueueListRef, QueueListProps>(({
       />
       {isLoadingMore && (
         <div style={{ textAlign: "center", padding: "16px" }}>
-          <Text type="secondary">加载中...</Text>
+          <Text type="secondary">{t('common.loading')}</Text>
         </div>
       )}
     </div>

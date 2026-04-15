@@ -43,7 +43,7 @@
     transform: translateX(-50%);
     width: 60rpx;
     height: 4rpx;
-    background-color: #007aff;
+    background-color: #000000;
     border-radius: 2rpx;
   }
 }
@@ -54,7 +54,7 @@
   color: #999;
 
   &.active {
-    color: #007aff;
+    color: #000000;
   }
 }
 
@@ -81,7 +81,7 @@
   color: #999;
 
   &.active {
-    color: #007aff;
+    color: #000000;
   }
 }
 
@@ -124,7 +124,7 @@
   color: #333;
 
   &.active {
-    color: #007aff;
+    color: #000000;
   }
 }
 

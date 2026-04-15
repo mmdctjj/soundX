@@ -22,6 +22,7 @@ import {
   Typography
 } from "antd";
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
 import TrackList from "../../components/TrackList";
 import { type Track } from "../../models";
@@ -41,6 +42,7 @@ interface Result {
 }
 
 const Songs: React.FC = () => {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { token } = theme.useToken();
   const { play, setPlaylist, currentTrack } = usePlayerStore();
@@ -121,10 +123,10 @@ const Songs: React.FC = () => {
 
   const handleBatchDownload = async () => {
     if (!selectedTracks.length) return;
-    messageApi.info(`开始下载 ${selectedTracks.length} 首歌曲`);
+    messageApi.info(`${t("songs.startDownload")} ${selectedTracks.length} ${t("songs.trackCount")}`);
     await downloadTracks(selectedTracks, (completed, total) => {
         if (completed === total) {
-            messageApi.success(`成功下载 ${total} 首歌曲`);
+            messageApi.success(`${t("songs.downloadSuccess")} ${total} ${t("songs.trackCount")}`);
             setIsSelectionMode(false);
             setSelectedRowKeys([]);
         }
@@ -197,8 +199,8 @@ const Songs: React.FC = () => {
 
       <div className={styles.pageHeader}>
         <Title level={2} className={styles.title}>
-          单曲
-        </Title>
+            {t("songs.title")}
+          </Title>
         {isSelectionMode ? (
             <Flex gap={8}>
               {mode === "MUSIC" && (
@@ -239,7 +241,7 @@ const Songs: React.FC = () => {
                   icon={heartbeatModeActive ? <HeartFilled /> : <HeartOutlined />}
                   onClick={toggleHeartbeatMode}
                 >
-                  心动模式
+                  {t("songs.heartbeatMode")}
                 </Button>
               )}
               <Button 
@@ -247,13 +249,13 @@ const Songs: React.FC = () => {
                 onClick={handlePlayAll}
                 disabled={!data?.list.length}
               >
-                播放全部
+                {t("songs.playAll")}
               </Button>
               <Button
                 icon={<CheckSquareOutlined />}
                 onClick={handleToggleSelectionMode}
               >
-                批量操作
+                {t("songs.batchActions")}
               </Button>
             </Flex>
         )}
@@ -300,7 +302,10 @@ const Songs: React.FC = () => {
 
       {data && data.list.length > 0 && (
         <div className={styles.noMore}>
-          共 {data.total || data.list.length} 首歌曲，已加载 {data.list.length} 首
+          {t("songs.totalTracks", {
+            count: data.total || data.list.length,
+            loaded: data.list.length,
+          })}
         </div>
       )}
 
@@ -309,7 +314,7 @@ const Songs: React.FC = () => {
           className={styles.noData}
           style={{ color: token.colorTextSecondary }}
         >
-          <Empty description="暂无歌曲" />
+          <Empty description={t("songs.noSongs")} />
         </div>
       )}
     </div>

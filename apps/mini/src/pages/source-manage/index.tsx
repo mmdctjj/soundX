@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { View, Text, Image, Input } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { useTranslation } from 'react-i18next'
 import './index.scss'
 import { SOURCEMAP, SOURCETIPSMAP, SourceConfig, selectBestServer, getSourceLogo } from '../../utils/sourceUtils'
 import { useAuth } from '../../context/AuthContext'
 
 export default function SourceManage() {
+  const { t } = useTranslation();
   const { switchServer } = useAuth()
   const [configs, setConfigs] = useState<Record<string, SourceConfig[]>>({})
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -45,7 +47,7 @@ export default function SourceManage() {
                 id: Date.now().toString(),
                 internal: parsed.internal || "",
                 external: parsed.external || "",
-                name: "默认服务器",
+                name: t('sourceManage.defaultServer'),
               },
             ]
           }
@@ -74,8 +76,8 @@ export default function SourceManage() {
   // 删除配置
   const deleteConfig = (key: string, id: string) => {
     Taro.showModal({
-      title: '删除数据源',
-      content: '确定要删除这个数据源配置吗？',
+      title: t('sourceManage.deleteDataSource'),
+      content: t('sourceManage.confirmDeleteDataSource'),
       success: async (res) => {
         if (res.confirm) {
           const newKeyConfigs = configs[key].filter(item => item.id !== id)
@@ -109,7 +111,7 @@ export default function SourceManage() {
 
     if (!config || (!config.internal && !config.external)) {
       Taro.showToast({
-        title: '请至少输入一个地址',
+        title: t('sourceManage.enterAddress'),
         icon: 'none'
       })
       return
@@ -128,7 +130,7 @@ export default function SourceManage() {
       if (!bestAddress) {
         setExpanded(prevState => ({ ...prevState, [id]: true }))
         Taro.showToast({
-          title: '无法连接到该数据源的任一地址，请检查网络或配置',
+          title: t('sourceManage.cannotConnectDataSource'),
           icon: 'none'
         })
         return
@@ -142,7 +144,7 @@ export default function SourceManage() {
       console.error(error)
       setExpanded(prevState => ({ ...prevState, [id]: true }))
       Taro.showToast({
-        title: error.message || '切换失败',
+        title: error.message || t('common.error'),
         icon: 'none'
       })
     } finally {
@@ -166,12 +168,12 @@ export default function SourceManage() {
         <View className="back-btn" onClick={() => Taro.navigateBack()}>
           <Text style={{ fontSize: '32rpx', color: '#333' }}>‹</Text>
         </View>
-        <Text className="title">切换数据源</Text>
+        <Text className="title">{t('sourceManage.switchDataSource')}</Text>
       </View>
 
       {/* 提示 */}
       <Text className="tip">
-        Wi-Fi 环境下优先选择内网，移动网络环境下只选择外网
+        {t('sourceManage.wifiTip')}
       </Text>
 
       {/* 数据源列表 */}
@@ -186,26 +188,26 @@ export default function SourceManage() {
           const isExpanded = expanded[uniqueId] ?? !hasValue
 
           // 确定连接按钮文本和状态
-          let connectButtonText = "自动连接"
+          let connectButtonText = t('sourceManage.autoConnect')
           let networkConnectDisabled = false
           let buttonClass = "connect-btn primary"
 
           if (config.internal && config.external) {
-            connectButtonText = "自动连接"
+            connectButtonText = t('sourceManage.autoConnect')
           } else if (config.internal) {
-            connectButtonText = "内网连接"
+            connectButtonText = t('sourceManage.internalConnect')
           } else if (config.external) {
-            connectButtonText = "外网连接"
+            connectButtonText = t('sourceManage.externalConnect')
           }
 
           if (!isWifi) {
             // 移动网络或其他
             if (!config.external) {
-              connectButtonText = "无法连接 (缺外网)"
+              connectButtonText = t('sourceManage.cannotConnectMissing')
               networkConnectDisabled = true
               buttonClass = "connect-btn disabled"
             } else {
-              connectButtonText = "外网连接"
+              connectButtonText = t('sourceManage.externalConnect')
             }
           }
 
@@ -244,7 +246,7 @@ export default function SourceManage() {
               {isExpanded && (
                 <>
                   <View className="input-group">
-                    <Text className="label">内网地址</Text>
+                    <Text className="label">{t('sourceManage.internalAddress')}</Text>
                     <Input
                       className="input"
                       value={config.internal}
@@ -255,7 +257,7 @@ export default function SourceManage() {
                   </View>
 
                   <View className="input-group">
-                    <Text className="label">外网地址</Text>
+                    <Text className="label">{t('sourceManage.externalAddress')}</Text>
                     <Input
                       className="input"
                       value={config.external}
@@ -294,14 +296,14 @@ export default function SourceManage() {
       {/* 如果没有配置，显示空状态 */}
       {Object.keys(configs).every(key => !configs[key] || configs[key].length === 0) && (
         <View className="empty">
-          <Text>暂无数据源配置</Text>
+          <Text>{t('sourceManage.noDataSourceConfig')}</Text>
         </View>
       )}
 
       {/* 添加数据源按钮 */}
       <View className="add-btn" onClick={handleAddSource}>
-        <Text className="add-icon" style={{ fontSize: '32rpx', color: '#07c160' }}>+</Text>
-        <Text className="add-text">添加数据源</Text>
+        <Text className="add-icon" style={{ fontSize: '32rpx', color: '#000000' }}>+</Text>
+        <Text className="add-text">{t('sourceManage.addDataSource')}</Text>
       </View>
     </View>
   )

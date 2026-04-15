@@ -2,6 +2,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles/global.less";
 import "./styles/popover.less";
+import "./i18n";
 import { setupScrollbarAutoVisibility } from "./utils/scrollbar";
 
 import { HashRouter } from "react-router-dom";

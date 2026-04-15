@@ -10,19 +10,20 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import * as AudioEq from "../../modules/audio-eq";
 import { useSettings } from "../context/SettingsContext";
 
-const BANDS = [
-  { index: 0, label: "60Hz", name: "超低音" },
-  { index: 1, label: "230Hz", name: "低音" },
-  { index: 2, label: "910Hz", name: "中音" },
-  { index: 3, label: "4kHz", name: "高音" },
-  { index: 4, label: "14kHz", name: "超高音" },
+const BAND_KEYS = [
+  { index: 0, label: "60Hz", key: "equalizer.subBass" },
+  { index: 1, label: "230Hz", key: "equalizer.bass" },
+  { index: 2, label: "910Hz", key: "equalizer.mid" },
+  { index: 3, label: "4kHz", key: "equalizer.treble" },
+  { index: 4, label: "14kHz", key: "equalizer.subTreble" },
 ];
 
 const BandSlider = React.memo(({ 
-  index, label, name, value: initialValue, onGainChange, onSlidingComplete, colors 
+  index, label, nameKey, value: initialValue, onGainChange, onSlidingComplete, colors, t 
 }: any) => {
   const [localValue, setLocalValue] = useState(initialValue);
 
@@ -81,7 +82,7 @@ const BandSlider = React.memo(({
         {label}
       </Text>
       <Text style={[styles.bandName, { color: colors.secondary }]}>
-        {name}
+        {t(nameKey)}
       </Text>
     </View>
   );
@@ -96,6 +97,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({
   visible,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { eqGains, updateSetting } = useSettings();
@@ -185,26 +187,27 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({
 
             <View style={styles.header}>
               <Text style={[styles.title, { color: colors.text }]}>
-                均衡器 (EQ)
+                {t('equalizer.title')}
               </Text>
               <TouchableOpacity onPress={resetEq}>
                 <Text style={{ color: colors.primary, fontWeight: "600" }}>
-                  重置
+                  {t('equalizer.reset')}
                 </Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.bandsContainer}>
-              {BANDS.map((band) => (
+              {BAND_KEYS.map((band) => (
                 <BandSlider
                   key={`band-${band.index}`}
                   index={band.index}
                   label={band.label}
-                  name={band.name}
+                  nameKey={band.key}
                   value={gains[band.index]}
                   onGainChange={handleGainChange}
                   onSlidingComplete={handleSlidingComplete}
                   colors={colors}
+                  t={t}
                 />
               ))}
             </View>
@@ -213,7 +216,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({
               style={[styles.closeButton, { backgroundColor: colors.primary }]}
               onPress={onClose}
             >
-              <Text style={[styles.closeButtonText, { color: colors.background }]}>完成</Text>
+              <Text style={[styles.closeButtonText, { color: colors.background }]}>{t('equalizer.done')}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

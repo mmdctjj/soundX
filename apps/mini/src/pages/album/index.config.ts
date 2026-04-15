@@ -1,3 +1,4 @@
 export default {
-  navigationBarTitleText: '专辑',
+  navigationStyle: 'custom',
+  navigationBarTitleText: '专辑'
 }

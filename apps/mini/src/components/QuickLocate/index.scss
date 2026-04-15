@@ -1,7 +1,7 @@
 .quick-locate {
   position: absolute;
   right: 24rpx;
-  bottom: calc(var(--mini-player-height) + 40rpx);
+  bottom: calc(var(--mini-player-height) + var(--tab-bar-height) + 56rpx);
   display: flex;
   flex-direction: column;
   gap: 16rpx;
@@ -32,7 +32,9 @@
 }
 
 .quick-locate-icon {
-  font-size: 28rpx;
+  width: 32rpx;
+  height: 32rpx;
+  font-size: 32rpx;
   color: #111;
   line-height: 1;
   font-weight: 600;

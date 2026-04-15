@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Slider, Tooltip, Typography, theme } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Track } from "../../models";
 import { resolveArtworkUri } from "../../services/trackResolver";
 import styles from "./index.module.less";
@@ -24,6 +25,7 @@ interface MiniPlayerProps {
 
 const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
   const { token } = theme.useToken();
+  const { t } = useTranslation();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -112,7 +114,7 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
       <div className={styles.topBar}>
         <div></div>
         <div className={styles.windowActionsRight}>
-          <Tooltip title="回到主窗口">
+          <Tooltip title={t('miniPlayer.backToMain')}>
             <Button
               type="text"
               size="small"
@@ -121,7 +123,7 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
               className={styles.iconBtn}
             />
           </Tooltip>
-          <Tooltip title={isAlwaysOnTop ? "取消置顶" : "置顶"}>
+          <Tooltip title={isAlwaysOnTop ? t('miniPlayer.unpin') : t('miniPlayer.pin')}>
             <Button
               type="text"
               size="small"

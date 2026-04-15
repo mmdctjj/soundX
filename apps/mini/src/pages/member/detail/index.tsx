@@ -2,6 +2,7 @@ import { plusGetMe } from '@soundx/services';
 import { Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../../components/MiniPlayer';
 import './index.scss';
 
@@ -11,15 +12,16 @@ interface VipData {
 }
 
 const comparisonData = [
-  { feature: '基础功能', free: true, member: true },
-  { feature: '设备接力', free: true, member: true },
-  { feature: '同步控制', free: false, member: true },
-  { feature: 'TTS生成有声书', free: false, member: true },
-  { feature: 'TV版', free: false, member: true },
-  { feature: '车机版', free: false, member: true },
+  { feature: 'memberFeature.basicFeatures', free: true, member: true },
+  { feature: 'memberFeature.deviceRelay', free: true, member: true },
+  { feature: 'memberFeature.syncControlFeature', free: false, member: true },
+  { feature: 'memberFeature.ttsAudiobookFeature', free: false, member: true },
+  { feature: 'memberFeature.tvVersionFeature', free: false, member: true },
+  { feature: 'memberFeature.carVersionFeature', free: false, member: true },
 ];
 
 export default function MemberDetail() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [vipData, setVipData] = useState<VipData | null>(null);
 
@@ -29,7 +31,7 @@ export default function MemberDetail() {
 
   const fetchVipStatus = async () => {
     try {
-      const plusUserId = wx.getStorageSync('plus_user_id');
+      const plusUserId = Taro.getStorageSync('plus_user_id');
       if (plusUserId) {
         let id = plusUserId;
         try {
@@ -50,14 +52,14 @@ export default function MemberDetail() {
 
   const handleLogout = () => {
     Taro.showModal({
-      title: '退出/切换会员账号',
-      content: '确定要退出/切换会员账号吗？',
-      confirmText: '确定',
-      cancelText: '取消',
+      title: t('member.logoutSwitch'),
+      content: t('member.logoutSwitchConfirm'),
+      confirmText: t('member.confirmBtn'),
+      cancelText: t('member.cancelBtn'),
       success: async (res) => {
         if (res.confirm) {
-          wx.removeStorageSync('plus_token');
-          wx.removeStorageSync('plus_user_id');
+          Taro.removeStorageSync('plus_token');
+          Taro.removeStorageSync('plus_user_id');
           Taro.redirectTo({ url: '/pages/member/login/index' });
         }
       },
@@ -65,13 +67,13 @@ export default function MemberDetail() {
   };
 
   const isVip = vipData?.vipTier && vipData?.vipTier !== 'NONE';
-  const tierName = vipData?.vipTier === 'LIFETIME' ? '永久会员' : '年度会员';
+  const tierName = vipData?.vipTier === 'LIFETIME' ? t('member.permanentMember') : t('member.annualMember');
   const expiryDate =
     vipData?.vipTier === 'LIFETIME'
-      ? '永久有效'
+      ? t('member.permanentValid')
       : vipData?.vipExpiresAt
         ? new Date(vipData.vipExpiresAt).toLocaleDateString()
-        : '未知';
+        : t('member.unknown');
 
   return (
     <View className='member-detail-container'>
@@ -79,13 +81,13 @@ export default function MemberDetail() {
         <View className='back-btn' onClick={() => Taro.navigateBack()}>
           <Text className='back-icon'>←</Text>
         </View>
-        <Text className='header-title'>会员详情</Text>
+        <Text className='header-title'>{t('member.detailTitle')}</Text>
         <View style={{ width: '80rpx' }} />
       </View>
 
       {loading ? (
         <View className='loading-container'>
-          <Text className='loading-text'>加载中...</Text>
+          <Text className='loading-text'>{t('common.loading')}</Text>
         </View>
       ) : (
         <View className='content'>
@@ -93,18 +95,18 @@ export default function MemberDetail() {
             <View className='vip-info'>
               <Text className='vip-icon'>{isVip ? '👑' : '💤'}</Text>
               <Text className='vip-status'>
-                {isVip ? '您的会员状态：已激活' : '您的会员状态：未激活'}
+                {isVip ? `${t('member.vipStatusLabel')}：${t('member.activated')}` : `${t('member.vipStatusLabel')}：${t('member.notActivated')}`}
               </Text>
             </View>
 
             {isVip && (
               <View className='details'>
                 <View className='detail-row'>
-                  <Text className='detail-label'>会员等级</Text>
+                  <Text className='detail-label'>{t('member.memberLevel')}</Text>
                   <Text className='detail-value'>{tierName}</Text>
                 </View>
                 <View className='detail-row'>
-                  <Text className='detail-label'>到期时间</Text>
+                  <Text className='detail-label'>{t('member.expiryTime')}</Text>
                   <Text className='detail-value'>{expiryDate}</Text>
                 </View>
               </View>
@@ -115,23 +117,23 @@ export default function MemberDetail() {
                 className='action-button'
                 onClick={() => Taro.navigateTo({ url: '/pages/member/benefits/index' })}
               >
-                <Text className='action-button-text'>了解会员权益</Text>
+                <Text className='action-button-text'>{t('member.understandBenefits')}</Text>
               </View>
             )}
           </View>
 
           <View className='benefits-card'>
             <View className='benefits-header'>
-              <Text className='benefits-header-text flex-2'>权益功能</Text>
-              <Text className='benefits-header-text flex-1'>非会员</Text>
-              <Text className='benefits-header-text flex-1'>会员</Text>
+              <Text className='benefits-header-text flex-2'>{t('member.rightsDescription')}</Text>
+              <Text className='benefits-header-text flex-1'>{t('scanConfirm.nonMember')}</Text>
+              <Text className='benefits-header-text flex-1'>{t('scanConfirm.memberLabel')}</Text>
             </View>
             {comparisonData.map((item, index) => (
               <View
                 key={item.feature}
                 className={`benefits-row ${index > 0 ? 'border-top' : ''}`}
               >
-                <Text className='benefits-feature flex-2'>{item.feature}</Text>
+                <Text className='benefits-feature flex-2'>{t(item.feature)}</Text>
                 <View className='flex-1 center'>
                   <Text className={`check-icon ${item.free ? 'active' : 'inactive'}`}>
                     {item.free ? '✓' : '✗'}
@@ -146,7 +148,7 @@ export default function MemberDetail() {
 
           <View className='logout-button' onClick={handleLogout}>
             <Text className='logout-icon'>🚪</Text>
-            <Text className='logout-text'>退出/切换会员账号</Text>
+            <Text className='logout-text'>{t('member.logoutSwitchAccount')}</Text>
           </View>
         </View>
       )}

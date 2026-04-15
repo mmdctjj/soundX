@@ -7,6 +7,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
 import { Router } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Alert,
     Modal,
@@ -49,6 +50,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   controlsBottomOffset,
   setControlsBottomOffset,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user, device } = useAuth();
@@ -150,9 +152,9 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       const success = await downloadTrack(currentTrack);
       if (success) {
         setIsDownloaded(true);
-        Alert.alert("下载完成", `曲目《${currentTrack.name}》已成功下载到本地`);
+        Alert.alert(t('playerMore.downloadComplete'), t('playerMore.trackDownloaded', { trackName: currentTrack.name }));
       } else {
-        Alert.alert("下载失败", "请检查网络连接或稍后重试");
+        Alert.alert(t('playerMore.downloadFailedAlert'), t('playerMore.downloadFailedMsg'));
       }
     } catch (error) {
       console.error("Failed to download track", error);
@@ -232,19 +234,19 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   const standardOptions = [
     {
       icon: "person-outline" as const,
-      label: "艺术家详情",
+      label: t('playerMore.artistDetails'),
       onPress: handleArtistDetails,
       disabled: !currentTrack?.artistId,
     },
     {
       icon: "albums-outline" as const,
-      label: "专辑详情",
+      label: t('playerMore.albumDetails'),
       onPress: handleAlbumDetails,
       disabled: !currentTrack?.albumId,
     },
     {
       icon: "document-text-outline" as const,
-      label: "曲目详情",
+      label: t('playerMore.trackDetails'),
       onPress: () => {
         setVisible(false);
         setTrackPathVisible(true);
@@ -253,13 +255,13 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
     },
     {
       icon: "time-outline" as const,
-      label: remainingTime ? `定时关闭 (${remainingTime})` : "定时关闭",
+      label: remainingTime ? `${t('playerMore.sleepTimerWithTime', { time: remainingTime })}` : t('playerMore.sleepTimer'),
       onPress: handleSleepTimer,
       disabled: false,
     },
     {
       icon: "add-circle-outline" as const,
-      label: "添加到播放列表",
+      label: t('playerMore.addToPlaylist'),
       onPress: () => {
         setVisible(false);
         setAddToPlaylistVisible(true);
@@ -268,7 +270,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
     },
     {
       icon: "document-text-outline" as const,
-      label: "曲目详情",
+      label: t('playerMore.trackDetails'),
       onPress: () => {
         setVisible(false);
         setTrackPathVisible(true);
@@ -280,13 +282,13 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: isDownloaded
         ? ("cloud-done" as const)
         : ("cloud-download-outline" as const),
-      label: isDownloading ? "正在下载..." : isDownloaded ? "已下载" : "下载",
+      label: isDownloading ? t('playerMore.downloading') : isDownloaded ? t('playerMore.downloaded') : t('playerMore.download'),
       onPress: handleDownload,
       disabled: isDownloaded || isDownloading,
     },
     {
       icon: "text-outline" as const,
-      label: "调节歌词大小",
+      label: t('playerMore.adjustLyricsSize'),
       onPress: () => {
         setVisible(false);
         setLyricsSizeVisible(true);
@@ -295,7 +297,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
     },
     {
       icon: "swap-vertical-outline" as const,
-      label: "控制组位置调整",
+      label: t('playerMore.controlPosition'),
       onPress: () => {
         setVisible(false);
         setControlsPositionVisible(true);
@@ -304,7 +306,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
     },
     {
       icon: "options-outline" as const,
-      label: "均衡器 (EQ)",
+      label: t('playerMore.equalizer'),
       onPress: () => {
         setVisible(false);
         setEqVisible(true);
@@ -390,7 +392,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
             >
               <View style={styles.handle} />
               <Text style={[styles.title, { color: colors.text }]}>
-                更多选项
+                {t('playerMore.moreOptions')}
               </Text>
 
               {/* Audiobook Controls */}
@@ -410,7 +412,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                     <Text
                       style={[styles.controlLabel, { color: colors.secondary }]}
                     >
-                      片头
+                      {t('playerMore.intro')}
                     </Text>
                     {/* ✨ 实时显示当前设置 */}
                     <Text
@@ -421,7 +423,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                         fontWeight: "bold",
                       }}
                     >
-                      {skipIntroDuration > 0 ? `${skipIntroDuration}s` : "关"}
+                      {skipIntroDuration > 0 ? `${skipIntroDuration}s` : t('playerMore.turnOff')}
                     </Text>
                   </TouchableOpacity>
 
@@ -437,7 +439,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                     <Text
                       style={[styles.controlLabel, { color: colors.secondary }]}
                     >
-                      后退 15s
+                      {t('playerMore.back15s')}
                     </Text>
                   </TouchableOpacity>
 
@@ -469,7 +471,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                     <Text
                       style={[styles.controlLabel, { color: colors.secondary }]}
                     >
-                      前进 15s
+                      {t('playerMore.forward15s')}
                     </Text>
                   </TouchableOpacity>
 
@@ -487,7 +489,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                     <Text
                       style={[styles.controlLabel, { color: colors.secondary }]}
                     >
-                      片尾
+                      {t('playerMore.outro')}
                     </Text>
                     {/* ✨ 实时显示当前设置 */}
                     <Text
@@ -498,7 +500,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                         fontWeight: "bold",
                       }}
                     >
-                      {skipOutroDuration > 0 ? `${skipOutroDuration}s` : "关"}
+                      {skipOutroDuration > 0 ? `${skipOutroDuration}s` : t('playerMore.turnOff')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -575,8 +577,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                 ]}
               >
                 {skipModalType === "intro"
-                  ? "设置自动跳过片头"
-                  : "设置自动跳过片尾"}
+                  ? t('playerMore.setAutoSkipIntro')
+                  : t('playerMore.setAutoSkipOutro')}
               </Text>
               <Text
                 style={{
@@ -586,7 +588,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                   marginBottom: 10,
                 }}
               >
-                对所有有声书生效
+                {t('playerMore.appliesToAllAudiobooks')}
               </Text>
 
               {/* 核心时间控制区域 */}
@@ -657,7 +659,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                   }}
                 >
                   <Text style={{ color: "#FF3B30", fontWeight: "600" }}>
-                    关闭此功能
+                    {t('playerMore.turnOff')}
                   </Text>
                 </TouchableOpacity>
 
@@ -672,7 +674,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                   }}
                 >
                   <Text style={{ color: "#FFF", fontWeight: "bold" }}>
-                    保存设置
+                    {t('common.done')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -725,7 +727,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
               ]}
             >
               <Text style={[styles.title, { color: colors.text, textAlign: "center" }]}>
-                控制组位置调整
+                {t('playerMore.controlPosition')}
               </Text>
               <Text
                 style={{
@@ -736,7 +738,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                   marginBottom: 20,
                 }}
               >
-                调整歌词或封面下方控制组距离底部的位置
+                {t('playerMore.controlPositionDescription') || '调整歌词或封面下方控制组距离底部的位置'}
               </Text>
 
               <View
@@ -755,7 +757,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                   }}
                 >
                   <Text style={{ color: colors.text, fontSize: 14, fontWeight: "600" }}>
-                    底部间距
+                    {t('playerMore.bottomInset')}
                   </Text>
                   <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "700" }}>
                     {Math.round(controlsBottomOffset)}
@@ -780,8 +782,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                     marginTop: 4,
                   }}
                 >
-                  <Text style={{ color: colors.secondary, fontSize: 12 }}>更靠下</Text>
-                  <Text style={{ color: colors.secondary, fontSize: 12 }}>更靠上</Text>
+                  <Text style={{ color: colors.secondary, fontSize: 12 }}>{t('playerMore.moveDown')}</Text>
+                  <Text style={{ color: colors.secondary, fontSize: 12 }}>{t('playerMore.moveUp')}</Text>
                 </View>
               </View>
 
@@ -796,7 +798,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                     backgroundColor: "rgba(150,150,150,0.12)",
                   }}
                 >
-                  <Text style={{ color: colors.text, fontWeight: "600" }}>重置</Text>
+                  <Text style={{ color: colors.text, fontWeight: "600" }}>{t('equalizer.reset')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setControlsPositionVisible(false)}
@@ -808,7 +810,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                     backgroundColor: colors.primary,
                   }}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "700" }}>完成</Text>
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>{t('equalizer.done')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -823,7 +825,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
 
       <FilePathModal
         visible={trackPathVisible}
-        title={currentTrack ? `曲目详情 · ${currentTrack.name}` : "曲目详情"}
+        title={currentTrack ? `${t('playerMore.trackDetails')} · ${currentTrack.name}` : t('playerMore.trackDetails')}
         path={currentTrack?.path}
         onClose={() => setTrackPathVisible(false)}
       />
