@@ -1,4 +1,4 @@
-package com.anonymous.mobile.widget
+package com.audiodock.app.widget
 
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactApplicationContext

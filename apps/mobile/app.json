@@ -73,7 +73,7 @@
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.mobile",
+      "package": "com.audiodock.app",
       "launchMode": "singleTask",
       "usesCleartextTraffic": true,
       "networkSecurityConfig": "res/xml/network_security_config.xml"

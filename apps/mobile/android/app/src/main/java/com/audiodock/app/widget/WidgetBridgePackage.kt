@@ -1,4 +1,4 @@
-package com.anonymous.mobile.widget
+package com.audiodock.app.widget
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

@@ -1,4 +1,4 @@
-package com.anonymous.mobile.widget
+package com.audiodock.app.widget
 
 import android.content.Context
 import android.content.SharedPreferences

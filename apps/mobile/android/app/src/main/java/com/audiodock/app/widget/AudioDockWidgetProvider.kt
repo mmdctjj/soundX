@@ -1,4 +1,4 @@
-package com.anonymous.mobile.widget
+package com.audiodock.app.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -11,7 +11,7 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
-import com.anonymous.mobile.R
+import com.audiodock.app.R
 import kotlin.math.roundToInt
 
 open class AudioDockWidgetProvider : AppWidgetProvider() {

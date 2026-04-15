@@ -1,4 +1,4 @@
-package com.anonymous.mobile.widget
+package com.audiodock.app.widget
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

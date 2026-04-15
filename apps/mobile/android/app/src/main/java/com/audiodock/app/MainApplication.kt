@@ -1,4 +1,4 @@
-package com.anonymous.mobile
+package com.audiodock.app
 
 import android.app.Application
 import android.content.res.Configuration
@@ -15,7 +15,7 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
-import com.anonymous.mobile.widget.WidgetBridgePackage
+import com.audiodock.app.widget.WidgetBridgePackage
 
 class MainApplication : Application(), ReactApplication {
 

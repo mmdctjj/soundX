@@ -1,3 +1,3 @@
-package com.anonymous.mobile.widget
+package com.audiodock.app.widget
 
 class AudioDockWidgetProviderMedium : AudioDockWidgetProvider()

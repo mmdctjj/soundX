@@ -1,4 +1,4 @@
-package com.anonymous.mobile.widget
+package com.audiodock.app.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -7,13 +7,14 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.view.View
 import android.widget.RemoteViews
-import com.anonymous.mobile.R
+import com.audiodock.app.R
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.roundToInt
 
-class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
+class AudioDockRecommendationWidgetProvider : AppWidgetProvider() {
   override fun onUpdate(
     context: Context,
     appWidgetManager: AppWidgetManager,
@@ -32,15 +33,20 @@ class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
   }
 
   companion object {
-    private const val ACTION_LATEST = WidgetCommandReceiver.ACTION_WIDGET_LATEST
-    private const val ACTION_REFRESH = WidgetCommandReceiver.ACTION_WIDGET_REFRESH_LATEST
+    private const val ACTION_RECOMMENDATION = WidgetCommandReceiver.ACTION_WIDGET_RECOMMENDATION
     private const val ACTION_PLAY = "com.soundx.widget.PLAY"
     private const val ACTION_PAUSE = "com.soundx.widget.PAUSE"
+    private const val ACTION_NEXT = "com.soundx.widget.NEXT"
+    private const val ACTION_PREV = "com.soundx.widget.PREV"
+    private const val ACTION_REFRESH = WidgetCommandReceiver.ACTION_WIDGET_REFRESH_RECOMMENDATION
+    private const val MAIN_COVER_SIZE_DP = 120
     private const val ROW_COVER_SIZE_DP = 40
 
     fun updateAllWidgets(context: Context) {
       val manager = AppWidgetManager.getInstance(context)
-      val ids = manager.getAppWidgetIds(ComponentName(context, AudioDockLatestTracksWidgetProvider::class.java))
+      val ids = manager.getAppWidgetIds(
+        ComponentName(context, AudioDockRecommendationWidgetProvider::class.java)
+      )
       updateWidgets(context, manager, ids)
     }
 
@@ -51,7 +57,7 @@ class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
     ) {
       if (appWidgetIds.isEmpty()) return
       val state = WidgetStore.load(context)
-      val latest = parseList(state.latestJson)
+      val recommendations = parseList(state.recommendationsJson)
       for (appWidgetId in appWidgetIds) {
         if (!state.isVip) {
           val lockedViews = RemoteViews(context.packageName, R.layout.widget_locked_large)
@@ -70,7 +76,26 @@ class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
           appWidgetManager.updateAppWidget(appWidgetId, lockedViews)
           continue
         }
-        val views = RemoteViews(context.packageName, R.layout.widget_latest_tracks_large)
+        val views = RemoteViews(context.packageName, R.layout.widget_recommend_large)
+
+        views.setTextViewText(R.id.widget_title, state.title)
+        views.setTextViewText(R.id.widget_artist, state.artist)
+
+        val coverPath = state.coverPath
+        if (!coverPath.isNullOrBlank()) {
+          val bitmap = WidgetImageUtils.decodeSampledBitmap(
+            coverPath,
+            dpToPx(context, MAIN_COVER_SIZE_DP),
+            dpToPx(context, MAIN_COVER_SIZE_DP)
+          )
+          if (bitmap != null) {
+            views.setImageViewBitmap(R.id.widget_cover, bitmap)
+          } else {
+            views.setImageViewResource(R.id.widget_cover, android.R.color.transparent)
+          }
+        } else {
+          views.setImageViewResource(R.id.widget_cover, android.R.color.transparent)
+        }
 
         val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
         val (widthPx, heightPx) = resolveWidgetSize(context, options)
@@ -84,66 +109,69 @@ class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
           views.setImageViewBitmap(R.id.widget_bg, background)
         }
 
-        val playIcon = if (state.isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
-        views.setImageViewResource(R.id.widget_latest_play_pause, playIcon)
+        val shouldShowProgress = state.duration > 0 && state.position >= 0
+        val progress = if (shouldShowProgress) {
+          ((state.position.toFloat() / state.duration.toFloat()) * 1000f).roundToInt()
+            .coerceIn(0, 1000)
+        } else {
+          0
+        }
+        views.setViewVisibility(
+          R.id.widget_progress,
+          if (shouldShowProgress) View.VISIBLE else View.GONE
+        )
+        views.setProgressBar(R.id.widget_progress, 1000, progress, false)
 
-        bindLatestRow(context, views, latest, 0,
-          R.id.widget_latest_cover_1,
-          R.id.widget_latest_title_1,
-          R.id.widget_latest_artist_1,
-          R.id.widget_latest_play_1
+        val playIcon = if (state.isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
+        views.setImageViewResource(R.id.widget_play_pause, playIcon)
+
+        bindRecommendationRow(
+          context, views, recommendations, 0,
+          R.id.widget_recommend_cover_1,
+          R.id.widget_recommend_title_1,
+          R.id.widget_recommend_artist_1,
+          R.id.widget_recommend_play_1
         )
-        bindLatestRow(context, views, latest, 1,
-          R.id.widget_latest_cover_2,
-          R.id.widget_latest_title_2,
-          R.id.widget_latest_artist_2,
-          R.id.widget_latest_play_2
+        bindRecommendationRow(
+          context, views, recommendations, 1,
+          R.id.widget_recommend_cover_2,
+          R.id.widget_recommend_title_2,
+          R.id.widget_recommend_artist_2,
+          R.id.widget_recommend_play_2
         )
-        bindLatestRow(context, views, latest, 2,
-          R.id.widget_latest_cover_3,
-          R.id.widget_latest_title_3,
-          R.id.widget_latest_artist_3,
-          R.id.widget_latest_play_3
+        bindRecommendationRow(
+          context, views, recommendations, 2,
+          R.id.widget_recommend_cover_3,
+          R.id.widget_recommend_title_3,
+          R.id.widget_recommend_artist_3,
+          R.id.widget_recommend_play_3
         )
-        bindLatestRow(context, views, latest, 3,
-          R.id.widget_latest_cover_4,
-          R.id.widget_latest_title_4,
-          R.id.widget_latest_artist_4,
-          R.id.widget_latest_play_4
-        )
-        bindLatestRow(context, views, latest, 4,
-          R.id.widget_latest_cover_5,
-          R.id.widget_latest_title_5,
-          R.id.widget_latest_artist_5,
-          R.id.widget_latest_play_5
-        )
-        bindLatestRow(context, views, latest, 5,
-          R.id.widget_latest_cover_6,
-          R.id.widget_latest_title_6,
-          R.id.widget_latest_artist_6,
-          R.id.widget_latest_play_6
-        )
-        bindLatestRow(context, views, latest, 6,
-          R.id.widget_latest_cover_7,
-          R.id.widget_latest_title_7,
-          R.id.widget_latest_artist_7,
-          R.id.widget_latest_play_7
+        bindRecommendationRow(
+          context, views, recommendations, 3,
+          R.id.widget_recommend_cover_4,
+          R.id.widget_recommend_title_4,
+          R.id.widget_recommend_artist_4,
+          R.id.widget_recommend_play_4
         )
 
         views.setOnClickPendingIntent(
-          R.id.widget_latest_root,
+          R.id.widget_recommend_root,
           openPendingIntent(context)
         )
         views.setOnClickPendingIntent(
-          R.id.widget_latest_play_pause,
-          broadcastPendingIntent(
-            context,
-            if (state.isPlaying) ACTION_PAUSE else ACTION_PLAY,
-            appWidgetId
-          )
+          R.id.widget_prev,
+          broadcastPendingIntent(context, ACTION_PREV, appWidgetId)
         )
         views.setOnClickPendingIntent(
-          R.id.widget_latest_refresh,
+          R.id.widget_play_pause,
+          broadcastPendingIntent(context, if (state.isPlaying) ACTION_PAUSE else ACTION_PLAY, appWidgetId)
+        )
+        views.setOnClickPendingIntent(
+          R.id.widget_next,
+          broadcastPendingIntent(context, ACTION_NEXT, appWidgetId)
+        )
+        views.setOnClickPendingIntent(
+          R.id.widget_recommend_refresh,
           refreshPendingIntent(context)
         )
 
@@ -151,17 +179,17 @@ class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
       }
     }
 
-    private fun bindLatestRow(
+    private fun bindRecommendationRow(
       context: Context,
       views: RemoteViews,
-      latest: List<JSONObject>,
+      recommendations: List<JSONObject>,
       index: Int,
       coverId: Int,
       titleId: Int,
       artistId: Int,
       playId: Int
     ) {
-      if (index >= latest.size) {
+      if (index >= recommendations.size) {
         views.setImageViewResource(coverId, android.R.color.transparent)
         views.setTextViewText(titleId, "")
         views.setTextViewText(artistId, "")
@@ -169,7 +197,7 @@ class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
         return
       }
 
-      val item = latest[index]
+      val item = recommendations[index]
       val title = item.optString("title", "未命名")
       val artist = item.optString("artist", "")
       val cover = resolveCoverValue(item)
@@ -194,11 +222,11 @@ class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
 
       val id = item.optString("id", "")
       val intent = Intent(context, WidgetCommandReceiver::class.java).apply {
-        action = ACTION_LATEST
+        action = ACTION_RECOMMENDATION
         putExtra("id", id)
       }
       val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-      val pending = PendingIntent.getBroadcast(context, ("latest_$id").hashCode(), intent, flags)
+      val pending = PendingIntent.getBroadcast(context, ("recommend_$id").hashCode(), intent, flags)
       views.setOnClickPendingIntent(playId, pending)
     }
 
@@ -238,22 +266,6 @@ class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
       return (valueDp * context.resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
     }
 
-    private fun openPendingIntent(context: Context): PendingIntent {
-      val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-        ?: Intent(context, com.anonymous.mobile.MainActivity::class.java)
-      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-      val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-      return PendingIntent.getActivity(context, "open_latest_widget".hashCode(), intent, flags)
-    }
-
-    private fun refreshPendingIntent(context: Context): PendingIntent {
-      val intent = Intent(context, WidgetCommandReceiver::class.java).apply {
-        this.action = ACTION_REFRESH
-      }
-      val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-      return PendingIntent.getBroadcast(context, ACTION_REFRESH.hashCode(), intent, flags)
-    }
-
     private fun broadcastPendingIntent(context: Context, action: String, widgetId: Int): PendingIntent {
       val intent = Intent(context, AudioDockWidgetProvider::class.java).apply {
         this.action = action
@@ -263,13 +275,29 @@ class AudioDockLatestTracksWidgetProvider : AppWidgetProvider() {
       return PendingIntent.getBroadcast(context, action.hashCode(), intent, flags)
     }
 
+    private fun openPendingIntent(context: Context): PendingIntent {
+      val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        ?: Intent(context, com.anonymous.mobile.MainActivity::class.java)
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+      val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+      return PendingIntent.getActivity(context, "open_recommend_widget".hashCode(), intent, flags)
+    }
+
+    private fun refreshPendingIntent(context: Context): PendingIntent {
+      val intent = Intent(context, WidgetCommandReceiver::class.java).apply {
+        action = ACTION_REFRESH
+      }
+      val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+      return PendingIntent.getBroadcast(context, ACTION_REFRESH.hashCode(), intent, flags)
+    }
+
     private fun memberBenefitsPendingIntent(context: Context): PendingIntent {
       val intent = Intent(Intent.ACTION_VIEW, Uri.parse("audiodock://member-benefits")).apply {
         setPackage(context.packageName)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
       }
       val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-      return PendingIntent.getActivity(context, "member_benefits_latest_widget".hashCode(), intent, flags)
+      return PendingIntent.getActivity(context, "member_benefits_recommend_widget".hashCode(), intent, flags)
     }
   }
 }

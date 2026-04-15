@@ -1,4 +1,4 @@
-package com.anonymous.mobile.widget
+package com.audiodock.app.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -9,7 +9,7 @@ import android.content.Intent
 import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
-import com.anonymous.mobile.R
+import com.audiodock.app.R
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.roundToInt
