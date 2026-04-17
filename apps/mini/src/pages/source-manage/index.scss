@@ -5,20 +5,21 @@
 
   .header {
     display: flex;
+    flex-direction: row;
     align-items: center;
+    justify-content: space-between;
     padding: 20rpx 0;
     margin-bottom: 20rpx;
-
+    padding-top: calc(env(safe-area-inset-top) + 80rpx);
+    
     .back-btn {
       padding: 10rpx;
-      margin-right: 20rpx;
     }
 
     .title {
       font-size: 36rpx;
       font-weight: bold;
       color: #333;
-      flex: 1;
     }
   }
 
