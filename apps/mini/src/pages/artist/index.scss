@@ -39,7 +39,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 120rpx 40rpx 40rpx;
+  padding: calc(env(safe-area-inset-top) + 180rpx) 40rpx 40rpx;
   background-color: #fff;
   height: auto !important;
 }
