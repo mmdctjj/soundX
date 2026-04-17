@@ -9,6 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Platform,
@@ -42,6 +43,7 @@ const ALIPAY_SCHEME = "alipaymock";
 
 export default function MemberBenefitsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { setPlusToken } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -76,7 +78,7 @@ export default function MemberBenefitsScreen() {
     const pad = (value: number) => String(value).padStart(2, "0");
     const format = (value: Date) =>
       `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
-    return `${format(start)} 至 ${format(end)}`;
+    return `${format(start)} ${t("memberBenefits.to")} ${format(end)}`;
   };
 
   const hasDiscount = (plan: VipCurrentLowestPricePlan | null | undefined) =>
@@ -108,7 +110,7 @@ export default function MemberBenefitsScreen() {
         setIapReady(true);
       } catch (error) {
         console.warn("IAP init failed", error);
-        Alert.alert("提示", "Apple 内购初始化失败，请稍后重试");
+        Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.appleInitFailed"));
       }
     };
 
@@ -119,13 +121,13 @@ export default function MemberBenefitsScreen() {
         try {
           const receipt = purchase.transactionReceipt;
           if (!receipt) {
-            Alert.alert("支付失败", "未获取到支付凭证，请联系客服");
+            Alert.alert(t("memberBenefitsPage.paymentFailed"), t("memberBenefitsPage.missingReceipt"));
             return;
           }
 
           const memberUserId = await AsyncStorage.getItem("plus_user_id");
           if (!memberUserId) {
-            Alert.alert("提示", "请先登录会员账号");
+            Alert.alert(t("memberBenefitsPage.notice"), t("common.loginFirst"));
             return;
           }
 
@@ -141,21 +143,21 @@ export default function MemberBenefitsScreen() {
 
           if (verifyRes.data.code === 200) {
             await finalizeIapPurchase(purchase);
-            Alert.alert("支付完成", "购买成功，会员权益已生效");
+            Alert.alert(t("memberBenefitsPage.paymentDone"), t("memberBenefitsPage.purchaseSuccess"));
           } else {
             Alert.alert(
-              "提示",
-              verifyRes.data.message || "购买已完成，但校验失败",
+              t("memberBenefitsPage.notice"),
+              verifyRes.data.message || t("memberBenefitsPage.purchaseVerifiedFailed"),
             );
           }
         } catch (error) {
           console.warn("IAP finalize failed", error);
-          Alert.alert("提示", "支付成功但确认失败，请联系客服");
+          Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.purchaseConfirmFailed"));
         }
       },
       (error) => {
         console.warn("IAP purchase error", error);
-        Alert.alert("支付失败", error?.message || "Apple 内购失败");
+        Alert.alert(t("memberBenefitsPage.paymentFailed"), error?.message || t("memberBenefitsPage.applePurchaseFailed"));
       },
     );
 
@@ -228,9 +230,9 @@ export default function MemberBenefitsScreen() {
   const getUserId = async () => {
     const userIdStr = await AsyncStorage.getItem("plus_user_id");
     if (!userIdStr) {
-      Alert.alert("提示", "请先登录会员账号", [
-        { text: "取消" },
-        { text: "去登录", onPress: () => router.push("/member-login" as any) },
+      Alert.alert(t("memberBenefitsPage.notice"), t("common.loginFirst"), [
+        { text: t("common.cancel") },
+        { text: t("memberBenefitsPage.goLogin"), onPress: () => router.push("/member-login" as any) },
       ]);
       return null;
     }
@@ -384,27 +386,27 @@ export default function MemberBenefitsScreen() {
     }
 
     Alert.alert(
-      "提示",
-      "支付窗口已关闭。如已完成支付，稍后可在会员详情查看是否生效。",
+      t("memberBenefitsPage.notice"),
+      t("memberBenefitsPage.paymentWindowClosed"),
     );
   };
 
   const handlePayment = async (method: "WECHAT" | "ALIPAY") => {
     if (method === "WECHAT") {
-      Alert.alert("提示", "微信支付正在上线中，请使用支付宝支付");
+      Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.wechatComingSoon"));
       return;
     }
 
     if (selectedPlanPrice == null) {
-      Alert.alert("提示", "当前会员价格暂不可用，请稍后重试");
+      Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.priceUnavailable"));
       return;
     }
 
     const userIdStr = await AsyncStorage.getItem("plus_user_id");
     if (!userIdStr) {
-      Alert.alert("提示", "请先登录会员账号", [
-        { text: "取消" },
-        { text: "去登录", onPress: () => router.push("/member-login" as any) },
+      Alert.alert(t("memberBenefitsPage.notice"), t("common.loginFirst"), [
+        { text: t("common.cancel") },
+        { text: t("memberBenefitsPage.goLogin"), onPress: () => router.push("/member-login" as any) },
       ]);
       return;
     }
@@ -431,10 +433,10 @@ export default function MemberBenefitsScreen() {
         //     if (supported) {
         //       await Linking.openURL(paymentUrl);
         //     } else {
-        //       Alert.alert("提示", "订单创建成功，但无法自动打开支付链接，请尝试手动支付。");
+        //       Alert.alert("Notice", "Order created, but the payment link could not be opened automatically.");
         //     }
         //   } else {
-        //     Alert.alert("支付失败", "后端未返回微信支付参数");
+        //     Alert.alert("Payment failed", "Backend did not return WeChat payment params.");
         //   }
         //   return;
         // }
@@ -459,17 +461,17 @@ export default function MemberBenefitsScreen() {
           } else if (paymentUrl) {
             await openCashierAndWaitForPayment(paymentUrl, resolvedOrderId);
           } else {
-            Alert.alert("支付失败", "后端未返回支付宝支付参数");
+            Alert.alert(t("memberBenefitsPage.paymentFailed"), t("memberBenefitsPage.alipayParamsMissing"));
           }
           return;
         }
       } else {
-        Alert.alert("支付失败", res.data.message || "请求失败，请稍后重试");
+        Alert.alert(t("memberBenefitsPage.paymentFailed"), res.data.message || t("memberBenefitsPage.requestFailedRetry"));
       }
     } catch (e: any) {
       Alert.alert(
-        "错误",
-        e.response?.data?.message || "网络请求失败，请检查网络设置",
+        t("memberBenefitsPage.error"),
+        e.response?.data?.message || t("memberBenefitsPage.networkFailed"),
       );
     } finally {
       setLoading(false);
@@ -479,7 +481,7 @@ export default function MemberBenefitsScreen() {
   const handleApplePurchase = async () => {
     assertIosIapPolicy();
     if (!iapReady) {
-      Alert.alert("提示", "Apple 内购初始化中，请稍后重试");
+      Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.appleInitPending"));
       return;
     }
 
@@ -491,7 +493,7 @@ export default function MemberBenefitsScreen() {
       await requestIapPurchase(IAP_PRODUCT_IDS[selectedPlan]);
     } catch (error: any) {
       console.warn("IAP request failed", error);
-      Alert.alert("支付失败", error?.message || "Apple 内购发起失败");
+      Alert.alert(t("memberBenefitsPage.paymentFailed"), error?.message || t("memberBenefitsPage.appleStartFailed"));
     } finally {
       setLoading(false);
     }
@@ -500,21 +502,21 @@ export default function MemberBenefitsScreen() {
   const showPricingDescription = () => {
     if (!pricing?.name && !pricing?.description) return;
     Alert.alert(
-      pricing?.name || "活动说明",
-      pricing?.description || "当前活动暂无更多说明",
+      pricing?.name || t("memberBenefitsPage.activityFallbackTitle"),
+      pricing?.description || t("memberBenefitsPage.activityFallbackDescription"),
     );
   };
 
   const comparisonData = [
-    { feature: "基础功能", free: true, member: true },
-    { feature: "设备接力", free: true, member: true },
-    { feature: "同步控制", free: false, member: true },
-    { feature: "TTS生成有声书", free: false, member: true },
-    { feature: "桌面小部件", free: false, member: true },
-    { feature: "TV版 (待上线)", free: false, member: true },
-    { feature: "车机模式", free: false, member: true },
-    { feature: "扫码登录", free: false, member: true },
-    { feature: "语音助手", free: false, member: true },
+    { feature: t("member.basicFeatures"), free: true, member: true },
+    { feature: t("member.deviceRelay"), free: true, member: true },
+    { feature: t("member.syncControl"), free: false, member: true },
+    { feature: t("member.ttsAudiobook"), free: false, member: true },
+    { feature: t("memberBenefits.desktopWidget"), free: false, member: true },
+    { feature: t("memberBenefits.tvVersionComingSoon"), free: false, member: true },
+    { feature: t("memberBenefits.carMode"), free: false, member: true },
+    { feature: t("memberBenefits.scanLogin"), free: false, member: true },
+    { feature: t("memberBenefits.voiceAssistant"), free: false, member: true },
   ];
 
   return (
@@ -532,7 +534,7 @@ export default function MemberBenefitsScreen() {
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          会员权益
+          {t("memberBenefitsPage.title")}
         </Text>
         <View style={styles.headerRight}>
           {memberPhone ? (
@@ -561,7 +563,7 @@ export default function MemberBenefitsScreen() {
                 { flex: 2, color: colors.secondary },
               ]}
             >
-              权益功能
+              {t("memberBenefitsPage.feature")}
             </Text>
             <Text
               style={[
@@ -569,7 +571,7 @@ export default function MemberBenefitsScreen() {
                 { flex: 1, textAlign: "center", color: colors.secondary },
               ]}
             >
-              非会员
+              {t("memberBenefitsPage.nonMember")}
             </Text>
             <Text
               style={[
@@ -577,7 +579,7 @@ export default function MemberBenefitsScreen() {
                 { flex: 1, textAlign: "center", color: colors.secondary },
               ]}
             >
-              会员
+              {t("memberBenefitsPage.member")}
             </Text>
           </View>
           {comparisonData.map((item, index) => (
@@ -614,7 +616,7 @@ export default function MemberBenefitsScreen() {
         {/* Pricing Plans */}
         <View style={styles.dividerContainer}>
           <Text style={[styles.dividerText, { color: colors.secondary }]}>
-            会员方案
+            {t("memberBenefitsPage.planTitle")}
           </Text>
         </View>
 
@@ -635,7 +637,7 @@ export default function MemberBenefitsScreen() {
             />
             <View style={styles.infoBannerTextWrap}>
               <Text style={[styles.infoBannerTitle, { color: colors.text }]}>
-                {pricing.name} 活动正在进行中
+                {t("memberBenefitsPage.ongoingActivity", { name: pricing.name })}
                 {activityDateRange ? ` · ${activityDateRange}` : ""}
               </Text>
             </View>
@@ -655,7 +657,7 @@ export default function MemberBenefitsScreen() {
             ]}
             onPress={() => setSelectedPlan("annual")}
           >
-            <Text style={[styles.planName, { color: colors.text }]}>年卡</Text>
+            <Text style={[styles.planName, { color: colors.text }]}>{t("memberBenefitsPage.yearCard")}</Text>
             <View style={styles.priceContainer}>
               <Text style={[styles.currency, { color: colors.primary }]}>
                 ¥
@@ -664,7 +666,7 @@ export default function MemberBenefitsScreen() {
                 {formatPrice(pricing?.annual?.currentPrice)}
               </Text>
               <Text style={[styles.unit, { color: colors.secondary }]}>
-                /年
+                {t("memberBenefitsPage.perYear")}
               </Text>
               {pricing?.name ? (
                 <TouchableOpacity onPress={showPricingDescription} hitSlop={8}>
@@ -684,7 +686,7 @@ export default function MemberBenefitsScreen() {
                     { color: colors.secondary },
                   ]}
                 >
-                  原价{" "}
+                  {t("memberBenefitsPage.originalPrice")}{" "}
                   <Text style={styles.originalPriceValue}>
                     ¥{formatPrice(pricing?.annual?.originalPrice)}
                   </Text>
@@ -692,7 +694,7 @@ export default function MemberBenefitsScreen() {
                 <Text
                   style={[styles.savedPriceText, { color: colors.secondary }]}
                 >
-                  立省{" "}
+                  {t("memberBenefitsPage.save")}{" "}
                   {formatPrice(
                     (pricing?.annual?.originalPrice ?? 0) -
                       (pricing?.annual?.currentPrice ?? 0),
@@ -720,10 +722,10 @@ export default function MemberBenefitsScreen() {
                 { opacity: selectedPlan === "lifetime" ? 1 : 0.6 },
               ]}
             >
-              <Text style={styles.recommendText}>推荐</Text>
+              <Text style={styles.recommendText}>{t("memberBenefitsPage.recommended")}</Text>
             </View>
             <Text style={[styles.planName, { color: colors.text }]}>
-              永久卡
+              {t("memberBenefitsPage.lifetimeCard")}
             </Text>
             <View style={styles.priceContainer}>
               <Text style={[styles.currency, { color: colors.primary }]}>
@@ -733,7 +735,7 @@ export default function MemberBenefitsScreen() {
                 {formatPrice(pricing?.lifetime?.currentPrice)}
               </Text>
               <Text style={[styles.unit, { color: colors.secondary }]}>
-                /永久
+                {t("memberBenefitsPage.perLifetime")}
               </Text>
               {pricing?.name ? (
                 <TouchableOpacity onPress={showPricingDescription} hitSlop={8}>
@@ -753,7 +755,7 @@ export default function MemberBenefitsScreen() {
                     { color: colors.secondary },
                   ]}
                 >
-                  原价{" "}
+                  {t("memberBenefitsPage.originalPrice")}{" "}
                   <Text style={styles.originalPriceValue}>
                     ¥{formatPrice(pricing?.lifetime?.originalPrice)}
                   </Text>
@@ -761,7 +763,7 @@ export default function MemberBenefitsScreen() {
                 <Text
                   style={[styles.savedPriceText, { color: colors.secondary }]}
                 >
-                  立省{" "}
+                  {t("memberBenefitsPage.save")}{" "}
                   {formatPrice(
                     (pricing?.lifetime?.originalPrice ?? 0) -
                       (pricing?.lifetime?.currentPrice ?? 0),
@@ -775,11 +777,11 @@ export default function MemberBenefitsScreen() {
         {/* Payment Methods */}
         <View style={styles.dividerContainer}>
           <Text style={[styles.dividerText, { color: colors.secondary }]}>
-            支付方式
+            {t("memberBenefitsPage.paymentMethod")}
           </Text>
         </View>
         <Text style={[styles.paymentHintText, { color: colors.secondary }]}>
-          虚拟产品售出无法退款，请理性消费
+          {t("memberBenefitsPage.noRefund")}
         </Text>
 
         <View style={styles.paymentMethods}>
@@ -798,7 +800,7 @@ export default function MemberBenefitsScreen() {
             >
               <Ionicons name="logo-apple" size={22} color={colors.text} />
               <Text style={[styles.paymentText, { color: colors.text }]}>
-                App Store 内购
+                {t("memberBenefitsPage.appStoreIap")}
               </Text>
             </TouchableOpacity>
           ) : (
@@ -817,7 +819,7 @@ export default function MemberBenefitsScreen() {
               >
                 <AntDesign name="wechat" size={24} color={"#1AAD19"} />
                 <Text style={[styles.paymentText, { color: colors.text }]}>
-                  微信
+                  {t("memberBenefitsPage.wechat")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -834,7 +836,7 @@ export default function MemberBenefitsScreen() {
               >
                 <AntDesign name="alipay-circle" size={24} color={"#02A9F1"} />
                 <Text style={[styles.paymentText, { color: colors.text }]}>
-                  支付宝
+                  {t("memberBenefitsPage.alipay")}
                 </Text>
               </TouchableOpacity>
             </>
@@ -847,10 +849,10 @@ export default function MemberBenefitsScreen() {
             { backgroundColor: "#FF3B30", borderColor: "#FF3B30" },
           ]}
           onPress={() => {
-            Alert.alert("退出会员账号", "确定要退出会员账号吗？", [
-              { text: "取消", style: "cancel" },
+            Alert.alert(t("memberBenefitsPage.logoutTitle"), t("memberBenefitsPage.logoutMessage"), [
+              { text: t("common.cancel"), style: "cancel" },
               {
-                text: "确定",
+                text: t("common.confirm"),
                 style: "destructive",
                 onPress: async () => {
                   await AsyncStorage.removeItem("plus_user_id");
@@ -861,7 +863,7 @@ export default function MemberBenefitsScreen() {
           }}
         >
           <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-          <Text style={[styles.logoutText, { color: "#FFFFFF" }]}>退出会员账号</Text>
+          <Text style={[styles.logoutText, { color: "#FFFFFF" }]}>{t("memberBenefitsPage.logoutAction")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

@@ -7,6 +7,7 @@ import { getArtistList, getCollections, loadMoreAlbum, loadMoreTrack } from "@so
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Animated,
@@ -52,6 +53,7 @@ const SongList = ({
   onToggleHeartbeatMode,
 }: SongListProps) => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { mode } = usePlayMode();
   const { playTrackList } = usePlayer();
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -125,17 +127,17 @@ const SongList = ({
       selectedTrackIds.includes(t.id),
     );
     if (selectedTracks.length === 0) {
-      Alert.alert("提示", "请先选择要下载的曲目");
+      Alert.alert(t("common.ok"), t("libraryPage.selectTracksFirst"));
       return;
     }
-    Alert.alert("批量下载", `确定要下载${selectedTrackIds?.length}首曲目吗？`, [
-      { text: "取消", style: "cancel" },
+    Alert.alert(t("libraryPage.batchDownloadTitle"), t("libraryPage.confirmBatchDownloadTracks", { count: selectedTrackIds?.length || 0 }), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "确定",
+        text: t("common.confirm"),
         onPress: () => {
           downloadTracks(selectedTracks, (completed: number, total: number) => {
             if (completed === total) {
-              Alert.alert("下载完成", `已成功下载 ${total} 首曲目`);
+              Alert.alert(t("libraryPage.downloadComplete"), t("libraryPage.downloadedTrackCount", { count: total }));
               setIsSelectionMode(false);
               setSelectedTrackIds([]);
             }
@@ -173,7 +175,7 @@ const SongList = ({
             </TouchableOpacity>
             <View style={{ flexDirection: "row", gap: 12 }}>
               <Text style={[styles.selectionText, { color: colors.text }]}>
-                已选择 {selectedTrackIds.length} 项
+                {t("libraryPage.selectedCount", { count: selectedTrackIds.length })}
               </Text>
               <TouchableOpacity
                 disabled={!selectedTrackIds.length}
@@ -287,7 +289,7 @@ const SongList = ({
           ListFooterComponent={
             <View style={styles.listFooter}>
               <Text style={[styles.listFooterText, { color: colors.secondary }]}>
-                共加载 {tracks.length} 首
+                {t("libraryPage.loadedTracks", { count: tracks.length })}
               </Text>
             </View>
           }
@@ -325,6 +327,7 @@ const ArtistList = ({
   onToggleHeartbeatMode: () => void;
 }) => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
@@ -469,7 +472,7 @@ const ArtistList = ({
         ListFooterComponent={
           <View style={styles.listFooter}>
             <Text style={[styles.listFooterText, { color: colors.secondary }]}>
-              共加载 {artists.length} 位艺术家
+              {t("libraryPage.loadedArtists", { count: artists.length })}
             </Text>
           </View>
         }
@@ -496,6 +499,7 @@ const AlbumList = ({
   onToggleHeartbeatMode: () => void;
 }) => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
@@ -670,7 +674,7 @@ const AlbumList = ({
         ListFooterComponent={
           <View style={styles.listFooter}>
             <Text style={[styles.listFooterText, { color: colors.secondary }]}>
-              共加载 {albums.length} 张专辑
+              {t("libraryPage.loadedAlbums", { count: albums.length })}
             </Text>
           </View>
         }
@@ -691,6 +695,7 @@ const AlbumList = ({
 
 const CollectionList = () => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const { mode } = usePlayMode();
   const { user } = useAuth();
@@ -788,7 +793,7 @@ const CollectionList = () => {
                 style={[styles.collectionMeta, { color: colors.secondary }]}
                 numberOfLines={1}
               >
-                {count} 张专辑
+                {t("libraryPage.artistAlbumCount", { count })}
               </Text>
             </TouchableOpacity>
           );
@@ -796,7 +801,7 @@ const CollectionList = () => {
         ListFooterComponent={
           <View style={styles.listFooter}>
             <Text style={[styles.listFooterText, { color: colors.secondary }]}>
-              共加载 {collections.length} 个合集
+              {t("libraryPage.loadedCollections", { count: collections.length })}
             </Text>
           </View>
         }
@@ -807,6 +812,7 @@ const CollectionList = () => {
 
 export default function LibraryScreen() {
   const { colors, theme } = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const { mode, setMode } = usePlayMode();
   const { sourceType, user, device } = useAuth();
@@ -991,7 +997,9 @@ export default function LibraryScreen() {
             />
           </View>
         )}
-        <Text style={[styles.headerTitle, { color: colors.text }]}>声仓</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {t("libraryPage.title")}
+        </Text>
         <View style={styles.headerRight}>
           {mode === "MUSIC" && activeTab === "songs" && (
             <>
@@ -1112,7 +1120,7 @@ export default function LibraryScreen() {
               ]}
               onPress={() => setActiveTab("songs")}
             >
-              {renderTabLabel("单曲", tabCounts.songs, activeTab === "songs")}
+              {renderTabLabel(t("nav.tracks"), tabCounts.songs, activeTab === "songs")}
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -1122,7 +1130,7 @@ export default function LibraryScreen() {
             ]}
             onPress={() => setActiveTab("artists")}
           >
-            {renderTabLabel("艺术家", tabCounts.artists, activeTab === "artists")}
+            {renderTabLabel(t("nav.artists"), tabCounts.artists, activeTab === "artists")}
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -1131,7 +1139,7 @@ export default function LibraryScreen() {
             ]}
             onPress={() => setActiveTab("albums")}
           >
-            {renderTabLabel("专辑", tabCounts.albums, activeTab === "albums")}
+            {renderTabLabel(t("nav.albums"), tabCounts.albums, activeTab === "albums")}
           </TouchableOpacity>
           {mode === "AUDIOBOOK" && (
             <TouchableOpacity
@@ -1141,7 +1149,7 @@ export default function LibraryScreen() {
               ]}
               onPress={() => setActiveTab("collections")}
             >
-              {renderTabLabel("合集", tabCounts.collections, activeTab === "collections")}
+              {renderTabLabel(t("collections.title"), tabCounts.collections, activeTab === "collections")}
             </TouchableOpacity>
           )}
         </View>

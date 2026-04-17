@@ -12,6 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { plusGetMe, toggleTrackLike, toggleTrackUnLike } from "@soundx/services";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Animated,
   Alert,
@@ -199,6 +200,7 @@ export function PlayerDetailView({
   const [isDownloading, setIsDownloading] = useState(false);
   const [syncCheckLoading, setSyncCheckLoading] = useState(false);
   const { user, device, setPlusToken } = useAuth();
+  const { t } = useTranslation();
   const [isVip, setIsVip] = useState(false);
   const [lyricFontSize, setLyricFontSize] = useState(16);
   const [controlsBottomOffset, setControlsBottomOffset] = useState(0);
@@ -234,9 +236,15 @@ export function PlayerDetailView({
       const plusToken = await AsyncStorage.getItem("plus_token");
       const plusUserId = await AsyncStorage.getItem("plus_user_id");
       if (!plusToken || !plusUserId) {
-        Alert.alert("提示", "该功能是VIP功能，仅在开通VIP的情况使用。", [
-          { text: "取消", style: "cancel" },
-          ...(Platform.OS !== "ios" ? [{ text: "立即开通", onPress: () => router.push("/member-benefits" as any), style: "default" as const }] : []),
+        Alert.alert(t("playerPage.notice"), t("playerPage.vipFeatureOnly"), [
+          { text: t("common.cancel"), style: "cancel" },
+          ...(Platform.OS !== "ios"
+            ? [{
+                text: t("playerPage.activateNow"),
+                onPress: () => router.push("/member-benefits" as any),
+                style: "default" as const,
+              }]
+            : []),
         ]);
         return;
       }
@@ -252,14 +260,20 @@ export function PlayerDetailView({
       if (isVip) {
         setSyncModalVisible(true);
       } else {
-        Alert.alert("提示", "该功能是VIP功能，仅在开通VIP的情况使用。", [
-          { text: "取消", style: "cancel" },
-          ...(Platform.OS !== "ios" ? [{ text: "立即开通", onPress: () => router.push("/member-benefits" as any), style: "default" as const }] : []),
+        Alert.alert(t("playerPage.notice"), t("playerPage.vipFeatureOnly"), [
+          { text: t("common.cancel"), style: "cancel" },
+          ...(Platform.OS !== "ios"
+            ? [{
+                text: t("playerPage.activateNow"),
+                onPress: () => router.push("/member-benefits" as any),
+                style: "default" as const,
+              }]
+            : []),
         ]);
       }
     } catch (error) {
       console.warn("Failed to check VIP status", error);
-      Alert.alert("提示", "会员状态获取失败，请稍后重试");
+      Alert.alert(t("playerPage.notice"), t("playerPage.vipStatusFailed"));
     } finally {
       setSyncCheckLoading(false);
     }
@@ -640,7 +654,7 @@ export function PlayerDetailView({
                         marginTop: 2,
                       }}
                     >
-                      已听{" "}
+                      {t("playerPage.listened")}{" "}
                       {Math.floor((displayProgress / (item.duration || 1)) * 100)}
                       %
                     </Text>
@@ -944,7 +958,7 @@ export function PlayerDetailView({
                     <Text
                       style={[styles.lyricsText, { color: colors.secondary }]}
                     >
-                      暂无歌词
+                      {t("player.noLyrics")}
                     </Text>
                   )}
                 </ScrollView>
@@ -1056,7 +1070,7 @@ export function PlayerDetailView({
                     <Text
                       style={[styles.lyricsText, { color: colors.secondary }]}
                     >
-                      暂无歌词
+                      {t("player.noLyrics")}
                     </Text>
                   </TouchableOpacity>
                 )}
