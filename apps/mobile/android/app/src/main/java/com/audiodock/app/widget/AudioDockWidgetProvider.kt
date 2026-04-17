@@ -232,7 +232,7 @@ open class AudioDockWidgetProvider : AppWidgetProvider() {
 
     private fun openPendingIntent(context: Context): PendingIntent {
       val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-        ?: Intent(context, com.anonymous.mobile.MainActivity::class.java)
+        ?: Intent(context, com.audiodock.app.MainActivity::class.java)
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
       val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
       return PendingIntent.getActivity(context, "open".hashCode(), intent, flags)

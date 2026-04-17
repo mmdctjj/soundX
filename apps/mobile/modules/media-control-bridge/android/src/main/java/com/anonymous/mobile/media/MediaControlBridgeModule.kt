@@ -1,4 +1,4 @@
-package com.anonymous.mobile.media
+package com.audiodock.app.media
 
 import android.content.Intent
 import android.media.AudioManager
