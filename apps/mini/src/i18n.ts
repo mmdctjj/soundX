@@ -1,27 +1,20 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import Taro from "@tarojs/taro";
-
-import zhCN from "./locales/zh-CN.json";
-import en from "./locales/en.json";
-
-const LANGUAGE_KEY = "app_language";
-
-const resources = {
-  "zh-CN": { translation: zhCN },
-  en: { translation: en },
-};
+import {
+  LANGUAGE_STORAGE_KEY,
+  resources,
+  resolveLanguageSelection,
+} from "@soundx/i18e";
 
 const getDeviceLanguage = () => {
   try {
     const { language } = Taro.getSystemInfoSync();
-    if (language) {
-      return language.startsWith('zh') ? 'zh-CN' : 'en';
-    }
+    return resolveLanguageSelection("system", language);
   } catch (e) {
     console.error("Error getting system language:", e);
   }
-  return "zh-CN";
+  return resolveLanguageSelection("system");
 };
 
 const languageDetector = {
@@ -29,7 +22,7 @@ const languageDetector = {
   async: true,
   detect: (callback: (lng: string) => void) => {
     try {
-      const savedLanguage = Taro.getStorageSync(LANGUAGE_KEY);
+      const savedLanguage = Taro.getStorageSync(LANGUAGE_STORAGE_KEY);
       if (savedLanguage && savedLanguage !== 'system') {
         callback(savedLanguage);
         return;
@@ -41,7 +34,7 @@ const languageDetector = {
     }
   },
   init: () => {},
-  cacheUserLanguage: (language: string) => {
+  cacheUserLanguage: (_language: string) => {
     // handled manually
   },
 };

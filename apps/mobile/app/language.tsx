@@ -1,5 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  EXPLICIT_LANGUAGE_OPTIONS,
+  LANGUAGE_STORAGE_KEY,
+  SYSTEM_LANGUAGE_VALUE,
+  resolveLanguageSelection,
+} from "@soundx/i18e";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -13,8 +19,6 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../src/context/ThemeContext";
 import { Platform, NativeModules } from "react-native";
 
-const LANGUAGE_KEY = "app_language";
-
 export default function LanguageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -23,17 +27,16 @@ export default function LanguageScreen() {
   const [selectedLang, setSelectedLang] = useState<string>("system");
 
   const languages = [
-    { code: "system", label: t("settings.themeSystem", "跟随系统") },
-    { code: "zh-CN", label: "简体中文" },
-    { code: "en", label: "English" },
+    { code: SYSTEM_LANGUAGE_VALUE, label: t("settings.themeSystem", "跟随系统") },
+    ...EXPLICIT_LANGUAGE_OPTIONS,
   ];
 
   useEffect(() => {
-    AsyncStorage.getItem(LANGUAGE_KEY).then((saved) => {
+    AsyncStorage.getItem(LANGUAGE_STORAGE_KEY).then((saved) => {
       if (saved) {
         setSelectedLang(saved);
       } else {
-        setSelectedLang("system");
+        setSelectedLang(SYSTEM_LANGUAGE_VALUE);
       }
     });
   }, []);
@@ -45,17 +48,15 @@ export default function LanguageScreen() {
           ? NativeModules.SettingsManager.settings.AppleLocale ||
             NativeModules.SettingsManager.settings.AppleLanguages[0]
           : NativeModules.I18nManager.localeIdentifier;
-      if (locale) {
-        return locale.startsWith("zh") ? "zh-CN" : "en";
-      }
+      return resolveLanguageSelection(SYSTEM_LANGUAGE_VALUE, locale);
     } catch (e) {}
-    return "zh-CN";
+    return resolveLanguageSelection(SYSTEM_LANGUAGE_VALUE);
   };
 
   const handleLanguageSelect = async (langCode: string) => {
     setSelectedLang(langCode);
-    await AsyncStorage.setItem(LANGUAGE_KEY, langCode);
-    if (langCode === "system") {
+    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, langCode);
+    if (langCode === SYSTEM_LANGUAGE_VALUE) {
       await i18n.changeLanguage(getDeviceLanguage());
     } else {
       await i18n.changeLanguage(langCode);

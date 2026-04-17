@@ -1,12 +1,16 @@
 import { FolderOpenOutlined } from "@ant-design/icons";
 import {
+  LANGUAGE_STORAGE_KEY,
+  SYSTEM_LANGUAGE_VALUE,
+  resolveLanguageSelection,
+} from "@soundx/i18e";
+import {
   Button,
   ColorPicker,
   Divider,
   Input,
   InputNumber,
   Select,
-  Segmented,
   Slider,
   Space,
   Switch,
@@ -195,17 +199,20 @@ const Settings: React.FC = () => {
             <Select
               value={general.language || "system"}
               onChange={async (val) => {
-                if (val === "system") {
+                if (val === SYSTEM_LANGUAGE_VALUE) {
+                  localStorage.removeItem(LANGUAGE_STORAGE_KEY);
                   localStorage.removeItem("i18nextLng");
-                  const systemLang = navigator.language.startsWith("zh") ? "zh-CN" : "en";
-                  await i18n.changeLanguage(systemLang);
+                  await i18n.changeLanguage(
+                    resolveLanguageSelection(SYSTEM_LANGUAGE_VALUE, navigator.language),
+                  );
                 } else {
+                  localStorage.setItem(LANGUAGE_STORAGE_KEY, val);
                   await i18n.changeLanguage(val);
                 }
                 updateGeneral("language", val);
               }}
               options={[
-                { label: t("settings.themeSystem", "跟随系统"), value: "system" },
+                { label: t("settings.themeSystem", "跟随系统"), value: SYSTEM_LANGUAGE_VALUE },
                 ...languages.map((lang) => ({
                   label: `${lang.flag} ${lang.label}`,
                   value: lang.code,

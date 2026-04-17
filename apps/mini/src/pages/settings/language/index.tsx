@@ -1,11 +1,15 @@
 import { View, Text } from '@tarojs/components';
+import {
+  EXPLICIT_LANGUAGE_OPTIONS,
+  LANGUAGE_STORAGE_KEY,
+  SYSTEM_LANGUAGE_VALUE,
+  resolveLanguageSelection,
+} from '@soundx/i18e';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../context/ThemeContext';
 import Taro, { useLoad } from '@tarojs/taro';
 import { useState, useEffect } from 'react';
 import './index.scss';
-
-const LANGUAGE_KEY = 'app_language';
 
 export default function LanguageSettings() {
   const { t, i18n } = useTranslation();
@@ -13,9 +17,8 @@ export default function LanguageSettings() {
   const [selectedLang, setSelectedLang] = useState<string>('system');
 
   const languages = [
-    { code: 'system', label: t('settings.themeSystem', '跟随系统') },
-    { code: 'zh-CN', label: '简体中文' },
-    { code: 'en', label: 'English' },
+    { code: SYSTEM_LANGUAGE_VALUE, label: t('settings.themeSystem', '跟随系统') },
+    ...EXPLICIT_LANGUAGE_OPTIONS,
   ];
 
   useLoad(() => {
@@ -27,28 +30,26 @@ export default function LanguageSettings() {
   });
 
   useEffect(() => {
-    const saved = Taro.getStorageSync(LANGUAGE_KEY);
+    const saved = Taro.getStorageSync(LANGUAGE_STORAGE_KEY);
     if (saved) {
       setSelectedLang(saved);
     } else {
-      setSelectedLang('system');
+      setSelectedLang(SYSTEM_LANGUAGE_VALUE);
     }
   }, []);
 
   const getDeviceLanguage = () => {
     try {
       const { language } = Taro.getSystemInfoSync();
-      if (language) {
-        return language.startsWith('zh') ? 'zh-CN' : 'en';
-      }
+      return resolveLanguageSelection(SYSTEM_LANGUAGE_VALUE, language);
     } catch (e) {}
-    return 'zh-CN';
+    return resolveLanguageSelection(SYSTEM_LANGUAGE_VALUE);
   };
 
   const handleLanguageSelect = async (langCode: string) => {
     setSelectedLang(langCode);
-    Taro.setStorageSync(LANGUAGE_KEY, langCode);
-    if (langCode === 'system') {
+    Taro.setStorageSync(LANGUAGE_STORAGE_KEY, langCode);
+    if (langCode === SYSTEM_LANGUAGE_VALUE) {
       await i18n.changeLanguage(getDeviceLanguage());
     } else {
       await i18n.changeLanguage(langCode);
