@@ -23,6 +23,7 @@ import {
 } from "@soundx/services";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -44,6 +45,7 @@ export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { playTrack, playTrackList, currentTrack, isPlaying, seekTo, position } =
     usePlayer();
   const { user, sourceType } = useAuth();
@@ -125,7 +127,7 @@ export default function AlbumDetailScreen() {
   const handleUpdateCover = async () => {
     if (!album || uploadingCover) return;
     if (sourceType !== "AudioDock") {
-      Alert.alert("提示", "仅 AudioDock 源支持修改封面");
+      Alert.alert(t("albumPage.notice"), t("albumPage.audioDockOnlyCover"));
       return;
     }
     try {
@@ -147,11 +149,11 @@ export default function AlbumDetailScreen() {
       if (res.code === 200) {
         setAlbum(res.data);
       } else {
-        Alert.alert("上传失败", res.message || "封面上传失败");
+        Alert.alert(t("albumPage.uploadFailed"), res.message || t("albumPage.uploadCoverFailed"));
       }
     } catch (error) {
       console.error("Failed to upload album cover:", error);
-      Alert.alert("上传失败", "封面上传失败");
+      Alert.alert(t("albumPage.uploadFailed"), t("albumPage.uploadCoverFailed"));
     } finally {
       setUploadingCover(false);
     }
@@ -185,22 +187,28 @@ export default function AlbumDetailScreen() {
       selectedTrackIds.includes(t.id)
     );
     if (selectedTracks.length === 0) {
-      Alert.alert("提示", "请先选择要下载的曲目");
+      Alert.alert(t("albumPage.notice"), t("albumPage.selectTracksFirst"));
       return;
     }
     Alert.alert(
-      "批量下载",
-      `确定要下载专辑《${album?.name}》中的所有选择的${selectedTrackIds?.length}首曲目吗？`,
+      t("albumPage.batchDownloadTitle"),
+      t("albumPage.batchDownloadMessage", {
+        name: album?.name,
+        count: selectedTrackIds?.length || 0,
+      }),
       [
-        { text: "取消", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "确定",
+          text: t("common.confirm"),
           onPress: () => {
             downloadTracks(
               selectedTracks,
               (completed: number, total: number) => {
                 if (completed === total) {
-                  Alert.alert("下载完成", `已成功下载 ${total} 首曲目`);
+                  Alert.alert(
+                    t("albumPage.downloadComplete"),
+                    t("albumPage.downloadedTrackCount", { count: total }),
+                  );
                   setIsSelectionMode(false);
                   setSelectedTrackIds([]);
                 }
@@ -263,7 +271,7 @@ export default function AlbumDetailScreen() {
           numberOfLines={1}
         >
           {isSelectionMode
-            ? `已选择 ${selectedTrackIds.length} 项`
+            ? t("albumPage.selectedCount", { count: selectedTrackIds.length })
             : album?.name || "Album"}
         </Text>
         <View style={styles.headerRight}>
@@ -375,7 +383,7 @@ export default function AlbumDetailScreen() {
                 <Text
                   style={[styles.playAllText, { color: colors.background }]}
                 >
-                  {album.resumeTrackId ? "继续播放" : "播放全部"}
+                  {album.resumeTrackId ? t("albumPage.continuePlaying") : t("albumPage.playAll")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -432,7 +440,7 @@ export default function AlbumDetailScreen() {
                     }}
                 >
                     <Text style={{ color: colors.secondary, fontSize: 12, marginRight: 5 }}>
-                    {sortBy === 'id' ? '入库' : sortBy === 'index' ? '专辑' : '优化'}
+                    {sortBy === 'id' ? t("albumPage.sortAdded") : sortBy === 'index' ? t("albumPage.sortAlbum") : t("albumPage.sortOptimized")}
                     </Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setSort(sort === 'asc' ? 'desc' : 'asc')}>
@@ -539,7 +547,7 @@ export default function AlbumDetailScreen() {
               return (
                 <View style={{ marginRight: 10 }}>
                   <Text style={{ fontSize: 10, color: colors.primary }}>
-                    已听
+                    {t("playerPage.listened")}
                     {Math.floor(
                       (displayProgress / (item.duration || 1)) * 100
                     )}
@@ -624,7 +632,7 @@ export default function AlbumDetailScreen() {
 
       <FilePathModal
         visible={filePathVisible}
-        title={propertyTrack ? `曲目属性 · ${propertyTrack.name}` : "曲目属性"}
+        title={propertyTrack ? t("albumPage.trackPropertiesWithName", { name: propertyTrack.name }) : t("albumPage.trackProperties")}
         path={propertyTrack?.path}
         onClose={() => setFilePathVisible(false)}
       />

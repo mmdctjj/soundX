@@ -100,6 +100,47 @@ export default function Index() {
       playTrackList(trackList, index)
   }
 
+  const handleRefreshSection = async (sectionId: string) => {
+    try {
+      const sectionIndex = sections.findIndex((s) => s.id === sectionId);
+      if (sectionIndex === -1) return;
+
+      let newData: any[] = [];
+
+      if (sectionId === 'artists') {
+        const res = await getLatestArtists(mode, true, 8);
+        if (res.code === 200) newData = res.data;
+      } else if (sectionId === 'recommended') {
+        const res = await getRecommendedAlbums(mode, true, 8);
+        if (res.code === 200) newData = res.data;
+      } else if (sectionId === 'recent') {
+        const res = await getRecentAlbums(mode, true, 8);
+        if (res.code === 200) newData = res.data;
+      } else if (sectionId === 'tracks') {
+        const res = await getLatestTracks('MUSIC', true, 8);
+        if (res.code === 200) newData = res.data;
+      } else if (sectionId === 'history' && user) {
+        const res = await getAlbumHistory(user.id, 0, 8, 'AUDIOBOOK');
+        if (res.code === 200) {
+          newData = res.data.list.map((item: any) => item.album);
+        }
+      }
+
+      if (newData.length > 0) {
+        setSections((prev) => {
+          const newSections = [...prev];
+          newSections[sectionIndex] = {
+            ...newSections[sectionIndex],
+            data: newData,
+          };
+          return newSections;
+        });
+      }
+    } catch (error) {
+      console.error(`Failed to refresh section ${sectionId}:`, error);
+    }
+  };
+
   const getImageUrl = (url: string | null) => {
       if (!url) return `https://picsum.photos/200/200`;
       if (url.startsWith('http')) return url;
@@ -138,6 +179,22 @@ export default function Index() {
           <View key={section.id} className='section'>
             <View className='section-header'>
               <Text className='section-title'>{section.title}</Text>
+              <View className='section-actions'>
+                {section.id === 'tracks' && section.data.length > 0 && (
+                  <View 
+                    className='action-btn play-all-btn'
+                    onClick={() => playTrackList(section.data, 0)}
+                  >
+                    <Text className='icon icon-play-white' />
+                  </View>
+                )}
+                <View 
+                  className='action-btn refresh-btn'
+                  onClick={() => handleRefreshSection(section.id)}
+                >
+                  <Text className='icon icon-refresh' />
+                </View>
+              </View>
             </View>
 
             <ScrollView scrollX className='horizontal-list' showScrollbar={false}>

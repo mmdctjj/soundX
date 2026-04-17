@@ -23,6 +23,7 @@ import {
 } from "@soundx/services";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Alert,
     Image,
@@ -42,6 +43,7 @@ const ARTIST_TRACK_COVER_SIZE = 20;
 export default function ArtistDetailScreen() {
   const { id } = useLocalSearchParams();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { playTrackList, currentTrack, isPlaying } = usePlayer();
   const { mode } = usePlayMode();
   const { sourceType, user } = useAuth();
@@ -130,7 +132,7 @@ export default function ArtistDetailScreen() {
   const handleUpdateCover = async () => {
     if (!artist || uploadingCover) return;
     if (sourceType !== "AudioDock") {
-      Alert.alert("提示", "仅 AudioDock 源支持修改封面");
+      Alert.alert(t("artistPage.notice"), t("artistPage.audioDockOnlyCover"));
       return;
     }
     try {
@@ -152,11 +154,11 @@ export default function ArtistDetailScreen() {
       if (res.code === 200) {
         setArtist(res.data);
       } else {
-        Alert.alert("上传失败", res.message || "封面上传失败");
+        Alert.alert(t("artistPage.uploadFailed"), res.message || t("artistPage.uploadCoverFailed"));
       }
     } catch (error) {
       console.error("Failed to upload artist cover:", error);
-      Alert.alert("上传失败", "封面上传失败");
+      Alert.alert(t("artistPage.uploadFailed"), t("artistPage.uploadCoverFailed"));
     } finally {
       setUploadingCover(false);
     }
@@ -175,17 +177,20 @@ export default function ArtistDetailScreen() {
       selectedTrackIds.includes(t.id),
     );
     if (selectedTracks.length === 0) {
-      Alert.alert("提示", "请先选择要下载的曲目");
+      Alert.alert(t("artistPage.notice"), t("artistPage.selectTracksFirst"));
       return;
     }
-    Alert.alert("批量下载", `确定要下载${selectedTrackIds?.length}首曲目吗？`, [
-      { text: "取消", style: "cancel" },
+    Alert.alert(t("artistPage.batchDownloadTitle"), t("artistPage.batchDownloadMessage", { count: selectedTrackIds?.length || 0 }), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "确定",
+        text: t("common.confirm"),
         onPress: () => {
           downloadTracks(selectedTracks, (completed: number, total: number) => {
             if (completed === total) {
-              Alert.alert("下载完成", `已成功下载 ${total} 首曲目`);
+              Alert.alert(
+                t("artistPage.downloadComplete"),
+                t("artistPage.downloadedTrackCount", { count: total }),
+              );
               setIsSelectionMode(false);
               setSelectedTrackIds([]);
             }
@@ -235,7 +240,7 @@ export default function ArtistDetailScreen() {
               style={[styles.headerTitle, { color: colors.text }]}
               numberOfLines={1}
             >
-              已选择 {selectedTrackIds.length} 项
+              {t("artistPage.selectedCount", { count: selectedTrackIds.length })}
             </Text>
             <TouchableOpacity
               disabled={!selectedTrackIds.length}
@@ -297,7 +302,7 @@ export default function ArtistDetailScreen() {
                 { color: colors.text, paddingHorizontal: 20 },
               ]}
             >
-              所有专辑 ({albums.length})
+              {t("artistPage.allAlbums", { count: albums.length })}
             </Text>
             <ScrollView
               horizontal
@@ -357,7 +362,7 @@ export default function ArtistDetailScreen() {
                 { color: colors.text, paddingHorizontal: 20 },
               ]}
             >
-              合作专辑 ({collaborativeAlbums.length})
+              {t("artistPage.collaborativeAlbums", { count: collaborativeAlbums.length })}
             </Text>
             <ScrollView
               horizontal
@@ -416,7 +421,7 @@ export default function ArtistDetailScreen() {
                 { color: colors.text, paddingHorizontal: 20 },
               ]}
             >
-              相关合集 ({relatedCollections.length})
+              {t("artistPage.relatedCollections", { count: relatedCollections.length })}
             </Text>
             <ScrollView
               horizontal
@@ -470,7 +475,7 @@ export default function ArtistDetailScreen() {
                   { color: colors.text, marginBottom: 0 },
                 ]}
               >
-                所有单曲 ({tracks.length})
+                {t("artistPage.allTracks", { count: tracks.length })}
               </Text>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {!isSelectionMode ? (
@@ -645,7 +650,7 @@ export default function ArtistDetailScreen() {
 
       <FilePathModal
         visible={filePathVisible}
-        title={propertyTrack ? `曲目属性 · ${propertyTrack.name}` : "曲目属性"}
+        title={propertyTrack ? t("artistPage.trackPropertiesWithName", { name: propertyTrack.name }) : t("artistPage.trackProperties")}
         path={propertyTrack?.path}
         onClose={() => setFilePathVisible(false)}
       />

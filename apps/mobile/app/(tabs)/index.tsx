@@ -15,6 +15,7 @@ import {
 import * as Device from "expo-device";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Animated,
   Easing,
@@ -133,6 +134,7 @@ function HomeSkeleton({ insets }: { insets: { top: number } }) {
 
 export default function HomeScreen() {
   const { colors, theme } = useTheme();
+  const { t } = useTranslation();
   const {
     playTrack,
     startRadioMode,
@@ -240,19 +242,19 @@ export default function HomeScreen() {
         const newSections: Section[] = [
           {
             id: "artists",
-            title: "艺术家",
+            title: t("home.artists"),
             data: artistsRes.code === 200 ? artistsRes.data : [],
             type: "artist",
           },
           {
             id: "recent",
-            title: "最近上新",
+            title: t("home.recentAlbums"),
             data: recentRes.code === 200 ? recentRes.data : [],
             type: "album",
           },
           {
             id: "recommended",
-            title: "为你推荐",
+            title: t("home.recommended"),
             data: recommendedRes.code === 200 ? recommendedRes.data : [],
             type: "album",
           },
@@ -261,7 +263,7 @@ export default function HomeScreen() {
         if (mode === "MUSIC" && tracksRes?.code === 200) {
           newSections.push({
             id: "tracks",
-            title: "上新单曲",
+            title: t("home.newTracks"),
             data: tracksRes.data,
             type: "track",
           });
@@ -270,7 +272,7 @@ export default function HomeScreen() {
         if (mode === "AUDIOBOOK" && historyRes?.code === 200) {
           newSections.push({
             id: "history",
-            title: "继续收听",
+            title: t("home.continueListening"),
             data: historyRes.data.list.map((item: any) => item.album),
             type: "album",
           });
@@ -302,7 +304,7 @@ export default function HomeScreen() {
         setRefreshing(false);
       }
     },
-    [mode, recommendationLikeRatio, recommendCacheKey],
+    [mode, recommendationLikeRatio, recommendCacheKey, t, user],
   );
 
   useFocusEffect(
@@ -444,7 +446,7 @@ export default function HomeScreen() {
               </View>
             </>
           )}
-          <Text style={[styles.headerTitle, { color: colors.text }]}>推荐</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t("homePage.title")}</Text>
           <View style={styles.headerRight}>
             {mode === "MUSIC" && sourceType !== "Emby" && (
               <TouchableOpacity
@@ -508,7 +510,7 @@ export default function HomeScreen() {
           onPress={() => router.push("/search")}
         >
           <Text style={[styles.searchText, { color: colors.secondary }]}>
-            搜索单曲，艺术家，专辑
+            {t("homePage.searchPlaceholder")}
           </Text>
         </TouchableOpacity>
 
@@ -866,7 +868,7 @@ export default function HomeScreen() {
           }
         >
           <Ionicons name="settings-outline" size={20} color={colors.primary} />
-          <Text style={{ color: colors.primary }}>调整顺序</Text>
+          <Text style={{ color: colors.primary }}>{t("homePage.adjustOrder")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

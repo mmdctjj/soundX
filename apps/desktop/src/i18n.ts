@@ -1,14 +1,11 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import BrowserLanguageDetector from "i18next-browser-languagedetector";
-
-import zhCNTranslation from "./locales/zh-CN.json";
-import enTranslation from "./locales/en.json";
-
-const resources = {
-  "zh-CN": { translation: zhCNTranslation },
-  en: { translation: enTranslation },
-};
+import {
+  EXPLICIT_LANGUAGE_OPTIONS,
+  LANGUAGE_STORAGE_KEY,
+  resources,
+} from "@soundx/i18e";
 
 i18n
   .use(BrowserLanguageDetector)
@@ -22,6 +19,7 @@ i18n
     },
     detection: {
       order: ["localStorage", "navigator"],
+      lookupLocalStorage: LANGUAGE_STORAGE_KEY,
       caches: ["localStorage"],
     },
   });
@@ -32,8 +30,7 @@ export const antdLocales = {
 };
 
 export const languages = [
-  { code: "zh-CN", label: "简体中文", flag: "🇨🇳" },
-  { code: "en", label: "English", flag: "🇺🇸" },
+  ...EXPLICIT_LANGUAGE_OPTIONS,
 ];
 
 export default i18n;

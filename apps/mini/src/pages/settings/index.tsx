@@ -7,7 +7,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useTheme } from '../../context/ThemeContext';
 import { usePlayMode } from '../../utils/playMode';
-import LanguageSwitcher from '../../components/LanguageSwitcher';
 import './index.scss';
 
 export default function Settings() {
@@ -230,7 +229,11 @@ export default function Settings() {
 
         <View className='section'>
           <Text className='section-title'>{t('settings.general')}</Text>
-          <LanguageSwitcher />
+          {renderActionRow(
+            t('settings.language', '语言'),
+            t('settings.languageDescription', '选择应用显示语言'),
+            () => Taro.navigateTo({ url: '/pages/settings/language/index' })
+          )}
           {renderSettingRow(t('settings.carMode'), t('settings.carModeDescription'), carModeActive, handleToggleCarMode)}
           {carModeActive && renderActionRow(
             t('settings.screenInset'),

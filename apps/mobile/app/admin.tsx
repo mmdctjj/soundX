@@ -21,6 +21,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../src/context/ThemeContext";
 import { User } from "../src/models";
@@ -29,6 +30,7 @@ export default function AdminScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [registrationAllowed, setRegistrationAllowed] = useState(true);
@@ -53,7 +55,7 @@ export default function AdminScreen() {
         setUsers(res.data);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to load users");
+      Alert.alert(t("common.error"), t("admin.loadUsersFailed"));
     } finally {
       setLoading(false);
     }
@@ -86,27 +88,27 @@ export default function AdminScreen() {
     if (res.code === 200) {
       setRegistrationAllowed(val);
     } else {
-      Alert.alert("Error", res.message);
+      Alert.alert(t("common.error"), res.message);
     }
     setSettingLoading(false);
   };
 
   const handleDeleteUser = (id: number) => {
     Alert.alert(
-      "确定删除",
-      "确定删除该用户吗？删除之后数据无法恢复",
+      t("admin.deleteTitle"),
+      t("admin.deleteMessage"),
       [
-        { text: "取消", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "删除",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             const res = await deleteAdminUser(id);
             if (res.code === 200) {
-              Alert.alert("成功", "用户删除成功");
+              Alert.alert(t("common.success"), t("admin.deleteSuccess"));
               fetchUsers();
             } else {
-              Alert.alert("失败", res.message);
+              Alert.alert(t("common.error"), res.message || t("admin.deleteFailed"));
             }
           },
         },
@@ -118,24 +120,24 @@ export default function AdminScreen() {
     if (!selectedUser) return;
     const days = expirationDays === "" ? null : parseInt(expirationDays);
     if (days !== null && isNaN(days)) {
-      Alert.alert("Error", "Please enter a valid number");
+      Alert.alert(t("common.error"), t("admin.invalidNumber"));
       return;
     }
 
     const res = await setAdminUserExpiration(selectedUser.id, days);
     if (res.code === 200) {
-      Alert.alert("Success", "Expiration updated");
+      Alert.alert(t("common.success"), t("admin.expirationUpdated"));
       setModalVisible(false);
       fetchUsers();
       setExpirationDays("");
     } else {
-      Alert.alert("Error", res.message);
+      Alert.alert(t("common.error"), res.message);
     }
   };
 
   const handleCreateUser = async () => {
     if (!newUsername || !newPassword) {
-      Alert.alert("Error", "Username and password are required");
+      Alert.alert(t("common.error"), t("admin.usernamePasswordRequired"));
       return;
     }
 
@@ -146,19 +148,19 @@ export default function AdminScreen() {
     });
 
     if (res.code === 200) {
-      Alert.alert("Success", "User created");
+      Alert.alert(t("common.success"), t("admin.userCreated"));
       setCreateModalVisible(false);
       setNewUsername("");
       setNewPassword("");
       setIsNewAdmin(false);
       fetchUsers();
     } else {
-      Alert.alert("Error", res.message);
+      Alert.alert(t("common.error"), res.message);
     }
   };
 
   const formatDate = (dateStr?: string | Date | null) => {
-    if (!dateStr) return "用不过期";
+    if (!dateStr) return t("admin.neverExpires");
     const date = new Date(dateStr);
     return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
   };
@@ -179,12 +181,12 @@ export default function AdminScreen() {
             {item.is_admin && (
               <Text style={{ color: colors.primary, fontWeight: "bold" }}>
                 {" "}
-                (管理员)
+                ({t("admin.adminBadge")})
               </Text>
             )}
           </Text>
           <Text style={[styles.userDetails, { color: colors.secondary }]}>
-            用户 ID: {item.id} | 注册时间: {formatDate(item.createdAt)}
+            {t("admin.userId")}: {item.id} | {t("admin.registeredAt")}: {formatDate(item.createdAt)}
           </Text>
           <Text
             style={[
@@ -192,7 +194,7 @@ export default function AdminScreen() {
               { color: expired ? "red" : colors.secondary },
             ]}
           >
-            过期时间: {formatDate(item.expiresAt)}
+            {t("admin.expiresAt")}: {formatDate(item.expiresAt)}
           </Text>
         </View>
         {!item.is_admin && (
@@ -236,7 +238,7 @@ export default function AdminScreen() {
           <Ionicons name="chevron-back" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          用户管理
+          {t("admin.title")}
         </Text>
         <TouchableOpacity
           onPress={() => setCreateModalVisible(true)}
@@ -254,7 +256,7 @@ export default function AdminScreen() {
       >
         <View style={{ flex: 1 }}>
           <Text style={[styles.settingLabel, { color: colors.text }]}>
-            允许他人注册
+            {t("admin.allowRegistration")}
           </Text>
         </View>
         <Switch
@@ -291,10 +293,10 @@ export default function AdminScreen() {
             style={[styles.modalView, { backgroundColor: colors.background }]}
           >
             <Text style={[styles.modalText, { color: colors.text }]}>
-              设置过期时间 (天数)
+              {t("admin.setExpirationTitle")}
             </Text>
             <Text style={[styles.modalDesc, { color: colors.secondary }]}>
-              留空则永不过期。
+              {t("admin.setExpirationHint")}
             </Text>
 
             <TextInput
@@ -304,7 +306,7 @@ export default function AdminScreen() {
               ]}
               onChangeText={setExpirationDays}
               value={expirationDays}
-              placeholder="e.g. 7, 30"
+              placeholder={t("admin.expirationPlaceholder")}
               placeholderTextColor={colors.secondary}
               keyboardType="numeric"
             />
@@ -314,7 +316,7 @@ export default function AdminScreen() {
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={[styles.textStyle, { color: colors.primary }]}>
-                  取消
+                  {t("common.cancel")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -322,7 +324,7 @@ export default function AdminScreen() {
                 onPress={handleSetExpiration}
               >
                 <Text style={[styles.textStyle, { color: colors.background }]}>
-                  保存
+                  {t("common.save")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -342,7 +344,7 @@ export default function AdminScreen() {
             style={[styles.modalView, { backgroundColor: colors.background }]}
           >
             <Text style={[styles.modalText, { color: colors.text, marginBottom: 15 }]}>
-              创建新用户
+              {t("admin.createUserTitle")}
             </Text>
 
             <TextInput
@@ -352,7 +354,7 @@ export default function AdminScreen() {
               ]}
               onChangeText={setNewUsername}
               value={newUsername}
-              placeholder="用户名"
+              placeholder={t("admin.usernamePlaceholder")}
               placeholderTextColor={colors.secondary}
               autoCapitalize="none"
             />
@@ -363,13 +365,13 @@ export default function AdminScreen() {
               ]}
               onChangeText={setNewPassword}
               value={newPassword}
-              placeholder="密码"
+              placeholder={t("admin.passwordPlaceholder")}
               placeholderTextColor={colors.secondary}
               secureTextEntry
             />
 
             <View style={[styles.settingRow, { width: '100%', marginVertical: 10, borderBottomWidth: 0 }]}>
-                 <Text style={{color: colors.text, marginRight: 10}}>设为管理员</Text>
+                 <Text style={{color: colors.text, marginRight: 10}}>{t("admin.setAsAdmin")}</Text>
                  <Switch
                     value={isNewAdmin}
                     onValueChange={setIsNewAdmin}
@@ -383,7 +385,7 @@ export default function AdminScreen() {
                 onPress={() => setCreateModalVisible(false)}
               >
                 <Text style={[styles.textStyle, { color: colors.primary }]}>
-                  取消
+                  {t("common.cancel")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -391,7 +393,7 @@ export default function AdminScreen() {
                 onPress={handleCreateUser}
               >
                 <Text style={[styles.textStyle, { color: colors.background }]}>
-                  创建
+                  {t("admin.create")}
                 </Text>
               </TouchableOpacity>
             </View>

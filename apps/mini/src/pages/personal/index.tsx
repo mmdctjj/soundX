@@ -426,7 +426,9 @@ export default function Personal() {
       <View className='user-profile'>
         <Image src={getImageUrl((user as any)?.avatar || null)} className='avatar' mode='aspectFill' />
         <View className='username-row'>
-          <Text className='username'>{user?.username || t('common.notLoggedIn')}</Text>
+          <Text className='username'>
+            {user?.username || t('common.notLoggedIn')}
+          </Text>
           {user && (
             <View
               className={`vip-crown ${isVip ? 'active' : ''}`}
@@ -443,7 +445,7 @@ export default function Personal() {
                 }
               }}
             >
-              <Text className='icon icon-crown' style={{ color: isVip ? '#FFD700' : '#999' }} />
+              <Text className={`icon ${isVip ? 'icon-crown-gold' : 'icon-crown'}`} style={{ fontSize: '32rpx', marginLeft: '8rpx', color: isVip ? '' : '#11181C' }} />
             </View>
           )}
         </View>

@@ -7,6 +7,7 @@ import {
 } from "@soundx/services";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
@@ -34,6 +35,7 @@ export default function FolderDetailScreen() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation();
   const { playTrack, playTrackList } = usePlayer();
 
   const [loading, setLoading] = useState(true);
@@ -134,12 +136,15 @@ export default function FolderDetailScreen() {
 
   const handleBatchDelete = () => {
     Alert.alert(
-      "确认批量删除",
-      `将会物理删除选中的 ${selectedFolders.length} 个文件夹和 ${selectedTracks.length} 个音轨及其所有内容，此操作不可恢复。确定要继续吗？`,
+      t("folderPage.batchDeleteTitle"),
+      t("folderPage.batchDeleteMessage", {
+        folderCount: selectedFolders.length,
+        trackCount: selectedTracks.length,
+      }),
       [
-        { text: "取消", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "确定删除",
+          text: t("folderPage.confirmDelete"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -155,7 +160,7 @@ export default function FolderDetailScreen() {
               }
             } catch (error) {
               console.error("Batch delete failed", error);
-              Alert.alert("错误", "删除失败");
+              Alert.alert(t("common.error"), t("folderPage.deleteFailed"));
             }
           },
         },
@@ -168,19 +173,29 @@ export default function FolderDetailScreen() {
       const res = await getFolderStats(folder.id);
       if (res.code === 200) {
         Alert.alert(
-          "文件夹属性",
-          `名称: ${folder.name}\n路径: ${res.data.path}\n包含单曲: ${res.data.trackCount}\n包含文件夹: ${res.data.folderCount}`
+          t("folderPage.folderProperties"),
+          t("folderPage.folderPropertiesMessage", {
+            name: folder.name,
+            path: res.data.path,
+            trackCount: res.data.trackCount,
+            folderCount: res.data.folderCount,
+          })
         );
       }
     } catch (error) {
-      Alert.alert("错误", "获取属性失败");
+      Alert.alert(t("common.error"), t("folderPage.loadPropertiesFailed"));
     }
   };
 
   const handleShowTrackProperties = (track: Track) => {
     Alert.alert(
-      "音轨属性",
-      `标题: ${track.name}\n艺术家: ${track.artist || "未知"}\n专辑: ${track.album || "未知"}\n路径: ${track.path}`
+      t("folderPage.trackProperties"),
+      t("folderPage.trackPropertiesMessage", {
+        title: track.name,
+        artist: track.artist || t("common.unknownArtist"),
+        album: track.album || t("common.unknownAlbum"),
+        path: track.path,
+      })
     );
   };
 
@@ -214,10 +229,10 @@ export default function FolderDetailScreen() {
       if (tracks.length > 0) {
         playTrackList(tracks, 0);
       } else {
-        Alert.alert("提示", "该文件夹下没有可播放的音轨");
+        Alert.alert(t("folderPage.notice"), t("folderPage.noPlayableTracks"));
       }
     } catch (error) {
-      Alert.alert("提示", "播放失败");
+      Alert.alert(t("folderPage.notice"), t("folderPage.playFailed"));
     }
   };
 
@@ -227,10 +242,10 @@ export default function FolderDetailScreen() {
       if (tracks.length > 0) {
         playTrackList(tracks, 0);
       } else {
-        Alert.alert("提示", "该文件夹下没有可播放的音轨");
+        Alert.alert(t("folderPage.notice"), t("folderPage.noPlayableTracks"));
       }
     } catch (error) {
-      Alert.alert("提示", "播放失败");
+      Alert.alert(t("folderPage.notice"), t("folderPage.playFailed"));
     }
   };
 
@@ -330,7 +345,7 @@ export default function FolderDetailScreen() {
           </Text>
           {!isFolder && (
             <Text style={[styles.itemSub, { color: colors.secondary }]} numberOfLines={1}>
-              {(item as Track).artist || "未知艺术家"}
+              {(item as Track).artist || t("folderPage.unknownArtist")}
             </Text>
           )}
         </View>
@@ -339,7 +354,7 @@ export default function FolderDetailScreen() {
   };
 
   const breadcrumbs = [
-    { id: 0, name: "全部" },
+    { id: 0, name: t("folderPage.root") },
     ...(data?.breadcrumbs || []),
   ];
 
@@ -350,7 +365,7 @@ export default function FolderDetailScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-          {data?.name || "文件夹"}
+          {data?.name || t("folderPage.titleFallback")}
         </Text>
         <View style={styles.headerRight}>
           {!isSelectionMode && (
@@ -375,7 +390,7 @@ export default function FolderDetailScreen() {
           )}
           {isSelectionMode ? (
             <TouchableOpacity onPress={() => setIsSelectionMode(false)} style={styles.headerButton}>
-              <Text style={{ color: colors.primary, fontWeight: "600" }}>取消</Text>
+              <Text style={{ color: colors.primary, fontWeight: "600" }}>{t("common.cancel")}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={() => setIsSelectionMode(true)} style={styles.headerButton}>
@@ -412,13 +427,15 @@ export default function FolderDetailScreen() {
       {isSelectionMode && (
         <View style={[styles.selectionBar, { backgroundColor: colors.card }]}>
           <TouchableOpacity onPress={handleSelectAll} style={styles.barButton}>
-            <Text style={{ color: colors.text }}>全选</Text>
+            <Text style={{ color: colors.text }}>{t("folderPage.selectAll")}</Text>
           </TouchableOpacity>
           <Text style={{ color: colors.text, fontWeight: "600" }}>
-            已选中 {selectedFolders.length + selectedTracks.length} 项
+            {t("folderPage.selectedCount", {
+              count: selectedFolders.length + selectedTracks.length,
+            })}
           </Text>
           <TouchableOpacity onPress={handleBatchDelete} style={styles.barButton} disabled={selectedFolders.length + selectedTracks.length === 0}>
-            <Text style={{ color: "#ff4d4f", fontWeight: "600" }}>删除</Text>
+            <Text style={{ color: "#ff4d4f", fontWeight: "600" }}>{t("common.delete")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -438,7 +455,7 @@ export default function FolderDetailScreen() {
           columnWrapperStyle={layoutMode === "grid" ? styles.gridRow : undefined}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={{ color: colors.secondary }}>暂无内容</Text>
+              <Text style={{ color: colors.secondary }}>{t("folderPage.empty")}</Text>
             </View>
           }
         />

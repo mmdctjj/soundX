@@ -14,6 +14,7 @@ import {
 } from "@soundx/services";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
@@ -34,6 +35,7 @@ export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { colors, theme } = useTheme();
+  const { t } = useTranslation();
   const { playTrack, playTrackList, currentTrack, isPlaying } = usePlayer();
   const { user, device } = useAuth();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
@@ -100,10 +102,10 @@ export default function PlaylistDetailScreen() {
   const handleDelete = () => {
     if (!playlist) return;
     setMoreModalVisible(false);
-    Alert.alert("解散播放列表", `确定要解散“${playlist.name}”吗？`, [
-      { text: "取消", style: "cancel" },
+    Alert.alert(t("playlistPage.deleteTitle"), t("playlistPage.deleteMessage", { name: playlist.name }), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "确定",
+        text: t("common.confirm"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -132,23 +134,29 @@ export default function PlaylistDetailScreen() {
       selectedTrackIds.includes(t.id)
     );
     if (selectedTracks.length === 0) {
-      Alert.alert("提示", "请先选择要下载的曲目");
+      Alert.alert(t("common.ok"), t("playlistPage.selectTracksFirst"));
       return;
     }
     Alert.alert(
-      "批量下载",
-      `确定要下载播放列表“${playlist?.name}”中的所有选择的${selectedTrackIds?.length}首曲目吗？`,
+      t("playlistPage.batchDownloadTitle"),
+      t("playlistPage.batchDownloadMessage", {
+        name: playlist?.name,
+        count: selectedTrackIds?.length || 0,
+      }),
       [
-        { text: "取消", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "确定",
+          text: t("common.confirm"),
           style: "destructive",
           onPress: async () => {
             downloadTracks(
               selectedTracks,
               (completed: number, total: number) => {
                 if (completed === total) {
-                  Alert.alert("下载完成", `已成功下载 ${total} 首曲目`);
+                  Alert.alert(
+                    t("playlistPage.downloadComplete"),
+                    t("playlistPage.downloadedTrackCount", { count: total }),
+                  );
                   setIsSelectionMode(false);
                   setSelectedTrackIds([]);
                 }
@@ -229,7 +237,7 @@ export default function PlaylistDetailScreen() {
           numberOfLines={1}
         >
           {isSelectionMode
-            ? `已选择 ${selectedTrackIds.length} 项`
+            ? t("playlistPage.selectedCount", { count: selectedTrackIds.length })
             : playlist?.name || "Playlist"}
         </Text>
         <View style={styles.headerRight}>
@@ -402,7 +410,7 @@ export default function PlaylistDetailScreen() {
             >
               <Ionicons name="play" size={20} color={colors.background} />
               <Text style={[styles.playAllText, { color: colors.background }]}>
-                播放全部
+                {t("playlistPage.playAll")}
               </Text>
             </TouchableOpacity>
 
@@ -420,7 +428,7 @@ export default function PlaylistDetailScreen() {
                 color={colors.secondary}
               />
               <Text style={[styles.menuText, { color: colors.text }]}>
-                批量下载
+                {t("playlistPage.batchDownload")}
               </Text>
             </TouchableOpacity>
 
@@ -434,14 +442,14 @@ export default function PlaylistDetailScreen() {
             >
               <Ionicons name="create-outline" size={20} color={colors.text} />
               <Text style={[styles.menuText, { color: colors.text }]}>
-                修改名称
+                {t("playlistPage.rename")}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={handleDelete}>
               <Ionicons name="trash-outline" size={20} color="#ff4d4f" />
               <Text style={[styles.menuText, styles.dangerText]}>
-                解散播放列表
+                {t("playlistPage.dissolve")}
               </Text>
             </TouchableOpacity>
 
@@ -453,7 +461,7 @@ export default function PlaylistDetailScreen() {
               onPress={() => setMoreModalVisible(false)}
             >
               <Text style={[styles.menuText, { color: colors.secondary }]}>
-                取消
+                {t("common.cancel")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -469,7 +477,7 @@ export default function PlaylistDetailScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              修改播放列表名称
+              {t("playlistPage.renameTitle")}
             </Text>
             <TextInput
               style={[
@@ -485,7 +493,7 @@ export default function PlaylistDetailScreen() {
                 style={styles.cancelBtn}
                 onPress={() => setRenameModalVisible(false)}
               >
-                <Text style={{ color: colors.secondary }}>取消</Text>
+                <Text style={{ color: colors.secondary }}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.confirmBtn, { backgroundColor: colors.primary }]}
@@ -504,7 +512,7 @@ export default function PlaylistDetailScreen() {
                       { color: theme === "dark" ? "#000" : "#fff" },
                     ]}
                   >
-                    确定
+                    {t("common.confirm")}
                   </Text>
                 )}
               </TouchableOpacity>
