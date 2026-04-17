@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useTheme } from '../../context/ThemeContext';
 import { usePlayMode } from '../../utils/playMode';
+import { trackEvent } from '../../utils/tracking';
 import './index.scss';
 
 export default function Settings() {
@@ -131,8 +132,10 @@ export default function Settings() {
       }));
       Taro.setStorageSync('plus_vip_updated_at', Date.now().toString());
       setIsVip(true);
+      trackEvent({ feature: 'member', eventName: 'internal_test_participate_success' });
       Taro.showToast({ title: t('settings.betaTestSuccess'), icon: 'success' });
     } catch (error: any) {
+      trackEvent({ feature: 'member', eventName: 'internal_test_participate_failed', metadata: { message: error.message || 'unknown_error' } });
       Taro.showToast({ title: error.message || t('settings.betaTestFailed'), icon: 'none' });
     } finally {
       setRedeemingInternalTestCode(false);

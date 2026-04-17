@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { PlayMode, usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
 import { getBaseURL } from '../../utils/request';
+import { trackEvent } from '../../utils/tracking';
 import './index.scss';
 
 // Match mobile lyric line interface
@@ -149,8 +150,18 @@ export default function Player() {
 
     try {
       if (previousLiked) {
+        trackEvent({
+          feature: 'player',
+          eventName: 'track_unlike',
+          metadata: { trackId: currentTrack.id }
+        });
         await toggleTrackUnLike(Number(currentTrack.id), user.id);
       } else {
+        trackEvent({
+          feature: 'player',
+          eventName: 'track_like',
+          metadata: { trackId: currentTrack.id }
+        });
         await toggleTrackLike(Number(currentTrack.id), user.id);
       }
     } catch (error) {
@@ -268,6 +279,11 @@ export default function Player() {
   };
 
   const handleOpenMore = () => {
+    trackEvent({
+      feature: 'player',
+      eventName: 'player_more_open',
+      metadata: { trackId: currentTrack?.id }
+    });
     setShowMoreMenu(true);
   };
 
