@@ -166,9 +166,10 @@ export default function SourceManage() {
       {/* 头部 */}
       <View className="header">
         <View className="back-btn" onClick={() => Taro.navigateBack()}>
-          <Text style={{ fontSize: '32rpx', color: '#333' }}>‹</Text>
+          <Text style={{ fontSize: '48rpx', color: '#333' }}>‹</Text>
         </View>
         <Text className="title">{t('sourceManage.switchDataSource')}</Text>
+        <View style={{ width: '80rpx' }} />
       </View>
 
       {/* 提示 */}

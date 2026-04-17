@@ -78,7 +78,8 @@ function RootLayoutNav() {
       segmentName === "member-detail" ||
       segmentName === "tts" ||
       segmentName === "scan" ||
-      segmentName === "scan-confirm";
+      segmentName === "scan-confirm" ||
+      segmentName === "language";
 
     if (!plusToken && inAuthGroup) {
       router.replace("/member-login");
@@ -394,6 +395,7 @@ function RootLayoutNav() {
       />
       <Stack.Screen name="scan" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
       <Stack.Screen name="scan-confirm" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="language" options={{ headerShown: false, animation: 'slide_from_right' }} />
     </Stack>
   );
 
@@ -413,6 +415,7 @@ function RootLayoutNav() {
     rootSegment === "member-payment-success" ||
     rootSegment === "scan" ||
     rootSegment === "scan-confirm" ||
+    rootSegment === "language" ||
     rootSegment === "modal";
   const showBottomBar = !hideBottomBar;
 
