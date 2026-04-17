@@ -1,7 +1,5 @@
 import desktopEn from "./locales/desktop/en.json";
 import desktopZhCN from "./locales/desktop/zh-CN.json";
-import miniEn from "./locales/mini/en.json";
-import miniZhCN from "./locales/mini/zh-CN.json";
 import mobileEn from "./locales/mobile/en.json";
 import mobileZhCN from "./locales/mobile/zh-CN.json";
 import { createI18nResources, deepMergeTranslations } from "./utils";
@@ -35,10 +33,6 @@ export const rawLocaleSlices = {
     "zh-CN": desktopZhCN as TranslationTree,
     en: desktopEn as TranslationTree,
   },
-  mini: {
-    "zh-CN": miniZhCN as TranslationTree,
-    en: miniEn as TranslationTree,
-  },
   mobile: {
     "zh-CN": mobileZhCN as TranslationTree,
     en: mobileEn as TranslationTree,
@@ -50,7 +44,6 @@ export const translations = {
     deepMergeTranslations(
       rawLocaleSlices.desktop["zh-CN"],
       rawLocaleSlices.mobile["zh-CN"],
-      rawLocaleSlices.mini["zh-CN"],
     ),
     "zh-CN",
   ),
@@ -58,7 +51,6 @@ export const translations = {
     deepMergeTranslations(
       rawLocaleSlices.desktop.en,
       rawLocaleSlices.mobile.en,
-      rawLocaleSlices.mini.en,
     ),
     "en",
   ),
