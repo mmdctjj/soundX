@@ -13,7 +13,6 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
-    Modal,
     StyleSheet,
     Switch,
     Text,
@@ -21,6 +20,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../src/context/ThemeContext";
@@ -283,10 +283,15 @@ export default function AdminScreen() {
 
       {/* Expiration Modal */}
       <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        isVisible={modalVisible}
+        onBackdropPress={() => setModalVisible(false)}
+        onBackButtonPress={() => setModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
       >
         <View style={styles.centeredView}>
           <View
@@ -334,10 +339,15 @@ export default function AdminScreen() {
 
       {/* Create User Modal */}
       <Modal
-        animationType="slide"
-        transparent={true}
-        visible={createModalVisible}
-        onRequestClose={() => setCreateModalVisible(false)}
+        isVisible={createModalVisible}
+        onBackdropPress={() => setCreateModalVisible(false)}
+        onBackButtonPress={() => setCreateModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
       >
         <View style={styles.centeredView}>
           <View
@@ -460,10 +470,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   centeredView: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    width: "100%",
+  },
+  centeredModal: {
+    margin: 0,
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalView: {
     margin: 20,

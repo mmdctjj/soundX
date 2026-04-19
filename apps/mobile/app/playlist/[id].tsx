@@ -19,7 +19,6 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-    Modal,
     ScrollView,
     StyleSheet,
     Text,
@@ -28,6 +27,7 @@ import {
     View,
     ViewStyle,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/src/context/AuthContext";
 
@@ -381,16 +381,17 @@ export default function PlaylistDetailScreen() {
 
       {/* More Actions Menu */}
       <Modal
-        visible={moreModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setMoreModalVisible(false)}
+        isVisible={moreModalVisible}
+        onBackdropPress={() => setMoreModalVisible(false)}
+        onBackButtonPress={() => setMoreModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropTransitionOutTiming={0}
+        style={styles.bottomSheetModal}
       >
-        <TouchableOpacity
-          style={styles.menuOverlay}
-          activeOpacity={1}
-          onPress={() => setMoreModalVisible(false)}
-        >
+        <View style={styles.menuOverlay}>
           <View style={[styles.menuContent, { backgroundColor: colors.card }]}>
             <TouchableOpacity
               style={[
@@ -465,14 +466,20 @@ export default function PlaylistDetailScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Rename Modal */}
       <Modal
-        visible={renameModalVisible}
-        transparent={true}
-        animationType="fade"
+        isVisible={renameModalVisible}
+        onBackdropPress={() => setRenameModalVisible(false)}
+        onBackButtonPress={() => setRenameModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
@@ -646,10 +653,13 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   menuOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
     alignItems: "center",
+    width: "100%",
+  },
+  bottomSheetModal: {
+    margin: 0,
+    justifyContent: "flex-end",
   },
   menuContent: {
     borderTopLeftRadius: 20,
@@ -673,8 +683,12 @@ const styles = StyleSheet.create({
     color: "#ff4d4f",
   },
   modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
+  centeredModal: {
+    margin: 0,
     justifyContent: "center",
     alignItems: "center",
   },

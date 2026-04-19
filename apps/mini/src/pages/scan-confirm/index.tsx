@@ -3,6 +3,7 @@ import Taro from '@tarojs/taro'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { confirmScanLoginSession, getScanLoginSession, reportScanLoginResultViaSocket } from '@soundx/services'
+import { trackEvent } from '../../utils/tracking'
 import './index.scss'
 
 interface SourceConfig {
@@ -138,6 +139,13 @@ export default function ScanConfirmPage() {
   const handleConfirmScan = async () => {
     if (!sessionIdRef.current || !secretRef.current) return
 
+    trackEvent({
+      feature: 'scan_login',
+      eventName: 'scan_login_confirm_click',
+      sessionId: sessionIdRef.current,
+      metadata: { selectedConfigIds }
+    });
+
     try {
       setConfirming(true)
       setWaitResult(true)
@@ -156,6 +164,12 @@ export default function ScanConfirmPage() {
       // Show waiting message
       Taro.showToast({ title: t('scanConfirm.waitingConfirm'), icon: 'none', duration: 3000 })
     } catch (error: any) {
+      trackEvent({
+        feature: 'scan_login',
+        eventName: 'scan_login_confirm_failed',
+        sessionId: sessionIdRef.current,
+        metadata: { message: error.message || 'unknown_error' }
+      });
       Taro.showToast({ title: error.message || t('scanConfirm.confirmSendFailed'), icon: 'none' })
       setConfirming(false)
       setWaitResult(false)

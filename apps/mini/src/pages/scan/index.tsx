@@ -3,6 +3,7 @@ import Taro from '@tarojs/taro'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { claimScanLoginSession } from '@soundx/services'
+import { trackEvent } from '../../utils/tracking'
 import './index.scss'
 
 interface ScanLoginPayload {
@@ -62,6 +63,10 @@ export default function ScanPage() {
     setScanning(true)
 
     try {
+      trackEvent({
+        feature: 'scan_login',
+        eventName: 'scan_login_camera_open'
+      });
       const result = await Taro.scanCode({ onlyFromCamera: true })
 
       const data = result.result as string
@@ -76,16 +81,33 @@ export default function ScanPage() {
         throw new Error(t('scan.noLoginState'))
       }
 
-      await claimScanLoginSession(parsed.sessionId, {
-        secret: parsed.secret,
+      trackEvent({
+        feature: 'scan_login',
+        eventName: 'scan_login_qr_scanned',
+        sessionId: parsed.sessionId
+      });
+
+      await claimScanLoginSession(parsed.sessionId as string, {
+        secret: parsed.secret as string,
         payload,
       })
+
+      trackEvent({
+        feature: 'scan_login',
+        eventName: 'scan_login_session_claimed',
+        sessionId: parsed.sessionId
+      });
 
       Taro.navigateTo({
         url: `/pages/scan-confirm/index?sessionId=${parsed.sessionId}&secret=${parsed.secret}`,
       })
     } catch (error: any) {
       console.error('Scan failed:', error)
+      trackEvent({
+        feature: 'scan_login',
+        eventName: 'scan_login_failed',
+        metadata: { message: error.message || 'unknown_error' }
+      });
       Taro.showToast({
         title: error.message || t('scan.scanFailed'),
         icon: 'none',

@@ -10,11 +10,13 @@ import {
 
 const getDeviceLanguage = () => {
   try {
-    const locale =
-      Platform.OS === 'ios'
-        ? NativeModules.SettingsManager.settings.AppleLocale ||
-          NativeModules.SettingsManager.settings.AppleLanguages[0] // iOS 13
-        : NativeModules.I18nManager.localeIdentifier;
+    let locale: string | undefined;
+    if (Platform.OS === 'ios') {
+      const settingsManager = NativeModules.SettingsManager?.settings;
+      locale = settingsManager?.AppleLocale || settingsManager?.AppleLanguages?.[0];
+    } else {
+      locale = NativeModules.I18nManager?.localeIdentifier;
+    }
     return resolveLanguageSelection("system", locale);
   } catch (e) {
     console.error("Failed to get device language", e);

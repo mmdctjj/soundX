@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Modal from 'react-native-modal';
 import Markdown from 'react-native-markdown-display';
 import { useTranslation } from 'react-i18next';
 import { UpdateInfo } from '../../hooks/useCheckUpdate';
@@ -33,7 +34,17 @@ export const UpdateModal = ({
   const { colors } = useTheme();
 
   return (
-    <Modal transparent={true} animationType="fade" visible={visible} onRequestClose={isDownloading ? onBackground : onCancel}>
+    <Modal
+      isVisible={visible}
+      onBackdropPress={isDownloading ? onBackground : onCancel}
+      onBackButtonPress={isDownloading ? onBackground : onCancel}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn="fadeIn"
+      animationOut="fadeOut"
+      backdropTransitionOutTiming={0}
+      style={styles.centeredModal}
+    >
       <View style={styles.container}>
         <View style={[styles.card, { backgroundColor: colors.background, boxShadow: `0px 0px 10px ${colors.secondary}` }]}>
           {isDownloading ? (
@@ -104,11 +115,15 @@ export const UpdateModal = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  centeredModal: {
+    margin: 0,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  container: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
   },
   card: {
     width: '80%',
