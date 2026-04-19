@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { PlayMode, usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
 import { getBaseURL } from '../../utils/request';
+import { trackEvent } from '../../utils/tracking';
 import './index.scss';
 
 // Match mobile lyric line interface
@@ -78,8 +79,6 @@ export default function Player() {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
-  const [controlsBottomOffset, setControlsBottomOffset] = useState(0);
-  const [showControlsOffsetModal, setShowControlsOffsetModal] = useState(false);
   const [lyricFontSize, setLyricFontSize] = useState(32);
   const [showLyricsFontModal, setShowLyricsFontModal] = useState(false);
   const [showSkipConfigModal, setShowSkipConfigModal] = useState(false);
@@ -111,13 +110,6 @@ export default function Player() {
 
   // Load controlsBottomOffset from storage
   useEffect(() => {
-    Taro.getStorage({ key: 'player_controls_bottom_offset' }).then((res) => {
-      const val = parseFloat(res.data);
-      if (!Number.isNaN(val)) {
-        setControlsBottomOffset(val);
-      }
-    }).catch(() => {});
-
     Taro.getStorage({ key: 'lyric_font_size' }).then((res) => {
       const val = parseFloat(res.data);
       if (!Number.isNaN(val) && val > 0) {
@@ -127,10 +119,6 @@ export default function Player() {
   }, []);
 
   // Save controlsBottomOffset to storage when changed
-  useEffect(() => {
-    Taro.setStorage({ key: 'player_controls_bottom_offset', data: String(controlsBottomOffset) }).catch(() => {});
-  }, [controlsBottomOffset]);
-
   useEffect(() => {
     Taro.setStorage({ key: 'lyric_font_size', data: String(lyricFontSize) }).catch(() => {});
   }, [lyricFontSize]);
@@ -162,8 +150,18 @@ export default function Player() {
 
     try {
       if (previousLiked) {
+        trackEvent({
+          feature: 'player',
+          eventName: 'track_unlike',
+          metadata: { trackId: currentTrack.id }
+        });
         await toggleTrackUnLike(Number(currentTrack.id), user.id);
       } else {
+        trackEvent({
+          feature: 'player',
+          eventName: 'track_like',
+          metadata: { trackId: currentTrack.id }
+        });
         await toggleTrackLike(Number(currentTrack.id), user.id);
       }
     } catch (error) {
@@ -281,6 +279,11 @@ export default function Player() {
   };
 
   const handleOpenMore = () => {
+    trackEvent({
+      feature: 'player',
+      eventName: 'player_more_open',
+      metadata: { trackId: currentTrack?.id }
+    });
     setShowMoreMenu(true);
   };
 
@@ -344,7 +347,7 @@ export default function Player() {
                 )}
             </View>
 
-            <View className='player-bottom-controls' style={{ marginBottom: controlsBottomOffset }}>
+            <View className='player-bottom-controls'>
                 <View className='player-info-row'>
                     <View className='player-track-info'>
                         <Text className='player-track-title' numberOfLines={1}>{currentTrack.name}</Text>
@@ -453,9 +456,6 @@ export default function Player() {
               <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowLyricsFontModal(true); }}>
                 <Text className='player-menu-item-text'>{t("player.adjustLyricSize")}</Text>
               </View>
-              <View className='player-menu-item' onClick={() => { setShowMoreMenu(false); setShowControlsOffsetModal(true); }}>
-                <Text className='player-menu-item-text'>{t('player.adjustControlPosition')}</Text>
-              </View>
               <View className='player-menu-item' onClick={() => setShowMoreMenu(false)}>
                 <Text className='player-menu-item-text cancel'>{t('common.cancel')}</Text>
               </View>
@@ -465,50 +465,6 @@ export default function Player() {
 
         <AddToPlaylistModal visible={showAddToPlaylist} onClose={() => setShowAddToPlaylist(false)} />
         <PlaylistModal />
-
-        {showControlsOffsetModal && (
-          <View className='player-more-menu-mask' onClick={() => setShowControlsOffsetModal(false)}>
-            <View className='player-more-menu-content' onClick={(e) => e.stopPropagation()}>
-              <View className='player-controls-offset-modal'>
-                <View className='player-modal-title-row'>
-                  <Text className='player-modal-title'>{t('player.adjustControlPosition')}</Text>
-                </View>
-                <View className='player-modal-description-row'>
-                  <Text className='player-modal-description'>{t("player.adjustControlPosition")}</Text>
-                </View>
-                <View className='player-slider-panel'>
-                  <View className='player-slider-header'>
-                    <Text className='player-slider-label'>{t('player.bottomOffset')}</Text>
-                    <Text className='player-slider-number'>{Math.round(controlsBottomOffset)}</Text>
-                  </View>
-                  <Slider
-                    className='player-offset-slider'
-                    min={0}
-                    max={120}
-                    step={1}
-                    value={controlsBottomOffset}
-                    onChange={(e) => setControlsBottomOffset(e.detail.value)}
-                    activeColor='#000'
-                    backgroundColor='#eee'
-                    blockSize={16}
-                  />
-                  <View className='player-slider-hint-row'>
-                    <Text className='player-slider-hint'>{t("player.closerToBottom")}</Text>
-                    <Text className='player-slider-hint'>{t('common.moveUp')}</Text>
-                  </View>
-                </View>
-                <View className='player-modal-actions'>
-                  <View className='player-modal-btn player-modal-cancel-btn' onClick={() => { setControlsBottomOffset(0); setShowControlsOffsetModal(false); }}>
-                    <Text className='player-modal-cancel-text'>{t("player.reset")}</Text>
-                  </View>
-                  <View className='player-modal-btn player-modal-confirm-btn' onClick={() => setShowControlsOffsetModal(false)}>
-                    <Text className='player-modal-confirm-text'>{t('common.done')}</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
 
         {showLyricsFontModal && (
           <View className='player-more-menu-mask' onClick={() => setShowLyricsFontModal(false)}>

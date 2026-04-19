@@ -61,12 +61,48 @@
 
 .section-header {
   padding: 0 20px 15px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .section-title {
   font-size: var(--font-size-base);
   font-weight: bold;
   color: #333;
+}
+
+.section-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+
+  .action-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .play-all-btn {
+    background-color: var(--primary-color, #111);
+    border-radius: 50%;
+    width: 44rpx;
+    height: 44rpx;
+    
+    .icon {
+      font-size: 24rpx;
+      margin-left: 4rpx;
+    }
+  }
+
+  .refresh-btn {
+    .icon {
+      color: var(--primary-color, #111);
+      font-size: 36rpx;
+    }
+  }
 }
 
 .horizontal-list {

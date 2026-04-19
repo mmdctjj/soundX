@@ -1,15 +1,20 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import Taro from "@tarojs/taro";
+import {
+  LANGUAGE_STORAGE_KEY,
+  resources,
+  resolveLanguageSelection,
+} from "@soundx/i18e";
 
-import zhCN from "./locales/zh-CN.json";
-import en from "./locales/en.json";
-
-const LANGUAGE_KEY = "app_language";
-
-const resources = {
-  "zh-CN": { translation: zhCN },
-  en: { translation: en },
+const getDeviceLanguage = () => {
+  try {
+    const { language } = Taro.getSystemInfoSync();
+    return resolveLanguageSelection("system", language);
+  } catch (e) {
+    console.error("Error getting system language:", e);
+  }
+  return resolveLanguageSelection("system");
 };
 
 const languageDetector = {
@@ -17,24 +22,20 @@ const languageDetector = {
   async: true,
   detect: (callback: (lng: string) => void) => {
     try {
-      const savedLanguage = Taro.getStorageSync(LANGUAGE_KEY);
-      if (savedLanguage) {
+      const savedLanguage = Taro.getStorageSync(LANGUAGE_STORAGE_KEY);
+      if (savedLanguage && savedLanguage !== 'system') {
         callback(savedLanguage);
         return;
       }
+      callback(getDeviceLanguage());
     } catch (error) {
       console.error("Error reading language from storage:", error);
+      callback(getDeviceLanguage());
     }
-    // Default to Chinese
-    callback("zh-CN");
   },
   init: () => {},
-  cacheUserLanguage: (language: string) => {
-    try {
-      Taro.setStorageSync(LANGUAGE_KEY, language);
-    } catch (error) {
-      console.error("Error saving language to storage:", error);
-    }
+  cacheUserLanguage: (_language: string) => {
+    // handled manually
   },
 };
 

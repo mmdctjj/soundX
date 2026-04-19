@@ -10,6 +10,7 @@ interface SettingsState {
   autoTheme: boolean;
   carModeEnabled: boolean;
   carLayoutMode: boolean;
+  carPanelsSwapped: boolean;
   screenBottomInset: number;
   voiceAssistantEnabled: boolean;
   recommendationLikeRatio: number;
@@ -33,6 +34,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     autoTheme: true,
     carModeEnabled: false,
     carLayoutMode: false,
+    carPanelsSwapped: false,
     screenBottomInset: 0,
     voiceAssistantEnabled: false,
     recommendationLikeRatio: 50,

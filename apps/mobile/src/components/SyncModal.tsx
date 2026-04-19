@@ -5,17 +5,16 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import Modal from 'react-native-modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
-import { useSettings } from '../context/SettingsContext';
 import { useSync } from '../context/SyncContext';
 import { useTheme } from '../context/ThemeContext';
 import { User } from '../models';
@@ -36,7 +35,6 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
   const { currentTrack, position, trackList, pause } = usePlayer();
   const { isSynced, sessionId } = useSync();
   const { colors } = useTheme();
-  const { carLayoutMode } = useSettings();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -120,28 +118,26 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
 
   return (
     <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropTransitionOutTiming={0}
+      style={styles.bottomSheetModal}
     >
-      <TouchableOpacity 
-        style={[styles.overlay, carLayoutMode && styles.overlayCar]} 
-        activeOpacity={1} 
-        onPress={onClose}
-      >
-        <TouchableOpacity 
+      <View style={styles.overlay}>
+        <View
             style={[
               styles.content,
-              carLayoutMode ? styles.contentCar : styles.contentDefault,
+              styles.contentDefault,
               {
                 backgroundColor: colors.card,
-                marginTop: carLayoutMode ? insets.top + 12 : 0,
-                marginLeft: carLayoutMode ? 12 : 0,
+                paddingBottom: insets.bottom + 15,
               },
             ]} 
-            activeOpacity={1}
-            onPress={() => {}}
         >
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>{t('sync.selectSyncFriends')}</Text>
@@ -175,22 +171,21 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
               {t(selectedUserIds.size > 0 ? 'sync.initiateSyncCount' : 'sync.initiateSync', { count: selectedUserIds.size })}
             </Text>
           </TouchableOpacity>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  bottomSheetModal: {
+    margin: 0,
+    justifyContent: 'flex-end',
+  },
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: '100%',
     justifyContent: 'flex-end',
     alignItems: 'center',
-  },
-  overlayCar: {
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
   },
   content: {
     padding: 20,
@@ -202,11 +197,6 @@ const styles = StyleSheet.create({
     height: Dimensions.get('window').height * 0.6,
     width: '100%',
     maxWidth: 450,
-  },
-  contentCar: {
-    borderRadius: 12,
-    height: Dimensions.get('window').height * 0.6,
-    width: Math.min(420, Dimensions.get('window').width - 24),
   },
   header: {
     flexDirection: 'row',

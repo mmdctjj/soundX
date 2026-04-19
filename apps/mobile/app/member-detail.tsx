@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { plusGetMe } from "@soundx/services";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
@@ -21,6 +22,7 @@ export default function MemberDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { setPlusToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [vipData, setVipData] = useState<any>(null);
@@ -60,10 +62,10 @@ export default function MemberDetailScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert("退出/切换会员账号", "确定要退出/切换会员账号吗？", [
-      { text: "取消", style: "cancel" },
+    Alert.alert(t("memberDetailPage.logoutTitle"), t("memberDetailPage.logoutMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "确定",
+        text: t("common.confirm"),
         style: "destructive",
         onPress: async () => {
           await setPlusToken(null);
@@ -84,18 +86,18 @@ export default function MemberDetailScreen() {
   const isVip = vipData?.vipTier && vipData?.vipTier !== "NONE";
   const maskedPhone = maskPhone(vipData?.phone || vipData?.mobile);
   const comparisonData = [
-    { feature: "基础功能", free: true, member: true },
-    { feature: "设备接力", free: true, member: true },
-    { feature: "同步控制", free: false, member: true },
-    { feature: "TTS生成有声书", free: false, member: true },
-    { feature: "桌面小部件", free: false, member: true },
-    { feature: "TV版 (待上线)", free: false, member: true },
-    { feature: "车机模式", free: false, member: true },
-    { feature: "扫码登录", free: false, member: true },
-    { feature: "语音助手", free: false, member: true },
+    { feature: t("member.basicFeatures"), free: true, member: true },
+    { feature: t("member.deviceRelay"), free: true, member: true },
+    { feature: t("member.syncControl"), free: false, member: true },
+    { feature: t("member.ttsAudiobook"), free: false, member: true },
+    { feature: t("memberBenefits.desktopWidget"), free: false, member: true },
+    { feature: t("memberBenefits.tvVersionComingSoon"), free: false, member: true },
+    { feature: t("memberBenefits.carMode"), free: false, member: true },
+    { feature: t("memberBenefits.scanLogin"), free: false, member: true },
+    { feature: t("memberBenefits.voiceAssistant"), free: false, member: true },
   ];
-  const tierName = vipData?.vipTier === "LIFETIME" ? "永久会员" : "年度会员";
-  const expiryDate = vipData?.vipTier === "LIFETIME" ? "永久有效" : (vipData?.vipExpiresAt ? new Date(vipData.vipExpiresAt).toLocaleDateString() : "未知");
+  const tierName = vipData?.vipTier === "LIFETIME" ? t("memberDetailPage.lifetime") : t("memberDetailPage.annual");
+  const expiryDate = vipData?.vipTier === "LIFETIME" ? t("memberDetailPage.lifetimeValid") : (vipData?.vipExpiresAt ? new Date(vipData.vipExpiresAt).toLocaleDateString() : t("memberDetailPage.unknown"));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -103,7 +105,7 @@ export default function MemberDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>会员详情</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t("memberDetailPage.title")}</Text>
         <View style={styles.headerRight}>
           {maskedPhone ? (
             <Text style={[styles.headerPhone, { color: colors.secondary }]}>
@@ -124,18 +126,18 @@ export default function MemberDetailScreen() {
               color={isVip ? "#FFD700" : colors.secondary} 
             />
             <Text style={[styles.vipStatus, { color: colors.text }]}>
-                {isVip ? "您的会员状态：已激活" : "您的会员状态：未激活"}
+                {isVip ? t("memberDetailPage.activated") : t("memberDetailPage.notActivated")}
             </Text>
           </View>
 
           {isVip && (
             <View style={styles.details}>
               <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: colors.secondary }]}>会员等级</Text>
+                <Text style={[styles.detailLabel, { color: colors.secondary }]}>{t("memberDetailPage.tier")}</Text>
                 <Text style={[styles.detailValue, { color: colors.text }]}>{tierName}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: colors.secondary }]}>到期时间</Text>
+                <Text style={[styles.detailLabel, { color: colors.secondary }]}>{t("memberDetailPage.expiry")}</Text>
                 <Text style={[styles.detailValue, { color: colors.text }]}>{expiryDate}</Text>
               </View>
             </View>
@@ -146,16 +148,16 @@ export default function MemberDetailScreen() {
                 style={[styles.actionButton, { backgroundColor: colors.primary }]}
                 onPress={() => router.push("/member-benefits" as any)}
             >
-                <Text style={styles.actionButtonText}>了解会员权益</Text>
+                <Text style={styles.actionButtonText}>{t("memberDetailPage.benefits")}</Text>
             </TouchableOpacity>
           )}
         </View>
 
         <View style={[styles.benefitsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.benefitsHeader}>
-            <Text style={[styles.benefitsHeaderText, { flex: 2, color: colors.secondary }]}>权益功能</Text>
-            <Text style={[styles.benefitsHeaderText, { flex: 1, textAlign: "center", color: colors.secondary }]}>非会员</Text>
-            <Text style={[styles.benefitsHeaderText, { flex: 1, textAlign: "center", color: colors.secondary }]}>会员</Text>
+            <Text style={[styles.benefitsHeaderText, { flex: 2, color: colors.secondary }]}>{t("memberDetailPage.feature")}</Text>
+            <Text style={[styles.benefitsHeaderText, { flex: 1, textAlign: "center", color: colors.secondary }]}>{t("memberDetailPage.nonMember")}</Text>
+            <Text style={[styles.benefitsHeaderText, { flex: 1, textAlign: "center", color: colors.secondary }]}>{t("memberDetailPage.member")}</Text>
           </View>
           {comparisonData.map((item, index) => (
             <View
@@ -186,7 +188,7 @@ export default function MemberDetailScreen() {
           onPress={handleLogout}
         >
           <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-          <Text style={[styles.logoutText, { color: "#FFFFFF" }]}>退出/切换会员账号</Text>
+          <Text style={[styles.logoutText, { color: "#FFFFFF" }]}>{t("memberDetailPage.logoutAction")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

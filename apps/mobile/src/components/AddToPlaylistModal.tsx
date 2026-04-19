@@ -9,12 +9,12 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
@@ -113,16 +113,17 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
 
   return (
     <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropTransitionOutTiming={0}
+      style={styles.bottomSheetModal}
     >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <View style={styles.sheetWrapper}>
         <View
           style={[
             styles.content,
@@ -210,16 +211,18 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
             </View>
           )}
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+  bottomSheetModal: {
+    margin: 0,
     justifyContent: "flex-end",
+  },
+  sheetWrapper: {
+    width: "100%",
     alignItems: "center",
   },
   content: {

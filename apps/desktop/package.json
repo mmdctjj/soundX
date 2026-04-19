@@ -25,6 +25,7 @@
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@soundx/db": "workspace:*",
+    "@soundx/i18e": "workspace:*",
     "@soundx/services": "workspace:*",
     "@soundx/ws": "workspace:*",
     "ahooks": "^3.9.6",

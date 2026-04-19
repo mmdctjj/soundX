@@ -1,9 +1,16 @@
 {
-  "platforms": ["apple", "android"],
+  "platforms": [
+    "apple",
+    "android"
+  ],
   "apple": {
-    "modules": ["MediaControlBridgeModule"]
+    "modules": [
+      "MediaControlBridgeModule"
+    ]
   },
   "android": {
-    "modules": ["com.anonymous.mobile.media.MediaControlBridgeModule"]
+    "modules": [
+      "com.audiodock.app.media.MediaControlBridgeModule"
+    ]
   }
 }

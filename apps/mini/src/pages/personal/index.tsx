@@ -24,6 +24,7 @@ import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
 import { getBaseURL } from '../../utils/request';
+import { trackEvent } from '../../utils/tracking';
 import './index.scss';
 
 type TabType = 'playlists' | 'favorites' | 'history';
@@ -388,7 +389,10 @@ export default function Personal() {
           <View className='action-btn' onClick={() => setShowMenu(!showMenu)}>
             <Text className='icon icon-add' />
           </View>
-          <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/scan/index' })}>
+          <View className='action-btn' onClick={() => {
+            trackEvent({ feature: 'scan_login', eventName: 'scan_login_entry_click' });
+            Taro.navigateTo({ url: '/pages/scan/index' });
+          }}>
             <Text className='header-icon icon icon-scan' />
           </View>
         </View>
@@ -426,7 +430,9 @@ export default function Personal() {
       <View className='user-profile'>
         <Image src={getImageUrl((user as any)?.avatar || null)} className='avatar' mode='aspectFill' />
         <View className='username-row'>
-          <Text className='username'>{user?.username || t('common.notLoggedIn')}</Text>
+          <Text className='username'>
+            {user?.username || t('common.notLoggedIn')}
+          </Text>
           {user && (
             <View
               className={`vip-crown ${isVip ? 'active' : ''}`}
@@ -436,14 +442,16 @@ export default function Personal() {
                   if (isVip) {
                     Taro.navigateTo({ url: '/pages/member/detail/index' });
                   } else {
+                    trackEvent({ feature: 'scan_login', eventName: 'scan_login_member_benefits_redirect' });
                     Taro.navigateTo({ url: '/pages/member/benefits/index' });
                   }
                 } else {
+                  trackEvent({ feature: 'scan_login', eventName: 'scan_login_member_login_redirect' });
                   Taro.navigateTo({ url: '/pages/member/login/index' });
                 }
               }}
             >
-              <Text className='icon icon-crown' style={{ color: isVip ? '#FFD700' : '#999' }} />
+              <Text className={`icon ${isVip ? 'icon-crown-gold' : 'icon-crown'}`} style={{ fontSize: '32rpx', marginLeft: '8rpx', color: isVip ? '' : '#11181C' }} />
             </View>
           )}
         </View>

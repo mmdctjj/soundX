@@ -36,6 +36,7 @@
   "author": "",
   "dependencies": {
     "@babel/runtime": "^7.20.0",
+    "@soundx/i18e": "workspace:*",
     "@soundx/services": "workspace:*",
     "@tarojs/components": "3.6.34",
     "@tarojs/helper": "3.6.34",

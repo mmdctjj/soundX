@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useSegments } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Modal from 'react-native-modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
@@ -60,10 +61,12 @@ const PlaybackNotification: React.FC = () => {
 
   return (
     <Modal
-      transparent
-      visible={!!notification}
-      animationType="none"
-      pointerEvents="box-none"
+      isVisible={!!notification}
+      backdropOpacity={0}
+      animationIn="fadeIn"
+      animationOut="fadeOut"
+      backdropTransitionOutTiming={0}
+      style={styles.notificationModal}
     >
       <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
         <View style={[styles.content, { backgroundColor: colors.card, shadowColor: colors.text }]}>
@@ -110,6 +113,9 @@ const PlaybackNotification: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  notificationModal: {
+    margin: 0,
+  },
   container: {
     position: 'absolute',
     top: 0,

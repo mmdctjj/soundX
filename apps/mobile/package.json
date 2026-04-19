@@ -26,6 +26,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@soundx/db": "workspace:*",
+    "@soundx/i18e": "workspace:*",
     "@soundx/services": "workspace:*",
     "@soundx/ws": "workspace:*",
     "@uiw/react-native-alipay": "^5.0.2",

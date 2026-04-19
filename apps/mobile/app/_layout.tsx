@@ -1,7 +1,7 @@
 import * as Linking from 'expo-linking';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import "../src/i18n";
 import { AuthProvider, useAuth } from "../src/context/AuthContext";
@@ -14,6 +14,8 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+const SWAP_BUTTON_SIZE = 42;
+
 import { PlaylistModal } from "../src/components/PlaylistModal";
 import { SquirrelAgent } from "../src/components/SquirrelAgent";
 import { GlobalBottomBar } from "../src/components/GlobalBottomBar";
@@ -21,10 +23,17 @@ import { SettingsProvider, useSettings } from "../src/context/SettingsContext";
 import { SyncProvider } from "../src/context/SyncContext";
 import { syncWidgetMembership } from "../src/native/WidgetBridge";
 import { PlayerDetailView } from "./player";
+import { Ionicons } from "@expo/vector-icons";
 
 function RootLayoutNav() {
   const { token, isLoading, plusToken, user } = useAuth();
-  const { voiceAssistantEnabled, carLayoutMode, screenBottomInset } =
+  const {
+    voiceAssistantEnabled,
+    carLayoutMode,
+    carPanelsSwapped,
+    screenBottomInset,
+    updateSetting,
+  } =
     useSettings();
   const { theme, colors } = useTheme();
   const { pause, resume, playNext, playPrevious, togglePlayMode, isPlaying, currentTrack, playTrackList } = usePlayer();
@@ -32,6 +41,7 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const [isVip, setIsVip] = React.useState(false);
+  const [carLayoutSize, setCarLayoutSize] = useState({ width: 0, height: 0 });
   const fuAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -78,7 +88,8 @@ function RootLayoutNav() {
       segmentName === "member-detail" ||
       segmentName === "tts" ||
       segmentName === "scan" ||
-      segmentName === "scan-confirm";
+      segmentName === "scan-confirm" ||
+      segmentName === "language";
 
     if (!plusToken && inAuthGroup) {
       router.replace("/member-login");
@@ -394,6 +405,7 @@ function RootLayoutNav() {
       />
       <Stack.Screen name="scan" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
       <Stack.Screen name="scan-confirm" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="language" options={{ headerShown: false, animation: 'slide_from_right' }} />
     </Stack>
   );
 
@@ -413,8 +425,43 @@ function RootLayoutNav() {
     rootSegment === "member-payment-success" ||
     rootSegment === "scan" ||
     rootSegment === "scan-confirm" ||
+    rootSegment === "language" ||
     rootSegment === "modal";
   const showBottomBar = !hideBottomBar;
+  const playerPanelWidth = carLayoutSize.height > 0 ? (carLayoutSize.height * 9) / 16 : 0;
+  const swapButtonLeft =
+    playerPanelWidth > 0
+      ? carPanelsSwapped
+        ? carLayoutSize.width - playerPanelWidth - SWAP_BUTTON_SIZE / 2
+        : playerPanelWidth - SWAP_BUTTON_SIZE / 2
+      : undefined;
+  const playerPanel = (
+    <View
+      style={[
+        styles.playerPanel,
+        carPanelsSwapped
+          ? {
+              borderLeftWidth: StyleSheet.hairlineWidth,
+              borderLeftColor: colors.border,
+              borderRightWidth: 0,
+            }
+          : {
+              borderRightWidth: StyleSheet.hairlineWidth,
+              borderRightColor: colors.border,
+              borderLeftWidth: 0,
+            },
+      ]}
+    >
+      <PlayerDetailView embedded renderPlaylistModal={false} />
+    </View>
+  );
+
+  const contentPanel = (
+    <View style={styles.rightContent}>
+      {stack}
+      {showBottomBar && <GlobalBottomBar />}
+    </View>
+  );
 
   return (
     <>
@@ -422,16 +469,26 @@ function RootLayoutNav() {
         {showCarLayout ? (
           <View
             style={[styles.carModeContainer, { backgroundColor: colors.background }]}
+            onLayout={(event) => {
+              const { width, height } = event.nativeEvent.layout;
+              setCarLayoutSize({ width, height });
+            }}
           >
-            <View
-              style={[styles.leftPlayerPanel, { borderRightColor: colors.border }]}
+            {carPanelsSwapped ? contentPanel : playerPanel}
+            <TouchableOpacity
+              style={[
+                styles.swapButton,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                  left: swapButtonLeft,
+                },
+              ]}
+              onPress={() => void updateSetting("carPanelsSwapped", !carPanelsSwapped)}
             >
-              <PlayerDetailView embedded renderPlaylistModal={false} />
-            </View>
-            <View style={styles.rightContent}>
-              {stack}
-              {showBottomBar && <GlobalBottomBar />}
-            </View>
+              <Ionicons name="swap-horizontal" size={18} color={colors.border} />
+            </TouchableOpacity>
+            {carPanelsSwapped ? playerPanel : contentPanel}
           </View>
         ) : (
           <View style={styles.stackRoot}>
@@ -471,7 +528,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { Image as ExpoImage } from "expo-image";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import PlaybackNotification from "../src/components/PlaybackNotification";
 import { NotificationProvider } from "../src/context/NotificationContext";
 
@@ -534,14 +591,26 @@ const styles = StyleSheet.create({
   carModeContainer: {
     flex: 1,
     flexDirection: "row",
+    position: "relative",
   },
-  leftPlayerPanel: {
+  playerPanel: {
     height: "100%",
     aspectRatio: 9 / 16,
-    borderRightWidth: StyleSheet.hairlineWidth,
   },
   rightContent: {
     flex: 1,
+  },
+  swapButton: {
+    position: "absolute",
+    top: "50%",
+    width: SWAP_BUTTON_SIZE,
+    height: SWAP_BUTTON_SIZE,
+    borderRadius: SWAP_BUTTON_SIZE / 2,
+    marginTop: -(SWAP_BUTTON_SIZE / 2),
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    zIndex: 20,
   },
   festiveOverlay: {
     ...StyleSheet.absoluteFillObject,
