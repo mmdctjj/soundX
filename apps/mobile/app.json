@@ -99,6 +99,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
+      "turboModules": true,
       "reactCompiler": true
     }
   }
