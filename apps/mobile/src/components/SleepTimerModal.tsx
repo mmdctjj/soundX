@@ -5,13 +5,12 @@ import { trackEvent } from "@/src/services/tracking";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-    Modal,
-    Pressable,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
@@ -51,15 +50,19 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
 
   return (
     <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropTransitionOutTiming={0}
+      style={styles.bottomSheetModal}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable 
-          style={{ width: "100%", maxWidth: 450, alignSelf: 'center' }} 
-          onPress={(e) => e.stopPropagation()}
+      <View style={styles.sheetWrapper}>
+        <View
+          style={{ width: "100%", maxWidth: 450, alignSelf: 'center' }}
         >
           <View
             style={[
@@ -96,8 +99,8 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
               </TouchableOpacity>
             ))}
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 };
@@ -105,10 +108,12 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
 export default SleepTimerModal;
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  bottomSheetModal: {
+    margin: 0,
     justifyContent: "flex-end",
+  },
+  sheetWrapper: {
+    width: "100%",
     alignItems: 'center',
   },
   modalContent: {

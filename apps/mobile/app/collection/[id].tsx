@@ -17,14 +17,13 @@ import * as ImagePicker from "expo-image-picker";
 import {
   Alert,
   FlatList,
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getImageUrl } from "@/src/utils/image";
 
@@ -318,9 +317,19 @@ export default function CollectionDetailScreen() {
         contentContainerStyle={styles.listContent}
       />
 
-      <Modal visible={moreVisible} transparent animationType="slide" onRequestClose={() => setMoreVisible(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setMoreVisible(false)}>
-          <Pressable style={[styles.sheet, { backgroundColor: colors.card }]} onPress={(e) => e.stopPropagation()}>
+      <Modal
+        isVisible={moreVisible}
+        onBackdropPress={() => setMoreVisible(false)}
+        onBackButtonPress={() => setMoreVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropTransitionOutTiming={0}
+        style={styles.bottomSheetModal}
+      >
+        <View style={styles.sheetWrapper}>
+          <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <View style={styles.handle} />
             <TouchableOpacity
               style={styles.sheetItem}
@@ -362,13 +371,23 @@ export default function CollectionDetailScreen() {
               <Ionicons name="trash-outline" size={22} color="#ff4d4f" />
               <Text style={[styles.sheetText, { color: "#ff4d4f" }]}>解散合集</Text>
             </TouchableOpacity>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
-      <Modal visible={renameVisible} transparent animationType="fade" onRequestClose={() => setRenameVisible(false)}>
-        <Pressable style={styles.backdropCenter} onPress={() => setRenameVisible(false)}>
-          <Pressable style={[styles.renameBox, { backgroundColor: colors.card }]} onPress={(e) => e.stopPropagation()}>
+      <Modal
+        isVisible={renameVisible}
+        onBackdropPress={() => setRenameVisible(false)}
+        onBackButtonPress={() => setRenameVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
+      >
+        <View style={styles.backdropCenter}>
+          <View style={[styles.renameBox, { backgroundColor: colors.card }]}>
             <Text style={[styles.title, { color: colors.text }]}>修改名称</Text>
             <TextInput
               value={nameInput}
@@ -385,13 +404,23 @@ export default function CollectionDetailScreen() {
                 <Text style={[styles.actionText, { color: colors.primary }]}>保存</Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
-      <Modal visible={coverVisible} transparent animationType="slide" onRequestClose={() => setCoverVisible(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setCoverVisible(false)}>
-          <Pressable style={[styles.sheet, { backgroundColor: colors.card }]} onPress={(e) => e.stopPropagation()}>
+      <Modal
+        isVisible={coverVisible}
+        onBackdropPress={() => setCoverVisible(false)}
+        onBackButtonPress={() => setCoverVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropTransitionOutTiming={0}
+        style={styles.bottomSheetModal}
+      >
+        <View style={styles.sheetWrapper}>
+          <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <View style={styles.handle} />
             <Text style={[styles.sheetTitle, { color: colors.text }]}>选择封面</Text>
             <FlatList
@@ -425,8 +454,8 @@ export default function CollectionDetailScreen() {
                 </TouchableOpacity>
               }
             />
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -560,17 +589,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+  bottomSheetModal: {
+    margin: 0,
     justifyContent: "flex-end",
+  },
+  sheetWrapper: {
+    width: "100%",
+    alignItems: "center",
+  },
+  centeredModal: {
+    margin: 0,
+    justifyContent: "center",
     alignItems: "center",
   },
   backdropCenter: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   sheet: {
     width: "100%",

@@ -5,12 +5,12 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import Modal from 'react-native-modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -120,17 +120,18 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
 
   return (
     <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn={carLayoutMode ? "fadeIn" : "slideInUp"}
+      animationOut={carLayoutMode ? "fadeOut" : "slideOutDown"}
+      backdropTransitionOutTiming={0}
+      style={carLayoutMode ? styles.floatingModal : styles.bottomSheetModal}
     >
-      <TouchableOpacity 
-        style={[styles.overlay, carLayoutMode && styles.overlayCar]} 
-        activeOpacity={1} 
-        onPress={onClose}
-      >
-        <TouchableOpacity 
+      <View style={[styles.overlay, carLayoutMode && styles.overlayCar]}>
+        <View
             style={[
               styles.content,
               carLayoutMode ? styles.contentCar : styles.contentDefault,
@@ -140,8 +141,6 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
                 marginLeft: carLayoutMode ? 12 : 0,
               },
             ]} 
-            activeOpacity={1}
-            onPress={() => {}}
         >
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>{t('sync.selectSyncFriends')}</Text>
@@ -175,16 +174,24 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
               {t(selectedUserIds.size > 0 ? 'sync.initiateSyncCount' : 'sync.initiateSync', { count: selectedUserIds.size })}
             </Text>
           </TouchableOpacity>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  bottomSheetModal: {
+    margin: 0,
+    justifyContent: 'flex-end',
+  },
+  floatingModal: {
+    margin: 0,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+  },
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: '100%',
     justifyContent: 'flex-end',
     alignItems: 'center',
   },

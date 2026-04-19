@@ -27,7 +27,6 @@ import {
   Easing,
   FlatList,
   Image,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -36,6 +35,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/AuthContext";
 import { usePlayer } from "../../src/context/PlayerContext";
@@ -1099,10 +1099,15 @@ export default function PersonalScreen() {
 
 
       <Modal
-        visible={createModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setCreateModalVisible(false)}
+        isVisible={createModalVisible}
+        onBackdropPress={() => setCreateModalVisible(false)}
+        onBackButtonPress={() => setCreateModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
       >
         <View style={styles.createModalOverlay}>
           <View
@@ -1170,16 +1175,17 @@ export default function PersonalScreen() {
 
       {/* Action Selection Modal (Dropdown replacement) */}
       <Modal
-        visible={menuVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
+        isVisible={menuVisible}
+        onBackdropPress={() => setMenuVisible(false)}
+        onBackButtonPress={() => setMenuVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.fullscreenModal}
       >
-        <TouchableOpacity
-          style={styles.menuOverlay}
-          activeOpacity={1}
-          onPress={() => setMenuVisible(false)}
-        >
+        <View style={styles.menuOverlay}>
           <View
             style={[
               styles.menuContent,
@@ -1251,14 +1257,20 @@ export default function PersonalScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Import Progress Modal */}
       <Modal
-        visible={importModalVisible}
-        transparent={true}
-        animationType="fade"
+        isVisible={importModalVisible}
+        onBackdropPress={() => setImportModalVisible(false)}
+        onBackButtonPress={() => setImportModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
       >
         <View style={styles.importModalOverlay}>
           <View
@@ -1608,10 +1620,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   createModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   createModalContent: {
     width: "80%",
@@ -1660,8 +1671,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   menuOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.1)",
+    width: "100%",
   },
   menuContent: {
     position: "absolute",
@@ -1691,10 +1701,17 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   importModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
+  },
+  centeredModal: {
+    margin: 0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullscreenModal: {
+    margin: 0,
   },
   importModalContent: {
     width: "90%",

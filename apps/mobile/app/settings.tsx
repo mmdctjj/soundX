@@ -6,7 +6,6 @@ import { useRouter } from "expo-router";
 import React from "react";
 import {
   Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Switch,
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../src/context/AuthContext";
@@ -646,19 +646,19 @@ export default function SettingsScreen() {
       </ScrollView>
 
       <Modal
-        visible={screenInsetModalVisible}
-        transparent
-        animationType="fade"
+        isVisible={screenInsetModalVisible}
+        onBackdropPress={() => setScreenInsetModalVisible(false)}
+        onBackButtonPress={() => setScreenInsetModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
         statusBarTranslucent
-        onRequestClose={() => setScreenInsetModalVisible(false)}
       >
-        <TouchableOpacity
-          activeOpacity={1}
-          style={styles.modalOverlay}
-          onPress={() => setScreenInsetModalVisible(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
+        <View style={styles.modalOverlay}>
+          <View
             style={[
               styles.modalContent,
               {
@@ -666,7 +666,6 @@ export default function SettingsScreen() {
                 borderColor: colors.border,
               },
             ]}
-            onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               {t('settings.screenInset')}
@@ -738,8 +737,8 @@ export default function SettingsScreen() {
                 <Text style={styles.modalConfirmText}>{t('common.done')}</Text>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
     </View>
@@ -844,11 +843,15 @@ const styles = StyleSheet.create({
     marginBottom: -4,
   },
   modalOverlay: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    width: "100%",
+  },
+  centeredModal: {
+    margin: 0,
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
     width: "100%",

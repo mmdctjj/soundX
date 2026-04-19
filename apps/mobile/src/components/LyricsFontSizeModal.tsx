@@ -3,13 +3,12 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { parseLyrics } from "../../app/player";
@@ -51,13 +50,18 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
 
   return (
     <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropTransitionOutTiming={0}
+      style={styles.bottomSheetModal}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
+      <View style={styles.sheetWrapper}>
+        <View
           style={[
             styles.modalContent,
             {
@@ -65,7 +69,6 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
               paddingBottom: insets.bottom + 20,
             },
           ]}
-          onPress={(e) => e.stopPropagation()}
         >
           <View style={styles.handle} />
           <View style={styles.header}>
@@ -130,19 +133,22 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
                     })()}
                   </Text>
                </View>
+               </View>
             </View>
-          </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  bottomSheetModal: {
+    margin: 0,
     justifyContent: "flex-end",
+  },
+  sheetWrapper: {
+    width: "100%",
+    alignItems: "center",
   },
   modalContent: {
     borderTopLeftRadius: 24,
