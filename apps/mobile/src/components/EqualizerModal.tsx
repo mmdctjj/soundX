@@ -2,13 +2,12 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { Slider } from "@miblanchard/react-native-slider";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as AudioEq from "../../modules/audio-eq";
@@ -88,6 +87,8 @@ const BandSlider = React.memo(({
   );
 });
 
+BandSlider.displayName = "BandSlider";
+
 interface EqualizerModalProps {
   visible: boolean;
   onClose: () => void;
@@ -164,16 +165,18 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({
 
   return (
     <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropTransitionOutTiming={0}
+      style={styles.bottomSheetModal}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}
-          onPress={(e) => e.stopPropagation()}
-        >
+      <View style={styles.sheetWrapper}>
+        <View style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}>
           <View
             style={[
               styles.modalContent,
@@ -219,17 +222,19 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({
               <Text style={[styles.closeButtonText, { color: colors.background }]}>{t('equalizer.done')}</Text>
             </TouchableOpacity>
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  bottomSheetModal: {
+    margin: 0,
     justifyContent: "flex-end",
+  },
+  sheetWrapper: {
+    width: "100%",
     alignItems: "center",
   },
   modalContent: {

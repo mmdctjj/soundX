@@ -1,0 +1,51 @@
+.language-settings {
+  min-height: 100vh;
+  box-sizing: border-box;
+
+  .header {
+    height: 100rpx;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 80rpx;
+    padding-left: 20rpx;
+    padding-right: 20rpx;
+  }
+
+  .back-btn {
+    padding: 10rpx;
+  }
+
+  .back-icon {
+    font-size: 48rpx;
+  }
+
+  .header-title {
+    font-size: 36rpx;
+    font-weight: bold;
+  }
+
+  .list {
+    padding: 0 40px;
+
+    .item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 32px 0;
+      border-bottom-width: 1px;
+      border-bottom-style: solid;
+
+      .item-text {
+        font-size: 32px;
+      }
+
+      .checkmark {
+        font-size: 32px;
+        font-weight: bold;
+      }
+    }
+  }
+}

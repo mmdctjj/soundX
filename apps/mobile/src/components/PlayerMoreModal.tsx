@@ -10,14 +10,13 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     Alert,
-    Modal,
     Platform,
-    Pressable,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isCached } from "../services/cache";
 import { downloadTrack } from "../services/downloadManager";
@@ -50,6 +49,15 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   controlsBottomOffset,
   setControlsBottomOffset,
 }) => {
+  type PendingModal =
+    | { type: "sleepTimer" }
+    | { type: "addToPlaylist" }
+    | { type: "lyricsSize" }
+    | { type: "controlsPosition" }
+    | { type: "equalizer" }
+    | { type: "trackPath" }
+    | { type: "skip"; skipType: "intro" | "outro" };
+
   const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -77,6 +85,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   const [controlsPositionVisible, setControlsPositionVisible] = useState(false);
   const [eqVisible, setEqVisible] = useState(false);
   const [trackPathVisible, setTrackPathVisible] = useState(false);
+  const [pendingModal, setPendingModal] = useState<PendingModal | null>(null);
 
   // 跳过片头/片尾 modal 状态
   const [skipModalVisible, setSkipModalVisible] = useState(false);
@@ -140,8 +149,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   };
 
   const handleSleepTimer = () => {
+    setPendingModal({ type: "sleepTimer" });
     setVisible(false);
-    setSleepTimerVisible(true);
   };
 
   const handleDownload = async () => {
@@ -197,13 +206,45 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
 
   // 打开弹窗：读取当前全局设置到临时状态
   const openSkipModal = (type: "intro" | "outro") => {
-    setSkipModalType(type);
-    const currentVal = type === "intro" ? skipIntroDuration : skipOutroDuration;
-    // 如果还没设置(0)，给个默认 30 方便调整；如果已设置，显示当前值
-    setTempSkipTime(currentVal === 0 ? 30 : currentVal);
-
+    setPendingModal({ type: "skip", skipType: type });
     setVisible(false);
-    setSkipModalVisible(true);
+  };
+
+  const openPendingModal = () => {
+    if (!pendingModal) return;
+
+    switch (pendingModal.type) {
+      case "sleepTimer":
+        setSleepTimerVisible(true);
+        break;
+      case "addToPlaylist":
+        setAddToPlaylistVisible(true);
+        break;
+      case "lyricsSize":
+        setLyricsSizeVisible(true);
+        break;
+      case "controlsPosition":
+        setControlsPositionVisible(true);
+        break;
+      case "equalizer":
+        setEqVisible(true);
+        break;
+      case "trackPath":
+        setTrackPathVisible(true);
+        break;
+      case "skip": {
+        setSkipModalType(pendingModal.skipType);
+        const currentVal =
+          pendingModal.skipType === "intro"
+            ? skipIntroDuration
+            : skipOutroDuration;
+        setTempSkipTime(currentVal === 0 ? 30 : currentVal);
+        setSkipModalVisible(true);
+        break;
+      }
+    }
+
+    setPendingModal(null);
   };
 
   const cancelSkip = () => {
@@ -248,8 +289,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "document-text-outline" as const,
       label: t('playerMore.trackDetails'),
       onPress: () => {
+        setPendingModal({ type: "trackPath" });
         setVisible(false);
-        setTrackPathVisible(true);
       },
       disabled: !currentTrack,
     },
@@ -263,8 +304,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "add-circle-outline" as const,
       label: t('playerMore.addToPlaylist'),
       onPress: () => {
+        setPendingModal({ type: "addToPlaylist" });
         setVisible(false);
-        setAddToPlaylistVisible(true);
       },
       disabled: !currentTrack,
     },
@@ -272,8 +313,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "document-text-outline" as const,
       label: t('playerMore.trackDetails'),
       onPress: () => {
+        setPendingModal({ type: "trackPath" });
         setVisible(false);
-        setTrackPathVisible(true);
       },
       disabled: !currentTrack,
       hidden: true,
@@ -290,8 +331,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "text-outline" as const,
       label: t('playerMore.adjustLyricsSize'),
       onPress: () => {
+        setPendingModal({ type: "lyricsSize" });
         setVisible(false);
-        setLyricsSizeVisible(true);
       },
       disabled: false,
     },
@@ -299,8 +340,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "swap-vertical-outline" as const,
       label: t('playerMore.controlPosition'),
       onPress: () => {
+        setPendingModal({ type: "controlsPosition" });
         setVisible(false);
-        setControlsPositionVisible(true);
       },
       disabled: false,
     },
@@ -308,8 +349,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "options-outline" as const,
       label: t('playerMore.equalizer'),
       onPress: () => {
+        setPendingModal({ type: "equalizer" });
         setVisible(false);
-        setEqVisible(true);
         trackEvent({
           feature: "player",
           eventName: "equalizer_open",
@@ -374,15 +415,20 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   return (
     <>
       <Modal
-        visible={visible}
-        transparent
-        animationType="slide"
-        onRequestClose={onClose}
+        isVisible={visible}
+        onBackdropPress={onClose}
+        onBackButtonPress={onClose}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropTransitionOutTiming={0}
+        onModalHide={openPendingModal}
+        style={styles.bottomSheetModal}
       >
-        <Pressable style={styles.backdrop} onPress={onClose}>
-          <Pressable
+        <View style={styles.bottomSheetWrapper}>
+          <View
             style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}
-            onPress={(e) => e.stopPropagation()}
           >
             <View
               style={[
@@ -542,22 +588,26 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                 </TouchableOpacity>
               ))}
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       {/* --- 全新设计的跳过片头/片尾弹窗 (全局配置版) --- */}
       <Modal
-        visible={skipModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={cancelSkip}
+        isVisible={skipModalVisible}
+        onBackdropPress={cancelSkip}
+        onBackButtonPress={cancelSkip}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
         statusBarTranslucent
+        style={styles.bottomSheetModal}
       >
-        <Pressable style={styles.backdrop} onPress={cancelSkip}>
-          <Pressable
+        <View style={styles.bottomSheetWrapper}>
+          <View
             style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}
-            onPress={(e) => e.stopPropagation()}
           >
             <View
               style={[
@@ -679,8 +729,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                 </TouchableOpacity>
               </View>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <SleepTimerModal
@@ -703,19 +753,18 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       />
 
       <Modal
-        visible={controlsPositionVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setControlsPositionVisible(false)}
+        isVisible={controlsPositionVisible}
+        onBackdropPress={() => setControlsPositionVisible(false)}
+        onBackButtonPress={() => setControlsPositionVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
       >
-        <Pressable
-          style={styles.centeredBackdrop}
-          onPress={() => setControlsPositionVisible(false)}
-        >
-          <Pressable
-            style={styles.centeredModalWrapper}
-            onPress={(e) => e.stopPropagation()}
-          >
+        <View style={styles.centeredBackdrop}>
+          <View style={styles.centeredModalWrapper}>
             <View
               style={[
                 styles.centeredModalContent,
@@ -814,8 +863,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
                 </TouchableOpacity>
               </View>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <EqualizerModal
@@ -834,18 +883,24 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  bottomSheetModal: {
+    margin: 0,
+    justifyContent: "flex-end",
+  },
+  bottomSheetWrapper: {
     justifyContent: "flex-end",
     alignItems: "center",
   },
+  centeredModal: {
+    margin: 0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   centeredBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+    width: "100%",
   },
   centeredModalWrapper: {
     width: "100%",

@@ -1,6 +1,6 @@
 apply plugin: 'com.android.library'
 
-group = 'com.anonymous.mobile.media'
+group = 'com.audiodock.app.media'
 version = '1.0.0'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
@@ -16,7 +16,7 @@ buildscript {
 }
 
 android {
-  namespace "com.anonymous.mobile.media"
+  namespace "com.audiodock.app.media"
   compileSdk safeExtGet("compileSdkVersion", 35)
 
   defaultConfig {

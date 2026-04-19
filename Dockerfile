@@ -16,6 +16,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # 2. 复制所有子包 package.json
 COPY packages/db/package.json ./packages/db/
 COPY packages/utils/package.json ./packages/utils/
+COPY packages/i18e/package.json ./packages/i18e/
 COPY packages/ws/package.json ./packages/ws/
 COPY packages/services/package.json ./packages/services/
 COPY services/api/package.json ./services/api/
@@ -29,6 +30,7 @@ COPY . .
 
 # 5. 构建所有 workspace
 RUN cd packages/utils && pnpm run build
+RUN cd packages/i18e && pnpm run build
 RUN cd packages/ws && pnpm run build
 RUN cd packages/db && pnpm run build
 RUN cd packages/services && pnpm run build
@@ -74,6 +76,8 @@ COPY --from=builder /app/packages/db/prisma         ./packages/db/prisma
 COPY --from=builder /app/packages/db/generated      ./packages/db/generated
 COPY --from=builder /app/packages/utils/dist        ./packages/utils/dist
 COPY --from=builder /app/packages/utils/package.json ./packages/utils/package.json
+COPY --from=builder /app/packages/i18e/package.json ./packages/i18e/package.json
+COPY --from=builder /app/packages/i18e/dist        ./packages/i18e/dist
 COPY --from=builder /app/packages/ws/dist           ./packages/ws/dist
 COPY --from=builder /app/packages/ws/package.json   ./packages/ws/package.json
 COPY --from=builder /app/packages/services/dist     ./packages/services/dist

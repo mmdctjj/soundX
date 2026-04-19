@@ -1,5 +1,10 @@
 import { FolderOpenOutlined } from "@ant-design/icons";
 import {
+  LANGUAGE_STORAGE_KEY,
+  SYSTEM_LANGUAGE_VALUE,
+  resolveLanguageSelection,
+} from "@soundx/i18e";
+import {
   Button,
   ColorPicker,
   Divider,
@@ -192,16 +197,29 @@ const Settings: React.FC = () => {
         <div className={styles.settingItem}>
           <div className={styles.label}>{t("settings.language", "语言")}</div>
           <div className={styles.control}>
-            <Segmented
-              value={i18n.language}
+            <Select
+              value={general.language || "system"}
               onChange={async (val) => {
-                await i18n.changeLanguage(val as string);
-                updateGeneral("language", val === "zh-CN" ? "zh-CN" : "en-US");
+                if (val === SYSTEM_LANGUAGE_VALUE) {
+                  localStorage.removeItem(LANGUAGE_STORAGE_KEY);
+                  localStorage.removeItem("i18nextLng");
+                  await i18n.changeLanguage(
+                    resolveLanguageSelection(SYSTEM_LANGUAGE_VALUE, navigator.language),
+                  );
+                } else {
+                  localStorage.setItem(LANGUAGE_STORAGE_KEY, val);
+                  await i18n.changeLanguage(val);
+                }
+                updateGeneral("language", val);
               }}
-              options={languages.map((lang) => ({
-                label: <span>{lang.flag} {lang.label}</span>,
-                value: lang.code,
-              }))}
+              options={[
+                { label: t("settings.themeSystem", "跟随系统"), value: SYSTEM_LANGUAGE_VALUE },
+                ...languages.map((lang) => ({
+                  label: `${lang.flag} ${lang.label}`,
+                  value: lang.code,
+                })),
+              ]}
+              style={{ width: 140 }}
             />
           </div>
         </div>

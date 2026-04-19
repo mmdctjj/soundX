@@ -1,7 +1,7 @@
 import { Text, View } from '@tarojs/components';
+import { EXPLICIT_LANGUAGE_OPTIONS } from '@soundx/i18e';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import Taro from '@tarojs/taro';
 import './index.scss';
 
 interface LanguageSwitcherProps {
@@ -13,10 +13,7 @@ export default function LanguageSwitcher({ onLanguageChange }: LanguageSwitcherP
   const { colors } = useTheme();
   const currentLang = i18n.language;
 
-  const languages = [
-    { code: 'zh-CN', label: '简体中文', flag: '🇨🇳' },
-    { code: 'en', label: 'English', flag: '🇺🇸' },
-  ];
+  const languages = EXPLICIT_LANGUAGE_OPTIONS;
 
   const handleLanguageChange = async (langCode: string) => {
     await i18n.changeLanguage(langCode);

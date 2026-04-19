@@ -1,15 +1,27 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform, NativeModules } from "react-native";
+import {
+  LANGUAGE_STORAGE_KEY,
+  resources,
+  resolveLanguageSelection,
+} from "@soundx/i18e";
 
-import zhCN from "./locales/zh-CN.json";
-import en from "./locales/en.json";
-
-const LANGUAGE_KEY = "app_language";
-
-const resources = {
-  "zh-CN": { translation: zhCN },
-  en: { translation: en },
+const getDeviceLanguage = () => {
+  try {
+    let locale: string | undefined;
+    if (Platform.OS === 'ios') {
+      const settingsManager = NativeModules.SettingsManager?.settings;
+      locale = settingsManager?.AppleLocale || settingsManager?.AppleLanguages?.[0];
+    } else {
+      locale = NativeModules.I18nManager?.localeIdentifier;
+    }
+    return resolveLanguageSelection("system", locale);
+  } catch (e) {
+    console.error("Failed to get device language", e);
+  }
+  return resolveLanguageSelection("system");
 };
 
 const languageDetector = {
@@ -17,24 +29,20 @@ const languageDetector = {
   async: true,
   detect: async (callback: (lng: string) => void) => {
     try {
-      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
-      if (savedLanguage) {
+      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+      if (savedLanguage && savedLanguage !== 'system') {
         callback(savedLanguage);
         return;
       }
+      callback(getDeviceLanguage());
     } catch (error) {
       console.error("Error reading language from storage:", error);
+      callback(getDeviceLanguage());
     }
-    // Default to Chinese
-    callback("zh-CN");
   },
   init: () => {},
   cacheUserLanguage: async (language: string) => {
-    try {
-      await AsyncStorage.setItem(LANGUAGE_KEY, language);
-    } catch (error) {
-      console.error("Error saving language to storage:", error);
-    }
+    // We handle caching manually when switching, to differentiate 'system' from explicit lang
   },
 };
 

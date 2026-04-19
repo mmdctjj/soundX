@@ -4,15 +4,13 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
-  Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { addAlbumToCollection, createCollection, getCollectionMembership, getCollections } from "@soundx/services";
@@ -112,15 +110,19 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
   return (
     <>
       <Modal
-        visible={visible}
-        transparent
-        animationType="slide"
-        onRequestClose={onClose}
+        isVisible={visible}
+        onBackdropPress={onClose}
+        onBackButtonPress={onClose}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropTransitionOutTiming={0}
+        style={styles.bottomSheetModal}
       >
-        <Pressable style={styles.backdrop} onPress={onClose}>
-          <Pressable
+        <View style={styles.sheetWrapper}>
+          <View
             style={{ width: "100%", maxWidth: 450, alignSelf: "center", backgroundColor: colors.card, paddingBottom: 0 }}
-            onPress={(e) => e.stopPropagation()}
           >
             <View
               style={[
@@ -204,20 +206,24 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
                 )}
               </View>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <Modal
-        visible={createVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCreateVisible(false)}
+        isVisible={createVisible}
+        onBackdropPress={() => setCreateVisible(false)}
+        onBackButtonPress={() => setCreateVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
       >
-        <Pressable style={styles.backdropCenter} onPress={() => setCreateVisible(false)}>
-          <Pressable
+        <View style={styles.backdropCenter}>
+          <View
             style={[styles.createBox, { backgroundColor: colors.card }]}
-            onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.title, { color: colors.text }]}>{t('collection.newCollection')}</Text>
             <TextInput
@@ -235,25 +241,31 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
                 <Text style={[styles.actionText, { color: colors.primary }]}>{t('collection.createAndAdd')}</Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  bottomSheetModal: {
+    margin: 0,
     justifyContent: "flex-end",
+  },
+  sheetWrapper: {
+    width: "100%",
+    alignItems: "center",
+  },
+  centeredModal: {
+    margin: 0,
+    justifyContent: "center",
     alignItems: "center",
   },
   backdropCenter: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   modalContent: {
     borderTopLeftRadius: 20,

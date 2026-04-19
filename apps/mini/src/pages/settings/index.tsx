@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useTheme } from '../../context/ThemeContext';
 import { usePlayMode } from '../../utils/playMode';
-import LanguageSwitcher from '../../components/LanguageSwitcher';
+import { trackEvent } from '../../utils/tracking';
 import './index.scss';
 
 export default function Settings() {
@@ -132,8 +132,10 @@ export default function Settings() {
       }));
       Taro.setStorageSync('plus_vip_updated_at', Date.now().toString());
       setIsVip(true);
+      trackEvent({ feature: 'member', eventName: 'internal_test_participate_success' });
       Taro.showToast({ title: t('settings.betaTestSuccess'), icon: 'success' });
     } catch (error: any) {
+      trackEvent({ feature: 'member', eventName: 'internal_test_participate_failed', metadata: { message: error.message || 'unknown_error' } });
       Taro.showToast({ title: error.message || t('settings.betaTestFailed'), icon: 'none' });
     } finally {
       setRedeemingInternalTestCode(false);
@@ -230,13 +232,10 @@ export default function Settings() {
 
         <View className='section'>
           <Text className='section-title'>{t('settings.general')}</Text>
-          <LanguageSwitcher />
-          {renderSettingRow(t('settings.carMode'), t('settings.carModeDescription'), carModeActive, handleToggleCarMode)}
-          {carModeActive && renderActionRow(
-            t('settings.screenInset'),
-            t('settings.screenInsetDescription'),
-            () => setShowScreenInsetModal(true),
-            `${Math.round(screenBottomInset)}`
+          {renderActionRow(
+            t('settings.language', '语言'),
+            t('settings.languageDescription', '选择应用显示语言'),
+            () => Taro.navigateTo({ url: '/pages/settings/language/index' })
           )}
           {renderSettingRow(t('settings.autoTheme'), t('settings.autoThemeDescription'), autoTheme, (val) => updateSetting('autoTheme', val))}
           <View style={{ opacity: autoTheme ? 0.5 : 1, pointerEvents: autoTheme ? 'none' : 'auto' }}>
