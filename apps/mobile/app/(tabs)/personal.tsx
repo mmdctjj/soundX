@@ -64,6 +64,7 @@ const ctjjLogo = require("../../assets/images/ctjj.png");
 
 type TabType = "playlists" | "favorites" | "history" | "downloads";
 type SubTabType = "track" | "album";
+type PendingMenuAction = "createPlaylist" | null;
 
 const StackedCover = ({ tracks }: { tracks: any[] }) => {
   const covers = (tracks || []).slice(0, 4);
@@ -331,6 +332,7 @@ export default function PersonalScreen() {
 
   // Import task state
   const [menuVisible, setMenuVisible] = useState(false);
+  const [pendingMenuAction, setPendingMenuAction] = useState<PendingMenuAction>(null);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importTask, setImportTask] = useState<ImportTask | null>(null);
   const pollTimerRef = React.useRef<any>(null);
@@ -600,6 +602,13 @@ export default function PersonalScreen() {
         { text: t("personalPage.confirmUpdateAction"), onPress: startTask },
       ]);
     }
+  };
+
+  const handleMenuHide = () => {
+    if (pendingMenuAction === "createPlaylist") {
+      setCreateModalVisible(true);
+    }
+    setPendingMenuAction(null);
   };
 
   const pollTaskStatus = async (taskId: string) => {
@@ -1178,6 +1187,7 @@ export default function PersonalScreen() {
         isVisible={menuVisible}
         onBackdropPress={() => setMenuVisible(false)}
         onBackButtonPress={() => setMenuVisible(false)}
+        onModalHide={handleMenuHide}
         useNativeDriver
         hideModalContentWhileAnimating
         animationIn="fadeIn"
@@ -1189,14 +1199,16 @@ export default function PersonalScreen() {
           <View
             style={[
               styles.menuContent,
-              { backgroundColor: colors.card, top: insets.top + 50 },
+              {
+                backgroundColor: colors.card,
+              },
             ]}
           >
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => {
+                setPendingMenuAction("createPlaylist");
                 setMenuVisible(false);
-                setCreateModalVisible(true);
               }}
             >
               <Ionicons name="list-outline" size={22} color={colors.text} />
@@ -1671,11 +1683,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   menuOverlay: {
+    flex: 1,
     width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   menuContent: {
-    position: "absolute",
-    left: 20,
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 0,
@@ -1712,6 +1725,8 @@ const styles = StyleSheet.create({
   },
   fullscreenModal: {
     margin: 0,
+    justifyContent: "flex-start",
+    alignItems: "stretch",
   },
   importModalContent: {
     width: "90%",

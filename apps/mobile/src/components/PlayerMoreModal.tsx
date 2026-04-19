@@ -49,6 +49,15 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   controlsBottomOffset,
   setControlsBottomOffset,
 }) => {
+  type PendingModal =
+    | { type: "sleepTimer" }
+    | { type: "addToPlaylist" }
+    | { type: "lyricsSize" }
+    | { type: "controlsPosition" }
+    | { type: "equalizer" }
+    | { type: "trackPath" }
+    | { type: "skip"; skipType: "intro" | "outro" };
+
   const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -76,6 +85,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   const [controlsPositionVisible, setControlsPositionVisible] = useState(false);
   const [eqVisible, setEqVisible] = useState(false);
   const [trackPathVisible, setTrackPathVisible] = useState(false);
+  const [pendingModal, setPendingModal] = useState<PendingModal | null>(null);
 
   // 跳过片头/片尾 modal 状态
   const [skipModalVisible, setSkipModalVisible] = useState(false);
@@ -139,8 +149,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   };
 
   const handleSleepTimer = () => {
+    setPendingModal({ type: "sleepTimer" });
     setVisible(false);
-    setSleepTimerVisible(true);
   };
 
   const handleDownload = async () => {
@@ -196,13 +206,45 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
 
   // 打开弹窗：读取当前全局设置到临时状态
   const openSkipModal = (type: "intro" | "outro") => {
-    setSkipModalType(type);
-    const currentVal = type === "intro" ? skipIntroDuration : skipOutroDuration;
-    // 如果还没设置(0)，给个默认 30 方便调整；如果已设置，显示当前值
-    setTempSkipTime(currentVal === 0 ? 30 : currentVal);
-
+    setPendingModal({ type: "skip", skipType: type });
     setVisible(false);
-    setSkipModalVisible(true);
+  };
+
+  const openPendingModal = () => {
+    if (!pendingModal) return;
+
+    switch (pendingModal.type) {
+      case "sleepTimer":
+        setSleepTimerVisible(true);
+        break;
+      case "addToPlaylist":
+        setAddToPlaylistVisible(true);
+        break;
+      case "lyricsSize":
+        setLyricsSizeVisible(true);
+        break;
+      case "controlsPosition":
+        setControlsPositionVisible(true);
+        break;
+      case "equalizer":
+        setEqVisible(true);
+        break;
+      case "trackPath":
+        setTrackPathVisible(true);
+        break;
+      case "skip": {
+        setSkipModalType(pendingModal.skipType);
+        const currentVal =
+          pendingModal.skipType === "intro"
+            ? skipIntroDuration
+            : skipOutroDuration;
+        setTempSkipTime(currentVal === 0 ? 30 : currentVal);
+        setSkipModalVisible(true);
+        break;
+      }
+    }
+
+    setPendingModal(null);
   };
 
   const cancelSkip = () => {
@@ -247,8 +289,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "document-text-outline" as const,
       label: t('playerMore.trackDetails'),
       onPress: () => {
+        setPendingModal({ type: "trackPath" });
         setVisible(false);
-        setTrackPathVisible(true);
       },
       disabled: !currentTrack,
     },
@@ -262,8 +304,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "add-circle-outline" as const,
       label: t('playerMore.addToPlaylist'),
       onPress: () => {
+        setPendingModal({ type: "addToPlaylist" });
         setVisible(false);
-        setAddToPlaylistVisible(true);
       },
       disabled: !currentTrack,
     },
@@ -271,8 +313,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "document-text-outline" as const,
       label: t('playerMore.trackDetails'),
       onPress: () => {
+        setPendingModal({ type: "trackPath" });
         setVisible(false);
-        setTrackPathVisible(true);
       },
       disabled: !currentTrack,
       hidden: true,
@@ -289,8 +331,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "text-outline" as const,
       label: t('playerMore.adjustLyricsSize'),
       onPress: () => {
+        setPendingModal({ type: "lyricsSize" });
         setVisible(false);
-        setLyricsSizeVisible(true);
       },
       disabled: false,
     },
@@ -298,8 +340,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "swap-vertical-outline" as const,
       label: t('playerMore.controlPosition'),
       onPress: () => {
+        setPendingModal({ type: "controlsPosition" });
         setVisible(false);
-        setControlsPositionVisible(true);
       },
       disabled: false,
     },
@@ -307,8 +349,8 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "options-outline" as const,
       label: t('playerMore.equalizer'),
       onPress: () => {
+        setPendingModal({ type: "equalizer" });
         setVisible(false);
-        setEqVisible(true);
         trackEvent({
           feature: "player",
           eventName: "equalizer_open",
@@ -381,6 +423,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
         animationIn="slideInUp"
         animationOut="slideOutDown"
         backdropTransitionOutTiming={0}
+        onModalHide={openPendingModal}
         style={styles.bottomSheetModal}
       >
         <View style={styles.bottomSheetWrapper}>

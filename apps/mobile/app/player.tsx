@@ -551,6 +551,27 @@ export function PlayerDetailView({
   };
 
   if (!currentTrack) {
+    if (embedded && carModeEnabled) {
+      return (
+        <View
+          style={[
+            styles.container,
+            styles.carEmptyState,
+            { backgroundColor: colors.background },
+          ]}
+        >
+          <Text
+            style={[
+              styles.carEmptyStateText,
+              { color: colors.secondary },
+            ]}
+          >
+            {"AudioDock\n听见你的声音"}
+          </Text>
+        </View>
+      );
+    }
+
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={{ color: colors.text }}>No track playing</Text>
@@ -1105,6 +1126,17 @@ export default function PlayerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  carEmptyState: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  carEmptyStateText: {
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: "center",
+    opacity: 0.55,
   },
   header: {
     flexDirection: "row",
