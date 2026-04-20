@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Slider } from "@miblanchard/react-native-slider";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { plusDeleteMe, plusParticipateInternalTest } from "@soundx/services";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   ScrollView,
@@ -15,12 +16,10 @@ import {
 } from "react-native";
 import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTranslation } from "react-i18next";
 import { useAuth } from "../src/context/AuthContext";
 import { useSettings } from "../src/context/SettingsContext";
 import { useTheme } from "../src/context/ThemeContext";
 import { syncWidgetMembership } from "../src/native/WidgetBridge";
-import { LanguageSwitcher } from "../src/components/LanguageSwitcher";
 import {
   clearSpecificCache,
   getDetailedCacheSize,
@@ -36,7 +35,8 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { colors, theme, toggleTheme, setTheme } = useTheme();
   const { mode, setMode } = usePlayMode();
-  const { logout, user, sourceType, device, plusToken, setPlusToken } = useAuth();
+  const { logout, user, sourceType, device, plusToken, setPlusToken } =
+    useAuth();
   const {
     acceptRelay,
     acceptSync,
@@ -98,20 +98,27 @@ export default function SettingsScreen() {
   };
 
   const handleClearCache = async (
-    category: 'covers' | 'music' | 'audiobooks' | 'apks',
+    category: "covers" | "music" | "audiobooks" | "apks",
     label: string,
   ) => {
-    Alert.alert(t('settings.clearCache'), t('settings.confirmClearCache', { label }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.confirm'),
-        onPress: async () => {
-          await clearSpecificCache(category);
-          await fetchCacheSize();
-          Alert.alert(t('settings.cacheCleared'), `${label}${t('settings.cacheCleared')}`);
+    Alert.alert(
+      t("settings.clearCache"),
+      t("settings.confirmClearCache", { label }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.confirm"),
+          onPress: async () => {
+            await clearSpecificCache(category);
+            await fetchCacheSize();
+            Alert.alert(
+              t("settings.cacheCleared"),
+              `${label}${t("settings.cacheCleared")}`,
+            );
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const renderCacheRow = (
@@ -128,7 +135,7 @@ export default function SettingsScreen() {
           {label} ({size})
         </Text>
         <Text style={[styles.settingDescription, { color: colors.secondary }]}>
-          {t('settings.tapToClear')}
+          {t("settings.tapToClear")}
         </Text>
       </View>
       <Ionicons name="trash-outline" size={20} color={colors.secondary} />
@@ -183,20 +190,19 @@ export default function SettingsScreen() {
             {valueText}
           </Text>
         ) : null}
-        <Ionicons
-          name="chevron-forward"
-          size={20}
-          color={colors.secondary}
-        />
+        <Ionicons name="chevron-forward" size={20} color={colors.secondary} />
       </View>
     </TouchableOpacity>
   );
 
   const handleToggleCarMode = async (val: boolean) => {
     if (val && !isVip) {
-      Alert.alert(t('settings.vipOnly'), t('settings.carModeVipOnly'), [
-        { text: t('common.ok') },
-        { text: t('settings.goToMemberPage'), onPress: () => router.push("/member-benefits" as any) }
+      Alert.alert(t("settings.vipOnly"), t("settings.carModeVipOnly"), [
+        { text: t("common.ok") },
+        {
+          text: t("settings.goToMemberPage"),
+          onPress: () => router.push("/member-benefits" as any),
+        },
       ]);
       return;
     }
@@ -215,9 +221,12 @@ export default function SettingsScreen() {
 
   const handleToggleVoiceAssistant = async (val: boolean) => {
     if (val && !isVip) {
-      Alert.alert(t('settings.vipOnly'), t('settings.voiceAssistantVipOnly'), [
-        { text: t('common.ok') },
-        { text: t('settings.goToMemberPage'), onPress: () => router.push("/member-benefits" as any) }
+      Alert.alert(t("settings.vipOnly"), t("settings.voiceAssistantVipOnly"), [
+        { text: t("common.ok") },
+        {
+          text: t("settings.goToMemberPage"),
+          onPress: () => router.push("/member-benefits" as any),
+        },
       ]);
       return;
     }
@@ -234,13 +243,16 @@ export default function SettingsScreen() {
 
   const handleRedeemInternalTestCode = async () => {
     if (isVip) {
-      Alert.alert(t('settings.betaTestAlreadyHas'), t('settings.betaTestAlreadyHas'));
+      Alert.alert(
+        t("settings.betaTestAlreadyHas"),
+        t("settings.betaTestAlreadyHas"),
+      );
       return;
     }
 
-    const plusUserId = await AsyncStorage.getItem('plus_user_id');
+    const plusUserId = await AsyncStorage.getItem("plus_user_id");
     if (!plusUserId) {
-      Alert.alert(t('settings.loginFirst'), t('settings.loginMemberFirst'));
+      Alert.alert(t("settings.loginFirst"), t("settings.loginMemberFirst"));
       return;
     }
 
@@ -262,7 +274,7 @@ export default function SettingsScreen() {
       const payload = res.data?.data;
 
       if (res.data?.code !== 200 || !payload?.ok) {
-        throw new Error(res.data?.message || t('settings.betaTestFailed'));
+        throw new Error(res.data?.message || t("settings.betaTestFailed"));
       }
 
       await AsyncStorage.setItem("plus_vip_status", "true");
@@ -282,7 +294,7 @@ export default function SettingsScreen() {
         userId: user?.id ? String(user.id) : undefined,
         deviceId: device?.id ? String(device.id) : undefined,
       });
-      Alert.alert(t('settings.betaTestSuccess'), t('settings.betaTestSuccess'));
+      Alert.alert(t("settings.betaTestSuccess"), t("settings.betaTestSuccess"));
     } catch (error) {
       console.error("Failed to redeem internal test code:", error);
       trackEvent({
@@ -295,8 +307,8 @@ export default function SettingsScreen() {
         },
       });
       Alert.alert(
-        t('settings.betaTestFailed'),
-        error instanceof Error ? error.message : t('settings.betaTestFailed'),
+        t("settings.betaTestFailed"),
+        error instanceof Error ? error.message : t("settings.betaTestFailed"),
       );
     } finally {
       setRedeemingInternalTestCode(false);
@@ -305,36 +317,43 @@ export default function SettingsScreen() {
 
   const handleDeleteMemberAccount = () => {
     if (!plusToken) {
-      Alert.alert(t('settings.loginFirst'), t('settings.loginFirst'));
+      Alert.alert(t("settings.loginFirst"), t("settings.loginFirst"));
       router.replace("/member-login");
       return;
     }
 
     Alert.alert(
-      t('settings.deleteMemberAccount'),
-      t('settings.deleteMemberConfirm'),
+      t("settings.deleteMemberAccount"),
+      t("settings.deleteMemberConfirm"),
       [
-        { text: t('common.cancel'), style: 'cancel' },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: t('common.confirm'),
-          style: 'destructive',
+          text: t("common.confirm"),
+          style: "destructive",
           onPress: async () => {
             try {
               const res = await plusDeleteMe();
               if (res.data?.code !== 200 || !res.data?.data?.ok) {
-                throw new Error(res.data?.message || t('settings.deleteMemberFailed'));
+                throw new Error(
+                  res.data?.message || t("settings.deleteMemberFailed"),
+                );
               }
 
               await setPlusToken(null);
               await syncWidgetMembership(false);
               setIsVip(false);
-              Alert.alert(t('settings.deleteMemberSuccess'), t('settings.deleteMemberSuccess'));
+              Alert.alert(
+                t("settings.deleteMemberSuccess"),
+                t("settings.deleteMemberSuccess"),
+              );
               router.replace("/member-login");
             } catch (error) {
               console.error("Failed to delete plus member account:", error);
               Alert.alert(
-                t('settings.deleteMemberFailed'),
-                error instanceof Error ? error.message : t('settings.deleteMemberFailed'),
+                t("settings.deleteMemberFailed"),
+                error instanceof Error
+                  ? error.message
+                  : t("settings.deleteMemberFailed"),
               );
             }
           },
@@ -352,14 +371,16 @@ export default function SettingsScreen() {
         >
           <Ionicons name="chevron-back" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('settings.title')}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {t("settings.title")}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-            {t('settings.account')}
+            {t("settings.account")}
           </Text>
 
           {user?.is_admin && (
@@ -369,7 +390,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.settingInfo}>
                 <Text style={[styles.settingLabel, { color: colors.text }]}>
-                  {t('settings.admin')}
+                  {t("settings.admin")}
                 </Text>
                 <Text
                   style={[
@@ -377,7 +398,7 @@ export default function SettingsScreen() {
                     { color: colors.secondary },
                   ]}
                 >
-                  {t('settings.adminDescription')}
+                  {t("settings.adminDescription")}
                 </Text>
               </View>
               <Ionicons
@@ -394,9 +415,8 @@ export default function SettingsScreen() {
               { color: colors.primary, marginTop: 20 },
             ]}
           >
-            {t('settings.general')}
+            {t("settings.general")}
           </Text>
-          <LanguageSwitcher />
 
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: colors.border }]}
@@ -404,39 +424,12 @@ export default function SettingsScreen() {
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                {t('settings.language', '语言')}
+                {t("settings.language", "语言")}
               </Text>
               <Text
-                style={[
-                  styles.settingDescription,
-                  { color: colors.secondary },
-                ]}
+                style={[styles.settingDescription, { color: colors.secondary }]}
               >
-                {t('settings.languageDescription', '选择应用显示语言')}
-              </Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.secondary}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.settingRow, { borderBottomColor: colors.border }]}
-            onPress={() => router.push("/language" as any)}
-          >
-            <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>
-                {t('settings.language', '语言')}
-              </Text>
-              <Text
-                style={[
-                  styles.settingDescription,
-                  { color: colors.secondary },
-                ]}
-              >
-                {t('settings.languageDescription', '选择应用显示语言')}
+                {t("settings.languageDescription", "选择应用显示语言")}
               </Text>
             </View>
             <Ionicons
@@ -447,16 +440,16 @@ export default function SettingsScreen() {
           </TouchableOpacity>
 
           {renderSettingRow(
-            t('settings.carMode'),
-            t('settings.carModeDescription'),
+            t("settings.carMode"),
+            t("settings.carModeDescription"),
             carModeActive,
             handleToggleCarMode,
           )}
 
           {carModeActive &&
             renderActionRow(
-              t('settings.screenInset'),
-              t('settings.screenInsetDescription'),
+              t("settings.screenInset"),
+              t("settings.screenInsetDescription"),
               () => {
                 trackEvent({
                   feature: "settings",
@@ -470,40 +463,40 @@ export default function SettingsScreen() {
             )}
 
           {renderSettingRow(
-            t('settings.autoTheme'),
-            t('settings.autoThemeDescription'),
+            t("settings.autoTheme"),
+            t("settings.autoThemeDescription"),
             autoTheme,
-            (val) => updateSetting('autoTheme', val),
+            (val) => updateSetting("autoTheme", val),
           )}
 
           <View style={{ opacity: autoTheme ? 0.5 : 1 }}>
             {renderSettingRow(
-              t('settings.darkMode'),
-              t('settings.darkModeDescription'),
-              theme === 'dark',
+              t("settings.darkMode"),
+              t("settings.darkModeDescription"),
+              theme === "dark",
               autoTheme ? () => {} : toggleTheme,
             )}
 
             {renderSettingRow(
-              t('settings.festiveTheme'),
-              t('settings.festiveThemeDescription'),
-              theme === 'festive',
+              t("settings.festiveTheme"),
+              t("settings.festiveThemeDescription"),
+              theme === "festive",
               autoTheme
                 ? () => {}
-                : (val) => setTheme(val ? 'festive' : 'light'),
+                : (val) => setTheme(val ? "festive" : "light"),
             )}
           </View>
 
           {renderSettingRow(
-            t('settings.autoOrientation'),
-            t('settings.autoOrientationDescription'),
+            t("settings.autoOrientation"),
+            t("settings.autoOrientationDescription"),
             autoOrientation,
-            (val) => updateSetting('autoOrientation', val),
+            (val) => updateSetting("autoOrientation", val),
           )}
 
           {renderSettingRow(
-            t('settings.voiceAssistant'),
-            t('settings.voiceAssistantDescription'),
+            t("settings.voiceAssistant"),
+            t("settings.voiceAssistantDescription"),
             voiceAssistantEnabled,
             (val) => handleToggleVoiceAssistant(val),
           )}
@@ -513,12 +506,13 @@ export default function SettingsScreen() {
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                {t('settings.recommendationPreference')}
+                {t("settings.recommendationPreference")}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
-                {t('settings.like')} {recommendationLikeRatio}% · {t('settings.fresh')} {100 - recommendationLikeRatio}%
+                {t("settings.like")} {recommendationLikeRatio}% ·{" "}
+                {t("settings.fresh")} {100 - recommendationLikeRatio}%
               </Text>
               <Slider
                 minimumValue={0}
@@ -539,33 +533,33 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {sourceType !== 'Subsonic' &&
+          {sourceType !== "Subsonic" &&
             renderSettingRow(
-              t('settings.audiobookMode'),
-              t('settings.audiobookModeDescription'),
-              mode === 'AUDIOBOOK',
-              (val) => setMode(val ? 'AUDIOBOOK' : 'MUSIC'),
+              t("settings.audiobookMode"),
+              t("settings.audiobookModeDescription"),
+              mode === "AUDIOBOOK",
+              (val) => setMode(val ? "AUDIOBOOK" : "MUSIC"),
             )}
 
           {renderSettingRow(
-            t('settings.relayPlay'),
-            t('settings.relayPlayDescription'),
+            t("settings.relayPlay"),
+            t("settings.relayPlayDescription"),
             acceptRelay,
-            (val) => updateSetting('acceptRelay', val),
+            (val) => updateSetting("acceptRelay", val),
           )}
 
           {renderSettingRow(
-            t('settings.syncControl'),
-            t('settings.syncControlDescription'),
+            t("settings.syncControl"),
+            t("settings.syncControlDescription"),
             acceptSync,
-            (val) => updateSetting('acceptSync', val),
+            (val) => updateSetting("acceptSync", val),
           )}
 
           {renderSettingRow(
-            t('settings.cacheWhilePlaying'),
-            t('settings.cacheWhilePlayingDescription'),
+            t("settings.cacheWhilePlaying"),
+            t("settings.cacheWhilePlayingDescription"),
             cacheEnabled,
-            (val) => updateSetting('cacheEnabled', val),
+            (val) => updateSetting("cacheEnabled", val),
           )}
 
           <Text
@@ -574,17 +568,29 @@ export default function SettingsScreen() {
               { color: colors.primary, marginTop: 20 },
             ]}
           >
-            {t('settings.storage')}
+            {t("settings.storage")}
           </Text>
-          {renderCacheRow(t('settings.coverCache'), detailedSizes.covers, 'covers')}
-          {renderCacheRow(t('settings.musicCache'), detailedSizes.music, 'music')}
-          {renderCacheRow(t('settings.audiobookCache'), detailedSizes.audiobooks, 'audiobooks')}
-          {renderCacheRow(t('settings.apkFiles'), detailedSizes.apks, 'apks')}
+          {renderCacheRow(
+            t("settings.coverCache"),
+            detailedSizes.covers,
+            "covers",
+          )}
+          {renderCacheRow(
+            t("settings.musicCache"),
+            detailedSizes.music,
+            "music",
+          )}
+          {renderCacheRow(
+            t("settings.audiobookCache"),
+            detailedSizes.audiobooks,
+            "audiobooks",
+          )}
+          {renderCacheRow(t("settings.apkFiles"), detailedSizes.apks, "apks")}
         </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-            {t('settings.about')}
+            {t("settings.about")}
           </Text>
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: colors.border }]}
@@ -592,12 +598,12 @@ export default function SettingsScreen() {
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                {t('settings.productUpdates')}
+                {t("settings.productUpdates")}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
-                {t('settings.productUpdatesDescription')}
+                {t("settings.productUpdatesDescription")}
               </Text>
             </View>
             <Ionicons
@@ -614,16 +620,16 @@ export default function SettingsScreen() {
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                {t('settings.joinBetaTest')}
+                {t("settings.joinBetaTest")}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
                 {isVip
-                  ? t('settings.betaTestAlreadyHas')
+                  ? t("settings.betaTestAlreadyHas")
                   : redeemingInternalTestCode
-                    ? t('settings.betaTestApplying')
-                    : t('settings.betaTestDescription')}
+                    ? t("settings.betaTestApplying")
+                    : t("settings.betaTestDescription")}
               </Text>
             </View>
             <Ionicons
@@ -634,10 +640,10 @@ export default function SettingsScreen() {
           </TouchableOpacity>
 
           {renderSettingRow(
-            t('settings.experienceProgram'),
-            t('settings.experienceProgramDescription'),
+            t("settings.experienceProgram"),
+            t("settings.experienceProgramDescription"),
             experienceProgramEnabled,
-            (val) => updateSetting('experienceProgramEnabled', val),
+            (val) => updateSetting("experienceProgramEnabled", val),
           )}
         </View>
 
@@ -652,20 +658,22 @@ export default function SettingsScreen() {
               } as any);
             }}
           >
-            <Text style={styles.logoutText}>{t('settings.logout')}</Text>
+            <Text style={styles.logoutText}>{t("settings.logout")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.deleteMemberButton}
             onPress={handleDeleteMemberAccount}
           >
-            <Text style={styles.deleteMemberText}>{t('settings.deleteMemberAccount')}</Text>
+            <Text style={styles.deleteMemberText}>
+              {t("settings.deleteMemberAccount")}
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
           <Text style={[styles.versionText, { color: colors.secondary }]}>
-            {t('settings.version', `AudioDock Mobile v${getLocalVersion()}`)}
+            {t("settings.version", `AudioDock Mobile v${getLocalVersion()}`)}
           </Text>
         </View>
       </ScrollView>
@@ -693,10 +701,12 @@ export default function SettingsScreen() {
             ]}
           >
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {t('settings.screenInset')}
+              {t("settings.screenInset")}
             </Text>
-            <Text style={[styles.modalDescription, { color: colors.secondary }]}>
-              {t('settings.screenInsetDescription')}
+            <Text
+              style={[styles.modalDescription, { color: colors.secondary }]}
+            >
+              {t("settings.screenInsetDescription")}
             </Text>
 
             <View
@@ -707,7 +717,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.sliderHeader}>
                 <Text style={[styles.sliderLabel, { color: colors.text }]}>
-                  {t('settings.bottomInset')}
+                  {t("settings.bottomInset")}
                 </Text>
                 <Text style={[styles.sliderNumber, { color: colors.primary }]}>
                   {Math.round(screenBottomInset)}
@@ -730,10 +740,10 @@ export default function SettingsScreen() {
               />
               <View style={styles.sliderHintRow}>
                 <Text style={[styles.sliderHint, { color: colors.secondary }]}>
-                  {t('settings.closerToBottom')}
+                  {t("settings.closerToBottom")}
                 </Text>
                 <Text style={[styles.sliderHint, { color: colors.secondary }]}>
-                  {t('settings.pageUp')}
+                  {t("settings.pageUp")}
                 </Text>
               </View>
             </View>
@@ -748,7 +758,7 @@ export default function SettingsScreen() {
                 onPress={() => void updateSetting("screenBottomInset", 0)}
               >
                 <Text style={[styles.modalCancelText, { color: colors.text }]}>
-                  {t('common.reset')}
+                  {t("common.reset")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -759,13 +769,12 @@ export default function SettingsScreen() {
                 ]}
                 onPress={() => setScreenInsetModalVisible(false)}
               >
-                <Text style={styles.modalConfirmText}>{t('common.done')}</Text>
+                <Text style={styles.modalConfirmText}>{t("common.done")}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
