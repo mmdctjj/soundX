@@ -11,7 +11,6 @@ import {
   Input,
   InputNumber,
   Select,
-  Segmented,
   Slider,
   Space,
   Switch,
@@ -19,11 +18,11 @@ import {
   theme,
 } from "antd";
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { languages } from "../../i18n";
 import { useAuthStore } from "../../store/auth";
 import { useSettingsStore } from "../../store/settings";
-import { languages } from "../../i18n";
 import AdminSettings from "./AdminSettings";
 import styles from "./index.module.less";
 
