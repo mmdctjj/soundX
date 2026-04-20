@@ -396,6 +396,31 @@ export default function SettingsScreen() {
           >
             {t('settings.general')}
           </Text>
+          <LanguageSwitcher />
+
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            onPress={() => router.push("/language" as any)}
+          >
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                {t('settings.language', '语言')}
+              </Text>
+              <Text
+                style={[
+                  styles.settingDescription,
+                  { color: colors.secondary },
+                ]}
+              >
+                {t('settings.languageDescription', '选择应用显示语言')}
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.secondary}
+            />
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: colors.border }]}

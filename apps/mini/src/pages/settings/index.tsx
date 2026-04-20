@@ -287,6 +287,49 @@ export default function Settings() {
           <Text className='version-text'>{t('settings.version', 'AudioDock Mini v1.0.0')}</Text>
         </View>
       </ScrollView>
+
+      {/* Screen Inset Modal */}
+      {showScreenInsetModal && (
+        <View className='modal-mask' onClick={() => setShowScreenInsetModal(false)}>
+          <View className='modal-content' onClick={(e) => e.stopPropagation()}>
+            <View className='modal-title-row'>
+              <Text className='modal-title'>{t('settings.screenInset')}</Text>
+            </View>
+            <View className='modal-description-row'>
+              <Text className='modal-description'>{t('settings.screenInsetDescription')}</Text>
+            </View>
+            <View className='slider-panel'>
+              <View className='slider-header'>
+                <Text className='slider-label'>{t('settings.bottomInset')}</Text>
+                <Text className='slider-number'>{Math.round(screenBottomInset)}</Text>
+              </View>
+              <Slider
+                className='inset-slider'
+                min={0}
+                max={160}
+                step={1}
+                value={screenBottomInset}
+                onChange={(e) => updateSetting('screenBottomInset', e.detail.value)}
+                activeColor='#000000'
+                backgroundColor='#eee'
+                blockSize={16}
+              />
+              <View className='slider-hint-row'>
+                <Text className='slider-hint'>{t('settings.closerToBottom')}</Text>
+                <Text className='slider-hint'>{t('settings.pageUp')}</Text>
+              </View>
+            </View>
+            <View className='modal-actions'>
+              <View className='modal-btn modal-cancel-btn' onClick={() => { updateSetting('screenBottomInset', 0); setShowScreenInsetModal(false); }}>
+                <Text className='modal-cancel-text'>{t('common.reset')}</Text>
+              </View>
+              <View className='modal-btn modal-confirm-btn' onClick={() => setShowScreenInsetModal(false)}>
+                <Text className='modal-confirm-text'>{t('common.done')}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }

@@ -11,6 +11,7 @@ import {
   Input,
   InputNumber,
   Select,
+  Segmented,
   Slider,
   Space,
   Switch,
