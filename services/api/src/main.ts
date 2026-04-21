@@ -21,7 +21,7 @@ async function bootstrap() {
   const cacheDir = path.resolve(process.env.CACHE_DIR || './');
   const musicBaseDirs = resolvePathList(process.env.MUSIC_BASE_DIR, './');
   const audioBookDirs = resolvePathList(process.env.AUDIO_BOOK_DIR, './');
-  const mvDirs = resolvePathList(process.env.MV_DIR, './');
+  const mvDirs = resolvePathList(process.env.MV_BASE_DIR, './');
 
 
   // Serve static files from cache directory

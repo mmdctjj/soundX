@@ -25,7 +25,7 @@ export class ImportController {
     );
     const mvPaths = resolvePathListFromBody(
       mvPath,
-      process.env.MV_DIR || './'
+      process.env.MV_BASE_DIR || './'
     );
     const resolvedCachePath = cachePath ? path.resolve(cachePath) : path.resolve(process.env.CACHE_DIR || './');
 

@@ -111,11 +111,18 @@ export class ImportService implements OnModuleInit {
         this.logger.log('Library is empty. Triggering initial WebDAV Audiobook scan...');
         this.startWebDAVImport(cachePath, TrackType.AUDIOBOOK).catch(e => this.logger.error('WebDAV Audiobook initial scan failed', e));
       }
+      if (process.env.WEBDAV_MV_URL) {
+        this.logger.log('Library is empty. Triggering initial WebDAV MV scan...');
+        this.startWebDAVImport(cachePath, TrackType.MUSIC, undefined, true).catch(e => this.logger.error('WebDAV MV initial scan failed', e));
+      }
     }
   }
 
-  private async startWebDAVImport(cachePath: string, type: TrackType, taskId?: string) {
-    const webdavUrl = type === TrackType.AUDIOBOOK ? process.env.WEBDAV_AUDIOBOOK_URL : process.env.WEBDAV_MUSIC_URL;
+  private async startWebDAVImport(cachePath: string, type: TrackType, taskId?: string, isMvDir = false) {
+    const webdavUrl = isMvDir 
+      ? process.env.WEBDAV_MV_URL 
+      : (type === TrackType.AUDIOBOOK ? process.env.WEBDAV_AUDIOBOOK_URL : process.env.WEBDAV_MUSIC_URL);
+      
     if (!webdavUrl) return;
 
     const task = taskId ? this.tasks.get(taskId) : null;
@@ -127,20 +134,31 @@ export class ImportService implements OnModuleInit {
       cachePath
     );
 
-    this.logger.log(`Starting WebDAV ${type} scan: ${webdavUrl}`);
+    this.logger.log(`Starting WebDAV ${isMvDir ? 'MV' : type} scan: ${webdavUrl}`);
     await scanner.scan('/', async (item) => {
       if (task) {
         task.currentFileName = item.title || path.basename(item.path);
       }
+      
+      const isMvFile = /\.(mp4|mkv|avi|webm)$/i.test(item.path);
+      
       // Folder ID is null for WebDAV for now as it doesn't map to local folder tree easily
       await this.processTrackData(item, type, '', cachePath, item.path, null, '');
 
       if (task) {
-        task.webdavCurrent = (task.webdavCurrent || 0) + 1;
+        if (isMvFile || isMvDir) {
+          task.mvCurrent = (task.mvCurrent || 0) + 1;
+          if (!isMvDir) {
+            task.mvTotal = (task.mvTotal || 0) + 1;
+            task.webdavTotal = (task.webdavTotal || 0) - 1;
+          }
+        } else {
+          task.webdavCurrent = (task.webdavCurrent || 0) + 1;
+        }
         task.current = (task.current || 0) + 1;
       }
     });
-    this.logger.log(`WebDAV ${type} scan completed.`);
+    this.logger.log(`WebDAV ${isMvDir ? 'MV' : type} scan completed.`);
   }
 
   private async generateMissingHashes() {
@@ -792,6 +810,7 @@ export class ImportService implements OnModuleInit {
 
       let webdavMusicCount = 0;
       let webdavAudiobookCount = 0;
+      let webdavMvCount = 0;
 
       if (process.env.WEBDAV_MUSIC_URL) {
         task.message = '正在统计 WebDAV 音乐文件...';
@@ -803,10 +822,15 @@ export class ImportService implements OnModuleInit {
         const wdScanner = new WebDAVScanner(process.env.WEBDAV_AUDIOBOOK_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
         webdavAudiobookCount = await wdScanner.count('/');
       }
+      if (process.env.WEBDAV_MV_URL) {
+        task.message = '正在统计 WebDAV MV 文件...';
+        const wdScanner = new WebDAVScanner(process.env.WEBDAV_MV_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
+        webdavMvCount = await wdScanner.count('/');
+      }
 
       task.localTotal = musicCount + audiobookCount;
       task.webdavTotal = webdavMusicCount + webdavAudiobookCount;
-      task.mvTotal = mvCount;
+      task.mvTotal = mvCount + webdavMvCount;
       task.total = task.localTotal + task.webdavTotal + task.mvTotal;
 
       task.localCurrent = 0;
@@ -870,6 +894,9 @@ export class ImportService implements OnModuleInit {
       }
       if (process.env.WEBDAV_AUDIOBOOK_URL) {
         await this.startWebDAVImport(cachePath, TrackType.AUDIOBOOK, id);
+      }
+      if (process.env.WEBDAV_MV_URL) {
+        await this.startWebDAVImport(cachePath, TrackType.MUSIC, id, true);
       }
 
       // Cleanup orphans if it's a full update
