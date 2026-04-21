@@ -1,4 +1,4 @@
-import { Empty, Spin, theme, Typography } from "antd";
+import { Col, Empty, Row, Spin, theme, Typography } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { getMvList } from "@soundx/services";
 import type { Mv } from "@soundx/services";
@@ -73,18 +73,13 @@ const Mvs: React.FC = () => {
       </div>
 
       {items.length > 0 ? (
-        <div className={styles.grid}>
+        <Row gutter={[20, 20]}>
           {items.map((mv) => (
-            <div key={mv.id} className={styles.gridItem}>
-              <Cover
-                item={mv}
-                type="mv"
-                size="100%"
-                aspectRatio={16 / 9}
-              />
-            </div>
+            <Col key={mv.id}>
+              <Cover item={mv as any} type="mv" aspectRatio={16 / 9} />
+            </Col>
           ))}
-        </div>
+        </Row>
       ) : (
         !loading && (
           <Empty
