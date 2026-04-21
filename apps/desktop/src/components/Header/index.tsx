@@ -1,5 +1,6 @@
 import {
   AppstoreOutlined,
+  AudioOutlined,
   CrownFilled,
   CrownOutlined,
   CustomerServiceOutlined,
@@ -46,6 +47,7 @@ import {
   useSubsonicAdapter,
   type ImportTask,
   type SearchResults as SearchResultsType,
+  speechToText,
 } from "@soundx/services";
 import {
   Button,
@@ -377,6 +379,11 @@ const Header: React.FC = () => {
     { keyword: string; count: number }[]
   >([]);
 
+  // ASR Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   // Mode state: 'music' | 'audiobook'
   const { mode: playMode, setMode: setPlayMode } = usePlayMode();
   const isRadioMode = usePlayerStore((state) => state.isRadioMode);
@@ -588,6 +595,55 @@ const Header: React.FC = () => {
   };
 
   // Search handlers
+  const handleToggleRecord = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          stream.getTracks().forEach(track => track.stop());
+          
+          try {
+            message.loading({ content: t('header.recognizing', '正在识别...'), key: 'asr' });
+            
+            const file = new File([audioBlob], 'record.webm', { type: 'audio/webm' });
+            const text = await speechToText(file);
+            
+            if (text) {
+              message.success({ content: t('header.recognizeSuccess', '识别成功'), key: 'asr' });
+              setSearchKeyword(text);
+              performSearch(text);
+            } else {
+              message.error({ content: t('header.recognizeFailed', '识别失败'), key: 'asr' });
+            }
+          } catch (error) {
+            console.error('ASR error:', error);
+            message.error({ content: t('header.recognizeError', '识别发生错误'), key: 'asr' });
+          }
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+      } catch (error) {
+        console.error('Microphone access denied:', error);
+        message.error(t('header.micAccessDenied', '无法访问麦克风'));
+      }
+    }
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchKeyword(value);
@@ -778,7 +834,19 @@ const Header: React.FC = () => {
       </div>
 
       {/* Search Bar */}
-      <div className={styles.searchBar} ref={searchContainerRef}>
+      <div className={styles.searchBar} ref={searchContainerRef} style={{ display: 'flex', alignItems: 'center' }}>
+        <Tooltip title={isRecording ? t('header.stopRecord', '停止录音') : t('header.startRecord', '语音搜索')}>
+          <div
+            onClick={handleToggleRecord}
+            style={{
+              padding: '0 8px',
+              cursor: 'pointer',
+              color: isRecording ? token.colorError : token.colorTextSecondary,
+            }}
+          >
+            <AudioOutlined style={{ fontSize: 16 }} />
+          </div>
+        </Tooltip>
         <Input
           prefix={
             <SearchOutlined style={{ color: token.colorTextSecondary }} />
