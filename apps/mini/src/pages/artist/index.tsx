@@ -1,4 +1,4 @@
-import { Album, Artist, Track, getAlbumsByArtist, getArtistById, getCollaborativeAlbumsByArtist, getTracksByArtist } from '@soundx/services';
+import { Album, Artist, Track, getAlbumsByArtist, getArtistById, getCollaborativeAlbumsByArtist, getTracksByArtist, Mv, getMvsByArtist } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
@@ -20,6 +20,7 @@ export default function ArtistDetail() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [collabAlbums, setCollabAlbums] = useState<Album[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [mvs, setMvs] = useState<Mv[]>([]);
   const [loading, setLoading] = useState(true);
   const [scrollIntoView, setScrollIntoView] = useState('');
 
@@ -44,6 +45,10 @@ export default function ArtistDetail() {
              if (albumsRes.code === 200) setAlbums(albumsRes.data);
              if (collabRes.code === 200) setCollabAlbums(collabRes.data);
              if (tracksRes.code === 200) setTracks(tracksRes.data);
+             
+             getMvsByArtist(artistRes.data.name).then((res: any[]) => {
+                 if (res?.length) setMvs(res);
+             }).catch((e: any) => console.error(e));
         }
       }
     } catch (e) {
@@ -126,6 +131,24 @@ export default function ArtistDetail() {
                              >
                                  <Image src={getImageUrl(album.cover)} className='album-cover' mode='aspectFill' />
                                  <Text className='album-name' numberOfLines={1}>{album.name}</Text>
+                             </View>
+                         ))}
+                     </ScrollView>
+                 </View>
+             )}
+
+             {mvs.length > 0 && (
+                 <View className='section'>
+                     <Text className='section-title'>MV ({mvs.length})</Text>
+                     <ScrollView scrollX className='horizontal-list'>
+                         {mvs.map(mv => (
+                             <View 
+                                key={mv.id} 
+                                className='album-card'
+                                onClick={() => Taro.navigateTo({ url: `/pages/mv/index?id=${mv.id}` })}
+                             >
+                                 <Image src={getImageUrl(mv.cover)} className='album-cover mv-cover' mode='aspectFill' />
+                                 <Text className='album-name' numberOfLines={1}>{mv.name}</Text>
                              </View>
                          ))}
                      </ScrollView>

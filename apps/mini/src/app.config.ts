@@ -12,6 +12,7 @@ export default defineAppConfig({
     'pages/artist/index',
     'pages/album/index',
     'pages/collection/index',
+    'pages/mv/index',
     'pages/playlist/index',
     'pages/folder/index',
     'pages/settings/index',

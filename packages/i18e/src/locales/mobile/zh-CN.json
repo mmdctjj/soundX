@@ -330,6 +330,7 @@
     "errorLabel": "错误：",
     "localFiles": "本地文件",
     "webdavFiles": "WebDAV 文件",
+    "mvFiles": "MV 文件",
     "totalProgress": "总进度",
     "processing": "正在处理: {{name}}",
     "backgroundRun": "后台运行"

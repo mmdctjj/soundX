@@ -14,6 +14,7 @@ services:
       - TXT_BASE_DIR=/txt
       - AUDIO_BOOK_DIR=/audio
       - MUSIC_BASE_DIR=/music
+      - MV_BASE_DIR=/mv
       - CACHE_DIR=/covers
       - DATABASE_URL=file:/app/packages/db/prisma/dev.db
       - JWT_SECRET=/.jwt_secret
@@ -21,6 +22,7 @@ services:
       - STRM_ADDRESS=http://192.168.1.12:5244
       - WEBDAV_MUSIC_URL=http://192.168.1.12:5005/音乐
       - WEBDAV_AUDIOBOOK_URL=http://192.168.1.12:5005/有声书
+      - WEBDAV_MV_URL=http://192.168.1.12:5005/视频
       - WEBDAV_USER=admin
       - WEBDAV_PASSWORD=123456
       - DISABLE_TTS=${DISABLE_TTS:-false}
@@ -37,6 +39,7 @@ services:
       - /volume1/txt:/txt
       - /volume1/audio:/audio
       - /volume1/music:/music
+      - /volume1/mv:/mv
       - ./covers:/covers
       - app-db:/app/packages/db/prisma
       - ./.jwt_secret:/.jwt_secret

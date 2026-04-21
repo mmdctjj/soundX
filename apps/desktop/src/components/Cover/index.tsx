@@ -31,7 +31,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
-import { TrackType, type Album, type Track } from "../../models";
+import { TrackType, type Album, type Track, type Mv } from "../../models";
 import { resolveArtworkUri } from "../../services/trackResolver";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
@@ -41,13 +41,15 @@ import styles from "./index.module.less";
 const { Title } = Typography;
 
 interface CoverComponent extends React.FC<{
-  item: Album | Track;
-  size?: number;
+  item: Album | Track | Mv;
+  size?: number | string;
   isTrack?: boolean;
   isHistory?: boolean;
-  onClick?: (item: Album | Track) => void;
+  type?: "album" | "track" | "mv";
+  aspectRatio?: number;
+  onClick?: (item: Album | Track | Mv) => void;
 }> {
-  Skeleton: React.FC;
+  Skeleton: React.FC<{ size?: number | string; aspectRatio?: number }>;
 }
 
 const Cover: CoverComponent = ({
@@ -55,6 +57,8 @@ const Cover: CoverComponent = ({
   size,
   isTrack = false,
   isHistory = false,
+  type,
+  aspectRatio = 1,
   onClick,
 }) => {
   const message = useMessage();
@@ -111,6 +115,10 @@ const Cover: CoverComponent = ({
     if (collectionModalOpen) return;
     if (onClick) {
       onClick(item);
+      return;
+    }
+    if (type === "mv") {
+      navigate(`/mv/${item.id}`);
       return;
     }
     if (isTrack) {
@@ -276,7 +284,7 @@ const Cover: CoverComponent = ({
     }
   };
 
-  const menuItems: MenuProps["items"] = [
+  const menuItems: MenuProps["items"] = type === 'mv' ? [] : [
     {
       key: "play",
       label: t('cover.play'),
@@ -332,7 +340,7 @@ const Cover: CoverComponent = ({
     <div
       className={styles.coverContainer}
       onClick={handleClick}
-      style={size ? { width: size } : undefined}
+      style={{ width: size || 170 }}
     >
       <input
         id={`cover-input-${item.id}`}
@@ -341,14 +349,15 @@ const Cover: CoverComponent = ({
         style={{ display: "none" }}
         onChange={handleCoverFileChange}
       />
-      <div className={styles.imageWrapper}>
+      <div className={styles.imageWrapper} style={{ paddingBottom: `${(1 / aspectRatio) * 100}%` }}>
         <img
           src={
-            resolveArtworkUri(item) ||
+            resolveArtworkUri(item as any) ||
             `https://picsum.photos/seed/${item.id}/300/300`
           }
           alt={item.name}
           className={styles.image}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
         />
         {!isTrack &&
           (item as Album).progress !== undefined &&
@@ -460,11 +469,11 @@ const Cover: CoverComponent = ({
   );
 };
 
-Cover.Skeleton = () => {
+Cover.Skeleton = ({ size, aspectRatio = 1 }) => {
   return (
-    <div>
-      <div className={styles.skeletonWrapper}>
-        <Skeleton.Node active className={styles.skeletonNode}>
+    <div style={{ width: size || 170 }}>
+      <div className={styles.skeletonWrapper} style={{ paddingBottom: `${(1 / aspectRatio) * 100}%`, height: 0, position: 'relative' }}>
+        <Skeleton.Node active className={styles.skeletonNode} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
           <div style={{ width: "100%", height: "100%" }} />
         </Skeleton.Node>
       </div>

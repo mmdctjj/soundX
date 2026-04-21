@@ -1,4 +1,4 @@
-import { Album, Track, getAlbumById, getAlbumTracks } from '@soundx/services';
+import { Album, Track, getAlbumById, getAlbumTracks, Mv, getMvsByAlbum } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
@@ -20,6 +20,8 @@ export default function AlbumDetail() {
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [mvs, setMvs] = useState<Mv[]>([]);
+  const [activeTab, setActiveTab] = useState<'tracks' | 'mvs'>('tracks');
   const [loading, setLoading] = useState(true);
   const [scrollIntoView, setScrollIntoView] = useState('');
 
@@ -37,7 +39,14 @@ export default function AlbumDetail() {
           getAlbumTracks(albumId, 200, 0, 'asc', undefined, user?.id)
       ]);
 
-      if (albumRes.code === 200) setAlbum(albumRes.data);
+      if (albumRes.code === 200) {
+        setAlbum(albumRes.data);
+        if (albumRes.data?.name) {
+          getMvsByAlbum(albumRes.data.name, albumRes.data.artist).then((res: any) => {
+            if (res?.length) setMvs(res);
+          }).catch((e: any) => console.error(e));
+        }
+      }
       if (tracksRes.code === 200) setTracks(tracksRes.data.list);
     } catch (e) {
       console.error(e);
@@ -96,38 +105,76 @@ export default function AlbumDetail() {
                  <Text className='artist'>{album.artist}</Text>
                  
                  <View className='actions'>
-                     <View className='album-play-all-btn' onClick={handlePlayAll}>
-                         <Text className='album-play-icon icon icon-play' />
-                         <Text className='album-play-text'>{t('album.playAll')}</Text>
-                     </View>
+                     {activeTab === 'tracks' && (
+                       <View className='album-play-all-btn' onClick={handlePlayAll}>
+                           <Text className='album-play-icon icon icon-play' />
+                           <Text className='album-play-text'>{t('album.playAll')}</Text>
+                       </View>
+                     )}
                      <View className='like-btn'>
                          <Text className='like-icon icon icon-heart' />
                      </View>
                  </View>
              </View>
 
+             {mvs.length > 0 && (
+               <View className='tabs'>
+                 <View 
+                   className={`tab-item ${activeTab === 'tracks' ? 'active' : ''}`}
+                   onClick={() => setActiveTab('tracks')}
+                 >
+                   <Text className='tab-text'>{t('nav.tracks')} ({tracks.length})</Text>
+                 </View>
+                 <View 
+                   className={`tab-item ${activeTab === 'mvs' ? 'active' : ''}`}
+                   onClick={() => setActiveTab('mvs')}
+                 >
+                   <Text className='tab-text'>MV ({mvs.length})</Text>
+                 </View>
+               </View>
+             )}
+
              <View className='track-list'>
-                 {tracks.map((track, index) => (
+                 {activeTab === 'mvs' ? (
+                   mvs.map((mv, index) => (
                      <View 
-                        key={track.id} 
-                        id={`track-${index}`}
+                        key={mv.id} 
                         className='track-item'
-                        onClick={() => playTrackList(tracks, index)}
+                        onClick={() => Taro.navigateTo({ url: `/pages/mv/index?id=${mv.id}` })}
                      >
                         <View className='track-idx-container'>
-                            {currentTrack?.id === track.id && isPlaying ? (
-                                <Text className='active-icon icon icon-music' />
-                            ) : (
-                                <Text className={`track-index ${currentTrack?.id === track.id ? 'active' : ''}`}>{index + 1}</Text>
-                            )}
+                            <Text className='track-index'>{index + 1}</Text>
                         </View>
-                         <Image src={getImageUrl(track.cover)} className='track-cover' mode='aspectFill' />
-                         <View className='track-info'>
-                             <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
-                         </View>
-                         <Text className='track-duration'>{formatDuration(track.duration || 0)}</Text>
+                        <Image src={getImageUrl(mv.cover)} className='track-cover mv-cover' mode='aspectFill' style={{ width: '80rpx', height: '60rpx', borderRadius: '8rpx' }} />
+                        <View className='track-info' style={{ marginLeft: '20rpx' }}>
+                            <Text className='track-name' numberOfLines={1}>{mv.name}</Text>
+                        </View>
+                        <Text className='track-duration'>{formatDuration(mv.duration || 0)}</Text>
                      </View>
-                 ))}
+                   ))
+                 ) : (
+                   tracks.map((track, index) => (
+                       <View 
+                          key={track.id} 
+                          id={`track-${index}`}
+                          className='track-item'
+                          onClick={() => playTrackList(tracks as any, index)}
+                       >
+                          <View className='track-idx-container'>
+                              {currentTrack?.id === track.id && isPlaying ? (
+                                  <Text className='active-icon icon icon-music' />
+                              ) : (
+                                  <Text className={`track-index ${currentTrack?.id === track.id ? 'active' : ''}`}>{index + 1}</Text>
+                              )}
+                          </View>
+                           <Image src={getImageUrl(track.cover)} className='track-cover' mode='aspectFill' />
+                           <View className='track-info'>
+                               <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
+                           </View>
+                           <Text className='track-duration'>{formatDuration(track.duration || 0)}</Text>
+                       </View>
+                   ))
+                 )}
              </View>
 
              <View id='bottom-anchor' />

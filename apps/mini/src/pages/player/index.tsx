@@ -355,9 +355,14 @@ export default function Player() {
                     </View>
                     <View className='player-action-btns'>
                         {currentTrack.type !== 'AUDIOBOOK' && (
-                          <View className='player-action-btn' onClick={handleToggleLike}>
-                              <Text className={`player-action-icon icon ${liked ? 'icon-heart-filled' : 'icon-heart'}`} />
-                          </View>
+                          <>
+                            <View className='player-action-btn' onClick={() => Taro.navigateTo({ url: `/pages/mv/index?trackId=${currentTrack.id}` })}>
+                                <Text className='player-action-icon icon icon-video' />
+                            </View>
+                            <View className='player-action-btn' onClick={handleToggleLike}>
+                                <Text className={`player-action-icon icon ${liked ? 'icon-heart-filled' : 'icon-heart'}`} />
+                            </View>
+                          </>
                         )}
                         <View className='player-action-btn' onClick={() => setShowMoreMenu(!showMoreMenu)}>
                             <Text className='player-action-icon icon icon-more-h' />

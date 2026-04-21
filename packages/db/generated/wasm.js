@@ -292,6 +292,24 @@ exports.Prisma.TtsTaskScalarFieldEnum = {
   options: 'options'
 };
 
+exports.Prisma.MvScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  path: 'path',
+  artist: 'artist',
+  album: 'album',
+  cover: 'cover',
+  duration: 'duration',
+  createdAt: 'createdAt',
+  fileModifiedAt: 'fileModifiedAt',
+  fileHash: 'fileHash',
+  status: 'status',
+  trashedAt: 'trashedAt',
+  artistId: 'artistId',
+  albumId: 'albumId',
+  trackId: 'trackId'
+};
+
 exports.Prisma.TtsChapterTaskScalarFieldEnum = {
   id: 'id',
   taskId: 'taskId',
@@ -341,6 +359,7 @@ exports.Prisma.ModelName = {
   Folder: 'Folder',
   TtsUserConfig: 'TtsUserConfig',
   TtsTask: 'TtsTask',
+  Mv: 'Mv',
   TtsChapterTask: 'TtsChapterTask'
 };
 

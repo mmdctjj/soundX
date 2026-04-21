@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { spawn } from 'child_process';
 import { LogMethod } from '../common/log-method.decorator';
 import { AlbumService } from './album';
 import { ArtistService } from './artist';
@@ -30,6 +31,8 @@ export interface ImportTask {
   localCurrent?: number;
   webdavTotal?: number;
   webdavCurrent?: number;
+  mvTotal?: number;
+  mvCurrent?: number;
   currentFileName?: string;
   mode?: 'incremental' | 'full' | 'compact';
 }
@@ -108,11 +111,18 @@ export class ImportService implements OnModuleInit {
         this.logger.log('Library is empty. Triggering initial WebDAV Audiobook scan...');
         this.startWebDAVImport(cachePath, TrackType.AUDIOBOOK).catch(e => this.logger.error('WebDAV Audiobook initial scan failed', e));
       }
+      if (process.env.WEBDAV_MV_URL) {
+        this.logger.log('Library is empty. Triggering initial WebDAV MV scan...');
+        this.startWebDAVImport(cachePath, TrackType.MUSIC, undefined, true).catch(e => this.logger.error('WebDAV MV initial scan failed', e));
+      }
     }
   }
 
-  private async startWebDAVImport(cachePath: string, type: TrackType, taskId?: string) {
-    const webdavUrl = type === TrackType.AUDIOBOOK ? process.env.WEBDAV_AUDIOBOOK_URL : process.env.WEBDAV_MUSIC_URL;
+  private async startWebDAVImport(cachePath: string, type: TrackType, taskId?: string, isMvDir = false) {
+    const webdavUrl = isMvDir 
+      ? process.env.WEBDAV_MV_URL 
+      : (type === TrackType.AUDIOBOOK ? process.env.WEBDAV_AUDIOBOOK_URL : process.env.WEBDAV_MUSIC_URL);
+      
     if (!webdavUrl) return;
 
     const task = taskId ? this.tasks.get(taskId) : null;
@@ -124,20 +134,31 @@ export class ImportService implements OnModuleInit {
       cachePath
     );
 
-    this.logger.log(`Starting WebDAV ${type} scan: ${webdavUrl}`);
+    this.logger.log(`Starting WebDAV ${isMvDir ? 'MV' : type} scan: ${webdavUrl}`);
     await scanner.scan('/', async (item) => {
       if (task) {
         task.currentFileName = item.title || path.basename(item.path);
       }
+      
+      const isMvFile = /\.(mp4|mkv|avi|webm)$/i.test(item.path);
+      
       // Folder ID is null for WebDAV for now as it doesn't map to local folder tree easily
       await this.processTrackData(item, type, '', cachePath, item.path, null, '');
 
       if (task) {
-        task.webdavCurrent = (task.webdavCurrent || 0) + 1;
+        if (isMvFile || isMvDir) {
+          task.mvCurrent = (task.mvCurrent || 0) + 1;
+          if (!isMvDir) {
+            task.mvTotal = (task.mvTotal || 0) + 1;
+            task.webdavTotal = (task.webdavTotal || 0) - 1;
+          }
+        } else {
+          task.webdavCurrent = (task.webdavCurrent || 0) + 1;
+        }
         task.current = (task.current || 0) + 1;
       }
     });
-    this.logger.log(`WebDAV ${type} scan completed.`);
+    this.logger.log(`WebDAV ${isMvDir ? 'MV' : type} scan completed.`);
   }
 
   private async generateMissingHashes() {
@@ -186,6 +207,7 @@ export class ImportService implements OnModuleInit {
   createTask(
     musicPaths: string[] | string,
     audiobookPaths: string[] | string,
+    mvPaths: string[] | string,
     cachePath: string,
     mode: 'incremental' | 'full' | 'compact' = 'incremental'
   ): string {
@@ -194,8 +216,9 @@ export class ImportService implements OnModuleInit {
 
     const normalizedMusicPaths = this.normalizePathInput(musicPaths);
     const normalizedAudiobookPaths = this.normalizePathInput(audiobookPaths);
+    const normalizedMvPaths = this.normalizePathInput(mvPaths);
 
-    this.startImport(id, normalizedMusicPaths, normalizedAudiobookPaths, cachePath, mode).catch(err => {
+    this.startImport(id, normalizedMusicPaths, normalizedAudiobookPaths, normalizedMvPaths, cachePath, mode).catch(err => {
       console.error("Unhandled import error", err);
     });
 
@@ -286,12 +309,12 @@ export class ImportService implements OnModuleInit {
   }
 
   @LogMethod()
-  setupWatcher(musicPaths: string[], audiobookPaths: string[], cachePath: string) {
+  setupWatcher(musicPaths: string[], audiobookPaths: string[], mvPaths: string[], cachePath: string) {
     if (this.watcher) {
       this.watcher.close();
     }
 
-    const paths = [...musicPaths, ...audiobookPaths].filter(p => fs.existsSync(p));
+    const paths = [...musicPaths, ...audiobookPaths, ...mvPaths].filter(p => fs.existsSync(p));
     this.logger.log(`Starting file watcher on: ${paths.join(', ')}`);
 
     this.watcher = chokidar.watch(paths, {
@@ -316,6 +339,9 @@ export class ImportService implements OnModuleInit {
     const getBasePathAndType = (filePath: string): { basePath: string, type: TrackType } | null => {
       const musicBase = findBasePath(filePath, musicPaths);
       const audiobookBase = findBasePath(filePath, audiobookPaths);
+      const mvBase = findBasePath(filePath, mvPaths);
+
+      if (mvBase) return { basePath: mvBase, type: TrackType.MUSIC }; // Treating MV as MUSIC for now or add a new type if necessary
 
       if (musicBase && audiobookBase) {
         return musicBase.length >= audiobookBase.length
@@ -350,7 +376,7 @@ export class ImportService implements OnModuleInit {
       .on('add', async (filePath) => {
         const info = getBasePathAndType(filePath);
         if (info) {
-          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm)$/i.test(filePath)) {
+          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
             this.logger.log(`[Watcher] File added: ${filePath}`);
             await this.handleFileAdd(filePath, info.basePath, info.type, cachePath);
           } else if (/\.(jpg|jpeg|png|webp)$/i.test(filePath)) {
@@ -366,7 +392,7 @@ export class ImportService implements OnModuleInit {
         const info = getBasePathAndType(filePath);
 
         if (info) {
-          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm)$/i.test(filePath)) {
+          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
             try {
               // 检查函数是否存在
               if (typeof this.handleFileChange !== 'function') {
@@ -389,24 +415,25 @@ export class ImportService implements OnModuleInit {
       })
       .on('unlink', async (filePath) => {
         this.logger.log(`[Watcher] File unlinked: ${filePath}`);
-        if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm)$/i.test(filePath)) {
-          await this.handleFileUnlink(filePath, musicPaths, audiobookPaths);
+        if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
+          await this.handleFileUnlink(filePath, musicPaths, audiobookPaths, mvPaths);
         } else if (/\.(jpg|jpeg|png|webp)$/i.test(filePath)) {
           await this.handleImageUnlink(filePath, cachePath);
         } else if (/\.(lrc|txt)$/i.test(filePath)) {
           await this.handleLyricUnlink(filePath);
         }
       })
-      .on('error', (error: NodeJS.ErrnoException) => {
-        const targetPath = typeof error?.path === 'string' ? error.path : undefined;
+      .on('error', (error: unknown) => {
+        const err = error as NodeJS.ErrnoException;
+        const targetPath = typeof err?.path === 'string' ? err.path : undefined;
 
-        if (isRecoverableWatchError(error)) {
-          this.logger.warn(`Watcher hit a recoverable filesystem error${targetPath ? ` on ${targetPath}` : ''}: ${error.code}`);
+        if (isRecoverableWatchError(err)) {
+          this.logger.warn(`Watcher hit a recoverable filesystem error${targetPath ? ` on ${targetPath}` : ''}: ${err.code}`);
           safeUnwatch(targetPath);
           return;
         }
 
-        this.logger.error('Watcher encountered a fatal error', error);
+        this.logger.error('Watcher encountered a fatal error', err);
       });
   }
 
@@ -519,7 +546,7 @@ export class ImportService implements OnModuleInit {
     }
   }
 
-  private async handleFileUnlink(filePath: string, musicPaths: string[], audiobookPaths: string[]) {
+  private async handleFileUnlink(filePath: string, musicPaths: string[], audiobookPaths: string[], mvPaths: string[]) {
     const findBasePath = (basePaths: string[]): string | null => {
       const matches = basePaths.filter((basePath) => filePath.startsWith(basePath));
       if (matches.length === 0) return null;
@@ -529,14 +556,32 @@ export class ImportService implements OnModuleInit {
     let url = '';
     const musicBase = findBasePath(musicPaths);
     const audiobookBase = findBasePath(audiobookPaths);
+    const mvBase = findBasePath(mvPaths);
 
-    if (musicBase && (!audiobookBase || musicBase.length >= audiobookBase.length)) {
+    if (mvBase) {
+      url = this.convertToHttpUrl(filePath, 'music', mvBase); // assuming mv is served under music or mv route
+    } else if (musicBase && (!audiobookBase || musicBase.length >= audiobookBase.length)) {
       url = this.convertToHttpUrl(filePath, 'music', musicBase);
     } else if (audiobookBase) {
       url = this.convertToHttpUrl(filePath, 'audio', audiobookBase);
     }
 
     if (!url) return;
+
+    // Check if it's an MV
+    if (/\.(mp4|mkv|avi|webm)$/i.test(filePath)) {
+      const mv = await this.prisma.mv.findFirst({
+        where: { path: url, status: FileStatus.ACTIVE }
+      });
+      if (mv) {
+        this.logger.log(`[Watcher] Soft deleting MV ${mv.id} (${mv.name})`);
+        await this.prisma.mv.update({
+          where: { id: mv.id },
+          data: { status: FileStatus.TRASHED, trashedAt: new Date() }
+        });
+      }
+      return;
+    }
 
     const track = await this.prisma.track.findFirst({
       where: {
@@ -723,6 +768,7 @@ export class ImportService implements OnModuleInit {
     id: string,
     musicPaths: string[],
     audiobookPaths: string[],
+    mvPaths: string[],
     cachePath: string,
     mode: 'incremental' | 'full' | 'compact'
   ) {
@@ -758,9 +804,13 @@ export class ImportService implements OnModuleInit {
       const audiobookCount = (await Promise.all(
         audiobookPaths.map((audiobookPath) => this.scanner!.countFiles(audiobookPath))
       )).reduce((sum, count) => sum + count, 0);
+      const mvCount = (await Promise.all(
+        mvPaths.map((mvPath) => this.scanner!.countFiles(mvPath))
+      )).reduce((sum, count) => sum + count, 0);
 
       let webdavMusicCount = 0;
       let webdavAudiobookCount = 0;
+      let webdavMvCount = 0;
 
       if (process.env.WEBDAV_MUSIC_URL) {
         task.message = '正在统计 WebDAV 音乐文件...';
@@ -772,19 +822,35 @@ export class ImportService implements OnModuleInit {
         const wdScanner = new WebDAVScanner(process.env.WEBDAV_AUDIOBOOK_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
         webdavAudiobookCount = await wdScanner.count('/');
       }
+      if (process.env.WEBDAV_MV_URL) {
+        task.message = '正在统计 WebDAV MV 文件...';
+        const wdScanner = new WebDAVScanner(process.env.WEBDAV_MV_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
+        webdavMvCount = await wdScanner.count('/');
+      }
 
       task.localTotal = musicCount + audiobookCount;
       task.webdavTotal = webdavMusicCount + webdavAudiobookCount;
-      task.total = task.localTotal + task.webdavTotal;
+      task.mvTotal = mvCount + webdavMvCount;
+      task.total = task.localTotal + task.webdavTotal + task.mvTotal;
 
       task.localCurrent = 0;
       task.webdavCurrent = 0;
+      task.mvCurrent = 0;
       task.current = 0;
       task.status = TaskStatus.PARSING;
       task.message = '正在解析媒体文件...';
 
       const processItem = async (item: ScanResult, type: TrackType, audioBasePath: string, isWebDAV = false) => {
         const audioUrl = item.path.startsWith('http') ? item.path : this.convertToHttpUrl(item.originalPath || item.path, type === TrackType.AUDIOBOOK ? 'audio' : 'music', audioBasePath);
+        
+        // If it's an MV, handle it differently and return early
+        if (/\.(mp4|mkv|avi|webm)$/i.test(item.path)) {
+          const hash = isWebDAV ? '' : await this.calculateFingerprint(item.originalPath || item.path);
+          await this.processMvData(item, audioBasePath, cachePath, audioUrl, hash, isWebDAV);
+          task.current = (task.current || 0) + 1;
+          return null;
+        }
+
         const folderId = isWebDAV ? null : await this.getFolderId(item.originalPath || item.path, audioBasePath, type);
         const hash = isWebDAV ? '' : await this.calculateFingerprint(item.originalPath || item.path);
 
@@ -813,12 +879,24 @@ export class ImportService implements OnModuleInit {
         });
       }
 
+      for (const mvPath of mvPaths) {
+        await this.scanner.scanMv(mvPath, async (item) => {
+          task.currentFileName = item.title || path.basename(item.path);
+          // type is MUSIC since it belongs to music mode
+          await processItem(item, TrackType.MUSIC, mvPath);
+          task.mvCurrent = (task.mvCurrent || 0) + 1;
+        });
+      }
+
       // Trigger WebDAV scans as part of the same task flow
       if (process.env.WEBDAV_MUSIC_URL) {
         await this.startWebDAVImport(cachePath, TrackType.MUSIC, id);
       }
       if (process.env.WEBDAV_AUDIOBOOK_URL) {
         await this.startWebDAVImport(cachePath, TrackType.AUDIOBOOK, id);
+      }
+      if (process.env.WEBDAV_MV_URL) {
+        await this.startWebDAVImport(cachePath, TrackType.MUSIC, id, true);
       }
 
       // Cleanup orphans if it's a full update
@@ -828,7 +906,7 @@ export class ImportService implements OnModuleInit {
       }
 
       task.status = TaskStatus.SUCCESS;
-      this.setupWatcher(musicPaths, audiobookPaths, cachePath);
+      this.setupWatcher(musicPaths, audiobookPaths, mvPaths, cachePath);
 
     } catch (error) {
       console.error('Import failed:', error);
@@ -1026,7 +1104,162 @@ export class ImportService implements OnModuleInit {
     }
   }
 
+  private async extractVideoThumbnail(videoPath: string, cachePath: string): Promise<string | null> {
+    return new Promise((resolve) => {
+      const fileName = `${randomUUID()}.jpg`;
+      const outputPath = path.join(cachePath, fileName);
+      
+      const ffmpeg = spawn('ffmpeg', [
+        '-i', videoPath,
+        '-ss', '00:00:10.000', // Take frame at 10 seconds to avoid black frames and intros
+        '-vframes', '1',
+        '-q:v', '2', // High quality
+        '-y', // Overwrite
+        outputPath
+      ]);
+
+      ffmpeg.on('close', (code) => {
+        if (code === 0 && fs.existsSync(outputPath)) {
+          resolve(outputPath);
+        } else {
+          resolve(null);
+        }
+      });
+
+      ffmpeg.on('error', () => {
+        resolve(null);
+      });
+    });
+  }
+
+  private async processMvData(item: ScanResult, audioBasePath: string, cachePath: string, audioUrl: string, hash: string, isWebDAV: boolean = false): Promise<number | null> {
+    const artistName = item.artist || '未知';
+    const albumName = item.album || '未知';
+    
+    // 1. Meta data cover
+    let finalCoverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
+    
+    // 2. Track cover (Find track by name and artist)
+    let trackId: number | null = null;
+    const matchedTrack = await this.prisma.track.findFirst({
+      where: {
+        name: item.title || path.basename(item.path),
+        artist: artistName,
+        status: FileStatus.ACTIVE
+      }
+    });
+
+    if (matchedTrack) {
+      trackId = matchedTrack.id;
+      if (!finalCoverUrl && matchedTrack.cover) {
+        finalCoverUrl = matchedTrack.cover;
+      }
+    }
+
+    // 3. Ffmpeg Video Thumbnail
+    if (!finalCoverUrl && !isWebDAV) {
+       const thumbnailPath = await this.extractVideoThumbnail(item.originalPath || item.path, cachePath);
+       if (thumbnailPath) {
+         finalCoverUrl = this.convertToHttpUrl(thumbnailPath, 'cover', cachePath);
+       }
+    }
+
+    const artistDelimiters = /[&,、]|\s+and\s+/i;
+    const individualArtists = artistName.split(artistDelimiters).map(s => s.trim()).filter(s => s);
+    let mvPrimaryArtist: any = null;
+
+    if (individualArtists.length === 0) individualArtists.push(artistName);
+
+    for (const name of individualArtists) {
+      let art = await this.artistService.findByName(name, TrackType.MUSIC, true);
+      if (!art) {
+        art = await this.artistService.createArtist({
+          name: name,
+          avatar: finalCoverUrl,
+          type: TrackType.MUSIC,
+          status: FileStatus.ACTIVE,
+          trashedAt: null
+        });
+      } else if (art.status === FileStatus.TRASHED) {
+        await this.artistService.updateArtist(art.id, { status: FileStatus.ACTIVE, trashedAt: null });
+      }
+      if (!mvPrimaryArtist) mvPrimaryArtist = art;
+    }
+
+    const artist = mvPrimaryArtist;
+
+    // Resolve Album
+    const albumGroupArtist = item.albumArtist || artistName;
+    let album = await this.albumService.findByName(albumName, albumGroupArtist, TrackType.MUSIC, true);
+    if (!album) {
+      album = await this.albumService.createAlbum({
+        name: albumName,
+        artist: albumGroupArtist,
+        cover: finalCoverUrl,
+        year: item.year ? String(item.year) : null,
+        type: TrackType.MUSIC,
+        status: FileStatus.ACTIVE,
+        trashedAt: null
+      });
+    } else if (album.status === FileStatus.TRASHED) {
+      await this.albumService.updateAlbum(album.id, { status: FileStatus.ACTIVE, trashedAt: null });
+    }
+
+    let existingMv = hash ? await this.prisma.mv.findFirst({ where: { fileHash: hash } }) : null;
+    if (!existingMv) {
+      existingMv = await this.prisma.mv.findFirst({ where: { path: audioUrl } });
+    }
+
+    if (existingMv) {
+      await this.prisma.mv.update({
+        where: { id: existingMv.id },
+        data: {
+          path: audioUrl,
+          status: FileStatus.ACTIVE,
+          trashedAt: null,
+          fileHash: hash || existingMv.fileHash,
+          fileModifiedAt: item?.mtime ? new Date(item.mtime) : new Date(),
+          name: item.title || path.basename(item.path),
+          duration: Math.round(item.duration || 0),
+          artistId: artist.id,
+          artist: artist.name,
+          albumId: album.id,
+          album: album.name,
+          cover: finalCoverUrl || existingMv.cover,
+          trackId: trackId
+        }
+      });
+      return existingMv.id;
+    } else {
+      const createdMv = await this.prisma.mv.create({
+        data: {
+          name: item.title || path.basename(item.path),
+          path: audioUrl,
+          artist: artist.name,
+          album: album.name,
+          cover: finalCoverUrl,
+          duration: Math.round(item.duration || 0),
+          createdAt: new Date(),
+          fileModifiedAt: item?.mtime ? new Date(item.mtime) : null,
+          artistId: artist.id,
+          albumId: album.id,
+          fileHash: hash,
+          status: FileStatus.ACTIVE,
+          trashedAt: null,
+          trackId: trackId
+        }
+      });
+      return createdMv.id;
+    }
+  }
+
   private async processTrackData(item: ScanResult, type: TrackType, audioBasePath: string, cachePath: string, audioUrl: string, folderId: number | null, hash: string): Promise<number | null> {
+    // If it's an MV, handle it differently and return early
+    if (/\.(mp4|mkv|avi|webm)$/i.test(item.path)) {
+      const isWebDAV = !hash && audioUrl.startsWith('http'); // Basic heuristic, or we can just pass it
+      await this.processMvData(item, audioBasePath, cachePath, audioUrl, hash, isWebDAV);
+      return null;
+    }
     const artistName = item.artist || '未知';
     const albumName = item.album || '未知';
     const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;

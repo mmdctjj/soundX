@@ -8,7 +8,8 @@ import {
   HeartOutlined,
   PlusOutlined,
   SoundOutlined,
-  TeamOutlined
+  TeamOutlined,
+  VideoCameraOutlined
 } from "@ant-design/icons";
 import { createPlaylist, TrackType } from "@soundx/services";
 import { Form, Input, Modal, theme, Typography } from "antd";
@@ -109,12 +110,20 @@ const Sidebar: React.FC = () => {
         />
         {
           mode === TrackType.MUSIC && (
-            <MenuItem
-              icon={<AudioOutlined />}
-              text={t("nav.tracks")}
-              onClick={() => navigate("/songs")}
-              active={isActive("/songs")}
-            />
+            <>
+              <MenuItem
+                icon={<AudioOutlined />}
+                text={t("nav.tracks")}
+                onClick={() => navigate("/songs")}
+                active={isActive("/songs")}
+              />
+              <MenuItem
+                icon={<VideoCameraOutlined />}
+                text="MV"
+                onClick={() => navigate("/mvs")}
+                active={isActive("/mvs")}
+              />
+            </>
           )
         }
       </div>

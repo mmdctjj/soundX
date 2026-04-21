@@ -335,6 +335,7 @@
     "importProgress": "数据入库进度",
     "localFileProgress": "本地文件入库进度",
     "webdavFileProgress": "WebDAV 文件入库进度",
+    "mvFileProgress": "MV 入库进度",
     "totalProgress": "总进度",
     "processing": "正在处理:",
     "status": "状态:",

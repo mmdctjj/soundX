@@ -322,6 +322,7 @@
     "errorLabel": "Error: ",
     "localFiles": "Local Files",
     "webdavFiles": "WebDAV Files",
+    "mvFiles": "MV Files",
     "totalProgress": "Total Progress",
     "processing": "Processing: {{name}}",
     "backgroundRun": "Run in background"

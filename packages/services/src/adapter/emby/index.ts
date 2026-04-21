@@ -6,6 +6,7 @@ import { EmbyCollectionAdapter } from "./collection";
 import { EmbyPlaylistAdapter } from "./playlist";
 import { EmbyTrackAdapter } from "./track";
 import { EmbyAuthAdapter, EmbyUserAdapter } from "./user-auth";
+import { EmbyMvAdapter } from "./mv";
 
 export class EmbyMusicAdapter implements IMusicAdapter {
   track: EmbyTrackAdapter;
@@ -15,6 +16,7 @@ export class EmbyMusicAdapter implements IMusicAdapter {
   collection: EmbyCollectionAdapter;
   user: EmbyUserAdapter;
   auth: EmbyAuthAdapter;
+  mv: EmbyMvAdapter;
   client: EmbyClient;
 
   constructor(config?: EmbyConfig) {
@@ -26,6 +28,7 @@ export class EmbyMusicAdapter implements IMusicAdapter {
     this.collection = new EmbyCollectionAdapter();
     this.user = new EmbyUserAdapter(this.client);
     this.auth = new EmbyAuthAdapter(this.client);
+    this.mv = new EmbyMvAdapter();
   }
 }
 
