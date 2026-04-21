@@ -1383,6 +1383,21 @@ export default function PersonalScreen() {
               </View>
               <View
                 style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 4,
+                }}
+              >
+                <Text style={{ color: colors.secondary, fontSize: 12 }}>
+                  {t("personalPage.mvFiles")}
+                </Text>
+                <Text style={{ color: colors.text, fontSize: 12 }}>
+                  {importTask?.mvCurrent || 0} /{" "}
+                  {importTask?.mvTotal || 0}
+                </Text>
+              </View>
+              <View
+                style={{
                   height: 1,
                   backgroundColor: colors.border,
                   marginVertical: 4,

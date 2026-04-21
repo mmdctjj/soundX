@@ -104,7 +104,7 @@ export class LocalMusicScanner {
             const stat = fs.statSync(fullPath);
             if (stat.isDirectory()) {
               traverseCount(fullPath);
-            } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm)$/i.test(file)) {
+            } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(file)) {
               count++;
             }
           } catch (e) {
@@ -196,7 +196,26 @@ export class LocalMusicScanner {
         return scanResult;
       }
 
-      const metadata = await music.parseFile(filePath);
+      let metadata: any;
+      try {
+        metadata = await music.parseFile(filePath);
+      } catch (err) {
+        if (/\.(mp4|mkv|avi|webm)$/i.test(ext)) {
+          // Fallback for video files that music-metadata might not support
+          return {
+            path: filePath,
+            originalPath: filePath,
+            size: fs.statSync(filePath).size,
+            mtime: fs.statSync(filePath).mtime,
+            title: path.basename(filePath, ext),
+            artist: '未知',
+            album: '未知',
+            duration: 0,
+          };
+        }
+        throw err;
+      }
+
       const common = metadata.common;
 
       let coverPath = null;
@@ -444,7 +463,7 @@ export class WebDAVScanner {
       for (const item of contents) {
         if (item.type === 'directory') {
           count += await this.count(item.filename);
-        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4)$/i.test(item.filename)) {
+        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm)$/i.test(item.filename)) {
           count++;
         }
       }
@@ -461,7 +480,7 @@ export class WebDAVScanner {
       for (const item of contents) {
         if (item.type === 'directory') {
           await this.scan(item.filename, callback);
-        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4)$/i.test(item.filename)) {
+        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm)$/i.test(item.filename)) {
           const result = await this.parseRemoteFile(item);
           if (result) {
             await callback(result);

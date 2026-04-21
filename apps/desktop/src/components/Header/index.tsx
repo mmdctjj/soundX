@@ -1272,6 +1272,15 @@ const Header: React.FC = () => {
                   {importTask?.webdavTotal || 0}
                 </Text>
               </Flex>
+              <Flex justify="space-between" align="center">
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {t('header.mvFileProgress')}
+                </Text>
+                <Text style={{ fontSize: 13 }}>
+                  {importTask?.mvCurrent || 0} /{" "}
+                  {importTask?.mvTotal || 0}
+                </Text>
+              </Flex>
               <Flex
                 justify="space-between"
                 align="center"
