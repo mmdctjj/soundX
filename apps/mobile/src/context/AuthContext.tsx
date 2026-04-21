@@ -16,6 +16,7 @@ import * as Device from 'expo-device';
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { getBaseURL, initBaseURL, setBaseURL } from "../https";
 import { User } from "../models";
+import { selectBestServer } from "../utils/networkUtils";
 
 interface AuthContextType {
   user: User | null;
@@ -116,9 +117,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const loadAuthData = async () => {
     try {
       await initBaseURL(); // Initialize base URL first
-      const savedAddress = getBaseURL();
+      let savedAddress = getBaseURL();
       const savedType = (await AsyncStorage.getItem("selectedSourceType")) || "AudioDock";
       setSourceTypeDirectly(savedType);
+
+      // --- Auto Switch Data Source (Internal/External) on Startup ---
+      try {
+        const configKey = `sourceConfig_${savedType}`;
+        const configStr = await AsyncStorage.getItem(configKey);
+        if (configStr) {
+          const parsed = JSON.parse(configStr);
+          const configList = Array.isArray(parsed) ? parsed : [parsed];
+          // Find the config block that corresponds to the currently saved address, 
+          // or fallback to the first config block.
+          const matchedConfig = configList.find(c => c.internal === savedAddress || c.external === savedAddress) || configList[0];
+          
+          if (matchedConfig && (matchedConfig.internal || matchedConfig.external)) {
+            const bestAddress = await selectBestServer(matchedConfig.internal || "", matchedConfig.external || "", savedType);
+            if (bestAddress && bestAddress !== savedAddress) {
+              console.log(`[AutoSwitch] Switching from ${savedAddress} to ${bestAddress}`);
+              
+              // Migrate token and user to the new address if they don't exist yet
+              const oldToken = await AsyncStorage.getItem(`token_${savedAddress}`);
+              const oldUser = await AsyncStorage.getItem(`user_${savedAddress}`);
+              const oldDevice = await AsyncStorage.getItem(`device_${savedAddress}`);
+              const oldCreds = await AsyncStorage.getItem(`creds_${savedType}_${savedAddress}`);
+              
+              const newToken = await AsyncStorage.getItem(`token_${bestAddress}`);
+              if (!newToken && oldToken) {
+                await AsyncStorage.setItem(`token_${bestAddress}`, oldToken);
+                if (oldUser) await AsyncStorage.setItem(`user_${bestAddress}`, oldUser);
+                if (oldDevice) await AsyncStorage.setItem(`device_${bestAddress}`, oldDevice);
+                if (oldCreds) await AsyncStorage.setItem(`creds_${savedType}_${bestAddress}`, oldCreds);
+              }
+
+              savedAddress = bestAddress;
+              setBaseURL(bestAddress);
+              await AsyncStorage.setItem("serverAddress", bestAddress);
+              await AsyncStorage.setItem(`serverAddress_${savedType}`, bestAddress);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to auto-switch data source on startup:", e);
+      }
+      // --------------------------------------------------------------
 
       const savedToken = await AsyncStorage.getItem(`token_${savedAddress}`);
       const savedUser = await AsyncStorage.getItem(`user_${savedAddress}`);

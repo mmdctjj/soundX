@@ -3,7 +3,8 @@ import Taro from '@tarojs/taro'
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { User } from '../models'
-import { setBaseURL } from '../utils/request'
+import { setBaseURL, getBaseURL } from '../utils/request'
+import { selectBestServer } from '../utils/sourceUtils'
 
 interface AuthContextType {
   user: User | null
@@ -44,11 +45,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const loadAuthData = async () => {
     try {
-      const serverAddress = Taro.getStorageSync('serverAddress')
+      let serverAddress = Taro.getStorageSync('serverAddress')
       const sourceType = Taro.getStorageSync('currentSourceType') || 'AudioDock'
       if (serverAddress) {
         setBaseURL(serverAddress)
       }
+
+      // --- Auto Switch Data Source (Internal/External) on Startup ---
+      try {
+        const configKey = `sourceConfig_${sourceType}`;
+        const configStr = Taro.getStorageSync(configKey);
+        if (configStr) {
+          const parsed = JSON.parse(configStr);
+          const configList = Array.isArray(parsed) ? parsed : [parsed];
+          const matchedConfig = configList.find((c: any) => c.internal === serverAddress || c.external === serverAddress) || configList[0];
+          
+          if (matchedConfig && (matchedConfig.internal || matchedConfig.external)) {
+            const bestAddress = await selectBestServer(matchedConfig.internal || "", matchedConfig.external || "", sourceType);
+            if (bestAddress && bestAddress !== serverAddress) {
+              console.log(`[AutoSwitch] Switching from ${serverAddress} to ${bestAddress}`);
+              
+              // Migrate creds to the new address if they don't exist yet
+              const oldCreds = Taro.getStorageSync(`creds_${sourceType}_${serverAddress || ''}`);
+              const newCreds = Taro.getStorageSync(`creds_${sourceType}_${bestAddress}`);
+              if (!newCreds && oldCreds) {
+                Taro.setStorageSync(`creds_${sourceType}_${bestAddress}`, oldCreds);
+              }
+
+              serverAddress = bestAddress;
+              setBaseURL(bestAddress);
+              Taro.setStorageSync('serverAddress', bestAddress);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to auto-switch data source on startup:", e);
+      }
+      // --------------------------------------------------------------
 
       // 加载凭证并切换适配器
       const mappedType = SOURCEMAP[sourceType as keyof typeof SOURCEMAP] || 'audiodock'
