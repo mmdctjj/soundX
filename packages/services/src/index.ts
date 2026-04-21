@@ -10,6 +10,7 @@ export * from "./folder";
 export * from "./import";
 export * from "./llm";
 export * from "./models";
+export * from "./mv";
 export * from "./playlist";
 export * from "./plus";
 export * from "./request";

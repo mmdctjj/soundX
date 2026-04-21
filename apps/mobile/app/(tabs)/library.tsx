@@ -3,7 +3,7 @@ import { CachedImage } from "@/src/components/CachedImage";
 import { FloatingActionButtons } from "@/src/components/FloatingActionButtons";
 import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { Ionicons } from "@expo/vector-icons";
-import { getArtistList, getCollections, loadMoreAlbum, loadMoreTrack } from "@soundx/services";
+import { getArtistList, getCollections, loadMoreAlbum, loadMoreTrack, getMvList } from "@soundx/services";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -810,6 +810,116 @@ const CollectionList = () => {
   );
 };
 
+const MvList = () => {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const [mvs, setMvs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Calculate columns dynamically
+  const availableWidth = width - SCREEN_PADDING;
+  const numColumns = Math.max(
+    3,
+    Math.floor((availableWidth + GAP) / (TARGET_WIDTH + GAP)),
+  );
+  const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
+
+  useEffect(() => {
+    loadMvs();
+  }, []);
+
+  const loadMvs = async () => {
+    try {
+      setLoading(true);
+      const res = await getMvList(1000, 0);
+      if (res?.list) {
+        setMvs(res.list);
+      }
+    } catch (error) {
+      console.error("Failed to load mvs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <GridListSkeleton itemWidth={itemWidth} numColumns={numColumns} />;
+  }
+
+  return (
+    <View style={styles.listContainer}>
+      <FlatList
+        data={mvs}
+        numColumns={numColumns}
+        key={`mv-list-${numColumns}`}
+        columnWrapperStyle={{ gap: GAP, marginBottom: 15 }}
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={({ item }) => {
+          return (
+            <TouchableOpacity
+              style={{ width: itemWidth }}
+              onPress={() =>
+                router.push({
+                  pathname: "/mv/[id]",
+                  params: { id: String(item.id) },
+                })
+              }
+            >
+              <View
+                style={[
+                  styles.albumImageContainer,
+                  { width: itemWidth, height: itemWidth },
+                ]}
+              >
+                <CachedImage
+                  source={{
+                    uri: getImageUrl(
+                      item.cover,
+                      `https://picsum.photos/seed/mv-${item.id}/200/200`,
+                    ),
+                  }}
+                  style={[
+                    styles.albumImage,
+                    {
+                      width: itemWidth,
+                      height: itemWidth,
+                      backgroundColor: colors.card,
+                    },
+                  ]}
+                />
+              </View>
+              <Text
+                style={[styles.collectionTitle, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {item.name}
+              </Text>
+              <Text
+                style={[styles.collectionMeta, { color: colors.secondary }]}
+                numberOfLines={1}
+              >
+                {item.artist || t("common.unknownArtist")}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+        ListFooterComponent={
+          <View style={styles.listFooter}>
+            <Text style={[styles.listFooterText, { color: colors.secondary }]}>
+              {t("libraryPage.loadedMvs", { count: mvs.length })}
+            </Text>
+          </View>
+        }
+      />
+    </View>
+  );
+};
+
 export default function LibraryScreen() {
   const { colors, theme } = useTheme();
   const { t } = useTranslation();
@@ -823,14 +933,16 @@ export default function LibraryScreen() {
     artists: number | null;
     albums: number | null;
     collections: number | null;
+    mvs: number | null;
   }>({
     songs: null,
     artists: null,
     albums: null,
     collections: null,
+    mvs: null,
   });
-  const [activeTab, setActiveTab] = useState<"songs" | "artists" | "albums" | "collections">(
-    "songs",
+  const [activeTab, setActiveTab] = useState<"songs" | "artists" | "albums" | "collections" | "mvs">(
+    "songs"
   );
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<(number | string)[]>(
@@ -887,7 +999,7 @@ export default function LibraryScreen() {
 
     const loadTabCounts = async () => {
       try {
-        const [trackRes, artistRes, albumRes, collectionRes] = await Promise.all([
+        const [trackRes, artistRes, albumRes, collectionRes, mvRes] = await Promise.all([
           mode === "MUSIC"
             ? loadMoreTrack({
                 pageSize: 1,
@@ -904,6 +1016,9 @@ export default function LibraryScreen() {
           mode === "AUDIOBOOK" && user
             ? getCollections(user.id)
             : Promise.resolve(null),
+          mode === "MUSIC"
+            ? getMvList(1, 0)
+            : Promise.resolve(null)
         ]);
 
         if (cancelled) return;
@@ -926,6 +1041,10 @@ export default function LibraryScreen() {
           collections:
             mode === "AUDIOBOOK"
               ? (collectionRes?.code === 200 ? collectionRes.data?.length ?? 0 : 0)
+              : null,
+          mvs:
+            mode === "MUSIC"
+              ? (mvRes?.list?.length ? mvRes.total : 0)
               : null,
         });
       } catch (error) {
@@ -1141,6 +1260,17 @@ export default function LibraryScreen() {
           >
             {renderTabLabel(t("nav.albums"), tabCounts.albums, activeTab === "albums")}
           </TouchableOpacity>
+          {mode === "MUSIC" && (
+            <TouchableOpacity
+              style={[
+                styles.segmentItem,
+                activeTab === "mvs" && { backgroundColor: colors.primary },
+              ]}
+              onPress={() => setActiveTab("mvs")}
+            >
+              {renderTabLabel("MV", tabCounts.mvs, activeTab === "mvs")}
+            </TouchableOpacity>
+          )}
           {mode === "AUDIOBOOK" && (
             <TouchableOpacity
               style={[
@@ -1180,6 +1310,8 @@ export default function LibraryScreen() {
             setHeartbeatModeActive((prev) => !prev)
           }
         />
+      ) : activeTab === "mvs" ? (
+        <MvList />
       ) : (
         <CollectionList />
       )}

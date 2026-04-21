@@ -1,4 +1,4 @@
-import { Album, Artist, Track, getCollections, loadMoreAlbum, loadMoreArtist, loadMoreTrack } from '@soundx/services';
+import { Album, Artist, Track, getCollections, loadMoreAlbum, loadMoreArtist, loadMoreTrack, Mv, getMvList } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useMemo, useState } from 'react';
@@ -23,7 +23,7 @@ type CollectionItem = {
   _count?: { items?: number };
 };
 
-type LibraryTab = 'songs' | 'artists' | 'albums' | 'collections';
+type LibraryTab = 'songs' | 'artists' | 'albums' | 'collections' | 'mvs';
 
 export default function Library() {
   const { t } = useTranslation();
@@ -36,8 +36,9 @@ export default function Library() {
     artists: null,
     albums: null,
     collections: null,
+    mvs: null,
   });
-  const [sortedItems, setSortedItems] = useState<(Artist | Album | Track | CollectionItem)[]>([]);
+  const [sortedItems, setSortedItems] = useState<(Artist | Album | Track | CollectionItem | Mv)[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -121,6 +122,16 @@ export default function Library() {
           setHasMore(res.data.hasMore ?? newItems.length < (res.data.total || 0));
           setLoadCount((isLoadMore ? loadCount : 0) + 1);
         }
+      } else if (activeTab === 'mvs') {
+        const res = await getMvList(50, isLoadMore ? loadCount * 50 : 0);
+        if (res && res.list) {
+          const list = res.list as Mv[];
+          const newItems = isLoadMore ? [...sortedItems, ...list] : list;
+          setSortedItems(newItems);
+          setTotal(res.total || newItems.length);
+          setHasMore(newItems.length < (res.total || 0));
+          setLoadCount((isLoadMore ? loadCount : 0) + 1);
+        }
       } else if (user) {
         const res = await getCollections(user.id);
         if (res.code === 200 && res.data) {
@@ -174,7 +185,7 @@ export default function Library() {
 
     const loadTabCounts = async () => {
       try {
-        const [trackRes, artistRes, albumRes, collectionRes] = await Promise.all([
+        const [trackRes, artistRes, albumRes, collectionRes, mvRes] = await Promise.all([
           loadMoreTrack({
             pageSize: 1,
             loadCount: 0,
@@ -191,6 +202,7 @@ export default function Library() {
             type: mode,
           }),
           mode === 'AUDIOBOOK' && user ? getCollections(user.id) : Promise.resolve(null),
+          mode === 'MUSIC' ? getMvList(1, 0) : Promise.resolve(null)
         ]);
 
         if (cancelled) return;
@@ -213,6 +225,10 @@ export default function Library() {
           collections:
             mode === 'AUDIOBOOK'
               ? (collectionRes?.code === 200 ? collectionRes.data?.length || 0 : 0)
+              : null,
+          mvs:
+            mode === 'MUSIC'
+              ? mvRes?.total || mvRes?.list?.length || 0
               : null,
         });
       } catch (error) {
@@ -346,6 +362,14 @@ export default function Library() {
             >
                 {renderTabLabel(t('nav.albums'), tabCounts.albums, activeTab === 'albums')}
             </View>
+            {mode === 'MUSIC' && (
+              <View
+                className={`tab-item ${activeTab === 'mvs' ? 'active' : ''}`}
+                onClick={() => setActiveTab('mvs')}
+              >
+                {renderTabLabel('MV', tabCounts.mvs, activeTab === 'mvs')}
+              </View>
+            )}
             {mode === 'AUDIOBOOK' && (
               <View
                 className={`tab-item ${activeTab === 'collections' ? 'active' : ''}`}
@@ -455,11 +479,11 @@ export default function Library() {
                      id={`item-${item.id}`}
                      className='grid-item'
                      onClick={() => {
-                       const url = activeTab === 'artists'
-                         ? `/pages/artist/index?id=${item.id}`
-                         : activeTab === 'collections'
-                           ? `/pages/collection/index?id=${item.id}`
-                           : `/pages/album/index?id=${item.id}`;
+                       let url = '';
+                       if (activeTab === 'artists') url = `/pages/artist/index?id=${item.id}`;
+                       else if (activeTab === 'collections') url = `/pages/collection/index?id=${item.id}`;
+                       else if (activeTab === 'mvs') url = `/pages/mv/index?id=${item.id}`;
+                       else url = `/pages/album/index?id=${item.id}`;
                        Taro.navigateTo({ url });
                      }}
                    >
@@ -482,7 +506,7 @@ export default function Library() {
                          />
                        </View>
                      ) : null}
-                     <Text className={`item-name ${activeTab === 'albums' || activeTab === 'collections' ? 'album' : ''}`} numberOfLines={1}>
+                     <Text className={`item-name ${activeTab === 'albums' || activeTab === 'collections' || activeTab === 'mvs' ? 'album' : ''}`} numberOfLines={1}>
                        {item.name}
                      </Text>
                      {activeTab === 'albums' ? (
@@ -492,6 +516,10 @@ export default function Library() {
                      ) : activeTab === 'collections' ? (
                        <Text className='item-sub' numberOfLines={1}>
                          {`${item._count?.items ?? item.items?.length ?? 0} ${t('library.albums')}`}
+                       </Text>
+                     ) : activeTab === 'mvs' ? (
+                       <Text className='item-sub' numberOfLines={1}>
+                         {item.artist || t('common.unknownArtist')}
                        </Text>
                      ) : null}
                    </View>

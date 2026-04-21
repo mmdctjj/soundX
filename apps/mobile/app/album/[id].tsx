@@ -20,6 +20,7 @@ import {
   toggleAlbumLike,
   toggleAlbumUnLike,
   uploadAlbumCover,
+  getMvsByAlbum,
 } from "@soundx/services";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -51,6 +52,8 @@ export default function AlbumDetailScreen() {
   const { user, sourceType } = useAuth();
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [mvs, setMvs] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"tracks" | "mvs">("tracks");
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -93,6 +96,15 @@ export default function AlbumDetailScreen() {
           (like: any) => like.userId === user?.id
         );
         setIsLiked(isLikedByCurrentUser);
+        
+        // load MVs
+        if (albumRes.data?.name) {
+            getMvsByAlbum(albumRes.data.name, albumRes.data.artist).then((res: any[]) => {
+                if (res?.length) {
+                    setMvs(res);
+                }
+            }).catch((e: any) => console.error(e));
+        }
       }
       if (tracksRes.code === 200) {
         setTracks(tracksRes.data.list);
@@ -313,7 +325,7 @@ export default function AlbumDetailScreen() {
       </View>
       <FlatList
         ref={flatListRef}
-        data={tracks}
+        data={activeTab === 'mvs' ? mvs : tracks}
         keyExtractor={(item) => item.id.toString()}
         onScrollToIndexFailed={(info) => {
           flatListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: true });
@@ -348,223 +360,272 @@ export default function AlbumDetailScreen() {
               {album.artist}
             </Text>
             <View style={styles.actions}>
-              <TouchableOpacity
-                style={[
-                  styles.playAllButton,
-                  { backgroundColor: colors.primary },
-                ]}
-                onPress={() => {
-                  let startTrackIndex = 0;
-                  let startTime = 0;
+              {activeTab === "tracks" ? (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.playAllButton,
+                      { backgroundColor: colors.primary },
+                    ]}
+                    onPress={() => {
+                      let startTrackIndex = 0;
+                      let startTime = 0;
 
-                  // Check if needs resume
-                  const resumeTrackId = album.resumeTrackId;
-                  const resumeProgress = album.resumeProgress;
+                      // Check if needs resume
+                      const resumeTrackId = album.resumeTrackId;
+                      const resumeProgress = album.resumeProgress;
 
-                  if (resumeTrackId) {
-                    const foundIndex = tracks.findIndex(
-                      (t) => t.id === resumeTrackId
-                    );
-                    if (foundIndex !== -1) {
-                      startTrackIndex = foundIndex;
-                      startTime = resumeProgress || 0;
-                    }
-                  }
+                      if (resumeTrackId) {
+                        const foundIndex = tracks.findIndex(
+                          (t) => t.id === resumeTrackId
+                        );
+                        if (foundIndex !== -1) {
+                          startTrackIndex = foundIndex;
+                          startTime = resumeProgress || 0;
+                        }
+                      }
 
-                  playTrackList(tracks, startTrackIndex).then(() => {
-                    if (startTime > 0) {
-                      // Small delay to ensure track is loaded
-                      setTimeout(() => seekTo(startTime), 500);
-                    }
-                  });
-                }}
-              >
-                <Ionicons name="play" size={20} color={colors.background} />
-                <Text
-                  style={[styles.playAllText, { color: colors.background }]}
-                >
-                  {album.resumeTrackId ? t("albumPage.continuePlaying") : t("albumPage.playAll")}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.likeButton, { backgroundColor: colors.card }]}
-                onPress={handleToggleLike}
-              >
-                <Ionicons
-                  name={isLiked ? "heart" : "heart-outline"}
-                  size={24}
-                  color={isLiked ? colors.primary : colors.secondary}
-                />
-              </TouchableOpacity>
-              {!isSelectionMode ? (
-                <TouchableOpacity
-                  style={[styles.likeButton, { backgroundColor: colors.card }]}
-                  onPress={() => {
-                    setIsSelectionMode(true);
-                    setSelectedTrackIds([]);
-                  }}
-                >
-                  <Ionicons
-                    name="list-outline"
-                    size={24}
-                    color={colors.secondary}
-                  />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.likeButton, { backgroundColor: colors.card }]}
-                  onPress={() => {
-                    if (selectedTrackIds?.length === tracks.length) {
-                      setSelectedTrackIds([]);
-                    } else {
-                      setSelectedTrackIds(tracks.map((t) => t.id));
-                    }
-                  }}
-                >
-                  <Ionicons
-                    name="list-outline"
-                    size={24}
-                    color={colors.secondary}
-                  />
-                </TouchableOpacity>
-              )}
-              <View
-                style={[styles.likeButton, { backgroundColor: colors.card, flexDirection: 'row', width: 'auto', paddingHorizontal: 15 }]}
-              >
-                <TouchableOpacity 
-                   style={{ flexDirection: 'row', alignItems: 'center' }}
-                   onPress={() => {
-                        const sequence: ("id" | "index" | "episodeNumber")[] = ["episodeNumber", "index", "id"];
-                        const next = sequence[(sequence.indexOf(sortBy) + 1) % sequence.length];
-                        setSortBy(next);
+                      playTrackList(tracks, startTrackIndex).then(() => {
+                        if (startTime > 0) {
+                          // Small delay to ensure track is loaded
+                          setTimeout(() => seekTo(startTime), 500);
+                        }
+                      });
                     }}
-                >
-                    <Text style={{ color: colors.secondary, fontSize: 12, marginRight: 5 }}>
-                    {sortBy === 'id' ? t("albumPage.sortAdded") : sortBy === 'index' ? t("albumPage.sortAlbum") : t("albumPage.sortOptimized")}
+                  >
+                    <Ionicons name="play" size={20} color={colors.background} />
+                    <Text
+                      style={[styles.playAllText, { color: colors.background }]}
+                    >
+                      {album.resumeTrackId ? t("albumPage.continuePlaying") : t("albumPage.playAll")}
                     </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.likeButton, { backgroundColor: colors.card }]}
+                    onPress={handleToggleLike}
+                  >
+                    <Ionicons
+                      name={isLiked ? "heart" : "heart-outline"}
+                      size={24}
+                      color={isLiked ? colors.primary : colors.secondary}
+                    />
+                  </TouchableOpacity>
+                  {!isSelectionMode ? (
+                    <TouchableOpacity
+                      style={[styles.likeButton, { backgroundColor: colors.card }]}
+                      onPress={() => {
+                        setIsSelectionMode(true);
+                        setSelectedTrackIds([]);
+                      }}
+                    >
+                      <Ionicons
+                        name="list-outline"
+                        size={24}
+                        color={colors.secondary}
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.likeButton, { backgroundColor: colors.card }]}
+                      onPress={() => {
+                        if (selectedTrackIds?.length === tracks.length) {
+                          setSelectedTrackIds([]);
+                        } else {
+                          setSelectedTrackIds(tracks.map((t) => t.id));
+                        }
+                      }}
+                    >
+                      <Ionicons
+                        name="list-outline"
+                        size={24}
+                        color={colors.secondary}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <View
+                    style={[styles.likeButton, { backgroundColor: colors.card, flexDirection: 'row', width: 'auto', paddingHorizontal: 15 }]}
+                  >
+                    <TouchableOpacity 
+                       style={{ flexDirection: 'row', alignItems: 'center' }}
+                       onPress={() => {
+                            const sequence: ("id" | "index" | "episodeNumber")[] = ["episodeNumber", "index", "id"];
+                            const next = sequence[(sequence.indexOf(sortBy) + 1) % sequence.length];
+                            setSortBy(next);
+                        }}
+                    >
+                        <Text style={{ color: colors.secondary, fontSize: 12, marginRight: 5 }}>
+                        {sortBy === 'id' ? t("albumPage.sortAdded") : sortBy === 'index' ? t("albumPage.sortAlbum") : t("albumPage.sortOptimized")}
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setSort(sort === 'asc' ? 'desc' : 'asc')}>
+                      <Ionicons
+                        name={sort === "asc" ? "arrow-up" : "arrow-down"}
+                        size={16}
+                        color={colors.secondary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : null}
+            </View>
+            
+            {mvs.length > 0 && (
+              <View style={{ flexDirection: 'row', marginTop: 20, width: '100%', borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <TouchableOpacity 
+                  style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderBottomWidth: activeTab === 'tracks' ? 2 : 0, borderBottomColor: colors.primary }}
+                  onPress={() => setActiveTab('tracks')}
+                >
+                  <Text style={{ color: activeTab === 'tracks' ? colors.primary : colors.secondary, fontWeight: activeTab === 'tracks' ? 'bold' : 'normal' }}>
+                    {t('nav.tracks')} ({total})
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setSort(sort === 'asc' ? 'desc' : 'asc')}>
-                  <Ionicons
-                    name={sort === "asc" ? "arrow-up" : "arrow-down"}
-                    size={16}
-                    color={colors.secondary}
-                  />
+                <TouchableOpacity 
+                  style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderBottomWidth: activeTab === 'mvs' ? 2 : 0, borderBottomColor: colors.primary }}
+                  onPress={() => setActiveTab('mvs')}
+                >
+                  <Text style={{ color: activeTab === 'mvs' ? colors.primary : colors.secondary, fontWeight: activeTab === 'mvs' ? 'bold' : 'normal' }}>
+                    MV ({mvs.length})
+                  </Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            )}
           </View>
         }
-        renderItem={({ item, index }) => (
-          <TouchableOpacity
-            style={[styles.trackItem, { borderBottomColor: colors.border }]}
-            onPress={() => {
-              if (isSelectionMode) {
-                toggleTrackSelection(item.id);
-                return;
-              }
-              playTrackList(tracks, index);
-              // If Audiobook and has progress, try to resume
-              if (
-                album.type === "AUDIOBOOK" &&
-                ((item as any).progress > 0 ||
-                  item.listenedAsAudiobookByUsers?.[0]?.progress)
-              ) {
-                const progress =
-                  (item as any).progress ||
-                  item.listenedAsAudiobookByUsers?.[0]?.progress;
-                if (progress > 0) {
-                  setTimeout(() => seekTo(progress), 500);
-                }
-              }
-            }}
-            onLongPress={() => {
-              if (isSelectionMode) return;
-              setSelectedTrack(item);
-              setMoreModalVisible(true);
-            }}
-          >
-            <View style={styles.trackIndexContainer}>
-              {isSelectionMode ? (
-                <Ionicons
-                  name={
-                    selectedTrackIds.includes(item.id)
-                      ? "checkbox"
-                      : "square-outline"
-                  }
-                  size={20}
-                  color={
-                    selectedTrackIds.includes(item.id)
-                      ? colors.primary
-                      : colors.secondary
-                  }
+        renderItem={({ item, index }) => {
+          if (activeTab === 'mvs') {
+            return (
+              <TouchableOpacity
+                style={[styles.trackItem, { borderBottomColor: colors.border }]}
+                onPress={() => router.push({ pathname: "/mv/[id]", params: { id: String(item.id) } } as any)}
+              >
+                <View style={styles.trackIndexContainer}>
+                  <Text style={[styles.trackIndex, { color: colors.secondary }]}>{index + 1}</Text>
+                </View>
+                <Image
+                  source={{ uri: getImageUrl(item.cover, `https://picsum.photos/seed/mv-${item.id}/40/30`) }}
+                  style={{ width: 40, height: 30, borderRadius: 2 }}
                 />
-              ) : currentTrack?.id === item.id && isPlaying ? (
-                <PlayingIndicator />
-              ) : (
+                <View style={styles.trackInfo}>
+                  <Text style={[styles.trackName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
+                </View>
+                <Text style={[styles.trackDuration, { color: colors.secondary }]}>
+                  {item.duration ? `${Math.floor(item.duration / 60)}:${(item.duration % 60).toString().padStart(2, "0")}` : "--:--"}
+                </Text>
+              </TouchableOpacity>
+            );
+          }
+          return (
+            <TouchableOpacity
+              style={[styles.trackItem, { borderBottomColor: colors.border }]}
+              onPress={() => {
+                if (isSelectionMode) {
+                  toggleTrackSelection(item.id);
+                  return;
+                }
+                playTrackList(tracks, index);
+                // If Audiobook and has progress, try to resume
+                if (
+                  album.type === "AUDIOBOOK" &&
+                  ((item as any).progress > 0 ||
+                    item.listenedAsAudiobookByUsers?.[0]?.progress)
+                ) {
+                  const progress =
+                    (item as any).progress ||
+                    item.listenedAsAudiobookByUsers?.[0]?.progress;
+                  if (progress > 0) {
+                    setTimeout(() => seekTo(progress), 500);
+                  }
+                }
+              }}
+              onLongPress={() => {
+                if (isSelectionMode) return;
+                setSelectedTrack(item as Track);
+                setMoreModalVisible(true);
+              }}
+            >
+              <View style={styles.trackIndexContainer}>
+                {isSelectionMode ? (
+                  <Ionicons
+                    name={
+                      selectedTrackIds.includes(item.id)
+                        ? "checkbox"
+                        : "square-outline"
+                    }
+                    size={20}
+                    color={
+                      selectedTrackIds.includes(item.id)
+                        ? colors.primary
+                        : colors.secondary
+                    }
+                  />
+                ) : currentTrack?.id === item.id && isPlaying ? (
+                  <PlayingIndicator />
+                ) : (
+                  <Text
+                    style={[
+                      styles.trackIndex,
+                      {
+                        color:
+                          currentTrack?.id === item.id
+                            ? colors.primary
+                            : colors.secondary,
+                      },
+                    ]}
+                  >
+                    {index + 1}
+                  </Text>
+                )}
+              </View>
+              <Image
+                source={{
+                  uri: getImageUrl(item.cover, `https://picsum.photos/seed/${item.id}/20/20`),
+                }}
+                alt=""
+                style={{ width: 20, height: 20, borderRadius: 2 }}
+              />
+              <View style={styles.trackInfo}>
                 <Text
                   style={[
-                    styles.trackIndex,
+                    styles.trackName,
                     {
                       color:
-                        currentTrack?.id === item.id
-                          ? colors.primary
-                          : colors.secondary,
+                        album.type === "AUDIOBOOK" &&
+                        ((item as any).progress > 0 ||
+                          item.listenedAsAudiobookByUsers?.[0]?.progress)
+                          ? colors.secondary
+                          : colors.text,
                     },
                   ]}
+                  numberOfLines={1}
                 >
-                  {index + 1}
+                  {item.name}
                 </Text>
-              )}
-            </View>
-            <Image
-              source={{
-                uri: getImageUrl(item.cover, `https://picsum.photos/seed/${item.id}/20/20`),
-              }}
-              alt=""
-              style={{ width: 20, height: 20, borderRadius: 2 }}
-            />
-            <View style={styles.trackInfo}>
-              <Text
-                style={[
-                  styles.trackName,
-                  {
-                    color:
-                      album.type === "AUDIOBOOK" &&
-                      ((item as any).progress > 0 ||
-                        item.listenedAsAudiobookByUsers?.[0]?.progress)
-                        ? colors.secondary
-                        : colors.text,
-                  },
-                ]}
-                numberOfLines={1}
-              >
-                {item.name}
+              </View>
+              {album.type === "AUDIOBOOK" && (() => {
+                const displayProgress = currentTrack?.id === item.id ? position : ((item as any).progress || item.listenedAsAudiobookByUsers?.[0]?.progress || 0);
+                if (displayProgress <= 0) return null;
+                return (
+                  <View style={{ marginRight: 10 }}>
+                    <Text style={{ fontSize: 10, color: colors.primary }}>
+                      {t("playerPage.listened")}
+                      {Math.floor(
+                        (displayProgress / (item.duration || 1)) * 100
+                      )}
+                      %
+                    </Text>
+                  </View>
+                );
+              })()}
+              <Text style={[styles.trackDuration, { color: colors.secondary }]}>
+                {item.duration
+                  ? `${Math.floor(item.duration / 60)}:${(item.duration % 60)
+                      .toString()
+                      .padStart(2, "0")}`
+                  : "--:--"}
               </Text>
-            </View>
-            {album.type === "AUDIOBOOK" && (() => {
-              const displayProgress = currentTrack?.id === item.id ? position : ((item as any).progress || item.listenedAsAudiobookByUsers?.[0]?.progress || 0);
-              if (displayProgress <= 0) return null;
-              return (
-                <View style={{ marginRight: 10 }}>
-                  <Text style={{ fontSize: 10, color: colors.primary }}>
-                    {t("playerPage.listened")}
-                    {Math.floor(
-                      (displayProgress / (item.duration || 1)) * 100
-                    )}
-                    %
-                  </Text>
-                </View>
-              );
-            })()}
-            <Text style={[styles.trackDuration, { color: colors.secondary }]}>
-              {item.duration
-                ? `${Math.floor(item.duration / 60)}:${(item.duration % 60)
-                    .toString()
-                    .padStart(2, "0")}`
-                : "--:--"}
-            </Text>
-          </TouchableOpacity>
-        )}
+            </TouchableOpacity>
+          );
+        }}
         ListFooterComponent={
           loadingMore ? (
             <View style={{ padding: 20 }}>

@@ -20,6 +20,7 @@ import {
     getCollections,
     getTracksByArtist,
     uploadArtistAvatar,
+    getMvsByArtist,
 } from "@soundx/services";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -53,6 +54,7 @@ export default function ArtistDetailScreen() {
   const [collaborativeAlbums, setCollaborativeAlbums] = useState<Album[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [relatedCollections, setRelatedCollections] = useState<any[]>([]);
+  const [mvs, setMvs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [moreModalVisible, setMoreModalVisible] = useState(false);
@@ -120,6 +122,14 @@ export default function ArtistDetailScreen() {
           if (collaborativeRes.code === 200)
             setCollaborativeAlbums(collaborativeRes.data);
           if (tracksRes.code === 200) setTracks(tracksRes.data);
+          
+          if (artistQueryKey) {
+            getMvsByArtist(artistQueryKey).then((res: any[]) => {
+              if (res?.length) {
+                setMvs(res);
+              }
+            }).catch((e: any) => console.error(e));
+          }
         }
       }
     } catch (error) {
@@ -462,6 +472,50 @@ export default function ArtistDetailScreen() {
                   </TouchableOpacity>
                 );
               })}
+            </ScrollView>
+          </View>
+        )}
+
+        {mvs.length > 0 && (
+          <View style={styles.section}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: colors.text, paddingHorizontal: 20 },
+              ]}
+            >
+              MV ({mvs.length})
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ paddingHorizontal: 20, paddingBottom: 20 }}
+            >
+              {mvs.map((mv) => (
+                <TouchableOpacity
+                  key={mv.id}
+                  style={styles.albumCard}
+                  onPress={() => router.push({ pathname: "/mv/[id]", params: { id: String(mv.id) } } as any)}
+                >
+                  <View style={styles.albumCoverContainer}>
+                    <Image
+                      source={{
+                        uri: getImageUrl(
+                          mv.cover,
+                          `https://picsum.photos/seed/mv-${mv.id}/200/200`,
+                        ),
+                      }}
+                      style={styles.albumCover}
+                    />
+                  </View>
+                  <Text
+                    style={[styles.albumName, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {mv.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </View>
         )}

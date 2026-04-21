@@ -1,4 +1,4 @@
-import Icon, {
+import {
   AimOutlined,
   BackwardOutlined,
   DeliveredProcedureOutlined,
@@ -12,8 +12,10 @@ import Icon, {
   SoundOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
-  TeamOutlined
+  TeamOutlined,
+  VideoCameraOutlined
 } from "@ant-design/icons";
+import Icon from "@ant-design/icons";
 import {
   addToHistory,
   addTrackToPlaylist,
@@ -1396,6 +1398,16 @@ const Player: React.FC = () => {
       </div>
       {/* Volume & Settings */}
       <div className={styles.settings}>
+        {appMode !== TrackType.AUDIOBOOK && currentTrack && (
+          <VideoCameraOutlined
+            onClick={() => {
+              if (isPlaying) pause();
+              window.location.href = `#/mv?trackId=${currentTrack.id}`;
+            }}
+            className={styles.settingIcon}
+            style={{ fontSize: "18px" }}
+          />
+        )}
         {appMode !== TrackType.AUDIOBOOK &&
           currentTrack &&
           (currentTrack.likedByUsers?.find(

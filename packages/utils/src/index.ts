@@ -43,6 +43,22 @@ export class LocalMusicScanner {
     return results;
   }
 
+  async scanMv(dir: string, onFile?: (result: ScanResult) => Promise<void>): Promise<ScanResult[]> {
+    const results: ScanResult[] = [];
+    if (!fs.existsSync(dir)) return results;
+
+    await this.traverse(dir, async (filePath) => {
+      const metadata = await this.parseFile(filePath);
+      if (metadata) {
+        if (onFile) {
+          await onFile(metadata);
+        }
+        results.push(metadata);
+      }
+    });
+    return results;
+  }
+
   async scanAudiobook(dir: string, onFile?: (result: ScanResult) => Promise<void>): Promise<ScanResult[]> {
     const results: ScanResult[] = [];
     if (!fs.existsSync(dir)) return results;
@@ -113,7 +129,7 @@ export class LocalMusicScanner {
           const stat = fs.statSync(fullPath);
           if (stat.isDirectory()) {
             await this.traverse(fullPath, callback);
-          } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm)$/i.test(file)) {
+          } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(file)) {
             await callback(fullPath);
           }
         } catch (e) {

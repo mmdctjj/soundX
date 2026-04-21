@@ -736,19 +736,34 @@ export function PlayerDetailView({
         />
         {renderPlaylistModal && <PlaylistModal />}
         {currentTrack.type !== TrackType.AUDIOBOOK && (
-          <TouchableOpacity
-            onPress={() => {
-              handleToggleLike();
-              resetHideTimer();
-            }}
-            style={styles.likeButton}
-          >
-            <Ionicons
-              name={liked ? "heart" : "heart-outline"}
-              size={24}
-              color={liked ? colors.primary : colors.text}
-            />
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              onPress={() => {
+                router.push(`/mv/track/${currentTrack.id}` as any);
+                resetHideTimer();
+              }}
+              style={styles.likeButton}
+            >
+              <Ionicons
+                name="videocam-outline"
+                size={24}
+                color={colors.text}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                handleToggleLike();
+                resetHideTimer();
+              }}
+              style={styles.likeButton}
+            >
+              <Ionicons
+                name={liked ? "heart" : "heart-outline"}
+                size={24}
+                color={liked ? colors.primary : colors.text}
+              />
+            </TouchableOpacity>
+          </>
         )}
         <TouchableOpacity
           onPress={() => {
