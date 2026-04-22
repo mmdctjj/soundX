@@ -1,5 +1,7 @@
 import { ISuccessResponse } from "./models";
-import { asrRequest } from "./request";
+import { request } from "./request";
+
+const ASR_BASE_URL = "/api/asr";
 
 /**
  * Speech to Text using the ASR service
@@ -25,7 +27,7 @@ export const speechToText = async (audio: string | File | Blob): Promise<string>
     formData.append("audio", audio, filename);
   }
 
-  const response = await asrRequest.post<ISuccessResponse<any>>("/text", formData, {
+  const response = await request.post<ISuccessResponse<any>>(`${ASR_BASE_URL}/text`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

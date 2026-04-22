@@ -101,7 +101,7 @@ const CreateTask: React.FC = () => {
       metadata: { voice },
     });
     try {
-      const previewUrl = getTtsPreviewUrl(voice);
+      const previewUrl = await getTtsPreviewUrl(voice);
       if (audioRef.current) {
         const response = await fetch(previewUrl);
         if (!response.ok) {

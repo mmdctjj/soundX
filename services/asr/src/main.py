@@ -66,5 +66,16 @@ async def speech_to_text(audio: UploadFile = File(...)):
 async def health_check():
     return {"status": "ok", "model": model_size}
 
+import logging
+import sys
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=3300)
+    try:
+        logger.info("Starting ASR Service on port 3300...")
+        uvicorn.run(app, host="0.0.0.0", port=3300)
+    except Exception as e:
+        logger.error(f"❌ ASR Service failed to start: {e}", exc_info=True)
+        sys.exit(1)
