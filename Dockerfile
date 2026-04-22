@@ -51,12 +51,13 @@ FROM node:22-bullseye-slim AS runner
 
 WORKDIR /app
 
-# 1. 安装运行环境 (Python3, Nginx, OpenSSL)
+# 1. 安装运行环境 (Python3, Nginx, OpenSSL, FFmpeg)
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     nginx \
     openssl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. 基础环境变量配置
