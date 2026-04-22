@@ -9,6 +9,7 @@ const PACKAGES = [
   'apps/desktop/package.json',
   'apps/mobile/package.json',
   'apps/mobile/app.json',
+  'packages/i18e/package.json',
   'services/api/package.json',
   'packages/db/package.json',
   'packages/utils/package.json',
@@ -53,7 +54,7 @@ if (arg) {
   
   runRelease(targetVersion);
 } else {
-  // Inteactive Mode
+  // Interactive Mode
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -120,7 +121,19 @@ function runRelease(newVersion) {
   // 1. Update files
   updateVersions(newVersion);
 
-  // 2. Commit and Tag
+  // 2. Regenerate native projects after app.json version changes
+  try {
+    console.log('\n📱 Running expo prebuild in apps/mobile...');
+    execSync('npx expo prebuild', {
+      cwd: path.resolve('apps/mobile'),
+      stdio: 'inherit',
+    });
+  } catch (error) {
+    console.error('❌ expo prebuild failed:', error.message);
+    process.exit(1);
+  }
+
+  // 3. Commit and Tag
   try {
     console.log('\n📦 Committing changes...');
     execSync('git add .');
