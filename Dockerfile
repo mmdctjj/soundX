@@ -130,7 +130,7 @@ fi\n\
 # 5. 启动 Python ASR 服务 (后台运行)\n\
 if [ "$DISABLE_ASR" != "true" ]; then\n\
   echo "Starting ASR Service..."\n\
-  cd /app/services/asr && (python3 -m uvicorn src.main:app --host 0.0.0.0 --port 3300 || echo "❌ ASR Service failed to start") > /var/log/asr.log 2>&1 &\n\
+  cd /app/services/asr && (HF_ENDPOINT=https://hf-mirror.com python3 -m uvicorn src.main:app --host 0.0.0.0 --port 3300 || echo "❌ ASR Service failed to start") > /var/log/asr.log 2>&1 &\n\
 else\n\
   echo "ASR Service is disabled."\n\
 fi\n\
