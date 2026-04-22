@@ -50,6 +50,17 @@ async def startup_event():
 async def health():
     return {"status": "ok"}
 
+import logging
+import sys
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    try:
+        logger.info("Starting TTS Service on port 8000...")
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+    except Exception as e:
+        logger.error(f"❌ TTS Service failed to start: {e}", exc_info=True)
+        sys.exit(1)
