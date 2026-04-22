@@ -51,7 +51,7 @@
     "expo-modules-core": "~3.0.29",
     "expo-network": "~8.0.8",
     "expo-router": "~6.0.23",
-    "expo-screen-orientation": "^9.0.8",
+    "expo-screen-orientation": "~9.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",

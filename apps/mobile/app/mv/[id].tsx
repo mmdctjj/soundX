@@ -85,7 +85,11 @@ export default function MvScreen() {
       
       <View style={styles.videoContainer}>
         {videoSource && (
-           <VideoView style={{ width, height: width * (9/16) }} player={player} allowsFullscreen allowsPictureInPicture />
+           <VideoView style={{ width, height: width * (9/16) }} player={player} allowsPictureInPicture nativeControls={true} fullscreenOptions={{
+            enable: true,
+            orientation: 'landscape',
+            autoExitOnRotate: true,
+          }} />
         )}
       </View>
     </View>
