@@ -1,7 +1,7 @@
 import { ISuccessResponse } from "./models";
 import { request } from "./request";
 
-const ASR_BASE_URL = "/asr";
+const ASR_BASE_URL = "/api/asr";
 
 /**
  * Speech to Text using the ASR service
