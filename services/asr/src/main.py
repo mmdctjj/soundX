@@ -21,7 +21,7 @@ app.add_middleware(
 model_size = "small"
 model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
-@app.post("/")
+@app.post("/text")
 async def speech_to_text(audio: UploadFile = File(...)):
     """
     Receives an audio file and returns the transcribed text.
