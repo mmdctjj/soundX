@@ -105,6 +105,7 @@ services:
       - TXT_BASE_DIR=/txt # 小说目录
       - AUDIO_BOOK_DIR=/audio # 有声书目录
       - MUSIC_BASE_DIR=/music # 音乐目录
+      - MV_BASE_DIR=/mv # mv视频目录
       - CACHE_DIR=/covers # 封面目录
       - DATABASE_URL=file:/app/packages/db/prisma/dev.db # 数据库路径
       - JWT_SECRET=/.jwt_secret # JWT 密钥
@@ -112,6 +113,7 @@ services:
       - STRM_ADDRESS=http://192.168.1.12:5244 # strm 服务地址，没有可不填
       - WEBDAV_MUSIC_URL=http://192.168.1.12:5005/音乐 # 音乐目录地址，没有可不填
       - WEBDAV_AUDIOBOOK_URL=http://192.168.1.12:5005/有声书 # 有声书目录地址，没有可不填
+      - WEBDAV_MV_URL=http://192.168.1.12:5005/视频 # mv视频目录地址，没有可不填
       - WEBDAV_USER=admin # 用户名，没有可不填
       - WEBDAV_PASSWORD=123456 # 密码，没有可不填
       - DISABLE_TTS=${DISABLE_TTS:-false} # 是否禁用 TTS 功能
@@ -127,7 +129,8 @@ services:
     volumes:
       - /volume1/txt:/txt
       - /volume1/audio:/audio
-      - /volume1/music:/music
+      - /volume1/music:/music/
+      - /volume1/mv:/mv
       - ./covers:/covers
       - app-db:/app/packages/db/prisma
       - ./.jwt_secret:/.jwt_secret

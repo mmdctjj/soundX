@@ -6,6 +6,7 @@ import { SubsonicCollectionAdapter } from "./collection";
 import { SubsonicPlaylistAdapter } from "./playlist";
 import { SubsonicTrackAdapter } from "./track";
 import { SubsonicAuthAdapter, SubsonicUserAdapter } from "./user-auth";
+import { SubsonicMvAdapter } from "./mv";
 
 export class SubsonicMusicAdapter implements IMusicAdapter {
   track: SubsonicTrackAdapter;
@@ -15,6 +16,7 @@ export class SubsonicMusicAdapter implements IMusicAdapter {
   collection: SubsonicCollectionAdapter;
   user: SubsonicUserAdapter;
   auth: SubsonicAuthAdapter;
+  mv: SubsonicMvAdapter;
   client: SubsonicClient;
 
   constructor(config?: SubsonicConfig) {
@@ -26,5 +28,6 @@ export class SubsonicMusicAdapter implements IMusicAdapter {
       this.collection = new SubsonicCollectionAdapter();
       this.user = new SubsonicUserAdapter(this.client);
       this.auth = new SubsonicAuthAdapter(this.client);
+      this.mv = new SubsonicMvAdapter();
   }
 }

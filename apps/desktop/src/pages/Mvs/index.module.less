@@ -1,0 +1,80 @@
+.container {
+  flex: 1;
+  padding: 32px 40px;
+  overflow-y: auto;
+  position: relative;
+  height: 100vh;
+  box-sizing: border-box;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(100px);
+  -webkit-backdrop-filter: blur(100px);
+
+  /* Custom Scrollbar Styles */
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.3s ease;
+  }
+
+  &::-webkit-scrollbar-thumb:hover,
+  &.scrollbar-visible::-webkit-scrollbar-thumb,
+  &:focus-within::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  /* Specific styles for dark/light themes */
+  :global(.ant-theme-dark) & {
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    &:hover::-webkit-scrollbar-thumb:hover,
+    &.scrollbar-visible::-webkit-scrollbar-thumb:hover,
+    &:focus-within::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  :global(.ant-theme-light) & {
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    
+    &:hover::-webkit-scrollbar-thumb:hover,
+    &.scrollbar-visible::-webkit-scrollbar-thumb:hover,
+    &:focus-within::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.4);
+    }
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding-bottom: 40px;
+}
+
+.gridItem {
+  width: 100%;
+}

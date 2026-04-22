@@ -35,6 +35,34 @@
   flex: 1;
 }
 
+.tabs {
+  display: flex;
+  flex-direction: row;
+  margin-top: 20rpx;
+  border-bottom: 1rpx solid #eee;
+  background-color: #fff;
+
+  .tab-item {
+    flex: 1;
+    text-align: center;
+    padding: 20rpx 0;
+    
+    .tab-text {
+      font-size: 28rpx;
+      color: #666;
+    }
+
+    &.active {
+      border-bottom: 4rpx solid #000;
+      
+      .tab-text {
+        color: #000;
+        font-weight: bold;
+      }
+    }
+  }
+}
+
 .header {
   display: flex;
   flex-direction: column;

@@ -12,7 +12,9 @@ import {
     getCollections,
     getTracksByArtist,
     uploadArtistAvatar,
+    getMvsByArtist,
 } from "@soundx/services";
+import type { Mv } from "@soundx/services";
 import {
     Avatar,
     Button,
@@ -53,6 +55,7 @@ const ArtistDetail: React.FC = () => {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [collaborativeAlbums, setCollaborativeAlbums] = useState<Album[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [mvs, setMvs] = useState<Mv[]>([]);
   const [relatedCollections, setRelatedCollections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { mode } = usePlayMode();
@@ -91,6 +94,14 @@ const ArtistDetail: React.FC = () => {
           }
           if (tracksRes.code === 200 && tracksRes.data) {
             setTracks(tracksRes.data);
+          }
+          
+          if (artistQueryKey) {
+            getMvsByArtist(artistQueryKey).then((res: any[]) => {
+              if (res?.length) {
+                setMvs(res);
+              }
+            }).catch((e: any) => console.error(e));
           }
         } else {
           messageApi.error("Failed to load artist details");
@@ -294,6 +305,21 @@ const ArtistDetail: React.FC = () => {
             {collaborativeAlbums.map((album) => (
               <Col key={album.id}>
                 <Cover item={album} />
+              </Col>
+            ))}
+          </Row>
+        </div>
+      )}
+
+      {mvs.length > 0 && (
+        <div className={styles.content} style={{ marginTop: "48px" }}>
+          <Title level={4} className={styles.sectionTitle}>
+            MV ({mvs.length})
+          </Title>
+          <Row gutter={[24, 24]}>
+            {mvs.map((mv) => (
+              <Col key={mv.id}>
+                <Cover item={mv as any} type="mv" aspectRatio={16 / 9} />
               </Col>
             ))}
           </Row>

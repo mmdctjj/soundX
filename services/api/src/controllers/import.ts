@@ -12,7 +12,7 @@ export class ImportController {
   @Post('task')
   @LogMethod()
   async createTask(@Body() body: any) {
-    let { musicPath, audiobookPath, cachePath, mode } = body;
+    let { musicPath, audiobookPath, mvPath, cachePath, mode } = body;
 
     // Use server-side defaults from environment variables checks
     const musicPaths = resolvePathListFromBody(
@@ -23,6 +23,10 @@ export class ImportController {
       audiobookPath,
       process.env.AUDIO_BOOK_DIR || './'
     );
+    const mvPaths = resolvePathListFromBody(
+      mvPath,
+      process.env.MV_BASE_DIR || './'
+    );
     const resolvedCachePath = cachePath ? path.resolve(cachePath) : path.resolve(process.env.CACHE_DIR || './');
 
     console.log('Received import task with musicPaths:', musicPaths);
@@ -30,6 +34,7 @@ export class ImportController {
     const id = await this.importService.createTask(
       musicPaths,
       audiobookPaths,
+      mvPaths,
       resolvedCachePath,
       mode || 'incremental'
     );

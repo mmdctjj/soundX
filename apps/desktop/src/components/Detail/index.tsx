@@ -19,7 +19,9 @@ import {
     toggleAlbumLike,
     toggleAlbumUnLike,
     uploadAlbumCover,
+    getMvsByAlbum,
 } from "@soundx/services";
+import type { Mv } from "@soundx/services";
 import { useRequest } from "ahooks";
 import {
     Avatar,
@@ -58,6 +60,8 @@ const Detail: React.FC = () => {
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [mvs, setMvs] = useState<Mv[]>([]);
+  const [activeTab, setActiveTab] = useState<"tracks" | "mvs">("tracks");
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
@@ -174,6 +178,15 @@ const Detail: React.FC = () => {
           (like: any) => like.userId === user?.id,
         );
         setIsLiked(isLikedByCurrentUser);
+        
+        // load MVs
+        if (res.data?.name) {
+            getMvsByAlbum(res.data.name, res.data.artist).then((mvRes: any[]) => {
+                if (mvRes?.length) {
+                    setMvs(mvRes);
+                }
+            }).catch((e: any) => console.error(e));
+        }
       }
     } catch (error) {
       console.error("Failed to fetch album details:", error);
@@ -593,35 +606,102 @@ const Detail: React.FC = () => {
                 </div>
               </div>
 
+              {mvs.length > 0 && (
+                <div style={{ display: 'flex', gap: 24, marginBottom: 24, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+                  <div
+                    style={{
+                      padding: '12px 0',
+                      cursor: 'pointer',
+                      color: activeTab === 'tracks' ? token.colorPrimary : token.colorText,
+                      borderBottom: activeTab === 'tracks' ? `2px solid ${token.colorPrimary}` : '2px solid transparent',
+                      fontWeight: activeTab === 'tracks' ? 'bold' : 'normal'
+                    }}
+                    onClick={() => setActiveTab('tracks')}
+                  >
+                    {t('nav.tracks')} ({tracks.length})
+                  </div>
+                  <div
+                    style={{
+                      padding: '12px 0',
+                      cursor: 'pointer',
+                      color: activeTab === 'mvs' ? token.colorPrimary : token.colorText,
+                      borderBottom: activeTab === 'mvs' ? `2px solid ${token.colorPrimary}` : '2px solid transparent',
+                      fontWeight: activeTab === 'mvs' ? 'bold' : 'normal'
+                    }}
+                    onClick={() => setActiveTab('mvs')}
+                  >
+                    MV ({mvs.length})
+                  </div>
+                </div>
+              )}
+
               {/* Track List */}
-              <TrackList
-                tracks={tracks}
-                loading={loading}
-                type={album?.type}
-                onRefresh={handleRefresh}
-                rowSelection={
-                  isSelectionMode
-                    ? {
-                        selectedRowKeys,
-                        onChange: (keys: React.Key[]) =>
-                          setSelectedRowKeys(keys),
-                      }
-                    : undefined
-                }
-                albumId={album?.id}
-                playlistSource={
-                  album
-                    ? {
-                        type: "album" as const,
-                        id: album.id,
-                        pageSize: pageSize,
-                        currentPage: page - 1,
-                        hasMore: hasMore,
-                        params: { sort, keyword, sortBy },
-                      }
-                    : undefined
-                }
-              />
+              {activeTab === 'mvs' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {mvs.map((mv, index) => (
+                    <div 
+                      key={mv.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '8px',
+                        cursor: 'pointer',
+                        borderRadius: 8,
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = token.colorFillAlter}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                      onClick={() => window.location.href = `#/mv/${mv.id}`}
+                    >
+                      <div style={{ width: 40, textAlign: 'center', color: token.colorTextSecondary }}>
+                        {index + 1}
+                      </div>
+                      <img 
+                        src={mv.cover || `https://picsum.photos/seed/mv-${mv.id}/160/90`} 
+                        alt={mv.name} 
+                        style={{ width: 80, height: 45, objectFit: 'cover', borderRadius: 4, marginRight: 16 }} 
+                      />
+                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ color: token.colorText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {mv.name}
+                        </div>
+                      </div>
+                      <div style={{ width: 80, textAlign: 'right', color: token.colorTextSecondary }}>
+                        {mv.duration ? `${Math.floor(mv.duration / 60)}:${String(mv.duration % 60).padStart(2, '0')}` : '--:--'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <TrackList
+                  tracks={tracks}
+                  loading={loading}
+                  type={album?.type}
+                  onRefresh={handleRefresh}
+                  rowSelection={
+                    isSelectionMode
+                      ? {
+                          selectedRowKeys,
+                          onChange: (keys: React.Key[]) =>
+                            setSelectedRowKeys(keys),
+                        }
+                      : undefined
+                  }
+                  albumId={album?.id}
+                  playlistSource={
+                    album
+                      ? {
+                          type: "album" as const,
+                          id: album.id,
+                          pageSize: pageSize,
+                          currentPage: page - 1,
+                          hasMore: hasMore,
+                          params: { sort, keyword, sortBy },
+                        }
+                      : undefined
+                  }
+                />
+              )}
               {/* Load More / Footer */}
               <div
                 style={{

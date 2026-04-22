@@ -21,6 +21,7 @@ async function bootstrap() {
   const cacheDir = path.resolve(process.env.CACHE_DIR || './');
   const musicBaseDirs = resolvePathList(process.env.MUSIC_BASE_DIR, './');
   const audioBookDirs = resolvePathList(process.env.AUDIO_BOOK_DIR, './');
+  const mvDirs = resolvePathList(process.env.MV_BASE_DIR, './');
 
 
   // Serve static files from cache directory
@@ -36,6 +37,9 @@ async function bootstrap() {
   for (const musicBaseDir of musicBaseDirs) {
     app.useStaticAssets(musicBaseDir, {
       prefix: '/music/',
+      setHeaders: (res, path) => {
+        res.set('Accept-Ranges', 'bytes');
+      }
     });
   }
 
@@ -44,6 +48,24 @@ async function bootstrap() {
   for (const audioBookDir of audioBookDirs) {
     app.useStaticAssets(audioBookDir, {
       prefix: '/audio/',
+      setHeaders: (res, path) => {
+        res.set('Accept-Ranges', 'bytes');
+      }
+    });
+  }
+
+  // Serve MV files
+  console.log(`Serving MV files from: ${mvDirs.join(',')}`);
+  for (const mvDir of mvDirs) {
+    app.useStaticAssets(mvDir, {
+      prefix: '/music/', // Since import.ts convertToHttpUrl maps MV files to /music/ prefix currently
+      setHeaders: (res, path) => {
+        res.set('Accept-Ranges', 'bytes');
+        // Make sure proper video content type is returned
+        if (path.endsWith('.mp4')) res.set('Content-Type', 'video/mp4');
+        else if (path.endsWith('.webm')) res.set('Content-Type', 'video/webm');
+        else if (path.endsWith('.mkv')) res.set('Content-Type', 'video/x-matroska');
+      }
     });
   }
 
@@ -93,11 +115,11 @@ async function bootstrap() {
   if (count === 0) {
     console.log('Database is empty, starting initial import...');
     const myService = app.get(ImportService);
-    await myService.createTask(musicBaseDirs, audioBookDirs, cacheDir);
+    await myService.createTask(musicBaseDirs, audioBookDirs, mvDirs, cacheDir);
   } else {
     console.log(`Database has ${count} tracks, skipping initial import. Starting watcher...`);
     const myService = app.get(ImportService);
-    myService.setupWatcher(musicBaseDirs, audioBookDirs, cacheDir);
+    myService.setupWatcher(musicBaseDirs, audioBookDirs, mvDirs, cacheDir);
   }
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');

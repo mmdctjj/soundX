@@ -239,6 +239,14 @@ const AppContent = () => {
                                     element={<Category />}
                                   />
                                   <Route
+                                    path="/mvs"
+                                    element={<Mvs />}
+                                  />
+                                  <Route
+                                    path="/mv/:id"
+                                    element={<MvDetail />}
+                                  />
+                                  <Route
                                     path="/collections"
                                     element={<Collections />}
                                   />
@@ -324,6 +332,9 @@ const AppContent = () => {
 };
 
 // ... existing imports
+
+const Mvs = lazy(() => import("./pages/Mvs"));
+const MvDetail = lazy(() => import("./pages/MvDetail"));
 
 function App() {
   return (

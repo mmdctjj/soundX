@@ -215,3 +215,21 @@ export interface Folder {
   children?: Folder[];
   tracks?: Track[];
 }
+
+export interface Mv {
+  id: number | string;
+  name: string;
+  path: string;
+  artist: string | null;
+  album: string | null;
+  cover: string | null;
+  duration: number | null;
+  createdAt: string | Date;
+  fileModifiedAt: string | Date | null;
+  trackId: number | string | null;
+  artistId: number | string | null;
+  albumId: number | string | null;
+  artistEntity?: Artist;
+  albumEntity?: Album;
+  trackEntity?: Track;
+}

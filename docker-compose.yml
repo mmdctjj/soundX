@@ -24,6 +24,7 @@ services:
       - STRM_ADDRESS=http://192.168.1.12:5244
       - WEBDAV_MUSIC_URL=http://192.168.1.12:5005/音乐
       - WEBDAV_AUDIOBOOK_URL=http://192.168.1.12:5005/有声书
+      - WEBDAV_MV_URL=http://192.168.1.12:5005/视频
       - WEBDAV_USER=admin
       - WEBDAV_PASSWORD=123456
       - DISABLE_TTS=${DISABLE_TTS:-false}
@@ -41,7 +42,8 @@ services:
       # 这里可以根据需要调整物理机的挂载路径
       - ./services/api/music/txt:/txt
       - ./services/api/music/audio:/audio
-      - ./services/api/music/music:/music
+      - ./services/api/music/music:/music/music
+      - ./services/api/music/mv:/music/mv
       - ./services/api/music/covers:/covers
       - app-db:/app/packages/db/prisma # 将数据库文件目录挂载出来持久化
       - ./services/api/.jwt_secret:/.jwt_secret

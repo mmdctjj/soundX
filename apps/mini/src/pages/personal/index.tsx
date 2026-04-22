@@ -528,6 +528,19 @@ export default function Personal() {
             <Text className='progress-text'>
               {t('common.progress')}{importTask?.current || 0} / {importTask?.total || 0}
             </Text>
+            {importTask?.mode !== 'compact' && (
+              <View style={{ marginTop: '10rpx' }}>
+                <Text className='progress-text' style={{ fontSize: '24rpx', color: '#666' }}>
+                  {t('personal.localFiles')}: {importTask?.localCurrent || 0} / {importTask?.localTotal || 0}
+                </Text>
+                <Text className='progress-text' style={{ fontSize: '24rpx', color: '#666' }}>
+                  {t('personal.webdavFiles')}: {importTask?.webdavCurrent || 0} / {importTask?.webdavTotal || 0}
+                </Text>
+                <Text className='progress-text' style={{ fontSize: '24rpx', color: '#666' }}>
+                  {t('personal.mvFiles')}: {importTask?.mvCurrent || 0} / {importTask?.mvTotal || 0}
+                </Text>
+              </View>
+            )}
             {importTask?.status === TaskStatus.FAILED && importTask?.message ? (
               <Text className='error-text'>{importTask.message}</Text>
             ) : null}

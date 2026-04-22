@@ -1,4 +1,13 @@
-import { Album, Artist, AudiobookCollection, AudiobookCollectionAlbum, ILoadMoreData, ISuccessResponse, ITableData, Playlist, Track } from "../models";
+import { Album, Artist, AudiobookCollection, AudiobookCollectionAlbum, ILoadMoreData, ISuccessResponse, ITableData, Playlist, Track, Mv } from "../models";
+
+export interface IMvAdapter {
+  getMvList(pageSize: number, skip: number, keyword?: string): Promise<{ list: Mv[]; total: number }>;
+  getMvById(id: number | string): Promise<Mv | null>;
+  getMvsByArtist(artist: string): Promise<Mv[]>;
+  getMvsByAlbum(album: string, artist: string): Promise<Mv[]>;
+  getMvByTrackId(trackId: number | string): Promise<Mv | null>;
+  getRandomMvs(limit: number): Promise<Mv[]>;
+}
 
 export interface ITrackAdapter {
   getTrackList(): Promise<ISuccessResponse<Track[]>>;
@@ -91,4 +100,5 @@ export interface IMusicAdapter {
   collection: IAudioCollectionAdapter;
   user: IUserAdapter;
   auth: IAuthAdapter;
+  mv: IMvAdapter;
 }
