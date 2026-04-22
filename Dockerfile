@@ -7,7 +7,10 @@ RUN apt-get update \
   && apt-get install -y openssl \
   && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g pnpm
+# Use China registry mirror for faster/more reliable installs in builder stage too.
+RUN npm config set registry https://registry.npmmirror.com \
+  && npm install -g pnpm \
+  && pnpm config set registry https://registry.npmmirror.com
 WORKDIR /app
 
 # 1. 复制 lock + workspace 配置
@@ -95,7 +98,12 @@ COPY services/asr /app/services/asr
 RUN python3 -m pip install --no-cache-dir -r /app/services/asr/requirements.txt
 
 # 5. 安装 Node 运行时依赖
-RUN npm install -g pnpm && pnpm install --prod --frozen-lockfile --ignore-scripts
+# Use China registry mirror for faster/more reliable installs.
+# pnpm will also use this registry once configured.
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm install -g pnpm \
+    && pnpm config set registry https://registry.npmmirror.com \
+    && pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # 6. 复制 Nginx 配置
 COPY nginx.conf /etc/nginx/nginx.conf
