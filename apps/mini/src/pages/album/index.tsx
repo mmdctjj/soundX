@@ -1,4 +1,4 @@
-import { Album, Track, getAlbumById, getAlbumTracks, Mv, getMvsByAlbum } from '@soundx/services';
+import { Album, AlbumTrackSortBy, Track, getAlbumById, getAlbumTracks, Mv, getMvsByAlbum } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
@@ -24,19 +24,20 @@ export default function AlbumDetail() {
   const [activeTab, setActiveTab] = useState<'tracks' | 'mvs'>('tracks');
   const [loading, setLoading] = useState(true);
   const [scrollIntoView, setScrollIntoView] = useState('');
+  const [sortBy, setSortBy] = useState<AlbumTrackSortBy>('episodeNumber');
 
   useEffect(() => {
     if (id) {
-      loadData(Number(id));
+      loadData(Number(id), sortBy);
     }
-  }, [id]);
+  }, [id, sortBy]);
 
-  const loadData = async (albumId: number) => {
+  const loadData = async (albumId: number, currentSortBy: AlbumTrackSortBy) => {
     setLoading(true);
     try {
       const [albumRes, tracksRes] = await Promise.all([
           getAlbumById(albumId),
-          getAlbumTracks(albumId, 200, 0, 'asc', undefined, user?.id)
+          getAlbumTracks(albumId, 200, 0, 'asc', undefined, user?.id, currentSortBy)
       ]);
 
       if (albumRes.code === 200) {
@@ -70,8 +71,24 @@ export default function AlbumDetail() {
 
   const handlePlayAll = () => {
       if (tracks.length > 0) {
-          playTrackList(tracks, 0);
+          playTrackList(tracks as any, 0);
       }
+  };
+
+  const cycleSortBy = () => {
+    const sequence: AlbumTrackSortBy[] = ['episodeNumber', 'index', 'fileName', 'fileCreatedAt', 'fileModifiedAt', 'scanOrder', 'id'];
+    const next = sequence[(sequence.indexOf(sortBy) + 1) % sequence.length];
+    setSortBy(next);
+  };
+
+  const getSortLabel = () => {
+    if (sortBy === 'id') return t('albumPage.sortAdded');
+    if (sortBy === 'index') return t('albumPage.sortAlbum');
+    if (sortBy === 'fileName') return t('albumPage.sortFileName');
+    if (sortBy === 'fileCreatedAt') return t('albumPage.sortFileCreatedAt');
+    if (sortBy === 'fileModifiedAt') return t('albumPage.sortFileModifiedAt');
+    if (sortBy === 'scanOrder') return t('albumPage.sortScanOrder');
+    return t('albumPage.sortOptimized');
   };
 
   const scrollToAnchor = (anchorId: string) => {
@@ -130,6 +147,15 @@ export default function AlbumDetail() {
                    onClick={() => setActiveTab('mvs')}
                  >
                    <Text className='tab-text'>MV ({mvs.length})</Text>
+                 </View>
+               </View>
+             )}
+
+             {activeTab === 'tracks' && (
+               <View className='sort-bar'>
+                 <Text className='sort-label'>{getSortLabel()}</Text>
+                 <View className='sort-button' onClick={cycleSortBy}>
+                   <Text className='sort-button-text'>{t('common.switch')}</Text>
                  </View>
                </View>
              )}

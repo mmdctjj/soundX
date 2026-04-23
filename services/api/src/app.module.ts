@@ -48,6 +48,7 @@ import { UserAlbumHistoryService } from './services/user-album-history';
 import { UserAlbumLikeService } from './services/user-album-like';
 import { UserAudiobookHistoryService } from './services/user-audiobook-history';
 import { UserAudiobookLikeService } from './services/user-audiobook-like';
+import { DatabaseSchemaService } from './services/database-schema.service';
 import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
 
@@ -110,6 +111,7 @@ import { UserTrackLikeService } from './services/user-track-like';
     UserAlbumLikeService,
     UserAudiobookHistoryService,
     UserAudiobookLikeService,
+    DatabaseSchemaService,
     UserTrackHistoryService,
     UserTrackLikeService,
     ImportService,

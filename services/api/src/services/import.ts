@@ -37,6 +37,13 @@ export interface ImportTask {
   mode?: 'incremental' | 'full' | 'compact';
 }
 
+interface TrackSortFields {
+  fileName?: string | null;
+  relativePath?: string | null;
+  fileCreatedAt?: Date | null;
+  scanOrder?: number | null;
+}
+
 @Injectable()
 export class ImportService implements OnModuleInit {
   private readonly logger = new Logger(ImportService.name);
@@ -143,7 +150,9 @@ export class ImportService implements OnModuleInit {
       const isMvFile = /\.(mp4|mkv|avi|webm)$/i.test(item.path);
       
       // Folder ID is null for WebDAV for now as it doesn't map to local folder tree easily
-      await this.processTrackData(item, type, '', cachePath, item.path, null, '');
+      const nextScanOrder = task ? (task.current || 0) + 1 : undefined;
+      const sortFields = this.getTrackSortFields(item.originalPath || item.path, '', nextScanOrder);
+      await this.processTrackData(item, type, '', cachePath, item.path, null, '', sortFields);
 
       if (task) {
         if (isMvFile || isMvDir) {
@@ -447,6 +456,46 @@ export class ImportService implements OnModuleInit {
     return resolvePathList(input, './');
   }
 
+  private getTrackSortFields(
+    sourcePath: string,
+    basePath: string,
+    scanOrder?: number,
+  ): TrackSortFields {
+    const normalizedSourcePath = sourcePath || '';
+    const decodedSourcePath = decodeURI(normalizedSourcePath);
+    const fileName = path.basename(decodedSourcePath) || null;
+
+    let relativePath: string | null = null;
+    if (basePath && normalizedSourcePath && !normalizedSourcePath.startsWith('http')) {
+      relativePath = path.relative(basePath, normalizedSourcePath);
+    } else if (normalizedSourcePath.startsWith('http')) {
+      try {
+        relativePath = new URL(normalizedSourcePath).pathname || null;
+      } catch {
+        relativePath = normalizedSourcePath;
+      }
+    } else if (normalizedSourcePath) {
+      relativePath = normalizedSourcePath;
+    }
+
+    let fileCreatedAt: Date | null = null;
+    if (normalizedSourcePath && !normalizedSourcePath.startsWith('http') && fs.existsSync(normalizedSourcePath)) {
+      try {
+        const stat = fs.statSync(normalizedSourcePath);
+        fileCreatedAt = stat.birthtime ?? null;
+      } catch (error) {
+        this.logger.warn(`Failed to read file birthtime for ${normalizedSourcePath}: ${String(error)}`);
+      }
+    }
+
+    return {
+      fileName,
+      relativePath,
+      fileCreatedAt,
+      scanOrder: scanOrder ?? null,
+    };
+  }
+
   private async handleFileAdd(filePath: string, basePath: string, type: TrackType, cachePath: string) {
     const hash = await this.calculateFingerprint(filePath);
     if (!hash) return;
@@ -470,6 +519,7 @@ export class ImportService implements OnModuleInit {
       }
 
       const folderId = await this.getFolderId(filePath, basePath, type);
+      const sortFields = this.getTrackSortFields(filePath, basePath);
 
       await this.prisma.track.update({
         where: { id: trashedTrack.id },
@@ -478,7 +528,10 @@ export class ImportService implements OnModuleInit {
           folderId: folderId,
           status: FileStatus.ACTIVE,
           trashedAt: null,
-          fileModifiedAt: new Date()
+          fileModifiedAt: fs.statSync(filePath).mtime,
+          fileName: sortFields.fileName,
+          relativePath: sortFields.relativePath,
+          fileCreatedAt: sortFields.fileCreatedAt,
         }
       });
 
@@ -491,7 +544,8 @@ export class ImportService implements OnModuleInit {
       if (metadata) {
         const audioUrl = metadata.path.startsWith('http') ? metadata.path : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
         const folderId = await this.getFolderId(metadata.originalPath || filePath, basePath, type);
-        await this.processTrackData(metadata, type, basePath, cachePath, audioUrl, folderId, hash);
+        const sortFields = this.getTrackSortFields(metadata.originalPath || filePath, basePath);
+        await this.processTrackData(metadata, type, basePath, cachePath, audioUrl, folderId, hash, sortFields);
       }
     }
   }
@@ -517,6 +571,7 @@ export class ImportService implements OnModuleInit {
 
         if (track) {
           const coverUrl = metadata.coverPath ? this.convertToHttpUrl(metadata.coverPath, 'cover', cachePath) : null;
+          const sortFields = this.getTrackSortFields(metadata.originalPath || filePath, basePath);
 
           this.logger.log(`[Watcher] Updating track ${track.id} - cover: ${coverUrl}, lyrics: ${!!metadata.lyrics}`);
 
@@ -526,11 +581,14 @@ export class ImportService implements OnModuleInit {
               name: metadata.title || path.basename(filePath),
               duration: Math.round(metadata.duration || 0),
               fileHash: hash,
-              fileModifiedAt: new Date(),
+              fileModifiedAt: metadata?.mtime ? new Date(metadata.mtime) : fs.statSync(filePath).mtime,
               cover: coverUrl,
               lyrics: metadata.lyrics || null,
               artist: metadata.artist || track.artist,
               album: metadata.album || track.album,
+              fileName: sortFields.fileName,
+              relativePath: sortFields.relativePath,
+              fileCreatedAt: sortFields.fileCreatedAt,
             }
           });
 
@@ -853,8 +911,10 @@ export class ImportService implements OnModuleInit {
 
         const folderId = isWebDAV ? null : await this.getFolderId(item.originalPath || item.path, audioBasePath, type);
         const hash = isWebDAV ? '' : await this.calculateFingerprint(item.originalPath || item.path);
+        const nextScanOrder = (task.current || 0) + 1;
+        const sortFields = this.getTrackSortFields(item.originalPath || item.path, audioBasePath, nextScanOrder);
 
-        const trackId = await this.processTrackData(item, type, audioBasePath, cachePath, audioUrl, folderId, hash);
+        const trackId = await this.processTrackData(item, type, audioBasePath, cachePath, audioUrl, folderId, hash, sortFields);
         if (trackId) processedTrackIds.add(trackId);
 
         if (isWebDAV) {
@@ -1253,7 +1313,7 @@ export class ImportService implements OnModuleInit {
     }
   }
 
-  private async processTrackData(item: ScanResult, type: TrackType, audioBasePath: string, cachePath: string, audioUrl: string, folderId: number | null, hash: string): Promise<number | null> {
+  private async processTrackData(item: ScanResult, type: TrackType, audioBasePath: string, cachePath: string, audioUrl: string, folderId: number | null, hash: string, sortFields: TrackSortFields = {}): Promise<number | null> {
     // If it's an MV, handle it differently and return early
     if (/\.(mp4|mkv|avi|webm)$/i.test(item.path)) {
       const isWebDAV = !hash && audioUrl.startsWith('http'); // Basic heuristic, or we can just pass it
@@ -1380,6 +1440,10 @@ export class ImportService implements OnModuleInit {
           index: item.track?.no || 0,
           episodeNumber: extractEpisodeNumber(item.title || ""),
           lyrics: item.lyrics || null, // Ensure lyrics update too
+          fileName: sortFields.fileName,
+          relativePath: sortFields.relativePath,
+          fileCreatedAt: sortFields.fileCreatedAt,
+          scanOrder: sortFields.scanOrder,
           // Update relations
           artistId: artist.id,
           // artist: artistName, // Optional: Update denormalized artist name if needed, but schema says it's string
@@ -1407,7 +1471,11 @@ export class ImportService implements OnModuleInit {
         index: item.track?.no || 0,
         type: type,
         createdAt: new Date(),
+        fileName: sortFields.fileName,
+        relativePath: sortFields.relativePath,
+        fileCreatedAt: sortFields.fileCreatedAt,
         fileModifiedAt: item?.mtime ? new Date(item.mtime) : null,
+        scanOrder: sortFields.scanOrder,
         episodeNumber: extractEpisodeNumber(item.title || ""),
         artistId: artist.id,
         albumId: album.id,

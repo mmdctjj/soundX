@@ -120,6 +120,8 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.TrackScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  fileName: 'fileName',
+  relativePath: 'relativePath',
   path: 'path',
   artist: 'artist',
   album: 'album',
@@ -129,7 +131,9 @@ exports.Prisma.TrackScalarFieldEnum = {
   index: 'index',
   type: 'type',
   createdAt: 'createdAt',
+  fileCreatedAt: 'fileCreatedAt',
   fileModifiedAt: 'fileModifiedAt',
+  scanOrder: 'scanOrder',
   episodeNumber: 'episodeNumber',
   fileHash: 'fileHash',
   status: 'status',
