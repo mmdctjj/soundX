@@ -15,6 +15,7 @@ import { getImageUrl } from "@/src/utils/image";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import {
+  type AlbumTrackSortBy,
   getAlbumById,
   getAlbumTracks,
   toggleAlbumLike,
@@ -59,7 +60,7 @@ export default function AlbumDetailScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [sort, setSort] = useState<"asc" | "desc">("asc");
-  const [sortBy, setSortBy] = useState<"id" | "index" | "episodeNumber">("episodeNumber");
+  const [sortBy, setSortBy] = useState<AlbumTrackSortBy>("episodeNumber");
   const [total, setTotal] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [moreModalVisible, setMoreModalVisible] = useState(false);
@@ -81,7 +82,7 @@ export default function AlbumDetailScreen() {
     }
   }, [id, sort, sortBy]);
 
-  const loadData = async (albumId: number | string, currentSort: "asc" | "desc", currentSortBy: "id" | "index" | "episodeNumber") => {
+  const loadData = async (albumId: number | string, currentSort: "asc" | "desc", currentSortBy: AlbumTrackSortBy) => {
     try {
       setLoading(true);
       const [albumRes, tracksRes] = await Promise.all([
@@ -448,13 +449,25 @@ export default function AlbumDetailScreen() {
                     <TouchableOpacity 
                        style={{ flexDirection: 'row', alignItems: 'center' }}
                        onPress={() => {
-                            const sequence: ("id" | "index" | "episodeNumber")[] = ["episodeNumber", "index", "id"];
+                            const sequence: AlbumTrackSortBy[] = ["episodeNumber", "index", "fileName", "fileCreatedAt", "fileModifiedAt", "scanOrder", "id"];
                             const next = sequence[(sequence.indexOf(sortBy) + 1) % sequence.length];
                             setSortBy(next);
                         }}
                     >
                         <Text style={{ color: colors.secondary, fontSize: 12, marginRight: 5 }}>
-                        {sortBy === 'id' ? t("albumPage.sortAdded") : sortBy === 'index' ? t("albumPage.sortAlbum") : t("albumPage.sortOptimized")}
+                        {sortBy === 'id'
+                          ? t("albumPage.sortAdded")
+                          : sortBy === 'index'
+                            ? t("albumPage.sortAlbum")
+                            : sortBy === 'fileName'
+                              ? t("albumPage.sortFileName")
+                              : sortBy === 'fileCreatedAt'
+                                ? t("albumPage.sortFileCreatedAt")
+                                : sortBy === 'fileModifiedAt'
+                                  ? t("albumPage.sortFileModifiedAt")
+                                  : sortBy === 'scanOrder'
+                                    ? t("albumPage.sortScanOrder")
+                                    : t("albumPage.sortOptimized")}
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => setSort(sort === 'asc' ? 'desc' : 'asc')}>

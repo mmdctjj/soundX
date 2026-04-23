@@ -1,5 +1,6 @@
 import type {
     Album,
+    AlbumTrackSortBy,
     ILoadMoreData,
     ISuccessResponse,
     ITableData,
@@ -83,7 +84,7 @@ export class NativeAlbumAdapter implements IAlbumAdapter {
     sort: "asc" | "desc" = "asc",
     keyword?: string,
     userId?: number | string,
-    sortBy?: string,
+    sortBy?: AlbumTrackSortBy,
   ) {
     return request.get<any, ISuccessResponse<{ list: any[]; total: number }>>(
       `/album/${id}/tracks`,

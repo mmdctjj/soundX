@@ -14,6 +14,7 @@ import {
     SortDescendingOutlined,
 } from "@ant-design/icons";
 import {
+    type AlbumTrackSortBy,
     getAlbumById,
     getAlbumTracks,
     toggleAlbumLike,
@@ -66,7 +67,7 @@ const Detail: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<"asc" | "desc">("asc");
-  const [sortBy, setSortBy] = useState<"id" | "index" | "episodeNumber">(
+  const [sortBy, setSortBy] = useState<AlbumTrackSortBy>(
     "episodeNumber",
   );
   const [keyword, setKeyword] = useState("");
@@ -198,7 +199,7 @@ const Detail: React.FC = () => {
     currentPage: number,
     currentSort: "asc" | "desc",
     currentKeyword: string,
-    currentSortBy: "id" | "index" | "episodeNumber",
+    currentSortBy: AlbumTrackSortBy,
   ) => {
     if (loading) return;
     setLoading(true);
@@ -567,9 +568,13 @@ const Detail: React.FC = () => {
                       size="small"
                       className={styles.sortFieldBtn}
                       onClick={() => {
-                        const sequence: ("id" | "index" | "episodeNumber")[] = [
+                        const sequence: AlbumTrackSortBy[] = [
                           "episodeNumber",
                           "index",
+                          "fileName",
+                          "fileCreatedAt",
+                          "fileModifiedAt",
+                          "scanOrder",
                           "id",
                         ];
                         const next =
@@ -587,6 +592,14 @@ const Detail: React.FC = () => {
                         ? t('detail.sortById')
                         : sortBy === "index"
                           ? t('detail.sortByIndex')
+                          : sortBy === "fileName"
+                            ? t('detail.sortByFileName')
+                            : sortBy === "fileCreatedAt"
+                              ? t('detail.sortByFileCreatedAt')
+                              : sortBy === "fileModifiedAt"
+                                ? t('detail.sortByFileModifiedAt')
+                                : sortBy === "scanOrder"
+                                  ? t('detail.sortByScanOrder')
                           : t('detail.sortByOptimized')}
                     </Button>
                     {sort === "desc" ? (

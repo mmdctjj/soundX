@@ -149,6 +149,37 @@
   padding: 0 40rpx;
 }
 
+.sort-bar {
+  margin: 20rpx 40rpx 0;
+  padding: 18rpx 24rpx;
+  border-radius: 24rpx;
+  background: #f6f6f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sort-label {
+  font-size: 26rpx;
+  color: #555;
+}
+
+.sort-button {
+  min-width: 120rpx;
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sort-button-text {
+  font-size: 24rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
 .track-item {
   display: flex;
   flex-direction: row;
