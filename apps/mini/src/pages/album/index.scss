@@ -101,6 +101,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 24rpx;
 }
 
 .album-play-all-btn {
@@ -145,39 +146,108 @@
   color: #999;
 }
 
+.sort-icon-btn {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sort-icon-text {
+  font-size: 34rpx;
+  color: #333;
+  font-weight: 600;
+}
+
 .track-list {
   padding: 0 40rpx;
 }
 
-.sort-bar {
-  margin: 20rpx 40rpx 0;
-  padding: 18rpx 24rpx;
-  border-radius: 24rpx;
-  background: #f6f6f6;
+.sort-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-end;
+  z-index: 30;
+}
+
+.sort-modal-sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 28rpx 28rpx 40rpx;
+  box-sizing: border-box;
+}
+
+.sort-modal-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 12rpx;
+}
+
+.sort-modal-title.order-title {
+  margin-top: 24rpx;
+}
+
+.sort-modal-item {
+  min-height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1rpx solid #ececec;
 }
 
-.sort-label {
-  font-size: 26rpx;
-  color: #555;
+.sort-modal-item.active .sort-modal-item-text,
+.sort-modal-item.active .sort-modal-check {
+  color: #111;
+  font-weight: 600;
 }
 
-.sort-button {
-  min-width: 120rpx;
-  padding: 12rpx 24rpx;
-  border-radius: 999rpx;
-  background: #111;
+.sort-modal-item-text {
+  font-size: 28rpx;
+  color: #444;
+}
+
+.sort-modal-check {
+  font-size: 28rpx;
+  color: #111;
+}
+
+.sort-order-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 8rpx;
+}
+
+.sort-order-button {
+  flex: 1;
+  height: 84rpx;
+  border-radius: 20rpx;
+  border: 2rpx solid #ddd;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #fff;
 }
 
-.sort-button-text {
-  font-size: 24rpx;
-  color: #fff;
+.sort-order-button.active {
+  background: #111;
+  border-color: #111;
+}
+
+.sort-order-button-text {
+  font-size: 28rpx;
+  color: #222;
   font-weight: 600;
+}
+
+.sort-order-button.active .sort-order-button-text {
+  color: #fff;
 }
 
 .track-item {

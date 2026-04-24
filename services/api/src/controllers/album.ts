@@ -450,7 +450,7 @@ export class AlbumController {
         sort,
         keyword,
         Number(userId),
-        sortBy || 'episodeNumber',
+        sortBy || (album.type === TrackType.AUDIOBOOK ? 'fileName' : 'episodeNumber'),
         album.id // Pass album ID
       );
       const total = await this.trackService.getTrackCountByAlbum(
