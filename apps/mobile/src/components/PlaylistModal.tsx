@@ -313,6 +313,7 @@ export const PlaylistModal = () => {
             ) : (
               <FlatList
                 ref={flatListRef}
+                style={styles.list}
                 data={listData}
                 keyExtractor={(item, index) => `${item.id}-${index}`}
                 renderItem={renderItem}
@@ -373,6 +374,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: "hidden",
+  },
+  list: {
+    flex: 1,
   },
   listContent: {
     flexGrow: 1,
