@@ -1,17 +1,17 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Album, FileStatus, PrismaClient, TrackType } from '@soundx/db';
 import { LocalMusicScanner, ScanResult, WebDAVScanner } from '@soundx/utils';
+import { spawn } from 'child_process';
 import * as chokidar from 'chokidar';
 import * as crypto from 'crypto';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawn } from 'child_process';
 import { LogMethod } from '../common/log-method.decorator';
+import { resolvePathList } from '../common/path-list';
 import { AlbumService } from './album';
 import { ArtistService } from './artist';
 import { TrackService } from './track';
-import { resolvePathList } from '../common/path-list';
 
 export enum TaskStatus {
   INITIALIZING = 'INITIALIZING',
@@ -132,10 +132,10 @@ export class ImportService implements OnModuleInit {
   }
 
   private async startWebDAVImport(cachePath: string, type: TrackType, taskId?: string, isMvDir = false) {
-    const webdavUrl = isMvDir 
-      ? process.env.WEBDAV_MV_URL 
+    const webdavUrl = isMvDir
+      ? process.env.WEBDAV_MV_URL
       : (type === TrackType.AUDIOBOOK ? process.env.WEBDAV_AUDIOBOOK_URL : process.env.WEBDAV_MUSIC_URL);
-      
+
     if (!webdavUrl) return;
 
     const task = taskId ? this.tasks.get(taskId) : null;
@@ -152,9 +152,9 @@ export class ImportService implements OnModuleInit {
       if (task) {
         task.currentFileName = item.title || path.basename(item.path);
       }
-      
+
       const isMvFile = /\.(mp4|mkv|avi|webm)$/i.test(item.path);
-      
+
       // Folder ID is null for WebDAV for now as it doesn't map to local folder tree easily
       const nextScanOrder = task ? (task.current || 0) + 1 : undefined;
       const sortFields = this.getTrackSortFields(item.originalPath || item.path, '', nextScanOrder);
@@ -906,7 +906,7 @@ export class ImportService implements OnModuleInit {
 
       const processItem = async (item: ScanResult, type: TrackType, audioBasePath: string, isWebDAV = false) => {
         const audioUrl = item.path.startsWith('http') ? item.path : this.convertToHttpUrl(item.originalPath || item.path, type === TrackType.AUDIOBOOK ? 'audio' : 'music', audioBasePath);
-        
+
         // If it's an MV, handle it differently and return early
         if (/\.(mp4|mkv|avi|webm)$/i.test(item.path)) {
           const hash = isWebDAV ? '' : await this.calculateFingerprint(item.originalPath || item.path);
@@ -1174,7 +1174,7 @@ export class ImportService implements OnModuleInit {
     return new Promise((resolve) => {
       const fileName = `${randomUUID()}.jpg`;
       const outputPath = path.join(cachePath, fileName);
-      
+
       const ffmpeg = spawn('ffmpeg', [
         '-i', videoPath,
         '-ss', '00:00:10.000', // Take frame at 10 seconds to avoid black frames and intros
@@ -1263,10 +1263,10 @@ export class ImportService implements OnModuleInit {
     let resolvedArtistName = this.isUnknownMetadata(item.artist) ? (parsedArtist || '未知') : (item.artist || '未知');
     let resolvedAlbumName = this.isUnknownMetadata(item.album) ? (parsedAlbum || '未知') : (item.album || '未知');
     let resolvedAlbumArtist = this.isUnknownMetadata(item.albumArtist) ? resolvedArtistName : item.albumArtist!;
-    
+
     // 1. Meta data cover
     let finalCoverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
-    
+
     // 2. Track cover / metadata (prefer matching by parsed MV title, then fallback to current metadata)
     let trackId: number | null = null;
     let matchedTrack = null as Awaited<ReturnType<typeof this.prisma.track.findFirst>>;
@@ -1303,10 +1303,10 @@ export class ImportService implements OnModuleInit {
 
     // 3. Ffmpeg Video Thumbnail
     if (!finalCoverUrl && !isWebDAV) {
-       const thumbnailPath = await this.extractVideoThumbnail(item.originalPath || item.path, cachePath);
-       if (thumbnailPath) {
-         finalCoverUrl = this.convertToHttpUrl(thumbnailPath, 'cover', cachePath);
-       }
+      const thumbnailPath = await this.extractVideoThumbnail(item.originalPath || item.path, cachePath);
+      if (thumbnailPath) {
+        finalCoverUrl = this.convertToHttpUrl(thumbnailPath, 'cover', cachePath);
+      }
     }
 
     const artistDelimiters = /[&,、]|\s+and\s+/i;
