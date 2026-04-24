@@ -50,6 +50,12 @@ import { updateWidget, updateWidgetCollections } from "../native/WidgetBridge";
 import { cacheCover } from "../services/cache";
 import { resolveArtworkUri } from "../services/trackResolver";
 import { toggleTrackLike, toggleTrackUnLike } from "@soundx/services";
+import {
+  AudioQuality,
+  AudioQualityOption,
+  buildTrackPlaybackUrl,
+  getTrackAudioQualityProfile,
+} from "../services/trackQuality";
 import { useAuth } from "./AuthContext";
 import { useNotification } from "./NotificationContext";
 import { useSettings } from "./SettingsContext";
@@ -75,7 +81,8 @@ interface PlayerContextType {
     track: Track,
     initialPosition?: number,
     fromRadio?: boolean,
-    forceReload?: boolean
+    forceReload?: boolean,
+    preferredQuality?: AudioQuality,
   ) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
@@ -97,6 +104,9 @@ interface PlayerContextType {
   clearSleepTimer: () => void;
   playbackRate: number;
   setPlaybackRate: (rate: number) => Promise<void>;
+  currentAudioQuality: AudioQuality;
+  availableAudioQualities: AudioQualityOption[];
+  cycleAudioQuality: () => Promise<void>;
 
   // ✨ 新增：跳过片头/片尾全局配置
   skipIntroDuration: number;
@@ -138,6 +148,9 @@ const PlayerContext = createContext<PlayerContextType>({
   clearSleepTimer: () => {},
   playbackRate: 1,
   setPlaybackRate: async () => {},
+  currentAudioQuality: "lossless",
+  availableAudioQualities: [],
+  cycleAudioQuality: async () => {},
   // ✨ 默认值
   skipIntroDuration: 0,
   setSkipIntroDuration: () => {},
@@ -167,6 +180,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
   const [playbackRate, setPlaybackRateState] = useState(1);
+  const [currentAudioQuality, setCurrentAudioQuality] = useState<AudioQuality>("lossless");
+  const [availableAudioQualities, setAvailableAudioQualities] = useState<AudioQualityOption[]>([]);
   const [isRadioMode, setIsRadioMode] = useState(false);
 
   // ✨ 新增 State
@@ -201,6 +216,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   }>({ until: 0, playMode: null });
   const positionRef = React.useRef(position);
   const playbackRateRef = React.useRef(playbackRate);
+  const currentAudioQualityRef = React.useRef<AudioQuality>("lossless");
   const isRadioModeRef = React.useRef(isRadioMode);
   const skipIntroDurationRef = React.useRef(skipIntroDuration);
   const skipOutroDurationRef = React.useRef(skipOutroDuration);
@@ -218,6 +234,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isRadioMode]);
 
   useEffect(() => {
+    currentAudioQualityRef.current = currentAudioQuality;
+  }, [currentAudioQuality]);
+
+  useEffect(() => {
     playModeRef.current = playMode;
   }, [playMode]);
 
@@ -228,6 +248,31 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     currentTrackRef.current = currentTrack;
   }, [currentTrack]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncCurrentTrackQuality = async () => {
+      if (!currentTrack || currentTrack.type === TrackType.AUDIOBOOK) {
+        if (!cancelled) {
+          setAvailableAudioQualities([]);
+          setCurrentAudioQuality("lossless");
+        }
+        return;
+      }
+
+      const profile = await getTrackAudioQualityProfile(currentTrack);
+      if (cancelled) return;
+      setAvailableAudioQualities(profile.options);
+      setCurrentAudioQuality(profile.defaultQuality);
+    };
+
+    syncCurrentTrackQuality();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, currentTrack?.type]);
 
   useEffect(() => {
     let cancelled = false;
@@ -737,6 +782,28 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     return randomIndex;
   };
 
+  const prepareAudioQuality = async (
+    track: Track,
+    preferredQuality?: AudioQuality,
+  ): Promise<AudioQuality> => {
+    if (track.type === TrackType.AUDIOBOOK) {
+      setAvailableAudioQualities([]);
+      setCurrentAudioQuality("lossless");
+      return "lossless";
+    }
+
+    const profile = await getTrackAudioQualityProfile(track);
+    setAvailableAudioQualities(profile.options);
+
+    const nextQuality =
+      preferredQuality && profile.options.some((option) => option.quality === preferredQuality)
+        ? preferredQuality
+        : profile.defaultQuality;
+
+    setCurrentAudioQuality(nextQuality);
+    return nextQuality;
+  };
+
   const getPreviousIndex = (
     currentIndex: number,
     mode: PlayMode,
@@ -975,10 +1042,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           const shouldUseSingleTrackQueue = state.playMode === PlayMode.SHUFFLE;
           if (shouldUseSingleTrackQueue) {
             const activeTrack = list[activeIndex];
-            const uri = await resolveTrackUri(activeTrack, {
-              cacheEnabled,
-              shouldDownload: true,
-            });
+            const uri =
+              activeTrack.type === TrackType.AUDIOBOOK
+                ? await resolveTrackUri(activeTrack, {
+                    cacheEnabled,
+                    shouldDownload: true,
+                  })
+                : buildTrackPlaybackUrl(activeTrack);
             const artwork = await resolveArtworkUriForPlayer(activeTrack, {
               shouldDownload: true,
             });
@@ -999,11 +1069,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
             const queue = await Promise.all(
               list.map(async (track: Track, i: number) => {
                 const isNearCurrent = i === activeIndex || i === activeIndex + 1;
-                const uri = await resolveTrackUri(track, {
-                  cacheEnabled,
-                  shouldDownload: isNearCurrent,
-                  fast: !isNearCurrent,
-                });
+                const uri =
+                  track.type === TrackType.AUDIOBOOK
+                    ? await resolveTrackUri(track, {
+                        cacheEnabled,
+                        shouldDownload: isNearCurrent,
+                        fast: !isNearCurrent,
+                      })
+                    : buildTrackPlaybackUrl(track);
                 const artwork = await resolveArtworkUriForPlayer(track, {
                   shouldDownload: isNearCurrent,
                   fast: !isNearCurrent,
@@ -1076,7 +1149,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     track: Track,
     initialPosition?: number,
     fromRadio = false,
-    forceReload = false
+    forceReload = false,
+    preferredQuality?: AudioQuality,
   ) => {
     if (!isSetup) return;
     if (!fromRadio) {
@@ -1095,7 +1169,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       // ✨ 重置片尾跳过锁
       isSkippingOutroRef.current = false;
 
-      const playUri = await resolveTrackUri(track, { cacheEnabled });
+      const selectedQuality = await prepareAudioQuality(track, preferredQuality);
+      const playUri =
+        track.type === TrackType.AUDIOBOOK
+          ? await resolveTrackUri(track, { cacheEnabled })
+          : buildTrackPlaybackUrl(track, selectedQuality);
       const artwork = await resolveArtworkUriForPlayer(track, {
         shouldDownload: true,
       });
@@ -1158,10 +1236,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     const shouldUseSingleTrackQueue = playModeRef.current === PlayMode.SHUFFLE;
     if (shouldUseSingleTrackQueue) {
       const track = tracks[index];
-      const uri = await resolveTrackUri(track, {
-        cacheEnabled,
-        shouldDownload: true,
-      });
+      const uri =
+        track.type === TrackType.AUDIOBOOK
+          ? await resolveTrackUri(track, {
+              cacheEnabled,
+              shouldDownload: true,
+            })
+          : buildTrackPlaybackUrl(track);
       const artwork = await resolveArtworkUriForPlayer(track, {
         shouldDownload: true,
       });
@@ -1184,11 +1265,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           // 核心优化：仅当前曲目 (index) 和下一首 (index + 1) 会触发耗时的缓存检查和预下载
           // 其他歌曲使用 fast 模式直接返回远程 URL，稍后真正切到它们时再由 resolveTrackUri 处理缓存
           const isNearCurrent = (i === index || i === index + 1);
-          const uri = await resolveTrackUri(t, { 
-              cacheEnabled, 
-              shouldDownload: isNearCurrent,
-              fast: !isNearCurrent 
-          });
+          const uri =
+            t.type === TrackType.AUDIOBOOK
+              ? await resolveTrackUri(t, { 
+                  cacheEnabled, 
+                  shouldDownload: isNearCurrent,
+                  fast: !isNearCurrent 
+                })
+              : buildTrackPlaybackUrl(t);
           const artwork = await resolveArtworkUriForPlayer(t, {
             shouldDownload: isNearCurrent,
             fast: !isNearCurrent,
@@ -1839,6 +1923,31 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     setSleepTimerState(null);
   };
 
+  const cycleAudioQuality = async () => {
+    if (
+      !currentTrackRef.current ||
+      currentTrackRef.current.type === TrackType.AUDIOBOOK ||
+      availableAudioQualities.length <= 1
+    ) {
+      return;
+    }
+
+    const currentIndex = availableAudioQualities.findIndex(
+      (option) => option.quality === currentAudioQualityRef.current,
+    );
+    const nextOption =
+      availableAudioQualities[(currentIndex + 1) % availableAudioQualities.length] ||
+      availableAudioQualities[0];
+
+    await playTrack(
+      currentTrackRef.current,
+      positionRef.current,
+      false,
+      true,
+      nextOption.quality,
+    );
+  };
+
   useEffect(() => {
     if (!sleepTimer || !isPlaying) return;
     const checkTimer = setInterval(() => {
@@ -1879,6 +1988,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         clearSleepTimer,
         playbackRate,
         setPlaybackRate,
+        currentAudioQuality,
+        availableAudioQualities,
+        cycleAudioQuality,
         // ✨ Exports
         skipIntroDuration,
         setSkipIntroDuration,

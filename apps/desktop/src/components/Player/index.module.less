@@ -35,12 +35,40 @@
   flex-direction: column;
 }
 
+.trackMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .artistText {
   width: 200px;
   display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.qualityButton {
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.qualityButton:hover {
+  opacity: 1;
+}
+
+.qualityButtonDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .controls {
