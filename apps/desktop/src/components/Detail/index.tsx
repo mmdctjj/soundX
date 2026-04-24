@@ -68,7 +68,7 @@ const Detail: React.FC = () => {
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [sortBy, setSortBy] = useState<AlbumTrackSortBy>(
-    "episodeNumber",
+    "fileName",
   );
   const [keyword, setKeyword] = useState("");
   const [keywordMidValue, setKeywordMidValue] = useState("");
@@ -384,6 +384,37 @@ const Detail: React.FC = () => {
   const showFloatingActions = tracks.length > 50;
   const canLocateCurrent =
     !!currentTrack && tracks.some((t) => t.id === currentTrack.id);
+  const isAudiobookAlbum = album?.type === "AUDIOBOOK";
+
+  const sortMenuItems: MenuProps["items"] = [
+    {
+      key: "sort-fileName",
+      label: t("detail.sortByFileName"),
+    },
+    {
+      key: "sort-episodeNumber",
+      label: t("detail.sortByOptimized"),
+    },
+    {
+      key: "sort-fileCreatedAt",
+      label: t("detail.sortByFileCreatedAt"),
+    },
+    {
+      key: "sort-fileModifiedAt",
+      label: t("detail.sortByFileModifiedAt"),
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "order-asc",
+      label: t("detail.sortAscending"),
+    },
+    {
+      key: "order-desc",
+      label: t("detail.sortDescending"),
+    },
+  ];
 
   return (
     <div className={styles.detailWrapper}>
@@ -494,6 +525,37 @@ const Detail: React.FC = () => {
                     type="secondary"
                     className={styles.actionGroup}
                   >
+                    {isAudiobookAlbum && activeTab === "tracks" && (
+                      <Dropdown
+                        menu={{
+                          items: sortMenuItems,
+                          onClick: ({ key }) => {
+                            if (key.startsWith("sort-")) {
+                              setSortBy(key.replace("sort-", "") as AlbumTrackSortBy);
+                            } else if (key === "order-asc") {
+                              setSort("asc");
+                            } else if (key === "order-desc") {
+                              setSort("desc");
+                            }
+                          },
+                          selectable: false,
+                        }}
+                        trigger={["click"]}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          className={styles.iconOnlyButton}
+                          icon={
+                            sort === "asc" ? (
+                              <SortAscendingOutlined className={styles.actionIcon} />
+                            ) : (
+                              <SortDescendingOutlined className={styles.actionIcon} />
+                            )
+                          }
+                        />
+                      </Dropdown>
+                    )}
                     {isLiked ? (
                       <HeartFilled
                         className={styles.actionIcon}
@@ -561,61 +623,6 @@ const Detail: React.FC = () => {
                     onChange={(e) => setKeywordMidValue(e.target.value)}
                     onPressEnter={() => setKeyword(keywordMidValue)}
                   />
-
-                  <Flex align="center" gap={4}>
-                    <Button
-                      type="text"
-                      size="small"
-                      className={styles.sortFieldBtn}
-                      onClick={() => {
-                        const sequence: AlbumTrackSortBy[] = [
-                          "episodeNumber",
-                          "index",
-                          "fileName",
-                          "fileCreatedAt",
-                          "fileModifiedAt",
-                          "scanOrder",
-                          "id",
-                        ];
-                        const next =
-                          sequence[
-                            (sequence.indexOf(sortBy) + 1) % sequence.length
-                          ];
-                        setSortBy(next);
-                      }}
-                      style={{
-                        color: token.colorTextSecondary,
-                        fontSize: "12px",
-                      }}
-                    >
-                      {sortBy === "id"
-                        ? t('detail.sortById')
-                        : sortBy === "index"
-                          ? t('detail.sortByIndex')
-                          : sortBy === "fileName"
-                            ? t('detail.sortByFileName')
-                            : sortBy === "fileCreatedAt"
-                              ? t('detail.sortByFileCreatedAt')
-                              : sortBy === "fileModifiedAt"
-                                ? t('detail.sortByFileModifiedAt')
-                                : sortBy === "scanOrder"
-                                  ? t('detail.sortByScanOrder')
-                          : t('detail.sortByOptimized')}
-                    </Button>
-                    {sort === "desc" ? (
-                      <SortAscendingOutlined
-                        className={styles.actionIcon}
-                        style={{ fontSize: "18px" }}
-                        onClick={() => setSort("asc")}
-                      />
-                    ) : (
-                      <SortDescendingOutlined
-                        className={styles.actionIcon}
-                        style={{ fontSize: "18px" }}
-                        onClick={() => setSort("desc")}
-                      />
-                    )}
-                  </Flex>
                 </div>
               </div>
 

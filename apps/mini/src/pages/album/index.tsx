@@ -24,20 +24,22 @@ export default function AlbumDetail() {
   const [activeTab, setActiveTab] = useState<'tracks' | 'mvs'>('tracks');
   const [loading, setLoading] = useState(true);
   const [scrollIntoView, setScrollIntoView] = useState('');
-  const [sortBy, setSortBy] = useState<AlbumTrackSortBy>('episodeNumber');
+  const [sortBy, setSortBy] = useState<AlbumTrackSortBy>('fileName');
+  const [sort, setSort] = useState<'asc' | 'desc'>('asc');
+  const [sortModalVisible, setSortModalVisible] = useState(false);
 
   useEffect(() => {
     if (id) {
-      loadData(Number(id), sortBy);
+      loadData(Number(id), sortBy, sort);
     }
-  }, [id, sortBy]);
+  }, [id, sortBy, sort]);
 
-  const loadData = async (albumId: number, currentSortBy: AlbumTrackSortBy) => {
+  const loadData = async (albumId: number, currentSortBy: AlbumTrackSortBy, currentSort: 'asc' | 'desc') => {
     setLoading(true);
     try {
       const [albumRes, tracksRes] = await Promise.all([
           getAlbumById(albumId),
-          getAlbumTracks(albumId, 200, 0, 'asc', undefined, user?.id, currentSortBy)
+          getAlbumTracks(albumId, 200, 0, currentSort, undefined, user?.id, currentSortBy)
       ]);
 
       if (albumRes.code === 200) {
@@ -73,22 +75,6 @@ export default function AlbumDetail() {
       if (tracks.length > 0) {
           playTrackList(tracks as any, 0);
       }
-  };
-
-  const cycleSortBy = () => {
-    const sequence: AlbumTrackSortBy[] = ['episodeNumber', 'index', 'fileName', 'fileCreatedAt', 'fileModifiedAt', 'scanOrder', 'id'];
-    const next = sequence[(sequence.indexOf(sortBy) + 1) % sequence.length];
-    setSortBy(next);
-  };
-
-  const getSortLabel = () => {
-    if (sortBy === 'id') return t('albumPage.sortAdded');
-    if (sortBy === 'index') return t('albumPage.sortAlbum');
-    if (sortBy === 'fileName') return t('albumPage.sortFileName');
-    if (sortBy === 'fileCreatedAt') return t('albumPage.sortFileCreatedAt');
-    if (sortBy === 'fileModifiedAt') return t('albumPage.sortFileModifiedAt');
-    if (sortBy === 'scanOrder') return t('albumPage.sortScanOrder');
-    return t('albumPage.sortOptimized');
   };
 
   const scrollToAnchor = (anchorId: string) => {
@@ -128,9 +114,11 @@ export default function AlbumDetail() {
                            <Text className='album-play-text'>{t('album.playAll')}</Text>
                        </View>
                      )}
-                     <View className='like-btn'>
-                         <Text className='like-icon icon icon-heart' />
-                     </View>
+                     {activeTab === 'tracks' && album.type === 'AUDIOBOOK' && (
+                       <View className='sort-icon-btn' onClick={() => setSortModalVisible(true)}>
+                         <Text className='sort-icon-text'>⇅</Text>
+                       </View>
+                     )}
                  </View>
              </View>
 
@@ -147,15 +135,6 @@ export default function AlbumDetail() {
                    onClick={() => setActiveTab('mvs')}
                  >
                    <Text className='tab-text'>MV ({mvs.length})</Text>
-                 </View>
-               </View>
-             )}
-
-             {activeTab === 'tracks' && (
-               <View className='sort-bar'>
-                 <Text className='sort-label'>{getSortLabel()}</Text>
-                 <View className='sort-button' onClick={cycleSortBy}>
-                   <Text className='sort-button-text'>{t('common.switch')}</Text>
                  </View>
                </View>
              )}
@@ -206,6 +185,43 @@ export default function AlbumDetail() {
              <View id='bottom-anchor' />
              <View style={{ height: '260rpx' }}></View>
          </ScrollView>
+         {sortModalVisible && album.type === 'AUDIOBOOK' && (
+           <View className='sort-modal-overlay' onClick={() => setSortModalVisible(false)}>
+             <View className='sort-modal-sheet' onClick={(e) => e.stopPropagation()}>
+               <Text className='sort-modal-title'>{t('albumPage.sortTitle')}</Text>
+               {([
+                 ['fileName', t('albumPage.sortFileName')],
+                 ['episodeNumber', t('albumPage.sortOptimized')],
+                 ['fileCreatedAt', t('albumPage.sortFileCreatedAt')],
+                 ['fileModifiedAt', t('albumPage.sortFileModifiedAt')],
+               ] as [AlbumTrackSortBy, string][]).map(([value, label]) => (
+                 <View
+                   key={value}
+                   className={`sort-modal-item ${sortBy === value ? 'active' : ''}`}
+                   onClick={() => setSortBy(value)}
+                 >
+                   <Text className='sort-modal-item-text'>{label}</Text>
+                   {sortBy === value && <Text className='sort-modal-check'>✓</Text>}
+                 </View>
+               ))}
+               <Text className='sort-modal-title order-title'>{t('albumPage.sortOrderTitle')}</Text>
+               <View className='sort-order-row'>
+                 {([
+                   ['asc', t('albumPage.sortAscending')],
+                   ['desc', t('albumPage.sortDescending')],
+                 ] as ['asc' | 'desc', string][]).map(([value, label]) => (
+                   <View
+                     key={value}
+                     className={`sort-order-button ${sort === value ? 'active' : ''}`}
+                     onClick={() => setSort(value)}
+                   >
+                     <Text className='sort-order-button-text'>{label}</Text>
+                   </View>
+                 ))}
+               </View>
+             </View>
+           </View>
+         )}
          <QuickLocate
             onTop={() => scrollToAnchor('top-anchor')}
             onBottom={() => scrollToAnchor('bottom-anchor')}
