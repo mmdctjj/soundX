@@ -68,7 +68,9 @@ const MvDetail: React.FC = () => {
     );
   }
 
-  const videoUrl = mv.path?.startsWith('http') ? mv.path : `${getBaseURL()}${mv.path}`;
+  const videoUrl = mv.path?.startsWith('http')
+    ? mv.path
+    : `${getBaseURL()}${mv.path.split('/').map(encodeURIComponent).join('/')}`;
 
   return (
     <div className={styles.container}>

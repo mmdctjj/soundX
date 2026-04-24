@@ -243,6 +243,10 @@ const AppContent = () => {
                                     element={<Mvs />}
                                   />
                                   <Route
+                                    path="/mv"
+                                    element={<MvDetail />}
+                                  />
+                                  <Route
                                     path="/mv/:id"
                                     element={<MvDetail />}
                                   />

@@ -9,7 +9,7 @@ import { trackEvent } from "@/src/services/tracking";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { plusGetMe, toggleTrackLike, toggleTrackUnLike } from "@soundx/services";
+import { getMvByTrackId, plusGetMe, toggleTrackLike, toggleTrackUnLike } from "@soundx/services";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -198,6 +198,7 @@ export function PlayerDetailView({
   const [liked, setLiked] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [hasMv, setHasMv] = useState(false);
   const [syncCheckLoading, setSyncCheckLoading] = useState(false);
   const { user, device, setPlusToken } = useAuth();
   const { t } = useTranslation();
@@ -371,6 +372,34 @@ export function PlayerDetailView({
     };
     checkCacheStatus();
   }, [currentTrack]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkMvStatus = async () => {
+      if (!currentTrack || currentTrack.type === TrackType.AUDIOBOOK) {
+        if (!cancelled) setHasMv(false);
+        return;
+      }
+
+      try {
+        const mv = await getMvByTrackId(Number(currentTrack.id));
+        if (!cancelled) {
+          setHasMv(!!mv);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setHasMv(false);
+        }
+      }
+    };
+
+    checkMvStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, currentTrack?.type]);
 
   const breatheAnim = useRef(new Animated.Value(1)).current;
 
@@ -737,19 +766,27 @@ export function PlayerDetailView({
         {renderPlaylistModal && <PlaylistModal />}
         {currentTrack.type !== TrackType.AUDIOBOOK && (
           <>
-            <TouchableOpacity
-              onPress={() => {
-                router.push(`/mv/track/${currentTrack.id}` as any);
-                resetHideTimer();
-              }}
-              style={styles.likeButton}
-            >
-              <Ionicons
-                name="videocam-outline"
-                size={24}
-                color={colors.text}
-              />
-            </TouchableOpacity>
+            {hasMv && (
+              <TouchableOpacity
+                onPress={() => {
+                  router.push({
+                    pathname: "/mv/[id]",
+                    params: {
+                      id: String(currentTrack.id),
+                      trackId: String(currentTrack.id),
+                    },
+                  } as any);
+                  resetHideTimer();
+                }}
+                style={styles.likeButton}
+              >
+                <Ionicons
+                  name="videocam-outline"
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() => {
                 handleToggleLike();

@@ -677,7 +677,7 @@ const Detail: React.FC = () => {
                         {index + 1}
                       </div>
                       <img 
-                        src={mv.cover || `https://picsum.photos/seed/mv-${mv.id}/160/90`} 
+                        src={getCoverUrl(mv, mv.id)} 
                         alt={mv.name} 
                         style={{ width: 80, height: 45, objectFit: 'cover', borderRadius: 4, marginRight: 16 }} 
                       />
