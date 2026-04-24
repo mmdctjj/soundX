@@ -44,6 +44,12 @@ interface TrackSortFields {
   scanOrder?: number | null;
 }
 
+interface ParsedMvFileName {
+  title?: string;
+  artist?: string;
+  album?: string;
+}
+
 @Injectable()
 export class ImportService implements OnModuleInit {
   private readonly logger = new Logger(ImportService.name);
@@ -1192,25 +1198,104 @@ export class ImportService implements OnModuleInit {
     });
   }
 
+  private isUnknownMetadata(value?: string | null): boolean {
+    if (!value) return true;
+    const normalized = value.trim().toLowerCase();
+    return !normalized || normalized === '未知' || normalized === 'unknown';
+  }
+
+  private parseMvFileName(filePath: string): ParsedMvFileName {
+    const ext = path.extname(filePath);
+    const baseName = path.basename(filePath, ext).replace(/\s+/g, ' ').trim();
+    const parsed: ParsedMvFileName = {};
+    const normalizeTitle = (value?: string) => value?.replace(/^\d+\s*[._\-、]\s*/, '').trim();
+
+    const bracketMatch = baseName.match(/\[(.+?)\]/);
+    if (bracketMatch) {
+      const bracketContent = bracketMatch[1].trim();
+      const parts = bracketContent.split('.-.').map(part => part.trim()).filter(Boolean);
+      if (parts.length >= 3) {
+        parsed.album = parts[0];
+        parsed.title = normalizeTitle(parts.slice(2).join(' - '));
+      } else if (parts.length === 2) {
+        parsed.album = parts[0];
+        parsed.title = normalizeTitle(parts[1]);
+      } else if (parts.length === 1) {
+        parsed.title = normalizeTitle(parts[0]);
+      }
+      const artistCandidate = baseName.split('.-.[')[0]?.trim();
+      if (artistCandidate) {
+        parsed.artist = artistCandidate;
+      }
+    }
+
+    if (!parsed.title) {
+      const compactMatch = baseName.match(/^\s*(.+?)\s*-\s*(.+?)\s*-\s*(.+?)\s*$/);
+      if (compactMatch) {
+        parsed.artist = compactMatch[1].trim();
+        parsed.album = compactMatch[2].trim();
+        parsed.title = normalizeTitle(compactMatch[3]);
+      }
+    }
+
+    if (!parsed.title) {
+      const simpleMatch = baseName.match(/^\s*(.+?)\s*-\s*(.+?)\s*$/);
+      if (simpleMatch) {
+        parsed.artist = simpleMatch[1].trim();
+        parsed.title = normalizeTitle(simpleMatch[2]);
+      }
+    }
+
+    return parsed;
+  }
+
   private async processMvData(item: ScanResult, audioBasePath: string, cachePath: string, audioUrl: string, hash: string, isWebDAV: boolean = false): Promise<number | null> {
-    const artistName = item.artist || '未知';
-    const albumName = item.album || '未知';
+    const parsedMv = this.parseMvFileName(item.originalPath || item.path);
+    const parsedTitle = parsedMv.title?.trim();
+    const parsedArtist = parsedMv.artist?.trim();
+    const parsedAlbum = parsedMv.album?.trim();
+
+    let resolvedTitle = item.title || path.basename(item.path);
+    if (!resolvedTitle || resolvedTitle === path.basename(item.path, path.extname(item.path))) {
+      resolvedTitle = parsedTitle || resolvedTitle;
+    }
+
+    let resolvedArtistName = this.isUnknownMetadata(item.artist) ? (parsedArtist || '未知') : (item.artist || '未知');
+    let resolvedAlbumName = this.isUnknownMetadata(item.album) ? (parsedAlbum || '未知') : (item.album || '未知');
+    let resolvedAlbumArtist = this.isUnknownMetadata(item.albumArtist) ? resolvedArtistName : item.albumArtist!;
     
     // 1. Meta data cover
     let finalCoverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
     
-    // 2. Track cover (Find track by name and artist)
+    // 2. Track cover / metadata (prefer matching by parsed MV title, then fallback to current metadata)
     let trackId: number | null = null;
-    const matchedTrack = await this.prisma.track.findFirst({
-      where: {
-        name: item.title || path.basename(item.path),
-        artist: artistName,
-        status: FileStatus.ACTIVE
-      }
-    });
+    let matchedTrack = null as Awaited<ReturnType<typeof this.prisma.track.findFirst>>;
+
+    if (parsedTitle) {
+      matchedTrack = await this.prisma.track.findFirst({
+        where: {
+          name: parsedTitle,
+          status: FileStatus.ACTIVE
+        }
+      });
+    }
+
+    if (!matchedTrack) {
+      matchedTrack = await this.prisma.track.findFirst({
+        where: {
+          name: resolvedTitle,
+          artist: resolvedArtistName,
+          status: FileStatus.ACTIVE
+        }
+      });
+    }
 
     if (matchedTrack) {
       trackId = matchedTrack.id;
+      resolvedTitle = matchedTrack.name || resolvedTitle;
+      resolvedArtistName = matchedTrack.artist || resolvedArtistName;
+      resolvedAlbumName = matchedTrack.album || resolvedAlbumName;
+      resolvedAlbumArtist = matchedTrack.artist || resolvedAlbumArtist;
       if (!finalCoverUrl && matchedTrack.cover) {
         finalCoverUrl = matchedTrack.cover;
       }
@@ -1225,10 +1310,10 @@ export class ImportService implements OnModuleInit {
     }
 
     const artistDelimiters = /[&,、]|\s+and\s+/i;
-    const individualArtists = artistName.split(artistDelimiters).map(s => s.trim()).filter(s => s);
+    const individualArtists = resolvedArtistName.split(artistDelimiters).map(s => s.trim()).filter(s => s);
     let mvPrimaryArtist: any = null;
 
-    if (individualArtists.length === 0) individualArtists.push(artistName);
+    if (individualArtists.length === 0) individualArtists.push(resolvedArtistName);
 
     for (const name of individualArtists) {
       let art = await this.artistService.findByName(name, TrackType.MUSIC, true);
@@ -1249,11 +1334,11 @@ export class ImportService implements OnModuleInit {
     const artist = mvPrimaryArtist;
 
     // Resolve Album
-    const albumGroupArtist = item.albumArtist || artistName;
-    let album = await this.albumService.findByName(albumName, albumGroupArtist, TrackType.MUSIC, true);
+    const albumGroupArtist = resolvedAlbumArtist || resolvedArtistName;
+    let album = await this.albumService.findByName(resolvedAlbumName, albumGroupArtist, TrackType.MUSIC, true);
     if (!album) {
       album = await this.albumService.createAlbum({
-        name: albumName,
+        name: resolvedAlbumName,
         artist: albumGroupArtist,
         cover: finalCoverUrl,
         year: item.year ? String(item.year) : null,
@@ -1279,7 +1364,7 @@ export class ImportService implements OnModuleInit {
           trashedAt: null,
           fileHash: hash || existingMv.fileHash,
           fileModifiedAt: item?.mtime ? new Date(item.mtime) : new Date(),
-          name: item.title || path.basename(item.path),
+          name: resolvedTitle,
           duration: Math.round(item.duration || 0),
           artistId: artist.id,
           artist: artist.name,
@@ -1293,7 +1378,7 @@ export class ImportService implements OnModuleInit {
     } else {
       const createdMv = await this.prisma.mv.create({
         data: {
-          name: item.title || path.basename(item.path),
+          name: resolvedTitle,
           path: audioUrl,
           artist: artist.name,
           album: album.name,

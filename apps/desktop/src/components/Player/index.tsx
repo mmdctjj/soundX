@@ -22,6 +22,7 @@ import {
   deleteTrack,
   getDeletionImpact,
   getLatestHistory,
+  getMvByTrackId,
   getPlaylists,
   type Playlist,
 } from "@soundx/services";
@@ -102,6 +103,7 @@ const Player: React.FC = () => {
     loadMoreSourceTracks,
   } = usePlayerStore();
   const { mode: appMode } = usePlayMode();
+  const [hasMv, setHasMv] = useState(false);
   const { user, device } = useAuthStore();
   const { updateDesktopLyric } = useSettingsStore();
   const desktopLyricEnable = useSettingsStore(
@@ -112,6 +114,34 @@ const Player: React.FC = () => {
   useEffect(() => {
     syncActiveMode(appMode);
   }, [appMode, syncActiveMode]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkMv = async () => {
+      if (!currentTrack || currentTrack.type === TrackType.AUDIOBOOK) {
+        if (!cancelled) setHasMv(false);
+        return;
+      }
+
+      try {
+        const mv = await getMvByTrackId(Number(currentTrack.id));
+        if (!cancelled) {
+          setHasMv(!!mv);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setHasMv(false);
+        }
+      }
+    };
+
+    checkMv();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, currentTrack?.type]);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const ignoreTimeUpdate = useRef(false);
@@ -1398,7 +1428,7 @@ const Player: React.FC = () => {
       </div>
       {/* Volume & Settings */}
       <div className={styles.settings}>
-        {appMode !== TrackType.AUDIOBOOK && currentTrack && (
+        {appMode !== TrackType.AUDIOBOOK && currentTrack && hasMv && (
           <VideoCameraOutlined
             onClick={() => {
               if (isPlaying) pause();
