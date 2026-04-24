@@ -231,7 +231,7 @@ export const PlaylistModal = () => {
           <View
             style={[
               styles.modalContent,
-              { backgroundColor: colors.card, paddingBottom: insets.bottom },
+              { backgroundColor: colors.card },
             ]}
           >
             <View style={styles.modalHeader}>
@@ -316,6 +316,10 @@ export const PlaylistModal = () => {
                 data={listData}
                 keyExtractor={(item, index) => `${item.id}-${index}`}
                 renderItem={renderItem}
+                contentContainerStyle={[
+                  styles.listContent,
+                  { paddingBottom: insets.bottom },
+                ]}
                 ListEmptyComponent={
                   <View style={styles.center}>
                     <Text style={{ color: colors.secondary, marginTop: 20 }}>
@@ -369,6 +373,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: "hidden",
+  },
+  listContent: {
+    flexGrow: 1,
   },
   modalHeader: {
     flexDirection: "row",

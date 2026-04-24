@@ -1001,6 +1001,9 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sortModalSheet: {
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
