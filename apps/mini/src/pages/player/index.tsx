@@ -1,4 +1,4 @@
-import { getFavoriteTracks, toggleTrackLike, toggleTrackUnLike } from '@soundx/services';
+import { getFavoriteTracks, getMvByTrackId, toggleTrackLike, toggleTrackUnLike } from '@soundx/services';
 import { Image, ScrollView, Slider, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useState } from 'react';
@@ -76,6 +76,7 @@ export default function Player() {
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
   const [liked, setLiked] = useState(false);
+  const [hasMv, setHasMv] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
@@ -92,6 +93,34 @@ export default function Player() {
         setLyrics([]);
     }
   }, [currentTrack]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkMvStatus = async () => {
+      if (!currentTrack || currentTrack.type === 'AUDIOBOOK') {
+        if (!cancelled) setHasMv(false);
+        return;
+      }
+
+      try {
+        const mv = await getMvByTrackId(Number(currentTrack.id));
+        if (!cancelled) {
+          setHasMv(!!mv);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setHasMv(false);
+        }
+      }
+    };
+
+    checkMvStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, currentTrack?.type]);
 
   useEffect(() => {
     if (lyrics.length > 0) {
@@ -356,9 +385,11 @@ export default function Player() {
                     <View className='player-action-btns'>
                         {currentTrack.type !== 'AUDIOBOOK' && (
                           <>
-                            <View className='player-action-btn' onClick={() => Taro.navigateTo({ url: `/pages/mv/index?trackId=${currentTrack.id}` })}>
-                                <Text className='player-action-icon icon icon-video' />
-                            </View>
+                            {hasMv && (
+                              <View className='player-action-btn' onClick={() => Taro.navigateTo({ url: `/pages/mv/index?trackId=${currentTrack.id}` })}>
+                                  <Text className='player-action-icon icon icon-video' />
+                              </View>
+                            )}
                             <View className='player-action-btn' onClick={handleToggleLike}>
                                 <Text className={`player-action-icon icon ${liked ? 'icon-heart-filled' : 'icon-heart'}`} />
                             </View>
