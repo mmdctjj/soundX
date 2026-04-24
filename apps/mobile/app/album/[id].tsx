@@ -15,6 +15,7 @@ import { getImageUrl } from "@/src/utils/image";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import {
+  type AlbumTrackSortBy,
   getAlbumById,
   getAlbumTracks,
   toggleAlbumLike,
@@ -30,6 +31,8 @@ import {
   Alert,
   FlatList,
   Image,
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -59,7 +62,8 @@ export default function AlbumDetailScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [sort, setSort] = useState<"asc" | "desc">("asc");
-  const [sortBy, setSortBy] = useState<"id" | "index" | "episodeNumber">("episodeNumber");
+  const [sortBy, setSortBy] = useState<AlbumTrackSortBy>("fileName");
+  const [sortModalVisible, setSortModalVisible] = useState(false);
   const [total, setTotal] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [moreModalVisible, setMoreModalVisible] = useState(false);
@@ -81,7 +85,7 @@ export default function AlbumDetailScreen() {
     }
   }, [id, sort, sortBy]);
 
-  const loadData = async (albumId: number | string, currentSort: "asc" | "desc", currentSortBy: "id" | "index" | "episodeNumber") => {
+  const loadData = async (albumId: number | string, currentSort: "asc" | "desc", currentSortBy: AlbumTrackSortBy) => {
     try {
       setLoading(true);
       const [albumRes, tracksRes] = await Promise.all([
@@ -400,6 +404,18 @@ export default function AlbumDetailScreen() {
                       {album.resumeTrackId ? t("albumPage.continuePlaying") : t("albumPage.playAll")}
                     </Text>
                   </TouchableOpacity>
+                  {album.type === "AUDIOBOOK" && (
+                    <TouchableOpacity
+                      style={[styles.likeButton, { backgroundColor: colors.card }]}
+                      onPress={() => setSortModalVisible(true)}
+                    >
+                      <Ionicons
+                        name="options-outline"
+                        size={24}
+                        color={colors.secondary}
+                      />
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     style={[styles.likeButton, { backgroundColor: colors.card }]}
                     onPress={handleToggleLike}
@@ -442,29 +458,6 @@ export default function AlbumDetailScreen() {
                       />
                     </TouchableOpacity>
                   )}
-                  <View
-                    style={[styles.likeButton, { backgroundColor: colors.card, flexDirection: 'row', width: 'auto', paddingHorizontal: 15 }]}
-                  >
-                    <TouchableOpacity 
-                       style={{ flexDirection: 'row', alignItems: 'center' }}
-                       onPress={() => {
-                            const sequence: ("id" | "index" | "episodeNumber")[] = ["episodeNumber", "index", "id"];
-                            const next = sequence[(sequence.indexOf(sortBy) + 1) % sequence.length];
-                            setSortBy(next);
-                        }}
-                    >
-                        <Text style={{ color: colors.secondary, fontSize: 12, marginRight: 5 }}>
-                        {sortBy === 'id' ? t("albumPage.sortAdded") : sortBy === 'index' ? t("albumPage.sortAlbum") : t("albumPage.sortOptimized")}
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setSort(sort === 'asc' ? 'desc' : 'asc')}>
-                      <Ionicons
-                        name={sort === "asc" ? "arrow-up" : "arrow-down"}
-                        size={16}
-                        color={colors.secondary}
-                      />
-                    </TouchableOpacity>
-                  </View>
                 </>
               ) : null}
             </View>
@@ -702,6 +695,94 @@ export default function AlbumDetailScreen() {
         album={album}
         onClose={() => setCollectionModalVisible(false)}
       />
+      <Modal
+        visible={sortModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSortModalVisible(false)}
+      >
+        <Pressable
+          style={styles.sortModalOverlay}
+          onPress={() => setSortModalVisible(false)}
+        >
+          <Pressable
+            style={[styles.sortModalSheet, { backgroundColor: colors.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.sortModalTitle, { color: colors.text }]}>
+              {t("albumPage.sortTitle")}
+            </Text>
+            {([
+              ["fileName", t("albumPage.sortFileName")],
+              ["episodeNumber", t("albumPage.sortOptimized")],
+              ["fileCreatedAt", t("albumPage.sortFileCreatedAt")],
+              ["fileModifiedAt", t("albumPage.sortFileModifiedAt")],
+            ] as [AlbumTrackSortBy, string][]).map(([value, label]) => {
+              const active = sortBy === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  style={[
+                    styles.sortOption,
+                    { borderBottomColor: colors.border },
+                  ]}
+                  onPress={() => setSortBy(value)}
+                >
+                  <Text
+                    style={[
+                      styles.sortOptionText,
+                      { color: active ? colors.primary : colors.text },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                  {active && (
+                    <Ionicons name="checkmark" size={18} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+            <Text
+              style={[
+                styles.sortModalTitle,
+                { color: colors.text, marginTop: 18 },
+              ]}
+            >
+              {t("albumPage.sortOrderTitle")}
+            </Text>
+            <View style={styles.sortOrderRow}>
+              {([
+                ["asc", t("albumPage.sortAscending")],
+                ["desc", t("albumPage.sortDescending")],
+              ] as ["asc" | "desc", string][]).map(([value, label]) => {
+                const active = sort === value;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    style={[
+                      styles.sortOrderButton,
+                      {
+                        backgroundColor: active ? colors.primary : colors.background,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                    onPress={() => setSort(value)}
+                  >
+                    <Text
+                      style={{
+                        color: active ? colors.background : colors.text,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
       {tracks.length >= 20 && (
         <FloatingActionButtons
           flatListRef={flatListRef}
@@ -758,7 +839,6 @@ function AlbumDetailSkeleton() {
               height={ALBUM_ACTION_SIZE}
               borderRadius={ALBUM_ACTION_SIZE / 2}
             />
-            <SkeletonBlock width={88} height={44} borderRadius={22} />
           </View>
         </View>
 
@@ -914,5 +994,48 @@ const styles = StyleSheet.create({
   },
   trackDuration: {
     fontSize: 12,
+  },
+  sortModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
+  sortModalSheet: {
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 32,
+  },
+  sortModalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  sortOption: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  sortOptionText: {
+    fontSize: 15,
+  },
+  sortOrderRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 6,
+  },
+  sortOrderButton: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -1,6 +1,7 @@
 import {
   addAlbumToHistory,
   addToHistory,
+  type AlbumTrackSortBy,
   getAlbumTracks,
   getRecommendedTracks,
   getTrackHistory,
@@ -24,7 +25,7 @@ export interface PlaylistSource {
   params?: {
     sort?: "asc" | "desc";
     keyword?: string;
-    sortBy?: string;
+    sortBy?: AlbumTrackSortBy;
   };
 }
 

@@ -3192,6 +3192,7 @@ export namespace Prisma {
     id: number | null
     duration: number | null
     index: number | null
+    scanOrder: number | null
     episodeNumber: number | null
     artistId: number | null
     albumId: number | null
@@ -3202,6 +3203,7 @@ export namespace Prisma {
     id: number | null
     duration: number | null
     index: number | null
+    scanOrder: number | null
     episodeNumber: number | null
     artistId: number | null
     albumId: number | null
@@ -3211,6 +3213,8 @@ export namespace Prisma {
   export type TrackMinAggregateOutputType = {
     id: number | null
     name: string | null
+    fileName: string | null
+    relativePath: string | null
     path: string | null
     artist: string | null
     album: string | null
@@ -3220,7 +3224,9 @@ export namespace Prisma {
     index: number | null
     type: $Enums.TrackType | null
     createdAt: Date | null
+    fileCreatedAt: Date | null
     fileModifiedAt: Date | null
+    scanOrder: number | null
     episodeNumber: number | null
     fileHash: string | null
     status: $Enums.FileStatus | null
@@ -3233,6 +3239,8 @@ export namespace Prisma {
   export type TrackMaxAggregateOutputType = {
     id: number | null
     name: string | null
+    fileName: string | null
+    relativePath: string | null
     path: string | null
     artist: string | null
     album: string | null
@@ -3242,7 +3250,9 @@ export namespace Prisma {
     index: number | null
     type: $Enums.TrackType | null
     createdAt: Date | null
+    fileCreatedAt: Date | null
     fileModifiedAt: Date | null
+    scanOrder: number | null
     episodeNumber: number | null
     fileHash: string | null
     status: $Enums.FileStatus | null
@@ -3255,6 +3265,8 @@ export namespace Prisma {
   export type TrackCountAggregateOutputType = {
     id: number
     name: number
+    fileName: number
+    relativePath: number
     path: number
     artist: number
     album: number
@@ -3264,7 +3276,9 @@ export namespace Prisma {
     index: number
     type: number
     createdAt: number
+    fileCreatedAt: number
     fileModifiedAt: number
+    scanOrder: number
     episodeNumber: number
     fileHash: number
     status: number
@@ -3280,6 +3294,7 @@ export namespace Prisma {
     id?: true
     duration?: true
     index?: true
+    scanOrder?: true
     episodeNumber?: true
     artistId?: true
     albumId?: true
@@ -3290,6 +3305,7 @@ export namespace Prisma {
     id?: true
     duration?: true
     index?: true
+    scanOrder?: true
     episodeNumber?: true
     artistId?: true
     albumId?: true
@@ -3299,6 +3315,8 @@ export namespace Prisma {
   export type TrackMinAggregateInputType = {
     id?: true
     name?: true
+    fileName?: true
+    relativePath?: true
     path?: true
     artist?: true
     album?: true
@@ -3308,7 +3326,9 @@ export namespace Prisma {
     index?: true
     type?: true
     createdAt?: true
+    fileCreatedAt?: true
     fileModifiedAt?: true
+    scanOrder?: true
     episodeNumber?: true
     fileHash?: true
     status?: true
@@ -3321,6 +3341,8 @@ export namespace Prisma {
   export type TrackMaxAggregateInputType = {
     id?: true
     name?: true
+    fileName?: true
+    relativePath?: true
     path?: true
     artist?: true
     album?: true
@@ -3330,7 +3352,9 @@ export namespace Prisma {
     index?: true
     type?: true
     createdAt?: true
+    fileCreatedAt?: true
     fileModifiedAt?: true
+    scanOrder?: true
     episodeNumber?: true
     fileHash?: true
     status?: true
@@ -3343,6 +3367,8 @@ export namespace Prisma {
   export type TrackCountAggregateInputType = {
     id?: true
     name?: true
+    fileName?: true
+    relativePath?: true
     path?: true
     artist?: true
     album?: true
@@ -3352,7 +3378,9 @@ export namespace Prisma {
     index?: true
     type?: true
     createdAt?: true
+    fileCreatedAt?: true
     fileModifiedAt?: true
+    scanOrder?: true
     episodeNumber?: true
     fileHash?: true
     status?: true
@@ -3452,6 +3480,8 @@ export namespace Prisma {
   export type TrackGroupByOutputType = {
     id: number
     name: string
+    fileName: string | null
+    relativePath: string | null
     path: string
     artist: string
     album: string
@@ -3461,7 +3491,9 @@ export namespace Prisma {
     index: number | null
     type: $Enums.TrackType
     createdAt: Date
+    fileCreatedAt: Date | null
     fileModifiedAt: Date | null
+    scanOrder: number | null
     episodeNumber: number | null
     fileHash: string | null
     status: $Enums.FileStatus
@@ -3493,6 +3525,8 @@ export namespace Prisma {
   export type TrackSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    fileName?: boolean
+    relativePath?: boolean
     path?: boolean
     artist?: boolean
     album?: boolean
@@ -3502,7 +3536,9 @@ export namespace Prisma {
     index?: boolean
     type?: boolean
     createdAt?: boolean
+    fileCreatedAt?: boolean
     fileModifiedAt?: boolean
+    scanOrder?: boolean
     episodeNumber?: boolean
     fileHash?: boolean
     status?: boolean
@@ -3525,6 +3561,8 @@ export namespace Prisma {
   export type TrackSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    fileName?: boolean
+    relativePath?: boolean
     path?: boolean
     artist?: boolean
     album?: boolean
@@ -3534,7 +3572,9 @@ export namespace Prisma {
     index?: boolean
     type?: boolean
     createdAt?: boolean
+    fileCreatedAt?: boolean
     fileModifiedAt?: boolean
+    scanOrder?: boolean
     episodeNumber?: boolean
     fileHash?: boolean
     status?: boolean
@@ -3550,6 +3590,8 @@ export namespace Prisma {
   export type TrackSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    fileName?: boolean
+    relativePath?: boolean
     path?: boolean
     artist?: boolean
     album?: boolean
@@ -3559,7 +3601,9 @@ export namespace Prisma {
     index?: boolean
     type?: boolean
     createdAt?: boolean
+    fileCreatedAt?: boolean
     fileModifiedAt?: boolean
+    scanOrder?: boolean
     episodeNumber?: boolean
     fileHash?: boolean
     status?: boolean
@@ -3575,6 +3619,8 @@ export namespace Prisma {
   export type TrackSelectScalar = {
     id?: boolean
     name?: boolean
+    fileName?: boolean
+    relativePath?: boolean
     path?: boolean
     artist?: boolean
     album?: boolean
@@ -3584,7 +3630,9 @@ export namespace Prisma {
     index?: boolean
     type?: boolean
     createdAt?: boolean
+    fileCreatedAt?: boolean
     fileModifiedAt?: boolean
+    scanOrder?: boolean
     episodeNumber?: boolean
     fileHash?: boolean
     status?: boolean
@@ -3594,7 +3642,7 @@ export namespace Prisma {
     folderId?: boolean
   }
 
-  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileModifiedAt" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
+  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "fileName" | "relativePath" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileCreatedAt" | "fileModifiedAt" | "scanOrder" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
   export type TrackInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     artistEntity?: boolean | Track$artistEntityArgs<ExtArgs>
     albumEntity?: boolean | Track$albumEntityArgs<ExtArgs>
@@ -3637,6 +3685,8 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: number
       name: string
+      fileName: string | null
+      relativePath: string | null
       path: string
       artist: string
       album: string
@@ -3646,7 +3696,9 @@ export namespace Prisma {
       index: number | null
       type: $Enums.TrackType
       createdAt: Date
+      fileCreatedAt: Date | null
       fileModifiedAt: Date | null
+      scanOrder: number | null
       episodeNumber: number | null
       fileHash: string | null
       status: $Enums.FileStatus
@@ -4088,6 +4140,8 @@ export namespace Prisma {
   interface TrackFieldRefs {
     readonly id: FieldRef<"Track", 'Int'>
     readonly name: FieldRef<"Track", 'String'>
+    readonly fileName: FieldRef<"Track", 'String'>
+    readonly relativePath: FieldRef<"Track", 'String'>
     readonly path: FieldRef<"Track", 'String'>
     readonly artist: FieldRef<"Track", 'String'>
     readonly album: FieldRef<"Track", 'String'>
@@ -4097,7 +4151,9 @@ export namespace Prisma {
     readonly index: FieldRef<"Track", 'Int'>
     readonly type: FieldRef<"Track", 'TrackType'>
     readonly createdAt: FieldRef<"Track", 'DateTime'>
+    readonly fileCreatedAt: FieldRef<"Track", 'DateTime'>
     readonly fileModifiedAt: FieldRef<"Track", 'DateTime'>
+    readonly scanOrder: FieldRef<"Track", 'Int'>
     readonly episodeNumber: FieldRef<"Track", 'Int'>
     readonly fileHash: FieldRef<"Track", 'String'>
     readonly status: FieldRef<"Track", 'FileStatus'>
@@ -27641,6 +27697,8 @@ export namespace Prisma {
   export const TrackScalarFieldEnum: {
     id: 'id',
     name: 'name',
+    fileName: 'fileName',
+    relativePath: 'relativePath',
     path: 'path',
     artist: 'artist',
     album: 'album',
@@ -27650,7 +27708,9 @@ export namespace Prisma {
     index: 'index',
     type: 'type',
     createdAt: 'createdAt',
+    fileCreatedAt: 'fileCreatedAt',
     fileModifiedAt: 'fileModifiedAt',
+    scanOrder: 'scanOrder',
     episodeNumber: 'episodeNumber',
     fileHash: 'fileHash',
     status: 'status',
@@ -27983,6 +28043,8 @@ export namespace Prisma {
     NOT?: TrackWhereInput | TrackWhereInput[]
     id?: IntFilter<"Track"> | number
     name?: StringFilter<"Track"> | string
+    fileName?: StringNullableFilter<"Track"> | string | null
+    relativePath?: StringNullableFilter<"Track"> | string | null
     path?: StringFilter<"Track"> | string
     artist?: StringFilter<"Track"> | string
     album?: StringFilter<"Track"> | string
@@ -27992,7 +28054,9 @@ export namespace Prisma {
     index?: IntNullableFilter<"Track"> | number | null
     type?: EnumTrackTypeFilter<"Track"> | $Enums.TrackType
     createdAt?: DateTimeFilter<"Track"> | Date | string
+    fileCreatedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
     fileModifiedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
+    scanOrder?: IntNullableFilter<"Track"> | number | null
     episodeNumber?: IntNullableFilter<"Track"> | number | null
     fileHash?: StringNullableFilter<"Track"> | string | null
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
@@ -28014,6 +28078,8 @@ export namespace Prisma {
   export type TrackOrderByWithRelationInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrderInput | SortOrder
+    relativePath?: SortOrderInput | SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -28023,7 +28089,9 @@ export namespace Prisma {
     index?: SortOrderInput | SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrderInput | SortOrder
     fileModifiedAt?: SortOrderInput | SortOrder
+    scanOrder?: SortOrderInput | SortOrder
     episodeNumber?: SortOrderInput | SortOrder
     fileHash?: SortOrderInput | SortOrder
     status?: SortOrder
@@ -28048,6 +28116,8 @@ export namespace Prisma {
     OR?: TrackWhereInput[]
     NOT?: TrackWhereInput | TrackWhereInput[]
     name?: StringFilter<"Track"> | string
+    fileName?: StringNullableFilter<"Track"> | string | null
+    relativePath?: StringNullableFilter<"Track"> | string | null
     path?: StringFilter<"Track"> | string
     artist?: StringFilter<"Track"> | string
     album?: StringFilter<"Track"> | string
@@ -28057,7 +28127,9 @@ export namespace Prisma {
     index?: IntNullableFilter<"Track"> | number | null
     type?: EnumTrackTypeFilter<"Track"> | $Enums.TrackType
     createdAt?: DateTimeFilter<"Track"> | Date | string
+    fileCreatedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
     fileModifiedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
+    scanOrder?: IntNullableFilter<"Track"> | number | null
     episodeNumber?: IntNullableFilter<"Track"> | number | null
     fileHash?: StringNullableFilter<"Track"> | string | null
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
@@ -28079,6 +28151,8 @@ export namespace Prisma {
   export type TrackOrderByWithAggregationInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrderInput | SortOrder
+    relativePath?: SortOrderInput | SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -28088,7 +28162,9 @@ export namespace Prisma {
     index?: SortOrderInput | SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrderInput | SortOrder
     fileModifiedAt?: SortOrderInput | SortOrder
+    scanOrder?: SortOrderInput | SortOrder
     episodeNumber?: SortOrderInput | SortOrder
     fileHash?: SortOrderInput | SortOrder
     status?: SortOrder
@@ -28109,6 +28185,8 @@ export namespace Prisma {
     NOT?: TrackScalarWhereWithAggregatesInput | TrackScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"Track"> | number
     name?: StringWithAggregatesFilter<"Track"> | string
+    fileName?: StringNullableWithAggregatesFilter<"Track"> | string | null
+    relativePath?: StringNullableWithAggregatesFilter<"Track"> | string | null
     path?: StringWithAggregatesFilter<"Track"> | string
     artist?: StringWithAggregatesFilter<"Track"> | string
     album?: StringWithAggregatesFilter<"Track"> | string
@@ -28118,7 +28196,9 @@ export namespace Prisma {
     index?: IntNullableWithAggregatesFilter<"Track"> | number | null
     type?: EnumTrackTypeWithAggregatesFilter<"Track"> | $Enums.TrackType
     createdAt?: DateTimeWithAggregatesFilter<"Track"> | Date | string
+    fileCreatedAt?: DateTimeNullableWithAggregatesFilter<"Track"> | Date | string | null
     fileModifiedAt?: DateTimeNullableWithAggregatesFilter<"Track"> | Date | string | null
+    scanOrder?: IntNullableWithAggregatesFilter<"Track"> | number | null
     episodeNumber?: IntNullableWithAggregatesFilter<"Track"> | number | null
     fileHash?: StringNullableWithAggregatesFilter<"Track"> | string | null
     status?: EnumFileStatusWithAggregatesFilter<"Track"> | $Enums.FileStatus
@@ -29458,6 +29538,8 @@ export namespace Prisma {
 
   export type TrackCreateInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -29467,7 +29549,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -29486,6 +29570,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -29495,7 +29581,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -29513,6 +29601,8 @@ export namespace Prisma {
 
   export type TrackUpdateInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -29522,7 +29612,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -29541,6 +29633,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -29550,7 +29644,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -29569,6 +29665,8 @@ export namespace Prisma {
   export type TrackCreateManyInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -29578,7 +29676,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -29590,6 +29690,8 @@ export namespace Prisma {
 
   export type TrackUpdateManyMutationInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -29599,7 +29701,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -29609,6 +29713,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -29618,7 +29724,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -31075,6 +31183,8 @@ export namespace Prisma {
   export type TrackCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrder
+    relativePath?: SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -31084,7 +31194,9 @@ export namespace Prisma {
     index?: SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrder
     fileModifiedAt?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     fileHash?: SortOrder
     status?: SortOrder
@@ -31098,6 +31210,7 @@ export namespace Prisma {
     id?: SortOrder
     duration?: SortOrder
     index?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
@@ -31107,6 +31220,8 @@ export namespace Prisma {
   export type TrackMaxOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrder
+    relativePath?: SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -31116,7 +31231,9 @@ export namespace Prisma {
     index?: SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrder
     fileModifiedAt?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     fileHash?: SortOrder
     status?: SortOrder
@@ -31129,6 +31246,8 @@ export namespace Prisma {
   export type TrackMinOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrder
+    relativePath?: SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -31138,7 +31257,9 @@ export namespace Prisma {
     index?: SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrder
     fileModifiedAt?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     fileHash?: SortOrder
     status?: SortOrder
@@ -31152,6 +31273,7 @@ export namespace Prisma {
     id?: SortOrder
     duration?: SortOrder
     index?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
@@ -34570,6 +34692,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutAlbumEntityInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -34579,7 +34703,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -34597,6 +34723,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateWithoutAlbumEntityInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -34606,7 +34734,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -34756,6 +34886,8 @@ export namespace Prisma {
     NOT?: TrackScalarWhereInput | TrackScalarWhereInput[]
     id?: IntFilter<"Track"> | number
     name?: StringFilter<"Track"> | string
+    fileName?: StringNullableFilter<"Track"> | string | null
+    relativePath?: StringNullableFilter<"Track"> | string | null
     path?: StringFilter<"Track"> | string
     artist?: StringFilter<"Track"> | string
     album?: StringFilter<"Track"> | string
@@ -34765,7 +34897,9 @@ export namespace Prisma {
     index?: IntNullableFilter<"Track"> | number | null
     type?: EnumTrackTypeFilter<"Track"> | $Enums.TrackType
     createdAt?: DateTimeFilter<"Track"> | Date | string
+    fileCreatedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
     fileModifiedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
+    scanOrder?: IntNullableFilter<"Track"> | number | null
     episodeNumber?: IntNullableFilter<"Track"> | number | null
     fileHash?: StringNullableFilter<"Track"> | string | null
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
@@ -34872,6 +35006,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutArtistEntityInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -34881,7 +35017,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -34899,6 +35037,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateWithoutArtistEntityInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -34908,7 +35048,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -35306,6 +35448,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutLikedByUsersInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -35315,7 +35459,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -35333,6 +35479,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateWithoutLikedByUsersInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -35342,7 +35490,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -35423,6 +35573,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutLikedByUsersInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35432,7 +35584,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -35450,6 +35604,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateWithoutLikedByUsersInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35459,7 +35615,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -35518,6 +35676,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutListenedByUsersInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -35527,7 +35687,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -35545,6 +35707,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateWithoutListenedByUsersInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -35554,7 +35718,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -35657,6 +35823,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutListenedByUsersInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35666,7 +35834,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -35684,6 +35854,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateWithoutListenedByUsersInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35693,7 +35865,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -36108,6 +36282,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutLikedAsAudiobookByUsersInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -36117,7 +36293,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -36135,6 +36313,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateWithoutLikedAsAudiobookByUsersInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -36144,7 +36324,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -36225,6 +36407,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutLikedAsAudiobookByUsersInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36234,7 +36418,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -36252,6 +36438,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateWithoutLikedAsAudiobookByUsersInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36261,7 +36449,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -36320,6 +36510,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutListenedAsAudiobookByUsersInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -36329,7 +36521,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -36347,6 +36541,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateWithoutListenedAsAudiobookByUsersInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -36356,7 +36552,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -36437,6 +36635,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutListenedAsAudiobookByUsersInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36446,7 +36646,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -36464,6 +36666,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateWithoutListenedAsAudiobookByUsersInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36473,7 +36677,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -37181,6 +37387,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutPlaylistsInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -37190,7 +37398,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -37208,6 +37418,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateWithoutPlaylistsInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -37217,7 +37429,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -37351,6 +37565,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutFolderInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -37360,7 +37576,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -37378,6 +37596,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateWithoutFolderInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -37387,7 +37607,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -37597,6 +37819,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutMvsInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -37606,7 +37830,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -37624,6 +37850,8 @@ export namespace Prisma {
   export type TrackUncheckedCreateWithoutMvsInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -37633,7 +37861,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -37736,6 +37966,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutMvsInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -37745,7 +37977,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -37763,6 +37997,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateWithoutMvsInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -37772,7 +38008,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38059,6 +38297,8 @@ export namespace Prisma {
   export type TrackCreateManyAlbumEntityInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -38068,7 +38308,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -38115,6 +38357,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutAlbumEntityInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38124,7 +38368,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38142,6 +38388,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateWithoutAlbumEntityInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38151,7 +38399,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38169,6 +38419,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateManyWithoutAlbumEntityInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38178,7 +38430,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38294,6 +38548,8 @@ export namespace Prisma {
   export type TrackCreateManyArtistEntityInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -38303,7 +38559,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -38331,6 +38589,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutArtistEntityInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38340,7 +38600,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38358,6 +38620,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateWithoutArtistEntityInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38367,7 +38631,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38385,6 +38651,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateManyWithoutArtistEntityInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38394,7 +38662,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38805,6 +39075,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutPlaylistsInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38814,7 +39086,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38832,6 +39106,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateWithoutPlaylistsInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38841,7 +39117,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38859,6 +39137,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateManyWithoutPlaylistsInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38868,7 +39148,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38888,6 +39170,8 @@ export namespace Prisma {
   export type TrackCreateManyFolderInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -38897,7 +39181,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -38932,6 +39218,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutFolderInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38941,7 +39229,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38959,6 +39249,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateWithoutFolderInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38968,7 +39260,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -38986,6 +39280,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateManyWithoutFolderInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -38995,7 +39291,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
