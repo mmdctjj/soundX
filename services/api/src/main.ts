@@ -7,6 +7,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { Logger } from 'nestjs-pino';
 import * as path from 'path';
 import { resolvePathList } from './common/path-list';
+import { DatabaseSchemaService } from './services/database-schema.service';
 import { ImportService } from './services/import';
 import { TrackService } from './services/track';
 
@@ -109,6 +110,9 @@ async function bootstrap() {
 
 
   // 启动完成后调用 service
+  const databaseSchemaService = app.get(DatabaseSchemaService);
+  await databaseSchemaService.ensureTrackSortColumns();
+
   const trackService = app.get(TrackService);
   const count = await trackService.trackCount();
 

@@ -7,12 +7,31 @@ import { getTrackHeartbeatScoreMap } from './heartbeat-score';
 import { toSimplified } from '../common/zh-utils';
 import { resolvePathList } from '../common/path-list';
 
+export type AlbumTrackSortBy =
+  | 'id'
+  | 'index'
+  | 'episodeNumber'
+  | 'fileName'
+  | 'fileCreatedAt'
+  | 'fileModifiedAt'
+  | 'scanOrder';
+
 @Injectable()
 export class TrackService {
   private prisma: PrismaClient;
+  private readonly naturalFileNameCollator = new Intl.Collator('zh-CN', {
+    numeric: true,
+    sensitivity: 'base',
+  });
 
   constructor(private readonly configService: ConfigService) {
     this.prisma = new PrismaClient();
+  }
+
+  private getFileNameSortKey(track: Pick<Track, 'fileName' | 'name' | 'relativePath'>): string {
+    const rawName = track.fileName || track.name || track.relativePath || '';
+    const ext = path.extname(rawName);
+    return ext ? rawName.slice(0, -ext.length) : rawName;
   }
 
   public getFilePath(trackPath: string): string | null {
@@ -82,7 +101,7 @@ export class TrackService {
     sort: 'asc' | 'desc' = 'asc',
     keyword?: string,
     userId?: number,
-    sortBy: 'id' | 'index' | 'episodeNumber' = 'episodeNumber',
+    sortBy: AlbumTrackSortBy = 'episodeNumber',
     albumId?: number,
   ): Promise<Track[]> {
     const where: any = {
@@ -101,11 +120,68 @@ export class TrackService {
       where.name = { contains: simplifiedKeyword };
     }
 
+    if (sortBy === 'fileName') {
+      const tracks = await this.prisma.track.findMany({
+        where,
+        include: {
+          artistEntity: true,
+          albumEntity: true,
+          likedByUsers: true
+        },
+      });
+
+      tracks.sort((a, b) => {
+        const primary = this.naturalFileNameCollator.compare(
+          this.getFileNameSortKey(a),
+          this.getFileNameSortKey(b),
+        );
+        if (primary !== 0) {
+          return sort === 'asc' ? primary : -primary;
+        }
+
+        const relativePathCompare = this.naturalFileNameCollator.compare(
+          a.relativePath || '',
+          b.relativePath || '',
+        );
+        if (relativePathCompare !== 0) {
+          return sort === 'asc' ? relativePathCompare : -relativePathCompare;
+        }
+
+        return sort === 'asc' ? a.id - b.id : b.id - a.id;
+      });
+
+      return await this.attachProgressToTracks(
+        tracks.slice(skip, skip + pageSize),
+        userId || 1,
+      );
+    }
+
+    const orderBy: any[] = [];
+    switch (sortBy) {
+      case 'id':
+        orderBy.push({ id: sort });
+        break;
+      case 'index':
+        orderBy.push({ index: sort }, { relativePath: sort }, { id: sort });
+        break;
+      case 'fileCreatedAt':
+        orderBy.push({ fileCreatedAt: sort }, { relativePath: sort }, { id: sort });
+        break;
+      case 'fileModifiedAt':
+        orderBy.push({ fileModifiedAt: sort }, { relativePath: sort }, { id: sort });
+        break;
+      case 'scanOrder':
+        orderBy.push({ scanOrder: sort }, { id: sort });
+        break;
+      case 'episodeNumber':
+      default:
+        orderBy.push({ episodeNumber: sort }, { index: sort }, { relativePath: sort }, { id: sort });
+        break;
+    }
+
     const tracks = await this.prisma.track.findMany({
       where,
-      orderBy: [
-        { [sortBy]: sort },
-      ],
+      orderBy,
       skip: skip,
       take: pageSize,
       include: {

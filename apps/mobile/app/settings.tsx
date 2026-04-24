@@ -673,7 +673,7 @@ export default function SettingsScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.versionText, { color: colors.secondary }]}>
-            {t("settings.version", `AudioDock Mobile v${getLocalVersion()}`)}
+            {`AudioDock Mobile v${getLocalVersion()}`}
           </Text>
         </View>
       </ScrollView>

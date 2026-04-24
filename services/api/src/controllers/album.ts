@@ -25,7 +25,7 @@ import {
 import { LogMethod } from '../common/log-method.decorator';
 import { createCoverUploadOptions, toCoverUrl } from '../common/cover-upload';
 import { AlbumService } from '../services/album';
-import { TrackService } from '../services/track';
+import { AlbumTrackSortBy, TrackService } from '../services/track';
 
 @Controller()
 export class AlbumController {
@@ -430,7 +430,7 @@ export class AlbumController {
     @Query('pageSize') pageSize: number,
     @Query('skip') skip: number,
     @Query('sort') sort: 'asc' | 'desc',
-    @Query('sortBy') sortBy: 'id' | 'index' | 'episodeNumber',
+    @Query('sortBy') sortBy: AlbumTrackSortBy,
     @Query('keyword') keyword: string,
   ): Promise<ISuccessResponse<any> | IErrorResponse> {
     try {
@@ -450,7 +450,7 @@ export class AlbumController {
         sort,
         keyword,
         Number(userId),
-        sortBy || 'episodeNumber',
+        sortBy || (album.type === TrackType.AUDIOBOOK ? 'fileName' : 'episodeNumber'),
         album.id // Pass album ID
       );
       const total = await this.trackService.getTrackCountByAlbum(
