@@ -1399,6 +1399,7 @@ const Player: React.FC = () => {
                     ? styles.qualityButtonDisabled
                     : ""
                 }`}
+                style={{ color: token.colorTextSecondary }}
                 onClick={(event) => {
                   event.stopPropagation();
                   void cycleAudioQuality();
@@ -1927,7 +1928,7 @@ const Player: React.FC = () => {
                       borderRadius: "50%",
                     }}
                   />
-                  <Text ellipsis>
+                  <Text ellipsis className={styles.artistText}>
                     {currentTrack?.artist || "Unknown Artist"}
                   </Text>
                   {currentTrack?.type !== TrackType.AUDIOBOOK && (
@@ -1938,6 +1939,7 @@ const Player: React.FC = () => {
                           ? styles.qualityButtonDisabled
                           : ""
                       }`}
+                      style={{ color: token.colorTextSecondary }}
                       onClick={(event) => {
                         event.stopPropagation();
                         void cycleAudioQuality();

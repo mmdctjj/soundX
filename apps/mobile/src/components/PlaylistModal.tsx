@@ -361,16 +361,20 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheetWrapper: {
+    flex: 1,
     width: "100%",
+    justifyContent: "flex-end",
     alignItems: "center",
   },
   modalWrapper: {
     width: "100%",
     height: "60%",
     maxWidth: 450,
+    alignSelf: "center",
   },
   modalContent: {
     height: "100%",
+    width: "100%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: "hidden",

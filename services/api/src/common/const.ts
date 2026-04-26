@@ -1,5 +1,5 @@
 export interface IResponse {
-  message: string;
+  message: string | unknown;
 }
 
 export interface IErrorResponse extends IResponse {

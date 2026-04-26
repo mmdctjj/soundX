@@ -21,6 +21,7 @@ import * as path from 'path';
 import {
   IErrorResponse,
   ILoadMoreData,
+  INotFoundResponse,
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
@@ -351,7 +352,7 @@ export class TrackController {
 
   @Public()
   @Get('/track/:id/playback-qualities')
-  async getPlaybackQualities(@Param('id') id: string): Promise<ISuccessResponse<any> | IErrorResponse> {
+  async getPlaybackQualities(@Param('id') id: string): Promise<ISuccessResponse<any> | IErrorResponse | INotFoundResponse> {
     try {
       const track = await this.trackService.findById(parseInt(id));
       if (!track) {
@@ -402,7 +403,10 @@ export class TrackController {
       // Fallback for .strm files that were incorrectly saved as local paths
       if ((!filePath || !fs.existsSync(filePath)) && track.path.includes('.strm')) {
           // If the DB path is a local URL like /music/..., get the actual disk path
-          filePath = this.trackService.getFilePath(track.path);
+          const resolvedFilePath = this.trackService.getFilePath(track.path);
+          if (resolvedFilePath) {
+            filePath = resolvedFilePath;
+          }
       }
 
       if (!filePath || !fs.existsSync(filePath)) {
