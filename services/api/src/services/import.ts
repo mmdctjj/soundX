@@ -50,6 +50,11 @@ interface ParsedMvFileName {
   album?: string;
 }
 
+interface MvStorageTarget {
+  sourcePath: string;
+  publicUrl: string;
+}
+
 @Injectable()
 export class ImportService implements OnModuleInit {
   private readonly logger = new Logger(ImportService.name);
@@ -262,6 +267,100 @@ export class ImportService implements OnModuleInit {
     }
   }
 
+  private isMvFile(filePath: string): boolean {
+    return /\.(mp4|mkv|avi|webm)$/i.test(filePath);
+  }
+
+  private needsMvTranscode(filePath: string, isWebDAV: boolean): boolean {
+    return !isWebDAV && !filePath.toLowerCase().endsWith('.mp4');
+  }
+
+  private getMvTranscodedDir(cachePath: string): string {
+    return path.join(cachePath, 'transcoded-mv');
+  }
+
+  private isTranscodedMvPath(targetPath: string, cachePath: string): boolean {
+    return targetPath.startsWith(this.getMvTranscodedDir(cachePath));
+  }
+
+  private getMvTranscodedFilePath(sourcePath: string, cachePath: string): string {
+    const sourceKey = crypto
+      .createHash('sha1')
+      .update(path.resolve(sourcePath))
+      .digest('hex');
+    return path.join(this.getMvTranscodedDir(cachePath), `${sourceKey}.mp4`);
+  }
+
+  private async ensureMvAsMp4(
+    sourcePath: string,
+    cachePath: string,
+    isWebDAV: boolean,
+  ): Promise<MvStorageTarget> {
+    if (!this.needsMvTranscode(sourcePath, isWebDAV)) {
+      return {
+        sourcePath,
+        publicUrl: '',
+      };
+    }
+
+    const outputDir = this.getMvTranscodedDir(cachePath);
+    const outputPath = this.getMvTranscodedFilePath(sourcePath, cachePath);
+
+    fs.mkdirSync(outputDir, { recursive: true });
+
+    const sourceStat = fs.statSync(sourcePath);
+    if (fs.existsSync(outputPath)) {
+      const outputStat = fs.statSync(outputPath);
+      if (outputStat.mtimeMs >= sourceStat.mtimeMs) {
+        return {
+          sourcePath: outputPath,
+          publicUrl: this.convertToHttpUrl(outputPath, 'music', outputDir),
+        };
+      }
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const ffmpeg = spawn('ffmpeg', [
+        '-y',
+        '-i', sourcePath,
+        '-map', '0:v:0',
+        '-map', '0:a?',
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-crf', '23',
+        '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-movflags', '+faststart',
+        outputPath,
+      ]);
+
+      let stderr = '';
+
+      ffmpeg.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      ffmpeg.on('error', (error) => {
+        reject(error);
+      });
+
+      ffmpeg.on('close', (code) => {
+        if (code === 0 && fs.existsSync(outputPath)) {
+          resolve();
+          return;
+        }
+
+        reject(new Error(stderr || `ffmpeg exited with code ${code}`));
+      });
+    });
+
+    return {
+      sourcePath: outputPath,
+      publicUrl: this.convertToHttpUrl(outputPath, 'music', outputDir),
+    };
+  }
+
   private async clearLibraryData(task?: ImportTask) {
     this.logger.log('Starting full library soft-sync (marking as TRASHED)...');
 
@@ -389,6 +488,9 @@ export class ImportService implements OnModuleInit {
 
     this.watcher
       .on('add', async (filePath) => {
+        if (this.isTranscodedMvPath(filePath, cachePath)) {
+          return;
+        }
         const info = getBasePathAndType(filePath);
         if (info) {
           if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
@@ -404,6 +506,9 @@ export class ImportService implements OnModuleInit {
         }
       })
       .on('change', async (filePath) => {
+        if (this.isTranscodedMvPath(filePath, cachePath)) {
+          return;
+        }
         const info = getBasePathAndType(filePath);
 
         if (info) {
@@ -429,9 +534,12 @@ export class ImportService implements OnModuleInit {
         }
       })
       .on('unlink', async (filePath) => {
+        if (this.isTranscodedMvPath(filePath, cachePath)) {
+          return;
+        }
         this.logger.log(`[Watcher] File unlinked: ${filePath}`);
         if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
-          await this.handleFileUnlink(filePath, musicPaths, audiobookPaths, mvPaths);
+          await this.handleFileUnlink(filePath, musicPaths, audiobookPaths, mvPaths, cachePath);
         } else if (/\.(jpg|jpeg|png|webp)$/i.test(filePath)) {
           await this.handleImageUnlink(filePath, cachePath);
         } else if (/\.(lrc|txt)$/i.test(filePath)) {
@@ -506,6 +614,17 @@ export class ImportService implements OnModuleInit {
     const hash = await this.calculateFingerprint(filePath);
     if (!hash) return;
 
+    if (this.isMvFile(filePath)) {
+      if (!this.scanner) this.scanner = new LocalMusicScanner(cachePath);
+      const metadata = await this.scanner.parseFile(filePath);
+      if (metadata) {
+        const mvTarget = await this.ensureMvAsMp4(filePath, cachePath, false);
+        const mvUrl = mvTarget.publicUrl || this.convertToHttpUrl(filePath, 'music', basePath);
+        await this.processMvData(metadata, basePath, cachePath, mvUrl, hash, false, mvTarget.sourcePath);
+      }
+      return;
+    }
+
     const trashedTrack = await this.prisma.track.findFirst({
       where: { fileHash: hash, status: FileStatus.TRASHED }
     });
@@ -567,6 +686,15 @@ export class ImportService implements OnModuleInit {
       if (metadata) {
         this.logger.log(`[Watcher] Metadata details - title: ${metadata.title}, artist: ${metadata.artist}, album: ${metadata.album}, coverPath: ${metadata.coverPath}, lyrics: ${!!metadata.lyrics}`);
 
+        if (this.isMvFile(filePath)) {
+          const hash = await this.calculateFingerprint(filePath);
+          const mvTarget = await this.ensureMvAsMp4(filePath, cachePath, false);
+          const mvUrl = mvTarget.publicUrl || this.convertToHttpUrl(filePath, 'music', basePath);
+          await this.processMvData(metadata, basePath, cachePath, mvUrl, hash, false, mvTarget.sourcePath);
+          this.logger.log(`[Watcher] Successfully updated MV metadata: ${metadata.title || path.basename(filePath)}`);
+          return;
+        }
+
         const audioUrl = metadata.path.startsWith('http') ? metadata.path : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
         this.logger.log(`[Watcher] Audio URL: ${audioUrl}`);
 
@@ -610,7 +738,7 @@ export class ImportService implements OnModuleInit {
     }
   }
 
-  private async handleFileUnlink(filePath: string, musicPaths: string[], audiobookPaths: string[], mvPaths: string[]) {
+  private async handleFileUnlink(filePath: string, musicPaths: string[], audiobookPaths: string[], mvPaths: string[], cachePath: string) {
     const findBasePath = (basePaths: string[]): string | null => {
       const matches = basePaths.filter((basePath) => filePath.startsWith(basePath));
       if (matches.length === 0) return null;
@@ -633,9 +761,22 @@ export class ImportService implements OnModuleInit {
     if (!url) return;
 
     // Check if it's an MV
-    if (/\.(mp4|mkv|avi|webm)$/i.test(filePath)) {
+    if (this.isMvFile(filePath)) {
+      const transcodedPath = this.needsMvTranscode(filePath, false)
+        ? this.getMvTranscodedFilePath(filePath, cachePath)
+        : '';
+      const transcodedUrl = this.needsMvTranscode(filePath, false)
+        ? this.convertToHttpUrl(
+          transcodedPath,
+          'music',
+          this.getMvTranscodedDir(cachePath),
+        )
+        : '';
       const mv = await this.prisma.mv.findFirst({
-        where: { path: url, status: FileStatus.ACTIVE }
+        where: {
+          path: transcodedUrl ? { in: [url, transcodedUrl] } : url,
+          status: FileStatus.ACTIVE
+        }
       });
       if (mv) {
         this.logger.log(`[Watcher] Soft deleting MV ${mv.id} (${mv.name})`);
@@ -643,6 +784,10 @@ export class ImportService implements OnModuleInit {
           where: { id: mv.id },
           data: { status: FileStatus.TRASHED, trashedAt: new Date() }
         });
+      }
+
+      if (transcodedPath && fs.existsSync(transcodedPath)) {
+        fs.unlinkSync(transcodedPath);
       }
       return;
     }
@@ -905,15 +1050,19 @@ export class ImportService implements OnModuleInit {
       task.message = '正在解析媒体文件...';
 
       const processItem = async (item: ScanResult, type: TrackType, audioBasePath: string, isWebDAV = false) => {
-        const audioUrl = item.path.startsWith('http') ? item.path : this.convertToHttpUrl(item.originalPath || item.path, type === TrackType.AUDIOBOOK ? 'audio' : 'music', audioBasePath);
-
         // If it's an MV, handle it differently and return early
-        if (/\.(mp4|mkv|avi|webm)$/i.test(item.path)) {
+        if (this.isMvFile(item.path)) {
+          const mvTarget = item.path.startsWith('http')
+            ? { sourcePath: item.path, publicUrl: item.path }
+            : await this.ensureMvAsMp4(item.originalPath || item.path, cachePath, isWebDAV);
+          const audioUrl = mvTarget.publicUrl || this.convertToHttpUrl(item.originalPath || item.path, 'music', audioBasePath);
           const hash = isWebDAV ? '' : await this.calculateFingerprint(item.originalPath || item.path);
-          await this.processMvData(item, audioBasePath, cachePath, audioUrl, hash, isWebDAV);
+          await this.processMvData(item, audioBasePath, cachePath, audioUrl, hash, isWebDAV, mvTarget.sourcePath);
           task.current = (task.current || 0) + 1;
           return null;
         }
+
+        const audioUrl = item.path.startsWith('http') ? item.path : this.convertToHttpUrl(item.originalPath || item.path, type === TrackType.AUDIOBOOK ? 'audio' : 'music', audioBasePath);
 
         const folderId = isWebDAV ? null : await this.getFolderId(item.originalPath || item.path, audioBasePath, type);
         const hash = isWebDAV ? '' : await this.calculateFingerprint(item.originalPath || item.path);
@@ -1249,7 +1398,15 @@ export class ImportService implements OnModuleInit {
     return parsed;
   }
 
-  private async processMvData(item: ScanResult, audioBasePath: string, cachePath: string, audioUrl: string, hash: string, isWebDAV: boolean = false): Promise<number | null> {
+  private async processMvData(
+    item: ScanResult,
+    audioBasePath: string,
+    cachePath: string,
+    audioUrl: string,
+    hash: string,
+    isWebDAV: boolean = false,
+    videoSourcePath?: string,
+  ): Promise<number | null> {
     const parsedMv = this.parseMvFileName(item.originalPath || item.path);
     const parsedTitle = parsedMv.title?.trim();
     const parsedArtist = parsedMv.artist?.trim();
@@ -1303,7 +1460,7 @@ export class ImportService implements OnModuleInit {
 
     // 3. Ffmpeg Video Thumbnail
     if (!finalCoverUrl && !isWebDAV) {
-      const thumbnailPath = await this.extractVideoThumbnail(item.originalPath || item.path, cachePath);
+      const thumbnailPath = await this.extractVideoThumbnail(videoSourcePath || item.originalPath || item.path, cachePath);
       if (thumbnailPath) {
         finalCoverUrl = this.convertToHttpUrl(thumbnailPath, 'cover', cachePath);
       }
@@ -1400,9 +1557,9 @@ export class ImportService implements OnModuleInit {
 
   private async processTrackData(item: ScanResult, type: TrackType, audioBasePath: string, cachePath: string, audioUrl: string, folderId: number | null, hash: string, sortFields: TrackSortFields = {}): Promise<number | null> {
     // If it's an MV, handle it differently and return early
-    if (/\.(mp4|mkv|avi|webm)$/i.test(item.path)) {
+    if (this.isMvFile(item.path)) {
       const isWebDAV = !hash && audioUrl.startsWith('http'); // Basic heuristic, or we can just pass it
-      await this.processMvData(item, audioBasePath, cachePath, audioUrl, hash, isWebDAV);
+      await this.processMvData(item, audioBasePath, cachePath, audioUrl, hash, isWebDAV, item.originalPath || item.path);
       return null;
     }
     const artistName = item.artist || '未知';

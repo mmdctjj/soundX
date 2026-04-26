@@ -2,6 +2,12 @@ import { Album, Artist, Playlist, TrackType, UserAudiobookHistory, UserAudiobook
 import Taro from '@tarojs/taro';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getBaseURL } from '../utils/request';
+import {
+  AudioQuality,
+  AudioQualityOption,
+  buildTrackPlaybackUrl,
+  getTrackAudioQualityProfile,
+} from '../services/trackQuality';
 
 export enum PlayMode {
   SEQUENCE = 'SEQUENCE',
@@ -46,7 +52,7 @@ interface PlayerContextType {
   currentTrack: Track | null;
   trackList: Track[];
   isLoading: boolean;
-  playTrack: (track: Track, initialPosition?: number) => Promise<void>;
+  playTrack: (track: Track, initialPosition?: number, preferredQuality?: AudioQuality) => Promise<void>;
   pause: () => void;
   resume: () => void;
   playNext: () => void;
@@ -65,6 +71,9 @@ interface PlayerContextType {
   clearSleepTimer: () => void;
   playbackRate: number;
   setPlaybackRate: (rate: number) => void;
+  currentAudioQuality: AudioQuality;
+  availableAudioQualities: AudioQualityOption[];
+  cycleAudioQuality: () => Promise<void>;
   skipIntroDuration: number;
   setSkipIntroDuration: (seconds: number) => void;
   skipOutroDuration: number;
@@ -95,6 +104,9 @@ const PlayerContext = createContext<PlayerContextType>({
   clearSleepTimer: () => {},
   playbackRate: 1,
   setPlaybackRate: () => {},
+  currentAudioQuality: 'lossless',
+  availableAudioQualities: [],
+  cycleAudioQuality: async () => {},
   skipIntroDuration: 0,
   setSkipIntroDuration: () => {},
   skipOutroDuration: 0,
@@ -116,6 +128,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [playMode, setPlayMode] = useState<PlayMode>(PlayMode.SEQUENCE);
   const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
   const [playbackRate, setPlaybackRateState] = useState(1);
+  const [currentAudioQuality, setCurrentAudioQuality] = useState<AudioQuality>('lossless');
+  const [availableAudioQualities, setAvailableAudioQualities] = useState<AudioQualityOption[]>([]);
   const [skipIntroDuration, setSkipIntroDurationState] = useState(0);
   const [skipOutroDuration, setSkipOutroDurationState] = useState(0);
   const isSkippingOutroRef = useRef(false);
@@ -184,6 +198,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const playModeRef = useRef(playMode);
   const skipOutroDurationRef = useRef(skipOutroDuration);
   const playbackRateRef = useRef(playbackRate);
+  const currentAudioQualityRef = useRef<AudioQuality>('lossless');
 
   useEffect(() => {
     trackListRef.current = trackList;
@@ -204,6 +219,35 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     playbackRateRef.current = playbackRate;
   }, [playbackRate]);
+
+  useEffect(() => {
+    currentAudioQualityRef.current = currentAudioQuality;
+  }, [currentAudioQuality]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncCurrentTrackQuality = async () => {
+      if (!currentTrack || currentTrack.type === 'AUDIOBOOK') {
+        if (!cancelled) {
+          setAvailableAudioQualities([]);
+          setCurrentAudioQuality('lossless');
+        }
+        return;
+      }
+
+      const profile = await getTrackAudioQualityProfile(currentTrack);
+      if (cancelled) return;
+      setAvailableAudioQualities(profile.options);
+      setCurrentAudioQuality(profile.defaultQuality);
+    };
+
+    syncCurrentTrackQuality();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, currentTrack?.type]);
 
   useEffect(() => {
     try {
@@ -299,15 +343,40 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }, 250);
   };
 
+  const prepareAudioQuality = async (
+    track: Track,
+    preferredQuality?: AudioQuality,
+  ): Promise<AudioQuality> => {
+    if (track.type === 'AUDIOBOOK') {
+      setAvailableAudioQualities([]);
+      setCurrentAudioQuality('lossless');
+      return 'lossless';
+    }
 
-  const playTrack = async (track: Track, initialPosition?: number) => {
+    const profile = await getTrackAudioQualityProfile(track);
+    setAvailableAudioQualities(profile.options);
+
+    const nextQuality =
+      preferredQuality && profile.options.some((option) => option.quality === preferredQuality)
+        ? preferredQuality
+        : profile.defaultQuality;
+
+    setCurrentAudioQuality(nextQuality);
+    return nextQuality;
+  };
+
+
+  const playTrack = async (track: Track, initialPosition?: number, preferredQuality?: AudioQuality) => {
     setIsLoading(true);
     setCurrentTrack(track);
     isSkippingOutroRef.current = false;
     
-    // Construct URL
     const baseUrl = getBaseURL();
-    const uri = track.path.startsWith('http') ? track.path : `${baseUrl}${track.path}`;
+    const selectedQuality = await prepareAudioQuality(track, preferredQuality);
+    const uri =
+      track.type === 'AUDIOBOOK'
+        ? (track.path.startsWith('http') ? track.path : `${baseUrl}${track.path}`)
+        : buildTrackPlaybackUrl(track, selectedQuality);
     const cover = track.cover 
       ? (track.cover.startsWith('http') ? track.cover : `${baseUrl}${track.cover}`) 
       : undefined;
@@ -403,6 +472,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     setSleepTimerState(null);
   };
 
+  const cycleAudioQuality = async () => {
+    if (
+      !currentTrackRef.current ||
+      currentTrackRef.current.type === 'AUDIOBOOK' ||
+      availableAudioQualities.length <= 1
+    ) {
+      return;
+    }
+
+    const currentIndex = availableAudioQualities.findIndex(
+      (option) => option.quality === currentAudioQualityRef.current,
+    );
+    const nextOption =
+      availableAudioQualities[(currentIndex + 1) % availableAudioQualities.length] ||
+      availableAudioQualities[0];
+
+    await playTrack(currentTrackRef.current, currentTime, nextOption.quality);
+  };
+
   const setPlaybackRate = (rate: number) => {
     const manager = bgAudioManager.current;
     try {
@@ -483,6 +571,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         clearSleepTimer,
         playbackRate,
         setPlaybackRate,
+        currentAudioQuality,
+        availableAudioQualities,
+        cycleAudioQuality,
         skipIntroDuration,
         setSkipIntroDuration,
         skipOutroDuration,

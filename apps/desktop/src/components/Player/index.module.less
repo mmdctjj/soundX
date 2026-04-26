@@ -33,14 +33,49 @@
 .songDetails {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+.trackMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .artistText {
-  width: 200px;
-  display: block;
+  max-width: 200px;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.qualityButton {
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.qualityButton:hover {
+  opacity: 1;
+}
+
+.qualityButtonDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .controls {

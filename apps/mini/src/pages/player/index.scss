@@ -138,6 +138,31 @@
       color: #666;
   }
 
+  .player-track-meta {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12rpx;
+  }
+
+  .player-quality-btn {
+      padding: 6rpx 16rpx;
+      border-radius: 999rpx;
+      border: 1rpx solid #d9d9d9;
+      background: #fff;
+
+      &.disabled {
+          opacity: 0.65;
+      }
+  }
+
+  .player-quality-text {
+      font-size: 22rpx;
+      color: #333;
+      font-weight: 600;
+      line-height: 1.2;
+  }
+
   .player-action-btns {
       display: flex;
       justify-content: flex-start;

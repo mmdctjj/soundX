@@ -7,7 +7,17 @@ import PlaylistModal from '../PlaylistModal';
 import './index.scss';
 
 const MiniPlayer: React.FC = () => {
-  const { currentTrack, isPlaying, pause, resume, playNext, playPrevious, setShowPlaylist } = usePlayer();
+  const {
+    currentTrack,
+    isPlaying,
+    pause,
+    resume,
+    playNext,
+    playPrevious,
+    setShowPlaylist,
+    currentAudioQuality,
+    availableAudioQualities,
+  } = usePlayer();
   const router = useRouter();
 
   const isTabPage = router.path === '/pages/index/index' ||
@@ -56,7 +66,16 @@ const MiniPlayer: React.FC = () => {
             />
             <View className='mini-info'>
               <Text className='mini-title' numberOfLines={1}>{currentTrack.name}</Text>
-              <Text className='mini-artist' numberOfLines={1}>{currentTrack.artist}</Text>
+              <View className='mini-artist-row'>
+                <Text className='mini-artist' numberOfLines={1}>{currentTrack.artist}</Text>
+                {currentTrack.type !== 'AUDIOBOOK' && (
+                  <View className='mini-quality-badge'>
+                    <Text className='mini-quality-text' numberOfLines={1}>
+                      {availableAudioQualities.find((item) => item.quality === currentAudioQuality)?.label || '无损'}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
           <View className='mini-controls'>

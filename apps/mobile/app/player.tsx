@@ -186,6 +186,9 @@ export function PlayerDetailView({
     isLoading,
     playbackRate,
     setPlaybackRate,
+    currentAudioQuality,
+    availableAudioQualities,
+    cycleAudioQuality,
     isRadioMode,
   } = usePlayer();
   const [syncModalVisible, setSyncModalVisible] = useState(false);
@@ -733,9 +736,29 @@ export function PlayerDetailView({
             text={currentTrack.name}
             style={[styles.trackTitle, { color: colors.text }]}
           />
-          <Text style={[styles.trackArtist, { color: colors.secondary }]}>
-            {currentTrack.artist}
-          </Text>
+          <View style={styles.trackMetaRow}>
+            <Text style={[styles.trackArtist, { color: colors.secondary }]}>
+              {currentTrack.artist}
+            </Text>
+            {currentTrack.type !== TrackType.AUDIOBOOK && (
+              <TouchableOpacity
+                onPress={() => {
+                  cycleAudioQuality();
+                  resetHideTimer();
+                }}
+                style={[
+                  styles.qualityButton,
+                  { borderColor: colors.border, backgroundColor: colors.card },
+                  availableAudioQualities.length <= 1 && styles.qualityButtonDisabled,
+                ]}
+                disabled={availableAudioQualities.length <= 1}
+              >
+                <Text style={[styles.qualityButtonText, { color: colors.text }]}>
+                  {availableAudioQualities.find((item) => item.quality === currentAudioQuality)?.label || "无损"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         <TouchableOpacity
           onPress={handleSyncPress}
@@ -1294,6 +1317,24 @@ const styles = StyleSheet.create({
   trackArtist: {
     fontSize: 14,
     textAlign: "left",
+  },
+  trackMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  qualityButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  qualityButtonDisabled: {
+    opacity: 0.65,
+  },
+  qualityButtonText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   timeContainer: {
     flexDirection: "row",

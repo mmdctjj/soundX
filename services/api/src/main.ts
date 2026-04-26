@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { Logger } from 'nestjs-pino';
+import * as fs from 'fs';
 import * as path from 'path';
 import { resolvePathList } from './common/path-list';
 import { DatabaseSchemaService } from './services/database-schema.service';
@@ -20,9 +21,12 @@ async function bootstrap() {
 
 
   const cacheDir = path.resolve(process.env.CACHE_DIR || './');
+  const transcodedMvDir = path.join(cacheDir, 'transcoded-mv');
   const musicBaseDirs = resolvePathList(process.env.MUSIC_BASE_DIR, './');
   const audioBookDirs = resolvePathList(process.env.AUDIO_BOOK_DIR, './');
   const mvDirs = resolvePathList(process.env.MV_BASE_DIR, './');
+
+  fs.mkdirSync(transcodedMvDir, { recursive: true });
 
 
   // Serve static files from cache directory
@@ -69,6 +73,15 @@ async function bootstrap() {
       }
     });
   }
+
+  console.log(`Serving transcoded MV files from: ${transcodedMvDir}`);
+  app.useStaticAssets(transcodedMvDir, {
+    prefix: '/music/',
+    setHeaders: (res, path) => {
+      res.set('Accept-Ranges', 'bytes');
+      if (path.endsWith('.mp4')) res.set('Content-Type', 'video/mp4');
+    }
+  });
 
   // TTS Service Proxy
   const ttsServiceUrl = process.env.TTS_SERVICE_URL || 'http://localhost:8000';

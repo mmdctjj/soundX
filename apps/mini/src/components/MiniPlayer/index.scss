@@ -70,6 +70,31 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.mini-artist-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.mini-quality-badge {
+  flex-shrink: 0;
+  padding: 2rpx 12rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #d9d9d9;
+  background-color: #f7f7f7;
+}
+
+.mini-quality-text {
+  font-size: 18rpx;
+  color: #333;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .mini-controls {

@@ -4,6 +4,7 @@ import { View, StyleSheet, Text, TouchableOpacity, useWindowDimensions, Alert } 
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { useTheme } from "../../src/context/ThemeContext";
 import { getMvById, getMvByTrackId } from "@soundx/services";
 import { getImageUrl } from "../../src/utils/image";
@@ -53,11 +54,7 @@ export default function MvScreen() {
   });
 
   if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>Loading...</Text>
-      </View>
-    );
+    return <MvDetailSkeleton />;
   }
 
   if (!mv) {
@@ -75,7 +72,7 @@ export default function MvScreen() {
     <View style={[styles.container, { backgroundColor: '#000', paddingTop: insets.top }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-down" size={30} color="#fff" />
+          <Ionicons name="chevron-back" size={28} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <Text style={styles.title} numberOfLines={1}>{mv.name}</Text>
@@ -126,5 +123,46 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  }
+  },
+  skeletonHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingBottom: 10,
+  },
+  skeletonInfo: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  skeletonVideoFrame: {
+    overflow: "hidden",
+  },
 });
+
+function MvDetailSkeleton() {
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+
+  return (
+    <View style={[styles.container, { backgroundColor: "#000", paddingTop: insets.top }]}>
+      <View style={styles.skeletonHeader}>
+        <View style={styles.backBtn}>
+          <SkeletonBlock width={28} height={28} borderRadius={14} />
+        </View>
+        <View style={styles.skeletonInfo}>
+          <SkeletonBlock width="52%" height={18} borderRadius={9} style={{ marginBottom: 8 }} />
+          <SkeletonBlock width="30%" height={12} borderRadius={6} />
+        </View>
+      </View>
+
+      <View style={styles.videoContainer}>
+        <SkeletonBlock
+          width={width}
+          height={width * (9 / 16)}
+          borderRadius={0}
+          style={styles.skeletonVideoFrame}
+        />
+      </View>
+    </View>
+  );
+}

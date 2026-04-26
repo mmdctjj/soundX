@@ -61,6 +61,12 @@ import {
   resolveArtworkUri,
   resolveTrackUri,
 } from "../../services/trackResolver";
+import {
+  type AudioQuality,
+  type AudioQualityOption,
+  buildTrackPlaybackUrl,
+  getTrackAudioQualityProfile,
+} from "../../services/trackQuality";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { useSettingsStore } from "../../store/settings";
@@ -104,6 +110,11 @@ const Player: React.FC = () => {
   } = usePlayerStore();
   const { mode: appMode } = usePlayMode();
   const [hasMv, setHasMv] = useState(false);
+  const [currentAudioQuality, setCurrentAudioQuality] =
+    useState<AudioQuality>("lossless");
+  const [availableAudioQualities, setAvailableAudioQualities] = useState<
+    AudioQualityOption[]
+  >([]);
   const { user, device } = useAuthStore();
   const { updateDesktopLyric } = useSettingsStore();
   const desktopLyricEnable = useSettingsStore(
@@ -137,6 +148,32 @@ const Player: React.FC = () => {
     };
 
     checkMv();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, currentTrack?.type]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncTrackQuality = async () => {
+      if (!currentTrack || currentTrack.type === TrackType.AUDIOBOOK) {
+        if (!cancelled) {
+          setAvailableAudioQualities([]);
+          setCurrentAudioQuality("lossless");
+        }
+        return;
+      }
+
+      const profile = await getTrackAudioQualityProfile(currentTrack);
+      if (!cancelled) {
+        setAvailableAudioQualities(profile.options);
+        setCurrentAudioQuality(profile.defaultQuality);
+      }
+    };
+
+    syncTrackQuality();
 
     return () => {
       cancelled = true;
@@ -205,7 +242,9 @@ const Player: React.FC = () => {
 
     // 1. Determine initial URI synchronously to avoid playing previous song
     let initialUri = "";
-    if (currentTrack.path) {
+    if (currentTrack.type !== TrackType.AUDIOBOOK) {
+      initialUri = buildTrackPlaybackUrl(currentTrack, currentAudioQuality);
+    } else if (currentTrack.path) {
       initialUri = currentTrack.path.startsWith("http")
         ? currentTrack.path
         : `${getBaseURL()}${currentTrack.path.split("/").map(encodeURIComponent).join("/")}`;
@@ -220,14 +259,35 @@ const Player: React.FC = () => {
     setResolvedUri(initialUri || undefined);
 
     // 2. Resolve for cache (will upgrade to media:// if cached)
-    resolveTrackUri(currentTrack, { cacheEnabled }).then((uri) => {
-      // Only update if we still have the same track
-      const state = usePlayerStore.getState();
-      if (uri && state.currentTrack?.id === currentTrack.id) {
-        setResolvedUri(uri);
-      }
-    });
-  }, [currentTrack?.id, cacheEnabled]);
+    if (currentTrack.type === TrackType.AUDIOBOOK) {
+      resolveTrackUri(currentTrack, { cacheEnabled }).then((uri) => {
+        const state = usePlayerStore.getState();
+        if (uri && state.currentTrack?.id === currentTrack.id) {
+          setResolvedUri(uri);
+        }
+      });
+    }
+  }, [currentTrack?.id, currentTrack?.type, currentAudioQuality, cacheEnabled]);
+
+  const cycleAudioQuality = async () => {
+    if (
+      !currentTrack ||
+      currentTrack.type === TrackType.AUDIOBOOK ||
+      availableAudioQualities.length <= 1
+    ) {
+      return;
+    }
+
+    const currentIndex = availableAudioQualities.findIndex(
+      (option) => option.quality === currentAudioQuality,
+    );
+    const nextOption =
+      availableAudioQualities[
+        (currentIndex + 1) % availableAudioQualities.length
+      ] || availableAudioQualities[0];
+
+    setCurrentAudioQuality(nextOption.quality);
+  };
   const [sleepTimerEndTime, setSleepTimerEndTime] = useState<number | null>(
     () => {
       const saved = localStorage.getItem("sleepTimerEndTime");
@@ -1323,9 +1383,35 @@ const Player: React.FC = () => {
           <Text strong ellipsis style={{ maxWidth: 250 }}>
             {currentTrack?.name || "No Track"}
           </Text>
-          <Text type="secondary" className={styles.artistText} style={{ fontSize: "12px" }}>
-            {currentTrack?.artist || "Unknown Artist"}
-          </Text>
+          <div className={styles.trackMetaRow}>
+            <Text
+              type="secondary"
+              className={styles.artistText}
+              style={{ fontSize: "12px" }}
+            >
+              {currentTrack?.artist || "Unknown Artist"}
+            </Text>
+            {currentTrack?.type !== TrackType.AUDIOBOOK && (
+              <button
+                type="button"
+                className={`${styles.qualityButton} ${
+                  availableAudioQualities.length <= 1
+                    ? styles.qualityButtonDisabled
+                    : ""
+                }`}
+                style={{ color: token.colorTextSecondary }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void cycleAudioQuality();
+                }}
+                disabled={availableAudioQualities.length <= 1}
+              >
+                {availableAudioQualities.find(
+                  (item) => item.quality === currentAudioQuality,
+                )?.label || "无损"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1842,9 +1928,29 @@ const Player: React.FC = () => {
                       borderRadius: "50%",
                     }}
                   />
-                  <Text ellipsis>
+                  <Text ellipsis className={styles.artistText}>
                     {currentTrack?.artist || "Unknown Artist"}
                   </Text>
+                  {currentTrack?.type !== TrackType.AUDIOBOOK && (
+                    <button
+                      type="button"
+                      className={`${styles.qualityButton} ${
+                        availableAudioQualities.length <= 1
+                          ? styles.qualityButtonDisabled
+                          : ""
+                      }`}
+                      style={{ color: token.colorTextSecondary }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void cycleAudioQuality();
+                      }}
+                      disabled={availableAudioQualities.length <= 1}
+                    >
+                      {availableAudioQualities.find(
+                        (item) => item.quality === currentAudioQuality,
+                      )?.label || "无损"}
+                    </button>
+                  )}
                 </Flex>
                 <Flex
                   align="center"

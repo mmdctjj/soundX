@@ -65,6 +65,9 @@ export default function Player() {
     clearSleepTimer,
     playbackRate,
     setPlaybackRate,
+    currentAudioQuality,
+    availableAudioQualities,
+    cycleAudioQuality,
     skipIntroDuration,
     setSkipIntroDuration,
     skipOutroDuration,
@@ -380,7 +383,19 @@ export default function Player() {
                 <View className='player-info-row'>
                     <View className='player-track-info'>
                         <Text className='player-track-title' numberOfLines={1}>{currentTrack.name}</Text>
-                        <Text className='player-track-artist' numberOfLines={1}>{currentTrack.artist}</Text>
+                        <View className='player-track-meta'>
+                            <Text className='player-track-artist' numberOfLines={1}>{currentTrack.artist}</Text>
+                            {currentTrack.type !== 'AUDIOBOOK' && (
+                              <View
+                                className={`player-quality-btn ${availableAudioQualities.length <= 1 ? 'disabled' : ''}`}
+                                onClick={() => cycleAudioQuality()}
+                              >
+                                <Text className='player-quality-text'>
+                                  {availableAudioQualities.find((item) => item.quality === currentAudioQuality)?.label || '无损'}
+                                </Text>
+                              </View>
+                            )}
+                        </View>
                     </View>
                     <View className='player-action-btns'>
                         {currentTrack.type !== 'AUDIOBOOK' && (
