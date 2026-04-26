@@ -60,8 +60,8 @@ export class TrackService {
       const musicBaseDirs = resolvePathList(this.configService.get<string>('MUSIC_BASE_DIR'), './');
       const relativePath = trackPath.replace('/music/', '');
       for (const musicBaseDir of musicBaseDirs) {
-        const candidate = path.join(musicBaseDir, relativePath);
-        if (fs.existsSync(candidate)) return candidate;
+        const candidate = this.resolveCandidatePath(musicBaseDir, relativePath);
+        if (candidate) return candidate;
       }
       return path.join(musicBaseDirs[0], relativePath);
     }
@@ -69,11 +69,50 @@ export class TrackService {
       const audioBookDirs = resolvePathList(this.configService.get<string>('AUDIO_BOOK_DIR'), './');
       const relativePath = trackPath.replace('/audio/', '');
       for (const audioBookDir of audioBookDirs) {
-        const candidate = path.join(audioBookDir, relativePath);
-        if (fs.existsSync(candidate)) return candidate;
+        const candidate = this.resolveCandidatePath(audioBookDir, relativePath);
+        if (candidate) return candidate;
       }
       return path.join(audioBookDirs[0], relativePath);
     }
+    return null;
+  }
+
+  private resolveCandidatePath(baseDir: string, relativePath: string): string | null {
+    const normalizedBaseDir = path.resolve(baseDir);
+    const normalizedRelativePath = relativePath.replace(/^[/\\]+/, '');
+    const baseName = path.basename(normalizedBaseDir);
+    const tried = new Set<string>();
+
+    const tryCandidate = (candidatePath: string): string | null => {
+      const resolvedCandidate = path.resolve(candidatePath);
+      if (tried.has(resolvedCandidate)) {
+        return null;
+      }
+      tried.add(resolvedCandidate);
+      return fs.existsSync(resolvedCandidate) ? resolvedCandidate : null;
+    };
+
+    const directCandidate = tryCandidate(path.join(normalizedBaseDir, normalizedRelativePath));
+    if (directCandidate) {
+      return directCandidate;
+    }
+
+    let trimmedPath = normalizedRelativePath;
+    while (trimmedPath === baseName || trimmedPath.startsWith(`${baseName}${path.sep}`)) {
+      trimmedPath = trimmedPath === baseName
+        ? ''
+        : trimmedPath.slice(baseName.length + 1);
+      const trimmedCandidate = tryCandidate(path.join(normalizedBaseDir, trimmedPath));
+      if (trimmedCandidate) {
+        return trimmedCandidate;
+      }
+    }
+
+    const parentCandidate = tryCandidate(path.join(path.dirname(normalizedBaseDir), normalizedRelativePath));
+    if (parentCandidate) {
+      return parentCandidate;
+    }
+
     return null;
   }
 

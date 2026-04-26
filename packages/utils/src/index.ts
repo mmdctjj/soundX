@@ -28,6 +28,11 @@ export class LocalMusicScanner {
     }
   }
 
+  private isIgnoredPath(targetPath: string): boolean {
+    const transcodedMvDir = path.join(this.cacheDir, 'transcoded-mv');
+    return targetPath.startsWith(transcodedMvDir);
+  }
+
   async scanMusic(dir: string, onFile?: (result: ScanResult) => Promise<void>): Promise<ScanResult[]> {
     const results: ScanResult[] = [];
     if (!fs.existsSync(dir)) return results;
@@ -101,6 +106,9 @@ export class LocalMusicScanner {
         const files = fs.readdirSync(currentDir);
         for (const file of files) {
           const fullPath = path.join(currentDir, file);
+          if (this.isIgnoredPath(fullPath)) {
+            continue;
+          }
           try {
             const stat = fs.statSync(fullPath);
             if (stat.isDirectory()) {
@@ -126,6 +134,9 @@ export class LocalMusicScanner {
       const files = fs.readdirSync(dir);
       for (const file of files) {
         const fullPath = path.join(dir, file);
+        if (this.isIgnoredPath(fullPath)) {
+          continue;
+        }
         try {
           const stat = fs.statSync(fullPath);
           if (stat.isDirectory()) {
