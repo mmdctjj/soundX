@@ -12,6 +12,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -27,10 +28,12 @@ import {
   assertIosIapPolicy,
   createPlusPayment,
   endIapConnection,
+  ensureWeChatRegistered,
   finalizeIapPurchase,
   IAP_PRODUCT_IDS,
   initIapConnection,
   payWithAlipay,
+  payWithWeChat,
   registerIapListeners,
   requestIapPurchase,
   verifyAppleIapReceipt,
@@ -392,11 +395,6 @@ export default function MemberBenefitsScreen() {
   };
 
   const handlePayment = async (method: "WECHAT" | "ALIPAY") => {
-    if (method === "WECHAT") {
-      Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.wechatComingSoon"));
-      return;
-    }
-
     if (selectedPlanPrice == null) {
       Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.priceUnavailable"));
       return;
@@ -424,22 +422,30 @@ export default function MemberBenefitsScreen() {
         const { paymentUrl, wechatPay, alipayPay, orderId } =
           res.data.data || {};
         const resolvedOrderId = orderId ?? "";
-        // if (method === "WECHAT") {
-        //   if (wechatPay) {
-        //     await ensureWeChatRegistered(WECHAT_APP_ID, WECHAT_UNIVERSAL_LINK);
-        //     await payWithWeChat(wechatPay, paymentUrl);
-        //   } else if (paymentUrl) {
-        //     const supported = await Linking.canOpenURL(paymentUrl);
-        //     if (supported) {
-        //       await Linking.openURL(paymentUrl);
-        //     } else {
-        //       Alert.alert("Notice", "Order created, but the payment link could not be opened automatically.");
-        //     }
-        //   } else {
-        //     Alert.alert("Payment failed", "Backend did not return WeChat payment params.");
-        //   }
-        //   return;
-        // }
+        if (method === "WECHAT") {
+          if (wechatPay) {
+            await ensureWeChatRegistered(wechatPay.appId, WECHAT_UNIVERSAL_LINK);
+            await payWithWeChat({
+              appId: wechatPay.appId,
+              partnerId: wechatPay.partnerId,
+              prepayId: wechatPay.prepayId,
+              nonceStr: wechatPay.nonceStr,
+              timeStamp: wechatPay.timeStamp ?? (wechatPay as any).timestamp ?? "",
+              sign: wechatPay.sign,
+              package: wechatPay.packageValue ?? wechatPay.package ?? "Sign=WXPay",
+            }, paymentUrl);
+          } else if (paymentUrl) {
+            const supported = await Linking.canOpenURL(paymentUrl);
+            if (supported) {
+              await Linking.openURL(paymentUrl);
+            } else {
+              Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.paymentLinkFailed"));
+            }
+          } else {
+            Alert.alert(t("memberBenefitsPage.paymentFailed"), t("memberBenefitsPage.wechatParamsMissing"));
+          }
+          return;
+        }
 
         if (method === "ALIPAY") {
           if (alipayPay?.orderString) {
