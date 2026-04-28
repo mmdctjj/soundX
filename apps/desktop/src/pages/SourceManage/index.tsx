@@ -1,4 +1,5 @@
 import { RightOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { SOURCEMAP, SOURCETIPSMAP } from "@soundx/services";
 import { Card, Flex, theme, Typography } from "antd";
 import React from "react";
@@ -11,6 +12,7 @@ import styles from "./index.module.less";
 const { Title, Text } = Typography;
 
 const SourceManage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { token: themeToken } = theme.useToken();
 
@@ -35,9 +37,9 @@ const SourceManage: React.FC = () => {
         <div className={styles.header}>
           <img src={logo} className={styles.appLogo} alt="Logo" />
           <Title style={{ margin: 0 }} level={4}>
-            选择数据源类型
+            {t('sourceManage.selectType')}
           </Title>
-          <Text type="secondary">请选择您要连接的服务器类型</Text>
+          <Text type="secondary">{t("sourceManage.selectServerType")}</Text>
         </div>
 
         <div className={styles.grid}>

@@ -1,0 +1,37 @@
+{
+  "name": "@soundx/i18e",
+  "version": "1.1.6",
+  "description": "Shared i18n resources and helpers for SoundX apps",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmdctjj/AudioDock"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/esm/index.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "father dev",
+    "build": "father build",
+    "prepublishOnly": "father doctor && npm run build"
+  },
+  "homepage": "https://github.com/mmdctjj/AudioDock",
+  "author": "mmdctjj <mmdctjj@gmail.com>",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "father": "^4.5.3",
+    "typescript": "~5.9.3"
+  }
+}

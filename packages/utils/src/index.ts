@@ -4,6 +4,7 @@ import * as https from 'https';
 import * as iconv from 'iconv-lite';
 import * as music from 'music-metadata';
 import * as path from 'path';
+import { spawn } from 'child_process';
 import { createClient, FileStat, WebDAVClient } from 'webdav';
 
 export interface ScanResult {
@@ -27,7 +28,28 @@ export class LocalMusicScanner {
     }
   }
 
+  private isIgnoredPath(targetPath: string): boolean {
+    const transcodedMvDir = path.join(this.cacheDir, 'transcoded-mv');
+    return targetPath.startsWith(transcodedMvDir);
+  }
+
   async scanMusic(dir: string, onFile?: (result: ScanResult) => Promise<void>): Promise<ScanResult[]> {
+    const results: ScanResult[] = [];
+    if (!fs.existsSync(dir)) return results;
+
+    await this.traverse(dir, async (filePath) => {
+      const metadata = await this.parseFile(filePath);
+      if (metadata) {
+        if (onFile) {
+          await onFile(metadata);
+        }
+        results.push(metadata);
+      }
+    });
+    return results;
+  }
+
+  async scanMv(dir: string, onFile?: (result: ScanResult) => Promise<void>): Promise<ScanResult[]> {
     const results: ScanResult[] = [];
     if (!fs.existsSync(dir)) return results;
 
@@ -84,11 +106,14 @@ export class LocalMusicScanner {
         const files = fs.readdirSync(currentDir);
         for (const file of files) {
           const fullPath = path.join(currentDir, file);
+          if (this.isIgnoredPath(fullPath)) {
+            continue;
+          }
           try {
             const stat = fs.statSync(fullPath);
             if (stat.isDirectory()) {
               traverseCount(fullPath);
-            } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm)$/i.test(file)) {
+            } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(file)) {
               count++;
             }
           } catch (e) {
@@ -109,11 +134,14 @@ export class LocalMusicScanner {
       const files = fs.readdirSync(dir);
       for (const file of files) {
         const fullPath = path.join(dir, file);
+        if (this.isIgnoredPath(fullPath)) {
+          continue;
+        }
         try {
           const stat = fs.statSync(fullPath);
           if (stat.isDirectory()) {
             await this.traverse(fullPath, callback);
-          } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm)$/i.test(file)) {
+          } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(file)) {
             await callback(fullPath);
           }
         } catch (e) {
@@ -125,9 +153,112 @@ export class LocalMusicScanner {
     }
   }
 
+  private async parseVideoFileWithFfprobe(filePath: string): Promise<ScanResult | null> {
+    const ext = path.extname(filePath).toLowerCase();
+    const stat = fs.statSync(filePath);
+
+    return new Promise((resolve) => {
+      const ffprobe = spawn('ffprobe', [
+        '-v', 'error',
+        '-print_format', 'json',
+        '-show_format',
+        '-show_streams',
+        filePath,
+      ]);
+
+      let stdout = '';
+      let stderr = '';
+
+      ffprobe.stdout.on('data', (chunk) => {
+        stdout += chunk.toString();
+      });
+
+      ffprobe.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      ffprobe.on('error', (error) => {
+        console.warn(`ffprobe unavailable for ${filePath}: ${String(error)}`);
+        resolve(null);
+      });
+
+      ffprobe.on('close', (code) => {
+        if (code !== 0) {
+          console.warn(`ffprobe failed for ${filePath}: ${stderr || `exit code ${code}`}`);
+          resolve(null);
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(stdout || '{}');
+          const format = parsed?.format || {};
+          const formatTags = format?.tags || {};
+          const streams = Array.isArray(parsed?.streams) ? parsed.streams : [];
+          const videoStream = streams.find((stream: any) => stream?.codec_type === 'video') || null;
+          const videoTags = videoStream?.tags || {};
+
+          const pickTag = (...values: Array<string | undefined>) =>
+            values.find((value) => typeof value === 'string' && value.trim())?.trim();
+
+          let title = pickTag(
+            formatTags.title,
+            videoTags.title,
+          ) || path.basename(filePath, ext);
+          let artist = pickTag(
+            formatTags.artist,
+            formatTags.ARTIST,
+            videoTags.artist,
+            videoTags.ARTIST,
+          ) || '未知';
+          let album = pickTag(
+            formatTags.album,
+            formatTags.ALBUM,
+            videoTags.album,
+            videoTags.ALBUM,
+          ) || '未知';
+          let albumArtist = pickTag(
+            formatTags.album_artist,
+            formatTags.albumartist,
+            formatTags.ALBUM_ARTIST,
+            formatTags.ALBUMARTIST,
+            videoTags.album_artist,
+            videoTags.albumartist,
+          );
+
+          title = this.fixEncoding(title);
+          artist = this.fixEncoding(artist);
+          album = this.fixEncoding(album);
+          albumArtist = albumArtist ? this.fixEncoding(albumArtist) : undefined;
+
+          if (!title || this.isGarbled(title)) {
+            title = path.basename(filePath, ext);
+          }
+
+          const duration = Number(format?.duration || videoStream?.duration || 0) || 0;
+
+          resolve({
+            path: filePath,
+            originalPath: filePath,
+            size: stat.size,
+            mtime: stat.mtime,
+            title,
+            artist,
+            album,
+            albumArtist,
+            duration,
+          });
+        } catch (error) {
+          console.warn(`Failed to parse ffprobe output for ${filePath}: ${String(error)}`);
+          resolve(null);
+        }
+      });
+    });
+  }
+
   public async parseFile(filePath: string): Promise<ScanResult | null> {
     try {
       const ext = path.extname(filePath).toLowerCase();
+      const isVideoFile = /\.(mp4|mkv|avi|webm)$/i.test(ext);
       
       // Handle .strm files
       if (ext === '.strm') {
@@ -180,7 +311,33 @@ export class LocalMusicScanner {
         return scanResult;
       }
 
-      const metadata = await music.parseFile(filePath);
+      if (isVideoFile) {
+        const videoMetadata = await this.parseVideoFileWithFfprobe(filePath);
+        if (videoMetadata) {
+          return videoMetadata;
+        }
+      }
+
+      let metadata: any;
+      try {
+        metadata = await music.parseFile(filePath);
+      } catch (err) {
+        if (isVideoFile) {
+          // Fallback for video files that music-metadata might not support
+          return {
+            path: filePath,
+            originalPath: filePath,
+            size: fs.statSync(filePath).size,
+            mtime: fs.statSync(filePath).mtime,
+            title: path.basename(filePath, ext),
+            artist: '未知',
+            album: '未知',
+            duration: 0,
+          };
+        }
+        throw err;
+      }
+
       const common = metadata.common;
 
       let coverPath = null;
@@ -428,7 +585,7 @@ export class WebDAVScanner {
       for (const item of contents) {
         if (item.type === 'directory') {
           count += await this.count(item.filename);
-        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4)$/i.test(item.filename)) {
+        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm)$/i.test(item.filename)) {
           count++;
         }
       }
@@ -445,7 +602,7 @@ export class WebDAVScanner {
       for (const item of contents) {
         if (item.type === 'directory') {
           await this.scan(item.filename, callback);
-        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4)$/i.test(item.filename)) {
+        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm)$/i.test(item.filename)) {
           const result = await this.parseRemoteFile(item);
           if (result) {
             await callback(result);

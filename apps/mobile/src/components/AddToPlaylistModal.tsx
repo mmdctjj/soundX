@@ -9,13 +9,14 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { usePlayer } from "../context/PlayerContext";
 import { useTheme } from "../context/ThemeContext";
@@ -39,6 +40,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { user } = useAuth();
   const { mode } = usePlayMode();
@@ -105,22 +107,23 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
       await insertTracksNext(tracksToAdd);
       onSuccess?.();
       onClose();
-      Alert.alert("已添加到播放列表");
+      Alert.alert(t('addToPlaylist.added'));
     }
   };
 
   return (
     <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropTransitionOutTiming={0}
+      style={styles.bottomSheetModal}
     >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <View style={styles.sheetWrapper}>
         <View
           style={[
             styles.content,
@@ -135,7 +138,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
         >
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>
-              添加到播放列表
+              {t('addToPlaylist.addToPlaylist')}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={24} color={colors.secondary} />
@@ -168,7 +171,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                   style={[styles.playlistName, { color: colors.text }]}
                   numberOfLines={1}
                 >
-                  当前播放列表
+                  {t('addToPlaylist.currentPlaylist')}
                 </Text>
               </TouchableOpacity>
 
@@ -199,7 +202,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                 ListEmptyComponent={
                   <View style={styles.empty}>
                     <Text style={{ color: colors.secondary }}>
-                      暂无其他播放列表
+                      {t('addToPlaylist.noOtherPlaylists')}
                     </Text>
                   </View>
                 }
@@ -208,16 +211,18 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
             </View>
           )}
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+  bottomSheetModal: {
+    margin: 0,
     justifyContent: "flex-end",
+  },
+  sheetWrapper: {
+    width: "100%",
     alignItems: "center",
   },
   content: {

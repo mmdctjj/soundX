@@ -11,9 +11,12 @@ export default defineAppConfig({
     'pages/player/index',
     'pages/artist/index',
     'pages/album/index',
+    'pages/collection/index',
+    'pages/mv/index',
     'pages/playlist/index',
     'pages/folder/index',
     'pages/settings/index',
+    'pages/settings/language/index',
     'pages/admin/index',
     'pages/source-manage/index',
     'pages/tts/tasks/index',
@@ -29,6 +32,7 @@ export default defineAppConfig({
     navigationBarTitleText: 'SoundX',
     navigationBarTextStyle: 'black'
   },
+  lazyCodeLoading: "requiredComponents",
   permission: {
     'scope.record': {
       desc: '用于语音搜索'
@@ -36,19 +40,25 @@ export default defineAppConfig({
   },
   tabBar: {
     color: '#999999',
-    selectedColor: '#007aff',
+    selectedColor: '#000000',
     backgroundColor: '#ffffff',
     list: [
       {
         pagePath: 'pages/index/index',
+        iconPath: 'assets/images/home.png',
+        selectedIconPath: 'assets/images/home-fill.png',
         text: '推荐'
       },
       {
         pagePath: 'pages/library/index',
+        iconPath: 'assets/images/music.png',
+        selectedIconPath: 'assets/images/music-fill.png',
         text: '声仓'
       },
       {
         pagePath: 'pages/personal/index',
+        iconPath: 'assets/images/people.png',
+        selectedIconPath: 'assets/images/people-fill.png',
         text: '我的'
       }
     ]

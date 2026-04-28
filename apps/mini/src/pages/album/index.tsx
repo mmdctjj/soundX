@@ -1,38 +1,55 @@
-import { Album, Track, getAlbumById, getAlbumTracks } from '@soundx/services';
+import { Album, AlbumTrackSortBy, Track, getAlbumById, getAlbumTracks, Mv, getMvsByAlbum } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
+import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
+import BottomTabBar from '../../components/BottomTabBar';
 
 export default function AlbumDetail() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = router.params;
   const { playTrackList, currentTrack, isPlaying } = usePlayer();
+  const { user } = useAuth();
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [mvs, setMvs] = useState<Mv[]>([]);
+  const [activeTab, setActiveTab] = useState<'tracks' | 'mvs'>('tracks');
   const [loading, setLoading] = useState(true);
   const [scrollIntoView, setScrollIntoView] = useState('');
+  const [sortBy, setSortBy] = useState<AlbumTrackSortBy>('fileName');
+  const [sort, setSort] = useState<'asc' | 'desc'>('asc');
+  const [sortModalVisible, setSortModalVisible] = useState(false);
 
   useEffect(() => {
     if (id) {
-      loadData(Number(id));
+      loadData(Number(id), sortBy, sort);
     }
-  }, [id]);
+  }, [id, sortBy, sort]);
 
-  const loadData = async (albumId: number) => {
+  const loadData = async (albumId: number, currentSortBy: AlbumTrackSortBy, currentSort: 'asc' | 'desc') => {
     setLoading(true);
     try {
       const [albumRes, tracksRes] = await Promise.all([
           getAlbumById(albumId),
-          getAlbumTracks(albumId, 200, 0, 'asc', '')
+          getAlbumTracks(albumId, 200, 0, currentSort, undefined, user?.id, currentSortBy)
       ]);
 
-      if (albumRes.code === 200) setAlbum(albumRes.data);
+      if (albumRes.code === 200) {
+        setAlbum(albumRes.data);
+        if (albumRes.data?.name) {
+          getMvsByAlbum(albumRes.data.name, albumRes.data.artist).then((res: any) => {
+            if (res?.length) setMvs(res);
+          }).catch((e: any) => console.error(e));
+        }
+      }
       if (tracksRes.code === 200) setTracks(tracksRes.data.list);
     } catch (e) {
       console.error(e);
@@ -56,7 +73,7 @@ export default function AlbumDetail() {
 
   const handlePlayAll = () => {
       if (tracks.length > 0) {
-          playTrackList(tracks, 0);
+          playTrackList(tracks as any, 0);
       }
   };
 
@@ -73,8 +90,8 @@ export default function AlbumDetail() {
     }
   };
 
-  if (loading) return <View className='loading'><Text>Loading...</Text></View>;
-  if (!album) return <View className='error'><Text>Album not found</Text></View>;
+  if (loading) return <View className='loading'><Text>{t('common.loading')}</Text></View>;
+  if (!album) return <View className='error'><Text>{t('common.noData')}</Text></View>;
 
   return (
     <View className='album-container'>
@@ -91,50 +108,128 @@ export default function AlbumDetail() {
                  <Text className='artist'>{album.artist}</Text>
                  
                  <View className='actions'>
-                     <View className='play-all-btn' onClick={handlePlayAll}>
-                         <Text className='play-icon icon icon-play' />
-                         <Text className='play-text'>播放全部</Text>
-                     </View>
-                     <View className='like-btn'>
-                         <Text className='like-icon icon icon-heart' />
-                     </View>
+                     {activeTab === 'tracks' && (
+                       <View className='album-play-all-btn' onClick={handlePlayAll}>
+                           <Text className='album-play-icon icon icon-play' />
+                           <Text className='album-play-text'>{t('album.playAll')}</Text>
+                       </View>
+                     )}
+                     {activeTab === 'tracks' && album.type === 'AUDIOBOOK' && (
+                       <View className='sort-icon-btn' onClick={() => setSortModalVisible(true)}>
+                         <Text className='sort-icon-text'>⇅</Text>
+                       </View>
+                     )}
                  </View>
              </View>
 
+             {mvs.length > 0 && (
+               <View className='tabs'>
+                 <View 
+                   className={`tab-item ${activeTab === 'tracks' ? 'active' : ''}`}
+                   onClick={() => setActiveTab('tracks')}
+                 >
+                   <Text className='tab-text'>{t('nav.tracks')} ({tracks.length})</Text>
+                 </View>
+                 <View 
+                   className={`tab-item ${activeTab === 'mvs' ? 'active' : ''}`}
+                   onClick={() => setActiveTab('mvs')}
+                 >
+                   <Text className='tab-text'>MV ({mvs.length})</Text>
+                 </View>
+               </View>
+             )}
+
              <View className='track-list'>
-                 {tracks.map((track, index) => (
+                 {activeTab === 'mvs' ? (
+                   mvs.map((mv, index) => (
                      <View 
-                        key={track.id} 
-                        id={`track-${index}`}
+                        key={mv.id} 
                         className='track-item'
-                        onClick={() => playTrackList(tracks, index)}
+                        onClick={() => Taro.navigateTo({ url: `/pages/mv/index?id=${mv.id}` })}
                      >
                         <View className='track-idx-container'>
-                            {currentTrack?.id === track.id && isPlaying ? (
-                                <Text className='active-icon icon icon-music' />
-                            ) : (
-                                <Text className={`track-index ${currentTrack?.id === track.id ? 'active' : ''}`}>{index + 1}</Text>
-                            )}
+                            <Text className='track-index'>{index + 1}</Text>
                         </View>
-                         <Image src={getImageUrl(track.cover)} className='track-cover' mode='aspectFill' />
-                         <View className='track-info'>
-                             <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
-                         </View>
-                         <Text className='track-duration'>{formatDuration(track.duration || 0)}</Text>
+                        <Image src={getImageUrl(mv.cover)} className='track-cover mv-cover' mode='aspectFill' style={{ width: '80rpx', height: '60rpx', borderRadius: '8rpx' }} />
+                        <View className='track-info' style={{ marginLeft: '20rpx' }}>
+                            <Text className='track-name' numberOfLines={1}>{mv.name}</Text>
+                        </View>
+                        <Text className='track-duration'>{formatDuration(mv.duration || 0)}</Text>
                      </View>
-                 ))}
+                   ))
+                 ) : (
+                   tracks.map((track, index) => (
+                       <View 
+                          key={track.id} 
+                          id={`track-${index}`}
+                          className='track-item'
+                          onClick={() => playTrackList(tracks as any, index)}
+                       >
+                          <View className='track-idx-container'>
+                              {currentTrack?.id === track.id && isPlaying ? (
+                                  <Text className='active-icon icon icon-music' />
+                              ) : (
+                                  <Text className={`track-index ${currentTrack?.id === track.id ? 'active' : ''}`}>{index + 1}</Text>
+                              )}
+                          </View>
+                           <Image src={getImageUrl(track.cover)} className='track-cover' mode='aspectFill' />
+                           <View className='track-info'>
+                               <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
+                           </View>
+                           <Text className='track-duration'>{formatDuration(track.duration || 0)}</Text>
+                       </View>
+                   ))
+                 )}
              </View>
 
              <View id='bottom-anchor' />
-             <View style={{ height: '160rpx' }}></View>
+             <View style={{ height: '260rpx' }}></View>
          </ScrollView>
+         {sortModalVisible && album.type === 'AUDIOBOOK' && (
+           <View className='sort-modal-overlay' onClick={() => setSortModalVisible(false)}>
+             <View className='sort-modal-sheet' onClick={(e) => e.stopPropagation()}>
+               <Text className='sort-modal-title'>{t('albumPage.sortTitle')}</Text>
+               {([
+                 ['fileName', t('albumPage.sortFileName')],
+                 ['episodeNumber', t('albumPage.sortOptimized')],
+                 ['fileCreatedAt', t('albumPage.sortFileCreatedAt')],
+                 ['fileModifiedAt', t('albumPage.sortFileModifiedAt')],
+               ] as [AlbumTrackSortBy, string][]).map(([value, label]) => (
+                 <View
+                   key={value}
+                   className={`sort-modal-item ${sortBy === value ? 'active' : ''}`}
+                   onClick={() => setSortBy(value)}
+                 >
+                   <Text className='sort-modal-item-text'>{label}</Text>
+                   {sortBy === value && <Text className='sort-modal-check'>✓</Text>}
+                 </View>
+               ))}
+               <Text className='sort-modal-title order-title'>{t('albumPage.sortOrderTitle')}</Text>
+               <View className='sort-order-row'>
+                 {([
+                   ['asc', t('albumPage.sortAscending')],
+                   ['desc', t('albumPage.sortDescending')],
+                 ] as ['asc' | 'desc', string][]).map(([value, label]) => (
+                   <View
+                     key={value}
+                     className={`sort-order-button ${sort === value ? 'active' : ''}`}
+                     onClick={() => setSort(value)}
+                   >
+                     <Text className='sort-order-button-text'>{label}</Text>
+                   </View>
+                 ))}
+               </View>
+             </View>
+           </View>
+         )}
          <QuickLocate
             onTop={() => scrollToAnchor('top-anchor')}
             onBottom={() => scrollToAnchor('bottom-anchor')}
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
-         <MiniPlayer />
+      <BottomTabBar />
+      <MiniPlayer />
     </View>
   );
 }

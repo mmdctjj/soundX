@@ -2,25 +2,31 @@ import { CachedImage } from "@/src/components/CachedImage";
 import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Album, AudiobookCollection } from "@/src/models";
-import { getCollectionById, removeAlbumFromCollection, reorderCollection, updateCollection, uploadCollectionCover } from "@soundx/services";
-import { mockAlbum } from "@soundx/services/src/mockUtils";
+import { getImageUrl } from "@/src/utils/image";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  deleteCollection,
+  getCollectionById,
+  removeAlbumFromCollection,
+  reorderCollection,
+  updateCollection,
+  uploadCollectionCover,
+} from "@soundx/services";
+import { mockAlbum } from "@soundx/services/src/mockUtils";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import * as ImagePicker from "expo-image-picker";
 import {
   Alert,
   FlatList,
-  Modal,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getImageUrl } from "@/src/utils/image";
 
 const COLLECTION_ITEM_COVER_SIZE = 56;
 
@@ -29,7 +35,9 @@ export default function CollectionDetailScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [collection, setCollection] = useState<AudiobookCollection | null>(null);
+  const [collection, setCollection] = useState<AudiobookCollection | null>(
+    null,
+  );
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [moreVisible, setMoreVisible] = useState(false);
@@ -45,7 +53,6 @@ export default function CollectionDetailScreen() {
     }
   }, [id]);
 
-
   const loadData = async (collectionId: string) => {
     try {
       setLoading(true);
@@ -53,7 +60,12 @@ export default function CollectionDetailScreen() {
       if (res.code === 200 && res.data) {
         setCollection(res.data);
         const items = res.data.items || [];
-        setAlbums(items.map((item) => item.album).filter(Boolean).map((album) => mockAlbum(album)));
+        setAlbums(
+          items
+            .map((item) => item.album)
+            .filter(Boolean)
+            .map((album) => mockAlbum(album)),
+        );
       }
     } catch (error) {
       console.error("Failed to load collection", error);
@@ -96,7 +108,8 @@ export default function CollectionDetailScreen() {
       if (result.canceled) return;
       const asset = result.assets?.[0];
       if (!asset?.uri) return;
-      const fileName = asset.fileName || `collection-${collection.id}-${Date.now()}.jpg`;
+      const fileName =
+        asset.fileName || `collection-${collection.id}-${Date.now()}.jpg`;
       const file = {
         uri: asset.uri,
         name: fileName,
@@ -117,11 +130,15 @@ export default function CollectionDetailScreen() {
   const handleReorder = async (nextAlbums: Album[]) => {
     setAlbums(nextAlbums);
     if (!collection) return;
-    await reorderCollection(collection.id, nextAlbums.map((a) => a.id));
+    await reorderCollection(
+      collection.id,
+      nextAlbums.map((a) => a.id),
+    );
   };
 
   const moveAlbum = async (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= albums.length || fromIndex === toIndex) return;
+    if (toIndex < 0 || toIndex >= albums.length || fromIndex === toIndex)
+      return;
     const nextAlbums = [...albums];
     const [moved] = nextAlbums.splice(fromIndex, 1);
     nextAlbums.splice(toIndex, 0, moved);
@@ -130,35 +147,63 @@ export default function CollectionDetailScreen() {
 
   const handleRemoveAlbum = (album: Album) => {
     if (!collection) return;
+    Alert.alert("移出合集", `确定将《${album.name}》从当前合集移除吗？`, [
+      { text: "取消", style: "cancel" },
+      {
+        text: "删除",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const res = await removeAlbumFromCollection(
+              collection.id,
+              album.id,
+            );
+            if (res.code === 200) {
+              setAlbums((prev) => prev.filter((item) => item.id !== album.id));
+            } else {
+              Alert.alert("提示", res.message || "移除失败");
+            }
+          } catch (error) {
+            console.error("Remove album failed", error);
+            Alert.alert("提示", "移除失败");
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteCollection = () => {
+    if (!collection) return;
     Alert.alert(
-      "移出合集",
-      `确定将《${album.name}》从当前合集移除吗？`,
+      "解散合集",
+      `确定删除合集《${collection.name}》吗？此操作不可恢复。`,
       [
         { text: "取消", style: "cancel" },
         {
-          text: "删除",
+          text: "解散",
           style: "destructive",
           onPress: async () => {
             try {
-              const res = await removeAlbumFromCollection(collection.id, album.id);
+              const res = await deleteCollection(collection.id);
               if (res.code === 200) {
-                setAlbums((prev) => prev.filter((item) => item.id !== album.id));
+                setMoreVisible(false);
+                router.replace("/(tabs)/library" as any);
               } else {
-                Alert.alert("提示", res.message || "移除失败");
+                Alert.alert("提示", res.message || "删除合集失败");
               }
             } catch (error) {
-              console.error("Remove album failed", error);
-              Alert.alert("提示", "移除失败");
+              console.error("Delete collection failed", error);
+              Alert.alert("提示", "删除合集失败");
             }
           },
         },
-      ]
+      ],
     );
   };
 
   const cover = useMemo(
     () => collection?.cover || albums[0]?.cover || null,
-    [collection, albums]
+    [collection, albums],
   );
 
   if (loading) {
@@ -196,10 +241,16 @@ export default function CollectionDetailScreen() {
         style={styles.albumCover}
       />
       <View style={{ flex: 1 }}>
-        <Text style={[styles.albumTitle, { color: colors.text }]} numberOfLines={1}>
+        <Text
+          style={[styles.albumTitle, { color: colors.text }]}
+          numberOfLines={1}
+        >
           {item.name}
         </Text>
-        <Text style={[styles.albumSub, { color: colors.secondary }]} numberOfLines={1}>
+        <Text
+          style={[styles.albumSub, { color: colors.secondary }]}
+          numberOfLines={1}
+        >
           {item.artist}
         </Text>
       </View>
@@ -224,18 +275,16 @@ export default function CollectionDetailScreen() {
             <Ionicons
               name="chevron-down"
               size={18}
-              color={index === albums.length - 1 ? colors.border : colors.secondary}
+              color={
+                index === albums.length - 1 ? colors.border : colors.secondary
+              }
             />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.reorderBtn}
             onPress={() => handleRemoveAlbum(item)}
           >
-            <Ionicons
-              name="trash-outline"
-              size={18}
-              color="#ff4d4f"
-            />
+            <Ionicons name="trash-outline" size={18} color="#ff4d4f" />
           </TouchableOpacity>
         </View>
       )}
@@ -243,19 +292,37 @@ export default function CollectionDetailScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, paddingTop: insets.top },
+      ]}
+    >
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerActions}>
           {reorderMode ? (
-            <TouchableOpacity onPress={() => setReorderMode(false)} style={styles.iconBtn}>
+            <TouchableOpacity
+              onPress={() => setReorderMode(false)}
+              style={styles.iconBtn}
+            >
               <Ionicons name="checkmark" size={22} color={colors.text} />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onPress={() => setMoreVisible(true)} style={styles.iconBtn}>
-              <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
+            <TouchableOpacity
+              onPress={() => setMoreVisible(true)}
+              style={styles.iconBtn}
+            >
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={20}
+                color={colors.text}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -271,7 +338,9 @@ export default function CollectionDetailScreen() {
           }}
           style={styles.coverImage}
         />
-        <Text style={[styles.title, { color: colors.text }]}>{collection.name}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {collection.name}
+        </Text>
         <Text style={[styles.subtitle, { color: colors.secondary }]}>
           {albums.length} 张专辑
         </Text>
@@ -284,9 +353,19 @@ export default function CollectionDetailScreen() {
         contentContainerStyle={styles.listContent}
       />
 
-      <Modal visible={moreVisible} transparent animationType="slide" onRequestClose={() => setMoreVisible(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setMoreVisible(false)}>
-          <Pressable style={[styles.sheet, { backgroundColor: colors.card }]} onPress={(e) => e.stopPropagation()}>
+      <Modal
+        isVisible={moreVisible}
+        onBackdropPress={() => setMoreVisible(false)}
+        onBackButtonPress={() => setMoreVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropTransitionOutTiming={0}
+        style={styles.bottomSheetModal}
+      >
+        <View style={styles.sheetWrapper}>
+          <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <View style={styles.handle} />
             <TouchableOpacity
               style={styles.sheetItem}
@@ -309,7 +388,9 @@ export default function CollectionDetailScreen() {
               }}
             >
               <Ionicons name="create-outline" size={22} color={colors.text} />
-              <Text style={[styles.sheetText, { color: colors.text }]}>修改名称</Text>
+              <Text style={[styles.sheetText, { color: colors.text }]}>
+                修改名称
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.sheetItem}
@@ -319,45 +400,88 @@ export default function CollectionDetailScreen() {
               }}
             >
               <Ionicons name="image-outline" size={22} color={colors.text} />
-              <Text style={[styles.sheetText, { color: colors.text }]}>选定封面</Text>
+              <Text style={[styles.sheetText, { color: colors.text }]}>
+                选定封面
+              </Text>
             </TouchableOpacity>
-          </Pressable>
-        </Pressable>
+            <TouchableOpacity
+              style={styles.sheetItem}
+              onPress={handleDeleteCollection}
+            >
+              <Ionicons name="trash-outline" size={22} color="#ff4d4f" />
+              <Text style={[styles.sheetText, { color: "#ff4d4f" }]}>
+                解散合集
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
-      <Modal visible={renameVisible} transparent animationType="fade" onRequestClose={() => setRenameVisible(false)}>
-        <Pressable style={styles.backdropCenter} onPress={() => setRenameVisible(false)}>
-          <Pressable style={[styles.renameBox, { backgroundColor: colors.card }]} onPress={(e) => e.stopPropagation()}>
+      <Modal
+        isVisible={renameVisible}
+        onBackdropPress={() => setRenameVisible(false)}
+        onBackButtonPress={() => setRenameVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
+      >
+        <View style={styles.backdropCenter}>
+          <View style={[styles.renameBox, { backgroundColor: colors.card }]}>
             <Text style={[styles.title, { color: colors.text }]}>修改名称</Text>
             <TextInput
               value={nameInput}
               onChangeText={setNameInput}
-              style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+              style={[
+                styles.input,
+                { color: colors.text, borderColor: colors.border },
+              ]}
               placeholder="合集名称"
               placeholderTextColor={colors.secondary}
             />
             <View style={styles.renameActions}>
               <TouchableOpacity onPress={() => setRenameVisible(false)}>
-                <Text style={[styles.actionText, { color: colors.secondary }]}>取消</Text>
+                <Text style={[styles.actionText, { color: colors.secondary }]}>
+                  取消
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleRename}>
-                <Text style={[styles.actionText, { color: colors.primary }]}>保存</Text>
+                <Text style={[styles.actionText, { color: colors.primary }]}>
+                  保存
+                </Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
-      <Modal visible={coverVisible} transparent animationType="slide" onRequestClose={() => setCoverVisible(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setCoverVisible(false)}>
-          <Pressable style={[styles.sheet, { backgroundColor: colors.card }]} onPress={(e) => e.stopPropagation()}>
+      <Modal
+        isVisible={coverVisible}
+        onBackdropPress={() => setCoverVisible(false)}
+        onBackButtonPress={() => setCoverVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropTransitionOutTiming={0}
+        style={styles.bottomSheetModal}
+      >
+        <View style={styles.sheetWrapper}>
+          <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <View style={styles.handle} />
-            <Text style={[styles.sheetTitle, { color: colors.text }]}>选择封面</Text>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>
+              选择封面
+            </Text>
             <FlatList
               data={albums}
               keyExtractor={(item) => String(item.id)}
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.coverOption} onPress={() => handleSelectCover(item)}>
+                <TouchableOpacity
+                  style={styles.coverOption}
+                  onPress={() => handleSelectCover(item)}
+                >
                   <CachedImage
                     source={{
                       uri: getImageUrl(
@@ -367,25 +491,33 @@ export default function CollectionDetailScreen() {
                     }}
                     style={styles.coverThumb}
                   />
-                  <Text style={[styles.sheetText, { color: colors.text }]} numberOfLines={1}>
+                  <Text
+                    style={[styles.sheetText, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
                     {item.name}
                   </Text>
                 </TouchableOpacity>
               )}
               ListFooterComponent={
                 <TouchableOpacity
-                  style={[styles.uploadBtn, { backgroundColor: colors.primary }]}
+                  style={[
+                    styles.uploadBtn,
+                    { backgroundColor: colors.primary },
+                  ]}
                   onPress={handleUploadCover}
                   disabled={uploadingCover}
                 >
-                  <Text style={[styles.uploadBtnText, { color: colors.background }]}>
+                  <Text
+                    style={[styles.uploadBtnText, { color: colors.background }]}
+                  >
                     {uploadingCover ? "上传中..." : "上传图片设置封面"}
                   </Text>
                 </TouchableOpacity>
               }
             />
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -406,8 +538,18 @@ function CollectionDetailSkeleton() {
       </View>
 
       <View style={styles.coverSection}>
-        <SkeletonBlock width={140} height={140} borderRadius={20} style={{ marginBottom: 12 }} />
-        <SkeletonBlock width={180} height={26} borderRadius={10} style={{ marginBottom: 8 }} />
+        <SkeletonBlock
+          width={140}
+          height={140}
+          borderRadius={20}
+          style={{ marginBottom: 12 }}
+        />
+        <SkeletonBlock
+          width={180}
+          height={26}
+          borderRadius={10}
+          style={{ marginBottom: 8 }}
+        />
         <SkeletonBlock width={90} height={16} borderRadius={8} />
       </View>
 
@@ -424,7 +566,9 @@ function CollectionDetailSkeleton() {
             />
             <View style={styles.albumInfo}>
               <SkeletonBlock
-                width={index % 3 === 0 ? "72%" : index % 3 === 1 ? "58%" : "66%"}
+                width={
+                  index % 3 === 0 ? "72%" : index % 3 === 1 ? "58%" : "66%"
+                }
                 height={16}
                 borderRadius={8}
                 style={{ marginBottom: 6 }}
@@ -519,17 +663,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+  bottomSheetModal: {
+    margin: 0,
     justifyContent: "flex-end",
+  },
+  sheetWrapper: {
+    width: "100%",
+    alignItems: "center",
+  },
+  centeredModal: {
+    margin: 0,
+    justifyContent: "center",
     alignItems: "center",
   },
   backdropCenter: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   sheet: {
     width: "100%",

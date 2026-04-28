@@ -28,9 +28,10 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
-import { TrackType, type Album, type Track } from "../../models";
+import { TrackType, type Album, type Track, type Mv } from "../../models";
 import { resolveArtworkUri } from "../../services/trackResolver";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
@@ -40,13 +41,15 @@ import styles from "./index.module.less";
 const { Title } = Typography;
 
 interface CoverComponent extends React.FC<{
-  item: Album | Track;
-  size?: number;
+  item: Album | Track | Mv;
+  size?: number | string;
   isTrack?: boolean;
   isHistory?: boolean;
-  onClick?: (item: Album | Track) => void;
+  type?: "album" | "track" | "mv";
+  aspectRatio?: number;
+  onClick?: (item: Album | Track | Mv) => void;
 }> {
-  Skeleton: React.FC;
+  Skeleton: React.FC<{ size?: number | string; aspectRatio?: number }>;
 }
 
 const Cover: CoverComponent = ({
@@ -54,9 +57,12 @@ const Cover: CoverComponent = ({
   size,
   isTrack = false,
   isHistory = false,
+  type,
+  aspectRatio = 1,
   onClick,
 }) => {
   const message = useMessage();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { play, setPlaylist } = usePlayerStore();
   const [isLiked, setIsLiked] = useState(false);
@@ -109,6 +115,10 @@ const Cover: CoverComponent = ({
     if (collectionModalOpen) return;
     if (onClick) {
       onClick(item);
+      return;
+    }
+    if (type === "mv") {
+      navigate(`/mv/${item.id}`);
       return;
     }
     if (isTrack) {
@@ -173,11 +183,11 @@ const Cover: CoverComponent = ({
           }
 
           play(targetTrack, (item as Album).id, startTime);
-          message.success(startTime > 0 ? "继续播放" : "开始播放");
+          message.success(startTime > 0 ? t('cover.continuePlaying') : t('cover.startPlaying'));
         }
       } catch (error) {
         console.error(error);
-        message.error("播放失败");
+        message.error(t('cover.playFailed'));
       }
     }
   };
@@ -205,12 +215,12 @@ const Cover: CoverComponent = ({
       const res = await addAlbumToCollection(collectionId, item.id);
       if (res.code === 200) {
         setMembership((prev) => [...prev, collectionId]);
-        message.success("已添加到合集");
+        message.success(t('cover.addedToCollection'));
       } else {
-        message.error(res.message || "添加失败");
+        message.error(res.message || t('cover.addToCollectionFailed'));
       }
     } catch (error) {
-      message.error("添加失败");
+      message.error(t('cover.addToCollectionFailed'));
     }
   };
 
@@ -234,19 +244,19 @@ const Cover: CoverComponent = ({
     event.target.value = "";
     if (!file || isTrack) return;
     if (!isAudioDockSource) {
-      message.warning("仅 AudioDock 源支持修改封面");
+      message.warning(t('cover.audioDockOnlyCover'));
       return;
     }
     try {
       setUploadingCover(true);
       const res = await uploadAlbumCover(item.id, file);
       if (res.code === 200) {
-        message.success("封面已更新");
+        message.success(t('cover.coverUpdated'));
       } else {
-        message.error(res.message || "封面上传失败");
+        message.error(res.message || t('cover.coverUploadFailed'));
       }
     } catch (error) {
-      message.error("封面上传失败");
+      message.error(t('cover.coverUploadFailed'));
     } finally {
       setUploadingCover(false);
     }
@@ -260,30 +270,30 @@ const Cover: CoverComponent = ({
         const res = await toggleAlbumUnLike((item as Album).id, user?.id || 0);
         if (res.code === 200) {
           setIsLiked(false);
-          message.success("已取消收藏");
+          message.success(t('cover.unliked'));
         }
       } else {
         const res = await toggleAlbumLike((item as Album).id, user?.id || 0);
         if (res.code === 200) {
           setIsLiked(true);
-          message.success("收藏成功");
+          message.success(t('cover.liked'));
         }
       }
     } catch (error) {
-      message.error("操作失败");
+      message.error(t('cover.operationFailed'));
     }
   };
 
-  const menuItems: MenuProps["items"] = [
+  const menuItems: MenuProps["items"] = type === 'mv' ? [] : [
     {
       key: "play",
-      label: "播放",
+      label: t('cover.play'),
       icon: <PlayCircleOutlined />,
       onClick: handlePlayAlbum,
     },
     !isTrack && {
       key: "cover",
-      label: "修改封面",
+      label: t('cover.modifyCover'),
       icon: <PictureOutlined />,
       onClick: ({
         domEvent,
@@ -304,7 +314,7 @@ const Cover: CoverComponent = ({
     !isTrack &&
       (item as Album).type === TrackType.AUDIOBOOK && {
         key: "collection",
-        label: "添加到合集",
+        label: t('cover.addToCollection'),
         icon: <AppstoreAddOutlined />,
         onClick: ({ domEvent }: { domEvent?: any }) => {
           suppressNextClick();
@@ -316,7 +326,7 @@ const Cover: CoverComponent = ({
       },
     {
       key: "like",
-      label: isLiked ? "取消收藏" : "收藏",
+      label: isLiked ? t('cover.unfavorite') : t('cover.favorite'),
       icon: isLiked ? (
         <HeartFilled style={{ color: "#ff4d4f" }} />
       ) : (
@@ -330,7 +340,7 @@ const Cover: CoverComponent = ({
     <div
       className={styles.coverContainer}
       onClick={handleClick}
-      style={size ? { width: size } : undefined}
+      style={{ width: size || 170 }}
     >
       <input
         id={`cover-input-${item.id}`}
@@ -339,14 +349,15 @@ const Cover: CoverComponent = ({
         style={{ display: "none" }}
         onChange={handleCoverFileChange}
       />
-      <div className={styles.imageWrapper}>
+      <div className={styles.imageWrapper} style={{ paddingBottom: `${(1 / aspectRatio) * 100}%` }}>
         <img
           src={
-            resolveArtworkUri(item) ||
+            resolveArtworkUri(item as any) ||
             `https://picsum.photos/seed/${item.id}/300/300`
           }
           alt={item.name}
           className={styles.image}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
         />
         {!isTrack &&
           (item as Album).progress !== undefined &&
@@ -394,7 +405,7 @@ const Cover: CoverComponent = ({
         {item.artist}
       </div>
       <Modal
-        title="添加到合集"
+        title={t('cover.addToCollection')}
         open={collectionModalOpen}
         onCancel={() => {
           suppressNextClick();
@@ -407,12 +418,12 @@ const Cover: CoverComponent = ({
           onClick={(e) => e.stopPropagation()}
         >
           <Input
-            placeholder="合集名称（可选）"
+            placeholder={t('cover.collectionNameOptional')}
             value={newCollectionName}
             onChange={(e) => setNewCollectionName(e.target.value)}
           />
           <Button type="primary" onClick={handleCreateCollection}>
-            新建
+            {t('cover.createNew')}
           </Button>
         </div>
         <div
@@ -420,7 +431,7 @@ const Cover: CoverComponent = ({
           onClick={(e) => e.stopPropagation()}
         >
           {collectionLoading ? (
-            <div style={{ padding: 12 }}>加载中...</div>
+            <div style={{ padding: 12 }}>{t('cover.loading')}</div>
           ) : (
             collections.map((col) => {
               const selected = membership.includes(Number(col.id));
@@ -438,7 +449,7 @@ const Cover: CoverComponent = ({
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     <span>{col.name}</span>
                     <span style={{ fontSize: 12, opacity: 0.6 }}>
-                      {col._count?.items ?? col.items?.length ?? 0} 张专辑
+                      {col._count?.items ?? col.items?.length ?? 0} {t('cover.albums')}
                     </span>
                   </div>
                   <Button
@@ -446,7 +457,7 @@ const Cover: CoverComponent = ({
                     disabled={selected}
                     onClick={() => addToCollection(Number(col.id))}
                   >
-                    {selected ? "已添加" : "添加"}
+                    {selected ? t('cover.added') : t('cover.add')}
                   </Button>
                 </div>
               );
@@ -458,11 +469,11 @@ const Cover: CoverComponent = ({
   );
 };
 
-Cover.Skeleton = () => {
+Cover.Skeleton = ({ size, aspectRatio = 1 }) => {
   return (
-    <div>
-      <div className={styles.skeletonWrapper}>
-        <Skeleton.Node active className={styles.skeletonNode}>
+    <div style={{ width: size || 170 }}>
+      <div className={styles.skeletonWrapper} style={{ paddingBottom: `${(1 / aspectRatio) * 100}%`, height: 0, position: 'relative' }}>
+        <Skeleton.Node active className={styles.skeletonNode} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
           <div style={{ width: "100%", height: "100%" }} />
         </Skeleton.Node>
       </div>

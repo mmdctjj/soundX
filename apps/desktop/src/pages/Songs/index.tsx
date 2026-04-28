@@ -22,6 +22,7 @@ import {
   Typography
 } from "antd";
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
 import TrackList from "../../components/TrackList";
 import { type Track } from "../../models";
@@ -36,10 +37,12 @@ const { Title } = Typography;
 interface Result {
   list: Track[];
   hasMore: boolean;
-  nextId?: number;
+  nextLoadCount: number;
+  total?: number;
 }
 
 const Songs: React.FC = () => {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { token } = theme.useToken();
   const { play, setPlaylist, currentTrack } = usePlayerStore();
@@ -57,7 +60,7 @@ const Songs: React.FC = () => {
   const { heartbeatModeActive, toggleHeartbeatMode } = useLibraryStore();
 
   const loadMore = async (d: Result | undefined): Promise<Result> => {
-    const currentLoadCount = d?.nextId || 0;
+    const currentLoadCount = d?.nextLoadCount ?? 0;
     const pageSize = 50;
 
     try {
@@ -68,24 +71,19 @@ const Songs: React.FC = () => {
         sortBy:
           mode === "MUSIC" && heartbeatModeActive ? "heartbeat" : undefined,
       });
-      console.log(res, 'res');
       if (res.code === 200 && res.data) {
-        // Handle different return shapes if necessary, but Adapter returns ILoadMoreData<Track>
-        // Native returns Track[], Subsonic returns Track[] in data.list usually. 
-        // Wait, NativeTrackAdapter.loadMoreTrack returns ISuccessResponse<ILoadMoreData<Track>>
-        // which has list: Track[], hasMore: boolean etc?
-        // Let's check NativeTrackAdapter implementation again from previous turns.
-        // It returns { list: Track[], total: number, hasMore: boolean } usually in ILoadMoreData.
-        // BUT NativeTrackAdapter code showed it returning Request.get<... ILoadMoreData<Track>>
-        // Let's assume standard ILoadMoreData structure.
-        
-        const list = res.data.list;
-        const previousList = d?.list || [];
+        const list = res.data.list || [];
+        const total = res.data.total ?? list.length;
+        const hasMore =
+          typeof res.data.hasMore === "boolean"
+            ? res.data.hasMore
+            : list.length === pageSize;
 
         return {
-            list: [...previousList, ...list],
-            hasMore: list.length === pageSize,
-            nextId: currentLoadCount + 1,
+          list,
+          hasMore,
+          nextLoadCount: currentLoadCount + 1,
+          total,
         };
       }
     } catch (error) {
@@ -95,6 +93,8 @@ const Songs: React.FC = () => {
     return {
       list: d?.list || [],
       hasMore: false,
+      nextLoadCount: d?.nextLoadCount ?? d?.list.length ?? 0,
+      total: d?.total,
     };
   };
 
@@ -123,10 +123,10 @@ const Songs: React.FC = () => {
 
   const handleBatchDownload = async () => {
     if (!selectedTracks.length) return;
-    messageApi.info(`开始下载 ${selectedTracks.length} 首歌曲`);
+    messageApi.info(`${t("songs.startDownload")} ${selectedTracks.length} ${t("songs.trackCount")}`);
     await downloadTracks(selectedTracks, (completed, total) => {
         if (completed === total) {
-            messageApi.success(`成功下载 ${total} 首歌曲`);
+            messageApi.success(`${t("songs.downloadSuccess")} ${total} ${t("songs.trackCount")}`);
             setIsSelectionMode(false);
             setSelectedRowKeys([]);
         }
@@ -199,8 +199,8 @@ const Songs: React.FC = () => {
 
       <div className={styles.pageHeader}>
         <Title level={2} className={styles.title}>
-          单曲
-        </Title>
+            {t("songs.title")}
+          </Title>
         {isSelectionMode ? (
             <Flex gap={8}>
               {mode === "MUSIC" && (
@@ -241,7 +241,7 @@ const Songs: React.FC = () => {
                   icon={heartbeatModeActive ? <HeartFilled /> : <HeartOutlined />}
                   onClick={toggleHeartbeatMode}
                 >
-                  心动模式
+                  {t("songs.heartbeatMode")}
                 </Button>
               )}
               <Button 
@@ -249,13 +249,13 @@ const Songs: React.FC = () => {
                 onClick={handlePlayAll}
                 disabled={!data?.list.length}
               >
-                播放全部
+                {t("songs.playAll")}
               </Button>
               <Button
                 icon={<CheckSquareOutlined />}
                 onClick={handleToggleSelectionMode}
               >
-                批量操作
+                {t("songs.batchActions")}
               </Button>
             </Flex>
         )}
@@ -300,8 +300,13 @@ const Songs: React.FC = () => {
         </div>
       )}
 
-      {data && !data.hasMore && data.list.length > 0 && (
-        <div className={styles.noMore}>没有更多了</div>
+      {data && data.list.length > 0 && (
+        <div className={styles.noMore}>
+          {t("songs.totalTracks", {
+            count: data.total || data.list.length,
+            loaded: data.list.length,
+          })}
+        </div>
       )}
 
       {data?.list.length === 0 && !loading && (
@@ -309,7 +314,7 @@ const Songs: React.FC = () => {
           className={styles.noData}
           style={{ color: token.colorTextSecondary }}
         >
-          <Empty description="暂无歌曲" />
+          <Empty description={t("songs.noSongs")} />
         </div>
       )}
     </div>

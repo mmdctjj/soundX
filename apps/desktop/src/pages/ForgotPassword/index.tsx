@@ -3,6 +3,7 @@ import { resetPassword, verifyDevice } from "@soundx/services";
 import { Button, Form, Input, message, Steps, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import styles from "./index.module.less";
 
@@ -10,6 +11,7 @@ const { Title, Text } = Typography;
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
@@ -40,10 +42,10 @@ const ForgotPassword: React.FC = () => {
       const res = await verifyDevice(user, deviceName);
       setLoading(false);
       if (res.code === 200) {
-        messageApi.success("设备验证通过");
+        messageApi.success(t('forgotPassword.deviceVerified'));
         setCurrentStep(1);
       } else {
-        messageApi.error(res.message || "验证失败，请确保在常用设备上操作");
+        messageApi.error(res.message || t('forgotPassword.verifyFailed'));
       }
     } catch (e) {
       setLoading(false);
@@ -60,17 +62,9 @@ const ForgotPassword: React.FC = () => {
       setLoading(false);
 
       if (res.code === 200) {
-        messageApi.success("密码重置成功");
-        // The response contains token and user data.
-        // We should log the user in.
-        // We can redirect to login or home.
-        // The user request says: "submit success return token enter home page".
-        // So I need to setToken and navigate home.
-        // I need to import useAuthStore or setLogin globally?
-        // The Login page imports useAuthStore.
-        // I'll grab it here too.
+        messageApi.success(t('forgotPassword.passwordResetSuccess'));
         const { token, device, ...userData } = res.data;
-        const activeAddress = localStorage.getItem("serverAddress") || ""; // We assume we are connected to the right server if we made the request
+        const activeAddress = localStorage.getItem("serverAddress") || "";
         const baseURL = activeAddress;
         if (baseURL) {
           const tokenKey = `token_${baseURL}`;
@@ -81,13 +75,10 @@ const ForgotPassword: React.FC = () => {
           if (device) localStorage.setItem(deviceKey, JSON.stringify(device));
         }
 
-        // Navigate home and reload to init auth store?
-        // Or update store.
-        // I'll assume just navigate to "/" and maybe reload.
         navigate("/");
         window.location.reload();
       } else {
-        messageApi.error(res.message || "重置失败");
+        messageApi.error(res.message || t('forgotPassword.resetFailed'));
       }
     } catch (e) {
       setLoading(false);
@@ -99,13 +90,13 @@ const ForgotPassword: React.FC = () => {
       <div className={styles.content}>
         {contextHolder}
         <div style={{ marginBottom: 24, textAlign: "center" }}>
-          <Title level={4}>重置密码</Title>
-          <Text type="secondary">当前设备: {deviceName}</Text>
+          <Title level={4}>{t('forgotPassword.title')}</Title>
+          <Text type="secondary">{t('forgotPassword.currentDevice')}: {deviceName}</Text>
         </div>
 
         <Steps current={currentStep} style={{ marginBottom: 24 }}>
-          <Steps.Step title="验证设备" />
-          <Steps.Step title="重置密码" />
+          <Steps.Step title={t('forgotPassword.stepVerifyDevice')} />
+          <Steps.Step title={t('forgotPassword.stepResetPassword')} />
         </Steps>
 
         <Form form={form} layout="vertical">
@@ -113,11 +104,11 @@ const ForgotPassword: React.FC = () => {
             <>
               <Form.Item
                 name="username"
-                rules={[{ required: true, message: "请输入用户名" }]}
+                rules={[{ required: true, message: t('forgotPassword.enterUsername') }]}
               >
                 <Input
                   prefix={<UserOutlined />}
-                  placeholder="请输入用户名"
+                  placeholder={t('forgotPassword.usernamePlaceholder')}
                   size="large"
                 />
               </Form.Item>
@@ -128,7 +119,7 @@ const ForgotPassword: React.FC = () => {
                 onClick={handleVerify}
                 loading={loading}
               >
-                下一步
+                {t('forgotPassword.nextStep')}
               </Button>
             </>
           )}
@@ -137,11 +128,11 @@ const ForgotPassword: React.FC = () => {
             <>
               <Form.Item
                 name="password"
-                rules={[{ required: true, message: "请输入新密码" }]}
+                rules={[{ required: true, message: t('forgotPassword.enterNewPassword') }]}
               >
                 <Input.Password
                   prefix={<LockOutlined />}
-                  placeholder="新密码"
+                  placeholder={t('forgotPassword.newPasswordPlaceholder')}
                   size="large"
                 />
               </Form.Item>
@@ -149,19 +140,19 @@ const ForgotPassword: React.FC = () => {
                 name="confirm"
                 dependencies={["password"]}
                 rules={[
-                  { required: true, message: "请确认密码" },
+                  { required: true, message: t('forgotPassword.confirmPasswordRequired') },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
                       if (!value || getFieldValue("password") === value)
                         return Promise.resolve();
-                      return Promise.reject(new Error("密码不一致"));
+                      return Promise.reject(new Error(t('forgotPassword.passwordMismatch')));
                     },
                   }),
                 ]}
               >
                 <Input.Password
                   prefix={<LockOutlined />}
-                  placeholder="确认新密码"
+                  placeholder={t('forgotPassword.confirmPasswordPlaceholder')}
                   size="large"
                 />
               </Form.Item>
@@ -172,7 +163,7 @@ const ForgotPassword: React.FC = () => {
                 onClick={handleReset}
                 loading={loading}
               >
-                提交更改
+                {t('forgotPassword.submit')}
               </Button>
             </>
           )}
@@ -182,7 +173,7 @@ const ForgotPassword: React.FC = () => {
           onClick={() => navigate("/login")}
           style={{ marginTop: 16, padding: 0 }}
         >
-          返回登录
+          {t('forgotPassword.backToLogin')}
         </Button>
       </div>
     </div>

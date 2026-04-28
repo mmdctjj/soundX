@@ -2,7 +2,7 @@
   "expo": {
     "name": "AudioDock",
     "slug": "AudioDock 听见你的声音",
-    "version": "1.1.1",
+    "version": "1.1.6",
     "orientation": "default",
     "icon": "../../images/logo.png",
     "scheme": "audiodock",
@@ -14,6 +14,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "requireFullScreen": true,
       "supportsTablet": true,
       "bundleIdentifier": "com.audiodock.app",
       "infoPlist": {
@@ -34,8 +35,10 @@
             }
           }
         },
-        "NSPhotoLibraryAddUsageDescription": "Allow AudioDock to save photos to your library so you can save the donation QR code.",
-        "NSPhotoLibraryUsageDescription": "Allow AudioDock to access your photo library.",
+        "NSCameraUsageDescription": "我们仅将相机用于实现扫码快捷登录，无需手动填写多个服务器地址信息",
+        "NSMicrophoneUsageDescription": "我们仅将用于语音输入关键字，无需手动输入即可快速输入",
+        "NSPhotoLibraryAddUsageDescription": "我们将用来保存您喜欢的曲目或艺术家封面到您的相册中",
+        "NSPhotoLibraryUsageDescription": "我们仅将用来展示您的个性化头像",
         "LSApplicationQueriesSchemes": [
           "weixin",
           "wechat",
@@ -71,7 +74,7 @@
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.mobile",
+      "package": "com.audiodock.app",
       "launchMode": "singleTask",
       "usesCleartextTraffic": true,
       "networkSecurityConfig": "res/xml/network_security_config.xml"
@@ -96,6 +99,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
+      "turboModules": true,
       "reactCompiler": true
     }
   }

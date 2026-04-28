@@ -23,6 +23,7 @@
 .header-icons {
   display: flex;
   flex-direction: row;
+  align-items: center;
 }
 
 .icon-btn {
@@ -38,7 +39,10 @@
 }
 
 .icon-text {
-  font-size: var(--font-size-md);
+  width: 32rpx;
+  height: 32rpx;
+  font-size: 32rpx;
+  color: #111;
 }
 
 .tabs-container {
@@ -77,10 +81,24 @@
     color: #fff;
 }
 
+.tab-count {
+    font-size: 22rpx;
+    font-weight: 600;
+    opacity: 0.82;
+}
+
+.tab-count.active {
+    color: #fff;
+    opacity: 0.88;
+}
+
 .content-scroll {
     flex: 1;
     height: 1px; /* Force scroll view to take remaining height */
-    padding-bottom: var(--mini-player-height);
+}
+
+.page-bottom-spacer {
+    height: calc(var(--mini-player-height) + var(--tab-bar-height) + env(safe-area-inset-bottom) + 56rpx);
 }
 
 .section {
@@ -111,7 +129,7 @@
     width: 31%; 
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     margin-bottom: 20rpx;
 }
 
@@ -137,10 +155,27 @@
   font-size: var(--font-size-sm);
   color: #333;
   text-align: center;
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
+}
+
+.item-name.album {
+  text-align: left;
+  font-size: 26rpx;
+}
+
+.item-sub {
+  margin-top: 6rpx;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 22rpx;
+  color: #6b7280;
+  text-align: left;
 }
 
 .track-list {
@@ -166,11 +201,17 @@
 .track-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .track-name {
   font-size: 28rpx;
   color: #111827;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .track-name.active {
@@ -182,12 +223,42 @@
   margin-top: 6rpx;
   font-size: 24rpx;
   color: #6b7280;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .track-playing {
   margin-left: 12rpx;
   font-size: 22rpx;
   color: #111;
+}
+
+.item-progress {
+  margin-top: -14rpx;
+  margin-bottom: 12rpx;
+  margin-left: 6rpx;
+  margin-right: 6rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.45);
+  overflow: hidden;
+}
+
+.item-progress-bar {
+  height: 100%;
+  border-radius: 999rpx;
+  background: #111;
+}
+
+.skeleton-mb {
+  margin-bottom: 20rpx;
+  margin-top: 6rpx;
+}
+
+.skeleton-mt {
+  margin-top: 14rpx;
 }
 
 .empty-state {
@@ -200,6 +271,19 @@
 .empty-text {
     color: #999;
     font-size: var(--font-size-base);
+}
+
+.library-footer {
+    padding: 24rpx 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8rpx;
+}
+
+.library-footer-text {
+    font-size: 24rpx;
+    color: #999;
 }
 
 .track-more-mask {

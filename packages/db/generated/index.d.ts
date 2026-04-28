@@ -109,6 +109,11 @@ export type TtsUserConfig = $Result.DefaultSelection<Prisma.$TtsUserConfigPayloa
  */
 export type TtsTask = $Result.DefaultSelection<Prisma.$TtsTaskPayload>
 /**
+ * Model Mv
+ * 
+ */
+export type Mv = $Result.DefaultSelection<Prisma.$MvPayload>
+/**
  * Model TtsChapterTask
  * 
  */
@@ -457,6 +462,16 @@ export class PrismaClient<
     * ```
     */
   get ttsTask(): Prisma.TtsTaskDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.mv`: Exposes CRUD operations for the **Mv** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Mvs
+    * const mvs = await prisma.mv.findMany()
+    * ```
+    */
+  get mv(): Prisma.MvDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.ttsChapterTask`: Exposes CRUD operations for the **TtsChapterTask** model.
@@ -926,6 +941,7 @@ export namespace Prisma {
     Folder: 'Folder',
     TtsUserConfig: 'TtsUserConfig',
     TtsTask: 'TtsTask',
+    Mv: 'Mv',
     TtsChapterTask: 'TtsChapterTask'
   };
 
@@ -945,7 +961,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "track" | "album" | "artist" | "audiobookCollection" | "audiobookCollectionAlbum" | "userTrackLike" | "userTrackHistory" | "userAlbumLike" | "userAlbumHistory" | "userAudiobookLike" | "userAudiobookHistory" | "user" | "systemSetting" | "searchRecord" | "device" | "playlist" | "folder" | "ttsUserConfig" | "ttsTask" | "ttsChapterTask"
+      modelProps: "track" | "album" | "artist" | "audiobookCollection" | "audiobookCollectionAlbum" | "userTrackLike" | "userTrackHistory" | "userAlbumLike" | "userAlbumHistory" | "userAudiobookLike" | "userAudiobookHistory" | "user" | "systemSetting" | "searchRecord" | "device" | "playlist" | "folder" | "ttsUserConfig" | "ttsTask" | "mv" | "ttsChapterTask"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2355,6 +2371,80 @@ export namespace Prisma {
           }
         }
       }
+      Mv: {
+        payload: Prisma.$MvPayload<ExtArgs>
+        fields: Prisma.MvFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.MvFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.MvFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload>
+          }
+          findFirst: {
+            args: Prisma.MvFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.MvFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload>
+          }
+          findMany: {
+            args: Prisma.MvFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload>[]
+          }
+          create: {
+            args: Prisma.MvCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload>
+          }
+          createMany: {
+            args: Prisma.MvCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.MvCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload>[]
+          }
+          delete: {
+            args: Prisma.MvDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload>
+          }
+          update: {
+            args: Prisma.MvUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload>
+          }
+          deleteMany: {
+            args: Prisma.MvDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.MvUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.MvUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload>[]
+          }
+          upsert: {
+            args: Prisma.MvUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MvPayload>
+          }
+          aggregate: {
+            args: Prisma.MvAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMv>
+          }
+          groupBy: {
+            args: Prisma.MvGroupByArgs<ExtArgs>
+            result: $Utils.Optional<MvGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.MvCountArgs<ExtArgs>
+            result: $Utils.Optional<MvCountAggregateOutputType> | number
+          }
+        }
+      }
       TtsChapterTask: {
         payload: Prisma.$TtsChapterTaskPayload<ExtArgs>
         fields: Prisma.TtsChapterTaskFieldRefs
@@ -2532,6 +2622,7 @@ export namespace Prisma {
     folder?: FolderOmit
     ttsUserConfig?: TtsUserConfigOmit
     ttsTask?: TtsTaskOmit
+    mv?: MvOmit
     ttsChapterTask?: TtsChapterTaskOmit
   }
 
@@ -2632,6 +2723,7 @@ export namespace Prisma {
     likedAsAudiobookByUsers: number
     listenedAsAudiobookByUsers: number
     playlists: number
+    mvs: number
   }
 
   export type TrackCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2640,6 +2732,7 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: boolean | TrackCountOutputTypeCountLikedAsAudiobookByUsersArgs
     listenedAsAudiobookByUsers?: boolean | TrackCountOutputTypeCountListenedAsAudiobookByUsersArgs
     playlists?: boolean | TrackCountOutputTypeCountPlaylistsArgs
+    mvs?: boolean | TrackCountOutputTypeCountMvsArgs
   }
 
   // Custom InputTypes
@@ -2688,6 +2781,13 @@ export namespace Prisma {
     where?: PlaylistWhereInput
   }
 
+  /**
+   * TrackCountOutputType without action
+   */
+  export type TrackCountOutputTypeCountMvsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MvWhereInput
+  }
+
 
   /**
    * Count Type AlbumCountOutputType
@@ -2695,6 +2795,7 @@ export namespace Prisma {
 
   export type AlbumCountOutputType = {
     tracks: number
+    mvs: number
     likedByUsers: number
     listenedByUsers: number
     collectionItems: number
@@ -2702,6 +2803,7 @@ export namespace Prisma {
 
   export type AlbumCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tracks?: boolean | AlbumCountOutputTypeCountTracksArgs
+    mvs?: boolean | AlbumCountOutputTypeCountMvsArgs
     likedByUsers?: boolean | AlbumCountOutputTypeCountLikedByUsersArgs
     listenedByUsers?: boolean | AlbumCountOutputTypeCountListenedByUsersArgs
     collectionItems?: boolean | AlbumCountOutputTypeCountCollectionItemsArgs
@@ -2723,6 +2825,13 @@ export namespace Prisma {
    */
   export type AlbumCountOutputTypeCountTracksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: TrackWhereInput
+  }
+
+  /**
+   * AlbumCountOutputType without action
+   */
+  export type AlbumCountOutputTypeCountMvsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MvWhereInput
   }
 
   /**
@@ -2753,10 +2862,12 @@ export namespace Prisma {
 
   export type ArtistCountOutputType = {
     tracks: number
+    mvs: number
   }
 
   export type ArtistCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tracks?: boolean | ArtistCountOutputTypeCountTracksArgs
+    mvs?: boolean | ArtistCountOutputTypeCountMvsArgs
   }
 
   // Custom InputTypes
@@ -2775,6 +2886,13 @@ export namespace Prisma {
    */
   export type ArtistCountOutputTypeCountTracksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: TrackWhereInput
+  }
+
+  /**
+   * ArtistCountOutputType without action
+   */
+  export type ArtistCountOutputTypeCountMvsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MvWhereInput
   }
 
 
@@ -3074,6 +3192,7 @@ export namespace Prisma {
     id: number | null
     duration: number | null
     index: number | null
+    scanOrder: number | null
     episodeNumber: number | null
     artistId: number | null
     albumId: number | null
@@ -3084,6 +3203,7 @@ export namespace Prisma {
     id: number | null
     duration: number | null
     index: number | null
+    scanOrder: number | null
     episodeNumber: number | null
     artistId: number | null
     albumId: number | null
@@ -3093,6 +3213,8 @@ export namespace Prisma {
   export type TrackMinAggregateOutputType = {
     id: number | null
     name: string | null
+    fileName: string | null
+    relativePath: string | null
     path: string | null
     artist: string | null
     album: string | null
@@ -3102,7 +3224,9 @@ export namespace Prisma {
     index: number | null
     type: $Enums.TrackType | null
     createdAt: Date | null
+    fileCreatedAt: Date | null
     fileModifiedAt: Date | null
+    scanOrder: number | null
     episodeNumber: number | null
     fileHash: string | null
     status: $Enums.FileStatus | null
@@ -3115,6 +3239,8 @@ export namespace Prisma {
   export type TrackMaxAggregateOutputType = {
     id: number | null
     name: string | null
+    fileName: string | null
+    relativePath: string | null
     path: string | null
     artist: string | null
     album: string | null
@@ -3124,7 +3250,9 @@ export namespace Prisma {
     index: number | null
     type: $Enums.TrackType | null
     createdAt: Date | null
+    fileCreatedAt: Date | null
     fileModifiedAt: Date | null
+    scanOrder: number | null
     episodeNumber: number | null
     fileHash: string | null
     status: $Enums.FileStatus | null
@@ -3137,6 +3265,8 @@ export namespace Prisma {
   export type TrackCountAggregateOutputType = {
     id: number
     name: number
+    fileName: number
+    relativePath: number
     path: number
     artist: number
     album: number
@@ -3146,7 +3276,9 @@ export namespace Prisma {
     index: number
     type: number
     createdAt: number
+    fileCreatedAt: number
     fileModifiedAt: number
+    scanOrder: number
     episodeNumber: number
     fileHash: number
     status: number
@@ -3162,6 +3294,7 @@ export namespace Prisma {
     id?: true
     duration?: true
     index?: true
+    scanOrder?: true
     episodeNumber?: true
     artistId?: true
     albumId?: true
@@ -3172,6 +3305,7 @@ export namespace Prisma {
     id?: true
     duration?: true
     index?: true
+    scanOrder?: true
     episodeNumber?: true
     artistId?: true
     albumId?: true
@@ -3181,6 +3315,8 @@ export namespace Prisma {
   export type TrackMinAggregateInputType = {
     id?: true
     name?: true
+    fileName?: true
+    relativePath?: true
     path?: true
     artist?: true
     album?: true
@@ -3190,7 +3326,9 @@ export namespace Prisma {
     index?: true
     type?: true
     createdAt?: true
+    fileCreatedAt?: true
     fileModifiedAt?: true
+    scanOrder?: true
     episodeNumber?: true
     fileHash?: true
     status?: true
@@ -3203,6 +3341,8 @@ export namespace Prisma {
   export type TrackMaxAggregateInputType = {
     id?: true
     name?: true
+    fileName?: true
+    relativePath?: true
     path?: true
     artist?: true
     album?: true
@@ -3212,7 +3352,9 @@ export namespace Prisma {
     index?: true
     type?: true
     createdAt?: true
+    fileCreatedAt?: true
     fileModifiedAt?: true
+    scanOrder?: true
     episodeNumber?: true
     fileHash?: true
     status?: true
@@ -3225,6 +3367,8 @@ export namespace Prisma {
   export type TrackCountAggregateInputType = {
     id?: true
     name?: true
+    fileName?: true
+    relativePath?: true
     path?: true
     artist?: true
     album?: true
@@ -3234,7 +3378,9 @@ export namespace Prisma {
     index?: true
     type?: true
     createdAt?: true
+    fileCreatedAt?: true
     fileModifiedAt?: true
+    scanOrder?: true
     episodeNumber?: true
     fileHash?: true
     status?: true
@@ -3334,6 +3480,8 @@ export namespace Prisma {
   export type TrackGroupByOutputType = {
     id: number
     name: string
+    fileName: string | null
+    relativePath: string | null
     path: string
     artist: string
     album: string
@@ -3343,7 +3491,9 @@ export namespace Prisma {
     index: number | null
     type: $Enums.TrackType
     createdAt: Date
+    fileCreatedAt: Date | null
     fileModifiedAt: Date | null
+    scanOrder: number | null
     episodeNumber: number | null
     fileHash: string | null
     status: $Enums.FileStatus
@@ -3375,6 +3525,8 @@ export namespace Prisma {
   export type TrackSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    fileName?: boolean
+    relativePath?: boolean
     path?: boolean
     artist?: boolean
     album?: boolean
@@ -3384,7 +3536,9 @@ export namespace Prisma {
     index?: boolean
     type?: boolean
     createdAt?: boolean
+    fileCreatedAt?: boolean
     fileModifiedAt?: boolean
+    scanOrder?: boolean
     episodeNumber?: boolean
     fileHash?: boolean
     status?: boolean
@@ -3400,12 +3554,15 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: boolean | Track$listenedAsAudiobookByUsersArgs<ExtArgs>
     playlists?: boolean | Track$playlistsArgs<ExtArgs>
     folder?: boolean | Track$folderArgs<ExtArgs>
+    mvs?: boolean | Track$mvsArgs<ExtArgs>
     _count?: boolean | TrackCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["track"]>
 
   export type TrackSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    fileName?: boolean
+    relativePath?: boolean
     path?: boolean
     artist?: boolean
     album?: boolean
@@ -3415,7 +3572,9 @@ export namespace Prisma {
     index?: boolean
     type?: boolean
     createdAt?: boolean
+    fileCreatedAt?: boolean
     fileModifiedAt?: boolean
+    scanOrder?: boolean
     episodeNumber?: boolean
     fileHash?: boolean
     status?: boolean
@@ -3431,6 +3590,8 @@ export namespace Prisma {
   export type TrackSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    fileName?: boolean
+    relativePath?: boolean
     path?: boolean
     artist?: boolean
     album?: boolean
@@ -3440,7 +3601,9 @@ export namespace Prisma {
     index?: boolean
     type?: boolean
     createdAt?: boolean
+    fileCreatedAt?: boolean
     fileModifiedAt?: boolean
+    scanOrder?: boolean
     episodeNumber?: boolean
     fileHash?: boolean
     status?: boolean
@@ -3456,6 +3619,8 @@ export namespace Prisma {
   export type TrackSelectScalar = {
     id?: boolean
     name?: boolean
+    fileName?: boolean
+    relativePath?: boolean
     path?: boolean
     artist?: boolean
     album?: boolean
@@ -3465,7 +3630,9 @@ export namespace Prisma {
     index?: boolean
     type?: boolean
     createdAt?: boolean
+    fileCreatedAt?: boolean
     fileModifiedAt?: boolean
+    scanOrder?: boolean
     episodeNumber?: boolean
     fileHash?: boolean
     status?: boolean
@@ -3475,7 +3642,7 @@ export namespace Prisma {
     folderId?: boolean
   }
 
-  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileModifiedAt" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
+  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "fileName" | "relativePath" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileCreatedAt" | "fileModifiedAt" | "scanOrder" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
   export type TrackInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     artistEntity?: boolean | Track$artistEntityArgs<ExtArgs>
     albumEntity?: boolean | Track$albumEntityArgs<ExtArgs>
@@ -3485,6 +3652,7 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: boolean | Track$listenedAsAudiobookByUsersArgs<ExtArgs>
     playlists?: boolean | Track$playlistsArgs<ExtArgs>
     folder?: boolean | Track$folderArgs<ExtArgs>
+    mvs?: boolean | Track$mvsArgs<ExtArgs>
     _count?: boolean | TrackCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type TrackIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3512,10 +3680,13 @@ export namespace Prisma {
       listenedAsAudiobookByUsers: Prisma.$UserAudiobookHistoryPayload<ExtArgs>[]
       playlists: Prisma.$PlaylistPayload<ExtArgs>[]
       folder: Prisma.$FolderPayload<ExtArgs> | null
+      mvs: Prisma.$MvPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
       name: string
+      fileName: string | null
+      relativePath: string | null
       path: string
       artist: string
       album: string
@@ -3525,7 +3696,9 @@ export namespace Prisma {
       index: number | null
       type: $Enums.TrackType
       createdAt: Date
+      fileCreatedAt: Date | null
       fileModifiedAt: Date | null
+      scanOrder: number | null
       episodeNumber: number | null
       fileHash: string | null
       status: $Enums.FileStatus
@@ -3935,6 +4108,7 @@ export namespace Prisma {
     listenedAsAudiobookByUsers<T extends Track$listenedAsAudiobookByUsersArgs<ExtArgs> = {}>(args?: Subset<T, Track$listenedAsAudiobookByUsersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserAudiobookHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     playlists<T extends Track$playlistsArgs<ExtArgs> = {}>(args?: Subset<T, Track$playlistsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlaylistPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     folder<T extends Track$folderArgs<ExtArgs> = {}>(args?: Subset<T, Track$folderArgs<ExtArgs>>): Prisma__FolderClient<$Result.GetResult<Prisma.$FolderPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    mvs<T extends Track$mvsArgs<ExtArgs> = {}>(args?: Subset<T, Track$mvsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3966,6 +4140,8 @@ export namespace Prisma {
   interface TrackFieldRefs {
     readonly id: FieldRef<"Track", 'Int'>
     readonly name: FieldRef<"Track", 'String'>
+    readonly fileName: FieldRef<"Track", 'String'>
+    readonly relativePath: FieldRef<"Track", 'String'>
     readonly path: FieldRef<"Track", 'String'>
     readonly artist: FieldRef<"Track", 'String'>
     readonly album: FieldRef<"Track", 'String'>
@@ -3975,7 +4151,9 @@ export namespace Prisma {
     readonly index: FieldRef<"Track", 'Int'>
     readonly type: FieldRef<"Track", 'TrackType'>
     readonly createdAt: FieldRef<"Track", 'DateTime'>
+    readonly fileCreatedAt: FieldRef<"Track", 'DateTime'>
     readonly fileModifiedAt: FieldRef<"Track", 'DateTime'>
+    readonly scanOrder: FieldRef<"Track", 'Int'>
     readonly episodeNumber: FieldRef<"Track", 'Int'>
     readonly fileHash: FieldRef<"Track", 'String'>
     readonly status: FieldRef<"Track", 'FileStatus'>
@@ -4554,6 +4732,30 @@ export namespace Prisma {
   }
 
   /**
+   * Track.mvs
+   */
+  export type Track$mvsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    where?: MvWhereInput
+    orderBy?: MvOrderByWithRelationInput | MvOrderByWithRelationInput[]
+    cursor?: MvWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: MvScalarFieldEnum | MvScalarFieldEnum[]
+  }
+
+  /**
    * Track without action
    */
   export type TrackDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4795,6 +4997,7 @@ export namespace Prisma {
     status?: boolean
     trashedAt?: boolean
     tracks?: boolean | Album$tracksArgs<ExtArgs>
+    mvs?: boolean | Album$mvsArgs<ExtArgs>
     likedByUsers?: boolean | Album$likedByUsersArgs<ExtArgs>
     listenedByUsers?: boolean | Album$listenedByUsersArgs<ExtArgs>
     collectionItems?: boolean | Album$collectionItemsArgs<ExtArgs>
@@ -4837,6 +5040,7 @@ export namespace Prisma {
   export type AlbumOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "artist" | "cover" | "year" | "type" | "status" | "trashedAt", ExtArgs["result"]["album"]>
   export type AlbumInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tracks?: boolean | Album$tracksArgs<ExtArgs>
+    mvs?: boolean | Album$mvsArgs<ExtArgs>
     likedByUsers?: boolean | Album$likedByUsersArgs<ExtArgs>
     listenedByUsers?: boolean | Album$listenedByUsersArgs<ExtArgs>
     collectionItems?: boolean | Album$collectionItemsArgs<ExtArgs>
@@ -4849,6 +5053,7 @@ export namespace Prisma {
     name: "Album"
     objects: {
       tracks: Prisma.$TrackPayload<ExtArgs>[]
+      mvs: Prisma.$MvPayload<ExtArgs>[]
       /**
        * 🔁 反向关系
        */
@@ -5260,6 +5465,7 @@ export namespace Prisma {
   export interface Prisma__AlbumClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     tracks<T extends Album$tracksArgs<ExtArgs> = {}>(args?: Subset<T, Album$tracksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    mvs<T extends Album$mvsArgs<ExtArgs> = {}>(args?: Subset<T, Album$mvsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     likedByUsers<T extends Album$likedByUsersArgs<ExtArgs> = {}>(args?: Subset<T, Album$likedByUsersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserAlbumLikePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     listenedByUsers<T extends Album$listenedByUsersArgs<ExtArgs> = {}>(args?: Subset<T, Album$listenedByUsersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserAlbumHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     collectionItems<T extends Album$collectionItemsArgs<ExtArgs> = {}>(args?: Subset<T, Album$collectionItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AudiobookCollectionAlbumPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -5710,6 +5916,30 @@ export namespace Prisma {
   }
 
   /**
+   * Album.mvs
+   */
+  export type Album$mvsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    where?: MvWhereInput
+    orderBy?: MvOrderByWithRelationInput | MvOrderByWithRelationInput[]
+    cursor?: MvWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: MvScalarFieldEnum | MvScalarFieldEnum[]
+  }
+
+  /**
    * Album.likedByUsers
    */
   export type Album$likedByUsersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6007,6 +6237,7 @@ export namespace Prisma {
     status?: boolean
     trashedAt?: boolean
     tracks?: boolean | Artist$tracksArgs<ExtArgs>
+    mvs?: boolean | Artist$mvsArgs<ExtArgs>
     _count?: boolean | ArtistCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["artist"]>
 
@@ -6040,6 +6271,7 @@ export namespace Prisma {
   export type ArtistOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "avatar" | "type" | "status" | "trashedAt", ExtArgs["result"]["artist"]>
   export type ArtistInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tracks?: boolean | Artist$tracksArgs<ExtArgs>
+    mvs?: boolean | Artist$mvsArgs<ExtArgs>
     _count?: boolean | ArtistCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ArtistIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -6049,6 +6281,7 @@ export namespace Prisma {
     name: "Artist"
     objects: {
       tracks: Prisma.$TrackPayload<ExtArgs>[]
+      mvs: Prisma.$MvPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
@@ -6452,6 +6685,7 @@ export namespace Prisma {
   export interface Prisma__ArtistClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     tracks<T extends Artist$tracksArgs<ExtArgs> = {}>(args?: Subset<T, Artist$tracksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    mvs<T extends Artist$mvsArgs<ExtArgs> = {}>(args?: Subset<T, Artist$mvsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -6894,6 +7128,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: TrackScalarFieldEnum | TrackScalarFieldEnum[]
+  }
+
+  /**
+   * Artist.mvs
+   */
+  export type Artist$mvsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    where?: MvWhereInput
+    orderBy?: MvOrderByWithRelationInput | MvOrderByWithRelationInput[]
+    cursor?: MvWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: MvScalarFieldEnum | MvScalarFieldEnum[]
   }
 
   /**
@@ -24997,6 +25255,1315 @@ export namespace Prisma {
 
 
   /**
+   * Model Mv
+   */
+
+  export type AggregateMv = {
+    _count: MvCountAggregateOutputType | null
+    _avg: MvAvgAggregateOutputType | null
+    _sum: MvSumAggregateOutputType | null
+    _min: MvMinAggregateOutputType | null
+    _max: MvMaxAggregateOutputType | null
+  }
+
+  export type MvAvgAggregateOutputType = {
+    id: number | null
+    duration: number | null
+    artistId: number | null
+    albumId: number | null
+    trackId: number | null
+  }
+
+  export type MvSumAggregateOutputType = {
+    id: number | null
+    duration: number | null
+    artistId: number | null
+    albumId: number | null
+    trackId: number | null
+  }
+
+  export type MvMinAggregateOutputType = {
+    id: number | null
+    name: string | null
+    path: string | null
+    artist: string | null
+    album: string | null
+    cover: string | null
+    duration: number | null
+    createdAt: Date | null
+    fileModifiedAt: Date | null
+    fileHash: string | null
+    status: $Enums.FileStatus | null
+    trashedAt: Date | null
+    artistId: number | null
+    albumId: number | null
+    trackId: number | null
+  }
+
+  export type MvMaxAggregateOutputType = {
+    id: number | null
+    name: string | null
+    path: string | null
+    artist: string | null
+    album: string | null
+    cover: string | null
+    duration: number | null
+    createdAt: Date | null
+    fileModifiedAt: Date | null
+    fileHash: string | null
+    status: $Enums.FileStatus | null
+    trashedAt: Date | null
+    artistId: number | null
+    albumId: number | null
+    trackId: number | null
+  }
+
+  export type MvCountAggregateOutputType = {
+    id: number
+    name: number
+    path: number
+    artist: number
+    album: number
+    cover: number
+    duration: number
+    createdAt: number
+    fileModifiedAt: number
+    fileHash: number
+    status: number
+    trashedAt: number
+    artistId: number
+    albumId: number
+    trackId: number
+    _all: number
+  }
+
+
+  export type MvAvgAggregateInputType = {
+    id?: true
+    duration?: true
+    artistId?: true
+    albumId?: true
+    trackId?: true
+  }
+
+  export type MvSumAggregateInputType = {
+    id?: true
+    duration?: true
+    artistId?: true
+    albumId?: true
+    trackId?: true
+  }
+
+  export type MvMinAggregateInputType = {
+    id?: true
+    name?: true
+    path?: true
+    artist?: true
+    album?: true
+    cover?: true
+    duration?: true
+    createdAt?: true
+    fileModifiedAt?: true
+    fileHash?: true
+    status?: true
+    trashedAt?: true
+    artistId?: true
+    albumId?: true
+    trackId?: true
+  }
+
+  export type MvMaxAggregateInputType = {
+    id?: true
+    name?: true
+    path?: true
+    artist?: true
+    album?: true
+    cover?: true
+    duration?: true
+    createdAt?: true
+    fileModifiedAt?: true
+    fileHash?: true
+    status?: true
+    trashedAt?: true
+    artistId?: true
+    albumId?: true
+    trackId?: true
+  }
+
+  export type MvCountAggregateInputType = {
+    id?: true
+    name?: true
+    path?: true
+    artist?: true
+    album?: true
+    cover?: true
+    duration?: true
+    createdAt?: true
+    fileModifiedAt?: true
+    fileHash?: true
+    status?: true
+    trashedAt?: true
+    artistId?: true
+    albumId?: true
+    trackId?: true
+    _all?: true
+  }
+
+  export type MvAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Mv to aggregate.
+     */
+    where?: MvWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Mvs to fetch.
+     */
+    orderBy?: MvOrderByWithRelationInput | MvOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: MvWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Mvs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Mvs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Mvs
+    **/
+    _count?: true | MvCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: MvAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: MvSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: MvMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: MvMaxAggregateInputType
+  }
+
+  export type GetMvAggregateType<T extends MvAggregateArgs> = {
+        [P in keyof T & keyof AggregateMv]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMv[P]>
+      : GetScalarType<T[P], AggregateMv[P]>
+  }
+
+
+
+
+  export type MvGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MvWhereInput
+    orderBy?: MvOrderByWithAggregationInput | MvOrderByWithAggregationInput[]
+    by: MvScalarFieldEnum[] | MvScalarFieldEnum
+    having?: MvScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: MvCountAggregateInputType | true
+    _avg?: MvAvgAggregateInputType
+    _sum?: MvSumAggregateInputType
+    _min?: MvMinAggregateInputType
+    _max?: MvMaxAggregateInputType
+  }
+
+  export type MvGroupByOutputType = {
+    id: number
+    name: string
+    path: string
+    artist: string | null
+    album: string | null
+    cover: string | null
+    duration: number | null
+    createdAt: Date
+    fileModifiedAt: Date | null
+    fileHash: string | null
+    status: $Enums.FileStatus
+    trashedAt: Date | null
+    artistId: number | null
+    albumId: number | null
+    trackId: number | null
+    _count: MvCountAggregateOutputType | null
+    _avg: MvAvgAggregateOutputType | null
+    _sum: MvSumAggregateOutputType | null
+    _min: MvMinAggregateOutputType | null
+    _max: MvMaxAggregateOutputType | null
+  }
+
+  type GetMvGroupByPayload<T extends MvGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<MvGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof MvGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], MvGroupByOutputType[P]>
+            : GetScalarType<T[P], MvGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type MvSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    path?: boolean
+    artist?: boolean
+    album?: boolean
+    cover?: boolean
+    duration?: boolean
+    createdAt?: boolean
+    fileModifiedAt?: boolean
+    fileHash?: boolean
+    status?: boolean
+    trashedAt?: boolean
+    artistId?: boolean
+    albumId?: boolean
+    trackId?: boolean
+    artistEntity?: boolean | Mv$artistEntityArgs<ExtArgs>
+    albumEntity?: boolean | Mv$albumEntityArgs<ExtArgs>
+    trackEntity?: boolean | Mv$trackEntityArgs<ExtArgs>
+  }, ExtArgs["result"]["mv"]>
+
+  export type MvSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    path?: boolean
+    artist?: boolean
+    album?: boolean
+    cover?: boolean
+    duration?: boolean
+    createdAt?: boolean
+    fileModifiedAt?: boolean
+    fileHash?: boolean
+    status?: boolean
+    trashedAt?: boolean
+    artistId?: boolean
+    albumId?: boolean
+    trackId?: boolean
+    artistEntity?: boolean | Mv$artistEntityArgs<ExtArgs>
+    albumEntity?: boolean | Mv$albumEntityArgs<ExtArgs>
+    trackEntity?: boolean | Mv$trackEntityArgs<ExtArgs>
+  }, ExtArgs["result"]["mv"]>
+
+  export type MvSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    path?: boolean
+    artist?: boolean
+    album?: boolean
+    cover?: boolean
+    duration?: boolean
+    createdAt?: boolean
+    fileModifiedAt?: boolean
+    fileHash?: boolean
+    status?: boolean
+    trashedAt?: boolean
+    artistId?: boolean
+    albumId?: boolean
+    trackId?: boolean
+    artistEntity?: boolean | Mv$artistEntityArgs<ExtArgs>
+    albumEntity?: boolean | Mv$albumEntityArgs<ExtArgs>
+    trackEntity?: boolean | Mv$trackEntityArgs<ExtArgs>
+  }, ExtArgs["result"]["mv"]>
+
+  export type MvSelectScalar = {
+    id?: boolean
+    name?: boolean
+    path?: boolean
+    artist?: boolean
+    album?: boolean
+    cover?: boolean
+    duration?: boolean
+    createdAt?: boolean
+    fileModifiedAt?: boolean
+    fileHash?: boolean
+    status?: boolean
+    trashedAt?: boolean
+    artistId?: boolean
+    albumId?: boolean
+    trackId?: boolean
+  }
+
+  export type MvOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "path" | "artist" | "album" | "cover" | "duration" | "createdAt" | "fileModifiedAt" | "fileHash" | "status" | "trashedAt" | "artistId" | "albumId" | "trackId", ExtArgs["result"]["mv"]>
+  export type MvInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    artistEntity?: boolean | Mv$artistEntityArgs<ExtArgs>
+    albumEntity?: boolean | Mv$albumEntityArgs<ExtArgs>
+    trackEntity?: boolean | Mv$trackEntityArgs<ExtArgs>
+  }
+  export type MvIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    artistEntity?: boolean | Mv$artistEntityArgs<ExtArgs>
+    albumEntity?: boolean | Mv$albumEntityArgs<ExtArgs>
+    trackEntity?: boolean | Mv$trackEntityArgs<ExtArgs>
+  }
+  export type MvIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    artistEntity?: boolean | Mv$artistEntityArgs<ExtArgs>
+    albumEntity?: boolean | Mv$albumEntityArgs<ExtArgs>
+    trackEntity?: boolean | Mv$trackEntityArgs<ExtArgs>
+  }
+
+  export type $MvPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Mv"
+    objects: {
+      artistEntity: Prisma.$ArtistPayload<ExtArgs> | null
+      albumEntity: Prisma.$AlbumPayload<ExtArgs> | null
+      trackEntity: Prisma.$TrackPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      name: string
+      path: string
+      artist: string | null
+      album: string | null
+      cover: string | null
+      duration: number | null
+      createdAt: Date
+      fileModifiedAt: Date | null
+      fileHash: string | null
+      status: $Enums.FileStatus
+      trashedAt: Date | null
+      artistId: number | null
+      albumId: number | null
+      trackId: number | null
+    }, ExtArgs["result"]["mv"]>
+    composites: {}
+  }
+
+  type MvGetPayload<S extends boolean | null | undefined | MvDefaultArgs> = $Result.GetResult<Prisma.$MvPayload, S>
+
+  type MvCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<MvFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: MvCountAggregateInputType | true
+    }
+
+  export interface MvDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Mv'], meta: { name: 'Mv' } }
+    /**
+     * Find zero or one Mv that matches the filter.
+     * @param {MvFindUniqueArgs} args - Arguments to find a Mv
+     * @example
+     * // Get one Mv
+     * const mv = await prisma.mv.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends MvFindUniqueArgs>(args: SelectSubset<T, MvFindUniqueArgs<ExtArgs>>): Prisma__MvClient<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Mv that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {MvFindUniqueOrThrowArgs} args - Arguments to find a Mv
+     * @example
+     * // Get one Mv
+     * const mv = await prisma.mv.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends MvFindUniqueOrThrowArgs>(args: SelectSubset<T, MvFindUniqueOrThrowArgs<ExtArgs>>): Prisma__MvClient<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Mv that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MvFindFirstArgs} args - Arguments to find a Mv
+     * @example
+     * // Get one Mv
+     * const mv = await prisma.mv.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends MvFindFirstArgs>(args?: SelectSubset<T, MvFindFirstArgs<ExtArgs>>): Prisma__MvClient<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Mv that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MvFindFirstOrThrowArgs} args - Arguments to find a Mv
+     * @example
+     * // Get one Mv
+     * const mv = await prisma.mv.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends MvFindFirstOrThrowArgs>(args?: SelectSubset<T, MvFindFirstOrThrowArgs<ExtArgs>>): Prisma__MvClient<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Mvs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MvFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Mvs
+     * const mvs = await prisma.mv.findMany()
+     * 
+     * // Get first 10 Mvs
+     * const mvs = await prisma.mv.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const mvWithIdOnly = await prisma.mv.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends MvFindManyArgs>(args?: SelectSubset<T, MvFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Mv.
+     * @param {MvCreateArgs} args - Arguments to create a Mv.
+     * @example
+     * // Create one Mv
+     * const Mv = await prisma.mv.create({
+     *   data: {
+     *     // ... data to create a Mv
+     *   }
+     * })
+     * 
+     */
+    create<T extends MvCreateArgs>(args: SelectSubset<T, MvCreateArgs<ExtArgs>>): Prisma__MvClient<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Mvs.
+     * @param {MvCreateManyArgs} args - Arguments to create many Mvs.
+     * @example
+     * // Create many Mvs
+     * const mv = await prisma.mv.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends MvCreateManyArgs>(args?: SelectSubset<T, MvCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Mvs and returns the data saved in the database.
+     * @param {MvCreateManyAndReturnArgs} args - Arguments to create many Mvs.
+     * @example
+     * // Create many Mvs
+     * const mv = await prisma.mv.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Mvs and only return the `id`
+     * const mvWithIdOnly = await prisma.mv.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends MvCreateManyAndReturnArgs>(args?: SelectSubset<T, MvCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Mv.
+     * @param {MvDeleteArgs} args - Arguments to delete one Mv.
+     * @example
+     * // Delete one Mv
+     * const Mv = await prisma.mv.delete({
+     *   where: {
+     *     // ... filter to delete one Mv
+     *   }
+     * })
+     * 
+     */
+    delete<T extends MvDeleteArgs>(args: SelectSubset<T, MvDeleteArgs<ExtArgs>>): Prisma__MvClient<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Mv.
+     * @param {MvUpdateArgs} args - Arguments to update one Mv.
+     * @example
+     * // Update one Mv
+     * const mv = await prisma.mv.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends MvUpdateArgs>(args: SelectSubset<T, MvUpdateArgs<ExtArgs>>): Prisma__MvClient<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Mvs.
+     * @param {MvDeleteManyArgs} args - Arguments to filter Mvs to delete.
+     * @example
+     * // Delete a few Mvs
+     * const { count } = await prisma.mv.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends MvDeleteManyArgs>(args?: SelectSubset<T, MvDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Mvs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MvUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Mvs
+     * const mv = await prisma.mv.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends MvUpdateManyArgs>(args: SelectSubset<T, MvUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Mvs and returns the data updated in the database.
+     * @param {MvUpdateManyAndReturnArgs} args - Arguments to update many Mvs.
+     * @example
+     * // Update many Mvs
+     * const mv = await prisma.mv.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Mvs and only return the `id`
+     * const mvWithIdOnly = await prisma.mv.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends MvUpdateManyAndReturnArgs>(args: SelectSubset<T, MvUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Mv.
+     * @param {MvUpsertArgs} args - Arguments to update or create a Mv.
+     * @example
+     * // Update or create a Mv
+     * const mv = await prisma.mv.upsert({
+     *   create: {
+     *     // ... data to create a Mv
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Mv we want to update
+     *   }
+     * })
+     */
+    upsert<T extends MvUpsertArgs>(args: SelectSubset<T, MvUpsertArgs<ExtArgs>>): Prisma__MvClient<$Result.GetResult<Prisma.$MvPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Mvs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MvCountArgs} args - Arguments to filter Mvs to count.
+     * @example
+     * // Count the number of Mvs
+     * const count = await prisma.mv.count({
+     *   where: {
+     *     // ... the filter for the Mvs we want to count
+     *   }
+     * })
+    **/
+    count<T extends MvCountArgs>(
+      args?: Subset<T, MvCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], MvCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Mv.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MvAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends MvAggregateArgs>(args: Subset<T, MvAggregateArgs>): Prisma.PrismaPromise<GetMvAggregateType<T>>
+
+    /**
+     * Group by Mv.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MvGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends MvGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: MvGroupByArgs['orderBy'] }
+        : { orderBy?: MvGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, MvGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMvGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Mv model
+   */
+  readonly fields: MvFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Mv.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__MvClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    artistEntity<T extends Mv$artistEntityArgs<ExtArgs> = {}>(args?: Subset<T, Mv$artistEntityArgs<ExtArgs>>): Prisma__ArtistClient<$Result.GetResult<Prisma.$ArtistPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    albumEntity<T extends Mv$albumEntityArgs<ExtArgs> = {}>(args?: Subset<T, Mv$albumEntityArgs<ExtArgs>>): Prisma__AlbumClient<$Result.GetResult<Prisma.$AlbumPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    trackEntity<T extends Mv$trackEntityArgs<ExtArgs> = {}>(args?: Subset<T, Mv$trackEntityArgs<ExtArgs>>): Prisma__TrackClient<$Result.GetResult<Prisma.$TrackPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Mv model
+   */
+  interface MvFieldRefs {
+    readonly id: FieldRef<"Mv", 'Int'>
+    readonly name: FieldRef<"Mv", 'String'>
+    readonly path: FieldRef<"Mv", 'String'>
+    readonly artist: FieldRef<"Mv", 'String'>
+    readonly album: FieldRef<"Mv", 'String'>
+    readonly cover: FieldRef<"Mv", 'String'>
+    readonly duration: FieldRef<"Mv", 'Int'>
+    readonly createdAt: FieldRef<"Mv", 'DateTime'>
+    readonly fileModifiedAt: FieldRef<"Mv", 'DateTime'>
+    readonly fileHash: FieldRef<"Mv", 'String'>
+    readonly status: FieldRef<"Mv", 'FileStatus'>
+    readonly trashedAt: FieldRef<"Mv", 'DateTime'>
+    readonly artistId: FieldRef<"Mv", 'Int'>
+    readonly albumId: FieldRef<"Mv", 'Int'>
+    readonly trackId: FieldRef<"Mv", 'Int'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Mv findUnique
+   */
+  export type MvFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    /**
+     * Filter, which Mv to fetch.
+     */
+    where: MvWhereUniqueInput
+  }
+
+  /**
+   * Mv findUniqueOrThrow
+   */
+  export type MvFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    /**
+     * Filter, which Mv to fetch.
+     */
+    where: MvWhereUniqueInput
+  }
+
+  /**
+   * Mv findFirst
+   */
+  export type MvFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    /**
+     * Filter, which Mv to fetch.
+     */
+    where?: MvWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Mvs to fetch.
+     */
+    orderBy?: MvOrderByWithRelationInput | MvOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Mvs.
+     */
+    cursor?: MvWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Mvs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Mvs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Mvs.
+     */
+    distinct?: MvScalarFieldEnum | MvScalarFieldEnum[]
+  }
+
+  /**
+   * Mv findFirstOrThrow
+   */
+  export type MvFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    /**
+     * Filter, which Mv to fetch.
+     */
+    where?: MvWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Mvs to fetch.
+     */
+    orderBy?: MvOrderByWithRelationInput | MvOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Mvs.
+     */
+    cursor?: MvWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Mvs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Mvs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Mvs.
+     */
+    distinct?: MvScalarFieldEnum | MvScalarFieldEnum[]
+  }
+
+  /**
+   * Mv findMany
+   */
+  export type MvFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    /**
+     * Filter, which Mvs to fetch.
+     */
+    where?: MvWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Mvs to fetch.
+     */
+    orderBy?: MvOrderByWithRelationInput | MvOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Mvs.
+     */
+    cursor?: MvWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Mvs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Mvs.
+     */
+    skip?: number
+    distinct?: MvScalarFieldEnum | MvScalarFieldEnum[]
+  }
+
+  /**
+   * Mv create
+   */
+  export type MvCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Mv.
+     */
+    data: XOR<MvCreateInput, MvUncheckedCreateInput>
+  }
+
+  /**
+   * Mv createMany
+   */
+  export type MvCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Mvs.
+     */
+    data: MvCreateManyInput | MvCreateManyInput[]
+  }
+
+  /**
+   * Mv createManyAndReturn
+   */
+  export type MvCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * The data used to create many Mvs.
+     */
+    data: MvCreateManyInput | MvCreateManyInput[]
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Mv update
+   */
+  export type MvUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Mv.
+     */
+    data: XOR<MvUpdateInput, MvUncheckedUpdateInput>
+    /**
+     * Choose, which Mv to update.
+     */
+    where: MvWhereUniqueInput
+  }
+
+  /**
+   * Mv updateMany
+   */
+  export type MvUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Mvs.
+     */
+    data: XOR<MvUpdateManyMutationInput, MvUncheckedUpdateManyInput>
+    /**
+     * Filter which Mvs to update
+     */
+    where?: MvWhereInput
+    /**
+     * Limit how many Mvs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Mv updateManyAndReturn
+   */
+  export type MvUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * The data used to update Mvs.
+     */
+    data: XOR<MvUpdateManyMutationInput, MvUncheckedUpdateManyInput>
+    /**
+     * Filter which Mvs to update
+     */
+    where?: MvWhereInput
+    /**
+     * Limit how many Mvs to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Mv upsert
+   */
+  export type MvUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Mv to update in case it exists.
+     */
+    where: MvWhereUniqueInput
+    /**
+     * In case the Mv found by the `where` argument doesn't exist, create a new Mv with this data.
+     */
+    create: XOR<MvCreateInput, MvUncheckedCreateInput>
+    /**
+     * In case the Mv was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<MvUpdateInput, MvUncheckedUpdateInput>
+  }
+
+  /**
+   * Mv delete
+   */
+  export type MvDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+    /**
+     * Filter which Mv to delete.
+     */
+    where: MvWhereUniqueInput
+  }
+
+  /**
+   * Mv deleteMany
+   */
+  export type MvDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Mvs to delete
+     */
+    where?: MvWhereInput
+    /**
+     * Limit how many Mvs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Mv.artistEntity
+   */
+  export type Mv$artistEntityArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Artist
+     */
+    select?: ArtistSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Artist
+     */
+    omit?: ArtistOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArtistInclude<ExtArgs> | null
+    where?: ArtistWhereInput
+  }
+
+  /**
+   * Mv.albumEntity
+   */
+  export type Mv$albumEntityArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Album
+     */
+    select?: AlbumSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Album
+     */
+    omit?: AlbumOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AlbumInclude<ExtArgs> | null
+    where?: AlbumWhereInput
+  }
+
+  /**
+   * Mv.trackEntity
+   */
+  export type Mv$trackEntityArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Track
+     */
+    select?: TrackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Track
+     */
+    omit?: TrackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrackInclude<ExtArgs> | null
+    where?: TrackWhereInput
+  }
+
+  /**
+   * Mv without action
+   */
+  export type MvDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mv
+     */
+    select?: MvSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Mv
+     */
+    omit?: MvOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MvInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model TtsChapterTask
    */
 
@@ -26130,6 +27697,8 @@ export namespace Prisma {
   export const TrackScalarFieldEnum: {
     id: 'id',
     name: 'name',
+    fileName: 'fileName',
+    relativePath: 'relativePath',
     path: 'path',
     artist: 'artist',
     album: 'album',
@@ -26139,7 +27708,9 @@ export namespace Prisma {
     index: 'index',
     type: 'type',
     createdAt: 'createdAt',
+    fileCreatedAt: 'fileCreatedAt',
     fileModifiedAt: 'fileModifiedAt',
+    scanOrder: 'scanOrder',
     episodeNumber: 'episodeNumber',
     fileHash: 'fileHash',
     status: 'status',
@@ -26359,6 +27930,27 @@ export namespace Prisma {
   export type TtsTaskScalarFieldEnum = (typeof TtsTaskScalarFieldEnum)[keyof typeof TtsTaskScalarFieldEnum]
 
 
+  export const MvScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    path: 'path',
+    artist: 'artist',
+    album: 'album',
+    cover: 'cover',
+    duration: 'duration',
+    createdAt: 'createdAt',
+    fileModifiedAt: 'fileModifiedAt',
+    fileHash: 'fileHash',
+    status: 'status',
+    trashedAt: 'trashedAt',
+    artistId: 'artistId',
+    albumId: 'albumId',
+    trackId: 'trackId'
+  };
+
+  export type MvScalarFieldEnum = (typeof MvScalarFieldEnum)[keyof typeof MvScalarFieldEnum]
+
+
   export const TtsChapterTaskScalarFieldEnum: {
     id: 'id',
     taskId: 'taskId',
@@ -26451,6 +28043,8 @@ export namespace Prisma {
     NOT?: TrackWhereInput | TrackWhereInput[]
     id?: IntFilter<"Track"> | number
     name?: StringFilter<"Track"> | string
+    fileName?: StringNullableFilter<"Track"> | string | null
+    relativePath?: StringNullableFilter<"Track"> | string | null
     path?: StringFilter<"Track"> | string
     artist?: StringFilter<"Track"> | string
     album?: StringFilter<"Track"> | string
@@ -26460,7 +28054,9 @@ export namespace Prisma {
     index?: IntNullableFilter<"Track"> | number | null
     type?: EnumTrackTypeFilter<"Track"> | $Enums.TrackType
     createdAt?: DateTimeFilter<"Track"> | Date | string
+    fileCreatedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
     fileModifiedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
+    scanOrder?: IntNullableFilter<"Track"> | number | null
     episodeNumber?: IntNullableFilter<"Track"> | number | null
     fileHash?: StringNullableFilter<"Track"> | string | null
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
@@ -26476,11 +28072,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryListRelationFilter
     playlists?: PlaylistListRelationFilter
     folder?: XOR<FolderNullableScalarRelationFilter, FolderWhereInput> | null
+    mvs?: MvListRelationFilter
   }
 
   export type TrackOrderByWithRelationInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrderInput | SortOrder
+    relativePath?: SortOrderInput | SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -26490,7 +28089,9 @@ export namespace Prisma {
     index?: SortOrderInput | SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrderInput | SortOrder
     fileModifiedAt?: SortOrderInput | SortOrder
+    scanOrder?: SortOrderInput | SortOrder
     episodeNumber?: SortOrderInput | SortOrder
     fileHash?: SortOrderInput | SortOrder
     status?: SortOrder
@@ -26506,6 +28107,7 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryOrderByRelationAggregateInput
     playlists?: PlaylistOrderByRelationAggregateInput
     folder?: FolderOrderByWithRelationInput
+    mvs?: MvOrderByRelationAggregateInput
   }
 
   export type TrackWhereUniqueInput = Prisma.AtLeast<{
@@ -26514,6 +28116,8 @@ export namespace Prisma {
     OR?: TrackWhereInput[]
     NOT?: TrackWhereInput | TrackWhereInput[]
     name?: StringFilter<"Track"> | string
+    fileName?: StringNullableFilter<"Track"> | string | null
+    relativePath?: StringNullableFilter<"Track"> | string | null
     path?: StringFilter<"Track"> | string
     artist?: StringFilter<"Track"> | string
     album?: StringFilter<"Track"> | string
@@ -26523,7 +28127,9 @@ export namespace Prisma {
     index?: IntNullableFilter<"Track"> | number | null
     type?: EnumTrackTypeFilter<"Track"> | $Enums.TrackType
     createdAt?: DateTimeFilter<"Track"> | Date | string
+    fileCreatedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
     fileModifiedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
+    scanOrder?: IntNullableFilter<"Track"> | number | null
     episodeNumber?: IntNullableFilter<"Track"> | number | null
     fileHash?: StringNullableFilter<"Track"> | string | null
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
@@ -26539,11 +28145,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryListRelationFilter
     playlists?: PlaylistListRelationFilter
     folder?: XOR<FolderNullableScalarRelationFilter, FolderWhereInput> | null
+    mvs?: MvListRelationFilter
   }, "id">
 
   export type TrackOrderByWithAggregationInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrderInput | SortOrder
+    relativePath?: SortOrderInput | SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -26553,7 +28162,9 @@ export namespace Prisma {
     index?: SortOrderInput | SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrderInput | SortOrder
     fileModifiedAt?: SortOrderInput | SortOrder
+    scanOrder?: SortOrderInput | SortOrder
     episodeNumber?: SortOrderInput | SortOrder
     fileHash?: SortOrderInput | SortOrder
     status?: SortOrder
@@ -26574,6 +28185,8 @@ export namespace Prisma {
     NOT?: TrackScalarWhereWithAggregatesInput | TrackScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"Track"> | number
     name?: StringWithAggregatesFilter<"Track"> | string
+    fileName?: StringNullableWithAggregatesFilter<"Track"> | string | null
+    relativePath?: StringNullableWithAggregatesFilter<"Track"> | string | null
     path?: StringWithAggregatesFilter<"Track"> | string
     artist?: StringWithAggregatesFilter<"Track"> | string
     album?: StringWithAggregatesFilter<"Track"> | string
@@ -26583,7 +28196,9 @@ export namespace Prisma {
     index?: IntNullableWithAggregatesFilter<"Track"> | number | null
     type?: EnumTrackTypeWithAggregatesFilter<"Track"> | $Enums.TrackType
     createdAt?: DateTimeWithAggregatesFilter<"Track"> | Date | string
+    fileCreatedAt?: DateTimeNullableWithAggregatesFilter<"Track"> | Date | string | null
     fileModifiedAt?: DateTimeNullableWithAggregatesFilter<"Track"> | Date | string | null
+    scanOrder?: IntNullableWithAggregatesFilter<"Track"> | number | null
     episodeNumber?: IntNullableWithAggregatesFilter<"Track"> | number | null
     fileHash?: StringNullableWithAggregatesFilter<"Track"> | string | null
     status?: EnumFileStatusWithAggregatesFilter<"Track"> | $Enums.FileStatus
@@ -26606,6 +28221,7 @@ export namespace Prisma {
     status?: EnumFileStatusFilter<"Album"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Album"> | Date | string | null
     tracks?: TrackListRelationFilter
+    mvs?: MvListRelationFilter
     likedByUsers?: UserAlbumLikeListRelationFilter
     listenedByUsers?: UserAlbumHistoryListRelationFilter
     collectionItems?: AudiobookCollectionAlbumListRelationFilter
@@ -26621,6 +28237,7 @@ export namespace Prisma {
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
     tracks?: TrackOrderByRelationAggregateInput
+    mvs?: MvOrderByRelationAggregateInput
     likedByUsers?: UserAlbumLikeOrderByRelationAggregateInput
     listenedByUsers?: UserAlbumHistoryOrderByRelationAggregateInput
     collectionItems?: AudiobookCollectionAlbumOrderByRelationAggregateInput
@@ -26639,6 +28256,7 @@ export namespace Prisma {
     status?: EnumFileStatusFilter<"Album"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Album"> | Date | string | null
     tracks?: TrackListRelationFilter
+    mvs?: MvListRelationFilter
     likedByUsers?: UserAlbumLikeListRelationFilter
     listenedByUsers?: UserAlbumHistoryListRelationFilter
     collectionItems?: AudiobookCollectionAlbumListRelationFilter
@@ -26685,6 +28303,7 @@ export namespace Prisma {
     status?: EnumFileStatusFilter<"Artist"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Artist"> | Date | string | null
     tracks?: TrackListRelationFilter
+    mvs?: MvListRelationFilter
   }
 
   export type ArtistOrderByWithRelationInput = {
@@ -26695,6 +28314,7 @@ export namespace Prisma {
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
     tracks?: TrackOrderByRelationAggregateInput
+    mvs?: MvOrderByRelationAggregateInput
   }
 
   export type ArtistWhereUniqueInput = Prisma.AtLeast<{
@@ -26708,6 +28328,7 @@ export namespace Prisma {
     status?: EnumFileStatusFilter<"Artist"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Artist"> | Date | string | null
     tracks?: TrackListRelationFilter
+    mvs?: MvListRelationFilter
   }, "id">
 
   export type ArtistOrderByWithAggregationInput = {
@@ -27735,6 +29356,119 @@ export namespace Prisma {
     options?: StringNullableWithAggregatesFilter<"TtsTask"> | string | null
   }
 
+  export type MvWhereInput = {
+    AND?: MvWhereInput | MvWhereInput[]
+    OR?: MvWhereInput[]
+    NOT?: MvWhereInput | MvWhereInput[]
+    id?: IntFilter<"Mv"> | number
+    name?: StringFilter<"Mv"> | string
+    path?: StringFilter<"Mv"> | string
+    artist?: StringNullableFilter<"Mv"> | string | null
+    album?: StringNullableFilter<"Mv"> | string | null
+    cover?: StringNullableFilter<"Mv"> | string | null
+    duration?: IntNullableFilter<"Mv"> | number | null
+    createdAt?: DateTimeFilter<"Mv"> | Date | string
+    fileModifiedAt?: DateTimeNullableFilter<"Mv"> | Date | string | null
+    fileHash?: StringNullableFilter<"Mv"> | string | null
+    status?: EnumFileStatusFilter<"Mv"> | $Enums.FileStatus
+    trashedAt?: DateTimeNullableFilter<"Mv"> | Date | string | null
+    artistId?: IntNullableFilter<"Mv"> | number | null
+    albumId?: IntNullableFilter<"Mv"> | number | null
+    trackId?: IntNullableFilter<"Mv"> | number | null
+    artistEntity?: XOR<ArtistNullableScalarRelationFilter, ArtistWhereInput> | null
+    albumEntity?: XOR<AlbumNullableScalarRelationFilter, AlbumWhereInput> | null
+    trackEntity?: XOR<TrackNullableScalarRelationFilter, TrackWhereInput> | null
+  }
+
+  export type MvOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    path?: SortOrder
+    artist?: SortOrderInput | SortOrder
+    album?: SortOrderInput | SortOrder
+    cover?: SortOrderInput | SortOrder
+    duration?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    fileModifiedAt?: SortOrderInput | SortOrder
+    fileHash?: SortOrderInput | SortOrder
+    status?: SortOrder
+    trashedAt?: SortOrderInput | SortOrder
+    artistId?: SortOrderInput | SortOrder
+    albumId?: SortOrderInput | SortOrder
+    trackId?: SortOrderInput | SortOrder
+    artistEntity?: ArtistOrderByWithRelationInput
+    albumEntity?: AlbumOrderByWithRelationInput
+    trackEntity?: TrackOrderByWithRelationInput
+  }
+
+  export type MvWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: MvWhereInput | MvWhereInput[]
+    OR?: MvWhereInput[]
+    NOT?: MvWhereInput | MvWhereInput[]
+    name?: StringFilter<"Mv"> | string
+    path?: StringFilter<"Mv"> | string
+    artist?: StringNullableFilter<"Mv"> | string | null
+    album?: StringNullableFilter<"Mv"> | string | null
+    cover?: StringNullableFilter<"Mv"> | string | null
+    duration?: IntNullableFilter<"Mv"> | number | null
+    createdAt?: DateTimeFilter<"Mv"> | Date | string
+    fileModifiedAt?: DateTimeNullableFilter<"Mv"> | Date | string | null
+    fileHash?: StringNullableFilter<"Mv"> | string | null
+    status?: EnumFileStatusFilter<"Mv"> | $Enums.FileStatus
+    trashedAt?: DateTimeNullableFilter<"Mv"> | Date | string | null
+    artistId?: IntNullableFilter<"Mv"> | number | null
+    albumId?: IntNullableFilter<"Mv"> | number | null
+    trackId?: IntNullableFilter<"Mv"> | number | null
+    artistEntity?: XOR<ArtistNullableScalarRelationFilter, ArtistWhereInput> | null
+    albumEntity?: XOR<AlbumNullableScalarRelationFilter, AlbumWhereInput> | null
+    trackEntity?: XOR<TrackNullableScalarRelationFilter, TrackWhereInput> | null
+  }, "id">
+
+  export type MvOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    path?: SortOrder
+    artist?: SortOrderInput | SortOrder
+    album?: SortOrderInput | SortOrder
+    cover?: SortOrderInput | SortOrder
+    duration?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    fileModifiedAt?: SortOrderInput | SortOrder
+    fileHash?: SortOrderInput | SortOrder
+    status?: SortOrder
+    trashedAt?: SortOrderInput | SortOrder
+    artistId?: SortOrderInput | SortOrder
+    albumId?: SortOrderInput | SortOrder
+    trackId?: SortOrderInput | SortOrder
+    _count?: MvCountOrderByAggregateInput
+    _avg?: MvAvgOrderByAggregateInput
+    _max?: MvMaxOrderByAggregateInput
+    _min?: MvMinOrderByAggregateInput
+    _sum?: MvSumOrderByAggregateInput
+  }
+
+  export type MvScalarWhereWithAggregatesInput = {
+    AND?: MvScalarWhereWithAggregatesInput | MvScalarWhereWithAggregatesInput[]
+    OR?: MvScalarWhereWithAggregatesInput[]
+    NOT?: MvScalarWhereWithAggregatesInput | MvScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"Mv"> | number
+    name?: StringWithAggregatesFilter<"Mv"> | string
+    path?: StringWithAggregatesFilter<"Mv"> | string
+    artist?: StringNullableWithAggregatesFilter<"Mv"> | string | null
+    album?: StringNullableWithAggregatesFilter<"Mv"> | string | null
+    cover?: StringNullableWithAggregatesFilter<"Mv"> | string | null
+    duration?: IntNullableWithAggregatesFilter<"Mv"> | number | null
+    createdAt?: DateTimeWithAggregatesFilter<"Mv"> | Date | string
+    fileModifiedAt?: DateTimeNullableWithAggregatesFilter<"Mv"> | Date | string | null
+    fileHash?: StringNullableWithAggregatesFilter<"Mv"> | string | null
+    status?: EnumFileStatusWithAggregatesFilter<"Mv"> | $Enums.FileStatus
+    trashedAt?: DateTimeNullableWithAggregatesFilter<"Mv"> | Date | string | null
+    artistId?: IntNullableWithAggregatesFilter<"Mv"> | number | null
+    albumId?: IntNullableWithAggregatesFilter<"Mv"> | number | null
+    trackId?: IntNullableWithAggregatesFilter<"Mv"> | number | null
+  }
+
   export type TtsChapterTaskWhereInput = {
     AND?: TtsChapterTaskWhereInput | TtsChapterTaskWhereInput[]
     OR?: TtsChapterTaskWhereInput[]
@@ -27804,6 +29538,8 @@ export namespace Prisma {
 
   export type TrackCreateInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -27813,7 +29549,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -27826,11 +29564,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryCreateNestedManyWithoutTrackInput
     playlists?: PlaylistCreateNestedManyWithoutTracksInput
     folder?: FolderCreateNestedOneWithoutTracksInput
+    mvs?: MvCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUncheckedCreateInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -27840,7 +29581,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -27853,10 +29596,13 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedCreateNestedManyWithoutTrackInput
     playlists?: PlaylistUncheckedCreateNestedManyWithoutTracksInput
+    mvs?: MvUncheckedCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUpdateInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -27866,7 +29612,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -27879,11 +29627,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUpdateManyWithoutTracksNestedInput
     folder?: FolderUpdateOneWithoutTracksNestedInput
+    mvs?: MvUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -27893,7 +29644,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -27906,11 +29659,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUncheckedUpdateManyWithoutTracksNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackCreateManyInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -27920,7 +29676,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -27932,6 +29690,8 @@ export namespace Prisma {
 
   export type TrackUpdateManyMutationInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -27941,7 +29701,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -27951,6 +29713,8 @@ export namespace Prisma {
   export type TrackUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -27960,7 +29724,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -27979,6 +29745,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
+    mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryCreateNestedManyWithoutAlbumInput
     collectionItems?: AudiobookCollectionAlbumCreateNestedManyWithoutAlbumInput
@@ -27994,6 +29761,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
+    mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryUncheckedCreateNestedManyWithoutAlbumInput
     collectionItems?: AudiobookCollectionAlbumUncheckedCreateNestedManyWithoutAlbumInput
@@ -28008,6 +29776,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
+    mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUpdateManyWithoutAlbumNestedInput
     collectionItems?: AudiobookCollectionAlbumUpdateManyWithoutAlbumNestedInput
@@ -28023,6 +29792,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUncheckedUpdateManyWithoutAlbumNestedInput
     collectionItems?: AudiobookCollectionAlbumUncheckedUpdateManyWithoutAlbumNestedInput
@@ -28067,6 +29837,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackCreateNestedManyWithoutArtistEntityInput
+    mvs?: MvCreateNestedManyWithoutArtistEntityInput
   }
 
   export type ArtistUncheckedCreateInput = {
@@ -28077,6 +29848,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutArtistEntityInput
+    mvs?: MvUncheckedCreateNestedManyWithoutArtistEntityInput
   }
 
   export type ArtistUpdateInput = {
@@ -28086,6 +29858,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUpdateManyWithoutArtistEntityNestedInput
+    mvs?: MvUpdateManyWithoutArtistEntityNestedInput
   }
 
   export type ArtistUncheckedUpdateInput = {
@@ -28096,6 +29869,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUncheckedUpdateManyWithoutArtistEntityNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutArtistEntityNestedInput
   }
 
   export type ArtistCreateManyInput = {
@@ -29054,6 +30828,126 @@ export namespace Prisma {
     options?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type MvCreateInput = {
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistEntity?: ArtistCreateNestedOneWithoutMvsInput
+    albumEntity?: AlbumCreateNestedOneWithoutMvsInput
+    trackEntity?: TrackCreateNestedOneWithoutMvsInput
+  }
+
+  export type MvUncheckedCreateInput = {
+    id?: number
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistId?: number | null
+    albumId?: number | null
+    trackId?: number | null
+  }
+
+  export type MvUpdateInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistEntity?: ArtistUpdateOneWithoutMvsNestedInput
+    albumEntity?: AlbumUpdateOneWithoutMvsNestedInput
+    trackEntity?: TrackUpdateOneWithoutMvsNestedInput
+  }
+
+  export type MvUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistId?: NullableIntFieldUpdateOperationsInput | number | null
+    albumId?: NullableIntFieldUpdateOperationsInput | number | null
+    trackId?: NullableIntFieldUpdateOperationsInput | number | null
+  }
+
+  export type MvCreateManyInput = {
+    id?: number
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistId?: number | null
+    albumId?: number | null
+    trackId?: number | null
+  }
+
+  export type MvUpdateManyMutationInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type MvUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistId?: NullableIntFieldUpdateOperationsInput | number | null
+    albumId?: NullableIntFieldUpdateOperationsInput | number | null
+    trackId?: NullableIntFieldUpdateOperationsInput | number | null
+  }
+
   export type TtsChapterTaskCreateInput = {
     index: number
     title: string
@@ -29251,6 +31145,12 @@ export namespace Prisma {
     isNot?: FolderWhereInput | null
   }
 
+  export type MvListRelationFilter = {
+    every?: MvWhereInput
+    some?: MvWhereInput
+    none?: MvWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -29276,9 +31176,15 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type MvOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type TrackCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrder
+    relativePath?: SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -29288,7 +31194,9 @@ export namespace Prisma {
     index?: SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrder
     fileModifiedAt?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     fileHash?: SortOrder
     status?: SortOrder
@@ -29302,6 +31210,7 @@ export namespace Prisma {
     id?: SortOrder
     duration?: SortOrder
     index?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
@@ -29311,6 +31220,8 @@ export namespace Prisma {
   export type TrackMaxOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrder
+    relativePath?: SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -29320,7 +31231,9 @@ export namespace Prisma {
     index?: SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrder
     fileModifiedAt?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     fileHash?: SortOrder
     status?: SortOrder
@@ -29333,6 +31246,8 @@ export namespace Prisma {
   export type TrackMinOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    fileName?: SortOrder
+    relativePath?: SortOrder
     path?: SortOrder
     artist?: SortOrder
     album?: SortOrder
@@ -29342,7 +31257,9 @@ export namespace Prisma {
     index?: SortOrder
     type?: SortOrder
     createdAt?: SortOrder
+    fileCreatedAt?: SortOrder
     fileModifiedAt?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     fileHash?: SortOrder
     status?: SortOrder
@@ -29356,6 +31273,7 @@ export namespace Prisma {
     id?: SortOrder
     duration?: SortOrder
     index?: SortOrder
+    scanOrder?: SortOrder
     episodeNumber?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
@@ -30265,6 +32183,81 @@ export namespace Prisma {
     completedChapters?: SortOrder
   }
 
+  export type TrackNullableScalarRelationFilter = {
+    is?: TrackWhereInput | null
+    isNot?: TrackWhereInput | null
+  }
+
+  export type MvCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    path?: SortOrder
+    artist?: SortOrder
+    album?: SortOrder
+    cover?: SortOrder
+    duration?: SortOrder
+    createdAt?: SortOrder
+    fileModifiedAt?: SortOrder
+    fileHash?: SortOrder
+    status?: SortOrder
+    trashedAt?: SortOrder
+    artistId?: SortOrder
+    albumId?: SortOrder
+    trackId?: SortOrder
+  }
+
+  export type MvAvgOrderByAggregateInput = {
+    id?: SortOrder
+    duration?: SortOrder
+    artistId?: SortOrder
+    albumId?: SortOrder
+    trackId?: SortOrder
+  }
+
+  export type MvMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    path?: SortOrder
+    artist?: SortOrder
+    album?: SortOrder
+    cover?: SortOrder
+    duration?: SortOrder
+    createdAt?: SortOrder
+    fileModifiedAt?: SortOrder
+    fileHash?: SortOrder
+    status?: SortOrder
+    trashedAt?: SortOrder
+    artistId?: SortOrder
+    albumId?: SortOrder
+    trackId?: SortOrder
+  }
+
+  export type MvMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    path?: SortOrder
+    artist?: SortOrder
+    album?: SortOrder
+    cover?: SortOrder
+    duration?: SortOrder
+    createdAt?: SortOrder
+    fileModifiedAt?: SortOrder
+    fileHash?: SortOrder
+    status?: SortOrder
+    trashedAt?: SortOrder
+    artistId?: SortOrder
+    albumId?: SortOrder
+    trackId?: SortOrder
+  }
+
+  export type MvSumOrderByAggregateInput = {
+    id?: SortOrder
+    duration?: SortOrder
+    artistId?: SortOrder
+    albumId?: SortOrder
+    trackId?: SortOrder
+  }
+
   export type TtsTaskScalarRelationFilter = {
     is?: TtsTaskWhereInput
     isNot?: TtsTaskWhereInput
@@ -30362,6 +32355,13 @@ export namespace Prisma {
     connect?: FolderWhereUniqueInput
   }
 
+  export type MvCreateNestedManyWithoutTrackEntityInput = {
+    create?: XOR<MvCreateWithoutTrackEntityInput, MvUncheckedCreateWithoutTrackEntityInput> | MvCreateWithoutTrackEntityInput[] | MvUncheckedCreateWithoutTrackEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutTrackEntityInput | MvCreateOrConnectWithoutTrackEntityInput[]
+    createMany?: MvCreateManyTrackEntityInputEnvelope
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+  }
+
   export type UserTrackLikeUncheckedCreateNestedManyWithoutTrackInput = {
     create?: XOR<UserTrackLikeCreateWithoutTrackInput, UserTrackLikeUncheckedCreateWithoutTrackInput> | UserTrackLikeCreateWithoutTrackInput[] | UserTrackLikeUncheckedCreateWithoutTrackInput[]
     connectOrCreate?: UserTrackLikeCreateOrConnectWithoutTrackInput | UserTrackLikeCreateOrConnectWithoutTrackInput[]
@@ -30394,6 +32394,13 @@ export namespace Prisma {
     create?: XOR<PlaylistCreateWithoutTracksInput, PlaylistUncheckedCreateWithoutTracksInput> | PlaylistCreateWithoutTracksInput[] | PlaylistUncheckedCreateWithoutTracksInput[]
     connectOrCreate?: PlaylistCreateOrConnectWithoutTracksInput | PlaylistCreateOrConnectWithoutTracksInput[]
     connect?: PlaylistWhereUniqueInput | PlaylistWhereUniqueInput[]
+  }
+
+  export type MvUncheckedCreateNestedManyWithoutTrackEntityInput = {
+    create?: XOR<MvCreateWithoutTrackEntityInput, MvUncheckedCreateWithoutTrackEntityInput> | MvCreateWithoutTrackEntityInput[] | MvUncheckedCreateWithoutTrackEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutTrackEntityInput | MvCreateOrConnectWithoutTrackEntityInput[]
+    createMany?: MvCreateManyTrackEntityInputEnvelope
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -30527,6 +32534,20 @@ export namespace Prisma {
     update?: XOR<XOR<FolderUpdateToOneWithWhereWithoutTracksInput, FolderUpdateWithoutTracksInput>, FolderUncheckedUpdateWithoutTracksInput>
   }
 
+  export type MvUpdateManyWithoutTrackEntityNestedInput = {
+    create?: XOR<MvCreateWithoutTrackEntityInput, MvUncheckedCreateWithoutTrackEntityInput> | MvCreateWithoutTrackEntityInput[] | MvUncheckedCreateWithoutTrackEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutTrackEntityInput | MvCreateOrConnectWithoutTrackEntityInput[]
+    upsert?: MvUpsertWithWhereUniqueWithoutTrackEntityInput | MvUpsertWithWhereUniqueWithoutTrackEntityInput[]
+    createMany?: MvCreateManyTrackEntityInputEnvelope
+    set?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    disconnect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    delete?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    update?: MvUpdateWithWhereUniqueWithoutTrackEntityInput | MvUpdateWithWhereUniqueWithoutTrackEntityInput[]
+    updateMany?: MvUpdateManyWithWhereWithoutTrackEntityInput | MvUpdateManyWithWhereWithoutTrackEntityInput[]
+    deleteMany?: MvScalarWhereInput | MvScalarWhereInput[]
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -30604,11 +32625,32 @@ export namespace Prisma {
     deleteMany?: PlaylistScalarWhereInput | PlaylistScalarWhereInput[]
   }
 
+  export type MvUncheckedUpdateManyWithoutTrackEntityNestedInput = {
+    create?: XOR<MvCreateWithoutTrackEntityInput, MvUncheckedCreateWithoutTrackEntityInput> | MvCreateWithoutTrackEntityInput[] | MvUncheckedCreateWithoutTrackEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutTrackEntityInput | MvCreateOrConnectWithoutTrackEntityInput[]
+    upsert?: MvUpsertWithWhereUniqueWithoutTrackEntityInput | MvUpsertWithWhereUniqueWithoutTrackEntityInput[]
+    createMany?: MvCreateManyTrackEntityInputEnvelope
+    set?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    disconnect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    delete?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    update?: MvUpdateWithWhereUniqueWithoutTrackEntityInput | MvUpdateWithWhereUniqueWithoutTrackEntityInput[]
+    updateMany?: MvUpdateManyWithWhereWithoutTrackEntityInput | MvUpdateManyWithWhereWithoutTrackEntityInput[]
+    deleteMany?: MvScalarWhereInput | MvScalarWhereInput[]
+  }
+
   export type TrackCreateNestedManyWithoutAlbumEntityInput = {
     create?: XOR<TrackCreateWithoutAlbumEntityInput, TrackUncheckedCreateWithoutAlbumEntityInput> | TrackCreateWithoutAlbumEntityInput[] | TrackUncheckedCreateWithoutAlbumEntityInput[]
     connectOrCreate?: TrackCreateOrConnectWithoutAlbumEntityInput | TrackCreateOrConnectWithoutAlbumEntityInput[]
     createMany?: TrackCreateManyAlbumEntityInputEnvelope
     connect?: TrackWhereUniqueInput | TrackWhereUniqueInput[]
+  }
+
+  export type MvCreateNestedManyWithoutAlbumEntityInput = {
+    create?: XOR<MvCreateWithoutAlbumEntityInput, MvUncheckedCreateWithoutAlbumEntityInput> | MvCreateWithoutAlbumEntityInput[] | MvUncheckedCreateWithoutAlbumEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutAlbumEntityInput | MvCreateOrConnectWithoutAlbumEntityInput[]
+    createMany?: MvCreateManyAlbumEntityInputEnvelope
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
   }
 
   export type UserAlbumLikeCreateNestedManyWithoutAlbumInput = {
@@ -30637,6 +32679,13 @@ export namespace Prisma {
     connectOrCreate?: TrackCreateOrConnectWithoutAlbumEntityInput | TrackCreateOrConnectWithoutAlbumEntityInput[]
     createMany?: TrackCreateManyAlbumEntityInputEnvelope
     connect?: TrackWhereUniqueInput | TrackWhereUniqueInput[]
+  }
+
+  export type MvUncheckedCreateNestedManyWithoutAlbumEntityInput = {
+    create?: XOR<MvCreateWithoutAlbumEntityInput, MvUncheckedCreateWithoutAlbumEntityInput> | MvCreateWithoutAlbumEntityInput[] | MvUncheckedCreateWithoutAlbumEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutAlbumEntityInput | MvCreateOrConnectWithoutAlbumEntityInput[]
+    createMany?: MvCreateManyAlbumEntityInputEnvelope
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
   }
 
   export type UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput = {
@@ -30672,6 +32721,20 @@ export namespace Prisma {
     update?: TrackUpdateWithWhereUniqueWithoutAlbumEntityInput | TrackUpdateWithWhereUniqueWithoutAlbumEntityInput[]
     updateMany?: TrackUpdateManyWithWhereWithoutAlbumEntityInput | TrackUpdateManyWithWhereWithoutAlbumEntityInput[]
     deleteMany?: TrackScalarWhereInput | TrackScalarWhereInput[]
+  }
+
+  export type MvUpdateManyWithoutAlbumEntityNestedInput = {
+    create?: XOR<MvCreateWithoutAlbumEntityInput, MvUncheckedCreateWithoutAlbumEntityInput> | MvCreateWithoutAlbumEntityInput[] | MvUncheckedCreateWithoutAlbumEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutAlbumEntityInput | MvCreateOrConnectWithoutAlbumEntityInput[]
+    upsert?: MvUpsertWithWhereUniqueWithoutAlbumEntityInput | MvUpsertWithWhereUniqueWithoutAlbumEntityInput[]
+    createMany?: MvCreateManyAlbumEntityInputEnvelope
+    set?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    disconnect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    delete?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    update?: MvUpdateWithWhereUniqueWithoutAlbumEntityInput | MvUpdateWithWhereUniqueWithoutAlbumEntityInput[]
+    updateMany?: MvUpdateManyWithWhereWithoutAlbumEntityInput | MvUpdateManyWithWhereWithoutAlbumEntityInput[]
+    deleteMany?: MvScalarWhereInput | MvScalarWhereInput[]
   }
 
   export type UserAlbumLikeUpdateManyWithoutAlbumNestedInput = {
@@ -30730,6 +32793,20 @@ export namespace Prisma {
     deleteMany?: TrackScalarWhereInput | TrackScalarWhereInput[]
   }
 
+  export type MvUncheckedUpdateManyWithoutAlbumEntityNestedInput = {
+    create?: XOR<MvCreateWithoutAlbumEntityInput, MvUncheckedCreateWithoutAlbumEntityInput> | MvCreateWithoutAlbumEntityInput[] | MvUncheckedCreateWithoutAlbumEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutAlbumEntityInput | MvCreateOrConnectWithoutAlbumEntityInput[]
+    upsert?: MvUpsertWithWhereUniqueWithoutAlbumEntityInput | MvUpsertWithWhereUniqueWithoutAlbumEntityInput[]
+    createMany?: MvCreateManyAlbumEntityInputEnvelope
+    set?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    disconnect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    delete?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    update?: MvUpdateWithWhereUniqueWithoutAlbumEntityInput | MvUpdateWithWhereUniqueWithoutAlbumEntityInput[]
+    updateMany?: MvUpdateManyWithWhereWithoutAlbumEntityInput | MvUpdateManyWithWhereWithoutAlbumEntityInput[]
+    deleteMany?: MvScalarWhereInput | MvScalarWhereInput[]
+  }
+
   export type UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput = {
     create?: XOR<UserAlbumLikeCreateWithoutAlbumInput, UserAlbumLikeUncheckedCreateWithoutAlbumInput> | UserAlbumLikeCreateWithoutAlbumInput[] | UserAlbumLikeUncheckedCreateWithoutAlbumInput[]
     connectOrCreate?: UserAlbumLikeCreateOrConnectWithoutAlbumInput | UserAlbumLikeCreateOrConnectWithoutAlbumInput[]
@@ -30779,11 +32856,25 @@ export namespace Prisma {
     connect?: TrackWhereUniqueInput | TrackWhereUniqueInput[]
   }
 
+  export type MvCreateNestedManyWithoutArtistEntityInput = {
+    create?: XOR<MvCreateWithoutArtistEntityInput, MvUncheckedCreateWithoutArtistEntityInput> | MvCreateWithoutArtistEntityInput[] | MvUncheckedCreateWithoutArtistEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutArtistEntityInput | MvCreateOrConnectWithoutArtistEntityInput[]
+    createMany?: MvCreateManyArtistEntityInputEnvelope
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+  }
+
   export type TrackUncheckedCreateNestedManyWithoutArtistEntityInput = {
     create?: XOR<TrackCreateWithoutArtistEntityInput, TrackUncheckedCreateWithoutArtistEntityInput> | TrackCreateWithoutArtistEntityInput[] | TrackUncheckedCreateWithoutArtistEntityInput[]
     connectOrCreate?: TrackCreateOrConnectWithoutArtistEntityInput | TrackCreateOrConnectWithoutArtistEntityInput[]
     createMany?: TrackCreateManyArtistEntityInputEnvelope
     connect?: TrackWhereUniqueInput | TrackWhereUniqueInput[]
+  }
+
+  export type MvUncheckedCreateNestedManyWithoutArtistEntityInput = {
+    create?: XOR<MvCreateWithoutArtistEntityInput, MvUncheckedCreateWithoutArtistEntityInput> | MvCreateWithoutArtistEntityInput[] | MvUncheckedCreateWithoutArtistEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutArtistEntityInput | MvCreateOrConnectWithoutArtistEntityInput[]
+    createMany?: MvCreateManyArtistEntityInputEnvelope
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
   }
 
   export type TrackUpdateManyWithoutArtistEntityNestedInput = {
@@ -30800,6 +32891,20 @@ export namespace Prisma {
     deleteMany?: TrackScalarWhereInput | TrackScalarWhereInput[]
   }
 
+  export type MvUpdateManyWithoutArtistEntityNestedInput = {
+    create?: XOR<MvCreateWithoutArtistEntityInput, MvUncheckedCreateWithoutArtistEntityInput> | MvCreateWithoutArtistEntityInput[] | MvUncheckedCreateWithoutArtistEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutArtistEntityInput | MvCreateOrConnectWithoutArtistEntityInput[]
+    upsert?: MvUpsertWithWhereUniqueWithoutArtistEntityInput | MvUpsertWithWhereUniqueWithoutArtistEntityInput[]
+    createMany?: MvCreateManyArtistEntityInputEnvelope
+    set?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    disconnect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    delete?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    update?: MvUpdateWithWhereUniqueWithoutArtistEntityInput | MvUpdateWithWhereUniqueWithoutArtistEntityInput[]
+    updateMany?: MvUpdateManyWithWhereWithoutArtistEntityInput | MvUpdateManyWithWhereWithoutArtistEntityInput[]
+    deleteMany?: MvScalarWhereInput | MvScalarWhereInput[]
+  }
+
   export type TrackUncheckedUpdateManyWithoutArtistEntityNestedInput = {
     create?: XOR<TrackCreateWithoutArtistEntityInput, TrackUncheckedCreateWithoutArtistEntityInput> | TrackCreateWithoutArtistEntityInput[] | TrackUncheckedCreateWithoutArtistEntityInput[]
     connectOrCreate?: TrackCreateOrConnectWithoutArtistEntityInput | TrackCreateOrConnectWithoutArtistEntityInput[]
@@ -30812,6 +32917,20 @@ export namespace Prisma {
     update?: TrackUpdateWithWhereUniqueWithoutArtistEntityInput | TrackUpdateWithWhereUniqueWithoutArtistEntityInput[]
     updateMany?: TrackUpdateManyWithWhereWithoutArtistEntityInput | TrackUpdateManyWithWhereWithoutArtistEntityInput[]
     deleteMany?: TrackScalarWhereInput | TrackScalarWhereInput[]
+  }
+
+  export type MvUncheckedUpdateManyWithoutArtistEntityNestedInput = {
+    create?: XOR<MvCreateWithoutArtistEntityInput, MvUncheckedCreateWithoutArtistEntityInput> | MvCreateWithoutArtistEntityInput[] | MvUncheckedCreateWithoutArtistEntityInput[]
+    connectOrCreate?: MvCreateOrConnectWithoutArtistEntityInput | MvCreateOrConnectWithoutArtistEntityInput[]
+    upsert?: MvUpsertWithWhereUniqueWithoutArtistEntityInput | MvUpsertWithWhereUniqueWithoutArtistEntityInput[]
+    createMany?: MvCreateManyArtistEntityInputEnvelope
+    set?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    disconnect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    delete?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    connect?: MvWhereUniqueInput | MvWhereUniqueInput[]
+    update?: MvUpdateWithWhereUniqueWithoutArtistEntityInput | MvUpdateWithWhereUniqueWithoutArtistEntityInput[]
+    updateMany?: MvUpdateManyWithWhereWithoutArtistEntityInput | MvUpdateManyWithWhereWithoutArtistEntityInput[]
+    deleteMany?: MvScalarWhereInput | MvScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutAudiobookCollectionsInput = {
@@ -31768,6 +33887,54 @@ export namespace Prisma {
     deleteMany?: TtsChapterTaskScalarWhereInput | TtsChapterTaskScalarWhereInput[]
   }
 
+  export type ArtistCreateNestedOneWithoutMvsInput = {
+    create?: XOR<ArtistCreateWithoutMvsInput, ArtistUncheckedCreateWithoutMvsInput>
+    connectOrCreate?: ArtistCreateOrConnectWithoutMvsInput
+    connect?: ArtistWhereUniqueInput
+  }
+
+  export type AlbumCreateNestedOneWithoutMvsInput = {
+    create?: XOR<AlbumCreateWithoutMvsInput, AlbumUncheckedCreateWithoutMvsInput>
+    connectOrCreate?: AlbumCreateOrConnectWithoutMvsInput
+    connect?: AlbumWhereUniqueInput
+  }
+
+  export type TrackCreateNestedOneWithoutMvsInput = {
+    create?: XOR<TrackCreateWithoutMvsInput, TrackUncheckedCreateWithoutMvsInput>
+    connectOrCreate?: TrackCreateOrConnectWithoutMvsInput
+    connect?: TrackWhereUniqueInput
+  }
+
+  export type ArtistUpdateOneWithoutMvsNestedInput = {
+    create?: XOR<ArtistCreateWithoutMvsInput, ArtistUncheckedCreateWithoutMvsInput>
+    connectOrCreate?: ArtistCreateOrConnectWithoutMvsInput
+    upsert?: ArtistUpsertWithoutMvsInput
+    disconnect?: ArtistWhereInput | boolean
+    delete?: ArtistWhereInput | boolean
+    connect?: ArtistWhereUniqueInput
+    update?: XOR<XOR<ArtistUpdateToOneWithWhereWithoutMvsInput, ArtistUpdateWithoutMvsInput>, ArtistUncheckedUpdateWithoutMvsInput>
+  }
+
+  export type AlbumUpdateOneWithoutMvsNestedInput = {
+    create?: XOR<AlbumCreateWithoutMvsInput, AlbumUncheckedCreateWithoutMvsInput>
+    connectOrCreate?: AlbumCreateOrConnectWithoutMvsInput
+    upsert?: AlbumUpsertWithoutMvsInput
+    disconnect?: AlbumWhereInput | boolean
+    delete?: AlbumWhereInput | boolean
+    connect?: AlbumWhereUniqueInput
+    update?: XOR<XOR<AlbumUpdateToOneWithWhereWithoutMvsInput, AlbumUpdateWithoutMvsInput>, AlbumUncheckedUpdateWithoutMvsInput>
+  }
+
+  export type TrackUpdateOneWithoutMvsNestedInput = {
+    create?: XOR<TrackCreateWithoutMvsInput, TrackUncheckedCreateWithoutMvsInput>
+    connectOrCreate?: TrackCreateOrConnectWithoutMvsInput
+    upsert?: TrackUpsertWithoutMvsInput
+    disconnect?: TrackWhereInput | boolean
+    delete?: TrackWhereInput | boolean
+    connect?: TrackWhereUniqueInput
+    update?: XOR<XOR<TrackUpdateToOneWithWhereWithoutMvsInput, TrackUpdateWithoutMvsInput>, TrackUncheckedUpdateWithoutMvsInput>
+  }
+
   export type TtsTaskCreateNestedOneWithoutChaptersInput = {
     create?: XOR<TtsTaskCreateWithoutChaptersInput, TtsTaskUncheckedCreateWithoutChaptersInput>
     connectOrCreate?: TtsTaskCreateOrConnectWithoutChaptersInput
@@ -32023,6 +34190,7 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    mvs?: MvCreateNestedManyWithoutArtistEntityInput
   }
 
   export type ArtistUncheckedCreateWithoutTracksInput = {
@@ -32032,6 +34200,7 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    mvs?: MvUncheckedCreateNestedManyWithoutArtistEntityInput
   }
 
   export type ArtistCreateOrConnectWithoutTracksInput = {
@@ -32047,6 +34216,7 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryCreateNestedManyWithoutAlbumInput
     collectionItems?: AudiobookCollectionAlbumCreateNestedManyWithoutAlbumInput
@@ -32061,6 +34231,7 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryUncheckedCreateNestedManyWithoutAlbumInput
     collectionItems?: AudiobookCollectionAlbumUncheckedCreateNestedManyWithoutAlbumInput
@@ -32205,6 +34376,48 @@ export namespace Prisma {
     create: XOR<FolderCreateWithoutTracksInput, FolderUncheckedCreateWithoutTracksInput>
   }
 
+  export type MvCreateWithoutTrackEntityInput = {
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistEntity?: ArtistCreateNestedOneWithoutMvsInput
+    albumEntity?: AlbumCreateNestedOneWithoutMvsInput
+  }
+
+  export type MvUncheckedCreateWithoutTrackEntityInput = {
+    id?: number
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistId?: number | null
+    albumId?: number | null
+  }
+
+  export type MvCreateOrConnectWithoutTrackEntityInput = {
+    where: MvWhereUniqueInput
+    create: XOR<MvCreateWithoutTrackEntityInput, MvUncheckedCreateWithoutTrackEntityInput>
+  }
+
+  export type MvCreateManyTrackEntityInputEnvelope = {
+    data: MvCreateManyTrackEntityInput | MvCreateManyTrackEntityInput[]
+  }
+
   export type ArtistUpsertWithoutTracksInput = {
     update: XOR<ArtistUpdateWithoutTracksInput, ArtistUncheckedUpdateWithoutTracksInput>
     create: XOR<ArtistCreateWithoutTracksInput, ArtistUncheckedCreateWithoutTracksInput>
@@ -32222,6 +34435,7 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mvs?: MvUpdateManyWithoutArtistEntityNestedInput
   }
 
   export type ArtistUncheckedUpdateWithoutTracksInput = {
@@ -32231,6 +34445,7 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mvs?: MvUncheckedUpdateManyWithoutArtistEntityNestedInput
   }
 
   export type AlbumUpsertWithoutTracksInput = {
@@ -32252,6 +34467,7 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUpdateManyWithoutAlbumNestedInput
     collectionItems?: AudiobookCollectionAlbumUpdateManyWithoutAlbumNestedInput
@@ -32266,6 +34482,7 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUncheckedUpdateManyWithoutAlbumNestedInput
     collectionItems?: AudiobookCollectionAlbumUncheckedUpdateManyWithoutAlbumNestedInput
@@ -32436,8 +34653,47 @@ export namespace Prisma {
     children?: FolderUncheckedUpdateManyWithoutParentNestedInput
   }
 
+  export type MvUpsertWithWhereUniqueWithoutTrackEntityInput = {
+    where: MvWhereUniqueInput
+    update: XOR<MvUpdateWithoutTrackEntityInput, MvUncheckedUpdateWithoutTrackEntityInput>
+    create: XOR<MvCreateWithoutTrackEntityInput, MvUncheckedCreateWithoutTrackEntityInput>
+  }
+
+  export type MvUpdateWithWhereUniqueWithoutTrackEntityInput = {
+    where: MvWhereUniqueInput
+    data: XOR<MvUpdateWithoutTrackEntityInput, MvUncheckedUpdateWithoutTrackEntityInput>
+  }
+
+  export type MvUpdateManyWithWhereWithoutTrackEntityInput = {
+    where: MvScalarWhereInput
+    data: XOR<MvUpdateManyMutationInput, MvUncheckedUpdateManyWithoutTrackEntityInput>
+  }
+
+  export type MvScalarWhereInput = {
+    AND?: MvScalarWhereInput | MvScalarWhereInput[]
+    OR?: MvScalarWhereInput[]
+    NOT?: MvScalarWhereInput | MvScalarWhereInput[]
+    id?: IntFilter<"Mv"> | number
+    name?: StringFilter<"Mv"> | string
+    path?: StringFilter<"Mv"> | string
+    artist?: StringNullableFilter<"Mv"> | string | null
+    album?: StringNullableFilter<"Mv"> | string | null
+    cover?: StringNullableFilter<"Mv"> | string | null
+    duration?: IntNullableFilter<"Mv"> | number | null
+    createdAt?: DateTimeFilter<"Mv"> | Date | string
+    fileModifiedAt?: DateTimeNullableFilter<"Mv"> | Date | string | null
+    fileHash?: StringNullableFilter<"Mv"> | string | null
+    status?: EnumFileStatusFilter<"Mv"> | $Enums.FileStatus
+    trashedAt?: DateTimeNullableFilter<"Mv"> | Date | string | null
+    artistId?: IntNullableFilter<"Mv"> | number | null
+    albumId?: IntNullableFilter<"Mv"> | number | null
+    trackId?: IntNullableFilter<"Mv"> | number | null
+  }
+
   export type TrackCreateWithoutAlbumEntityInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -32447,7 +34703,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -32459,11 +34717,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryCreateNestedManyWithoutTrackInput
     playlists?: PlaylistCreateNestedManyWithoutTracksInput
     folder?: FolderCreateNestedOneWithoutTracksInput
+    mvs?: MvCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUncheckedCreateWithoutAlbumEntityInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -32473,7 +34734,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -32485,6 +34748,7 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedCreateNestedManyWithoutTrackInput
     playlists?: PlaylistUncheckedCreateNestedManyWithoutTracksInput
+    mvs?: MvUncheckedCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackCreateOrConnectWithoutAlbumEntityInput = {
@@ -32494,6 +34758,48 @@ export namespace Prisma {
 
   export type TrackCreateManyAlbumEntityInputEnvelope = {
     data: TrackCreateManyAlbumEntityInput | TrackCreateManyAlbumEntityInput[]
+  }
+
+  export type MvCreateWithoutAlbumEntityInput = {
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistEntity?: ArtistCreateNestedOneWithoutMvsInput
+    trackEntity?: TrackCreateNestedOneWithoutMvsInput
+  }
+
+  export type MvUncheckedCreateWithoutAlbumEntityInput = {
+    id?: number
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistId?: number | null
+    trackId?: number | null
+  }
+
+  export type MvCreateOrConnectWithoutAlbumEntityInput = {
+    where: MvWhereUniqueInput
+    create: XOR<MvCreateWithoutAlbumEntityInput, MvUncheckedCreateWithoutAlbumEntityInput>
+  }
+
+  export type MvCreateManyAlbumEntityInputEnvelope = {
+    data: MvCreateManyAlbumEntityInput | MvCreateManyAlbumEntityInput[]
   }
 
   export type UserAlbumLikeCreateWithoutAlbumInput = {
@@ -32580,6 +34886,8 @@ export namespace Prisma {
     NOT?: TrackScalarWhereInput | TrackScalarWhereInput[]
     id?: IntFilter<"Track"> | number
     name?: StringFilter<"Track"> | string
+    fileName?: StringNullableFilter<"Track"> | string | null
+    relativePath?: StringNullableFilter<"Track"> | string | null
     path?: StringFilter<"Track"> | string
     artist?: StringFilter<"Track"> | string
     album?: StringFilter<"Track"> | string
@@ -32589,7 +34897,9 @@ export namespace Prisma {
     index?: IntNullableFilter<"Track"> | number | null
     type?: EnumTrackTypeFilter<"Track"> | $Enums.TrackType
     createdAt?: DateTimeFilter<"Track"> | Date | string
+    fileCreatedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
     fileModifiedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
+    scanOrder?: IntNullableFilter<"Track"> | number | null
     episodeNumber?: IntNullableFilter<"Track"> | number | null
     fileHash?: StringNullableFilter<"Track"> | string | null
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
@@ -32597,6 +34907,22 @@ export namespace Prisma {
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
     folderId?: IntNullableFilter<"Track"> | number | null
+  }
+
+  export type MvUpsertWithWhereUniqueWithoutAlbumEntityInput = {
+    where: MvWhereUniqueInput
+    update: XOR<MvUpdateWithoutAlbumEntityInput, MvUncheckedUpdateWithoutAlbumEntityInput>
+    create: XOR<MvCreateWithoutAlbumEntityInput, MvUncheckedCreateWithoutAlbumEntityInput>
+  }
+
+  export type MvUpdateWithWhereUniqueWithoutAlbumEntityInput = {
+    where: MvWhereUniqueInput
+    data: XOR<MvUpdateWithoutAlbumEntityInput, MvUncheckedUpdateWithoutAlbumEntityInput>
+  }
+
+  export type MvUpdateManyWithWhereWithoutAlbumEntityInput = {
+    where: MvScalarWhereInput
+    data: XOR<MvUpdateManyMutationInput, MvUncheckedUpdateManyWithoutAlbumEntityInput>
   }
 
   export type UserAlbumLikeUpsertWithWhereUniqueWithoutAlbumInput = {
@@ -32680,6 +35006,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutArtistEntityInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -32689,7 +35017,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -32701,11 +35031,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryCreateNestedManyWithoutTrackInput
     playlists?: PlaylistCreateNestedManyWithoutTracksInput
     folder?: FolderCreateNestedOneWithoutTracksInput
+    mvs?: MvCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUncheckedCreateWithoutArtistEntityInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -32715,7 +35048,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -32727,6 +35062,7 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedCreateNestedManyWithoutTrackInput
     playlists?: PlaylistUncheckedCreateNestedManyWithoutTracksInput
+    mvs?: MvUncheckedCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackCreateOrConnectWithoutArtistEntityInput = {
@@ -32736,6 +35072,48 @@ export namespace Prisma {
 
   export type TrackCreateManyArtistEntityInputEnvelope = {
     data: TrackCreateManyArtistEntityInput | TrackCreateManyArtistEntityInput[]
+  }
+
+  export type MvCreateWithoutArtistEntityInput = {
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    albumEntity?: AlbumCreateNestedOneWithoutMvsInput
+    trackEntity?: TrackCreateNestedOneWithoutMvsInput
+  }
+
+  export type MvUncheckedCreateWithoutArtistEntityInput = {
+    id?: number
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    albumId?: number | null
+    trackId?: number | null
+  }
+
+  export type MvCreateOrConnectWithoutArtistEntityInput = {
+    where: MvWhereUniqueInput
+    create: XOR<MvCreateWithoutArtistEntityInput, MvUncheckedCreateWithoutArtistEntityInput>
+  }
+
+  export type MvCreateManyArtistEntityInputEnvelope = {
+    data: MvCreateManyArtistEntityInput | MvCreateManyArtistEntityInput[]
   }
 
   export type TrackUpsertWithWhereUniqueWithoutArtistEntityInput = {
@@ -32752,6 +35130,22 @@ export namespace Prisma {
   export type TrackUpdateManyWithWhereWithoutArtistEntityInput = {
     where: TrackScalarWhereInput
     data: XOR<TrackUpdateManyMutationInput, TrackUncheckedUpdateManyWithoutArtistEntityInput>
+  }
+
+  export type MvUpsertWithWhereUniqueWithoutArtistEntityInput = {
+    where: MvWhereUniqueInput
+    update: XOR<MvUpdateWithoutArtistEntityInput, MvUncheckedUpdateWithoutArtistEntityInput>
+    create: XOR<MvCreateWithoutArtistEntityInput, MvUncheckedCreateWithoutArtistEntityInput>
+  }
+
+  export type MvUpdateWithWhereUniqueWithoutArtistEntityInput = {
+    where: MvWhereUniqueInput
+    data: XOR<MvUpdateWithoutArtistEntityInput, MvUncheckedUpdateWithoutArtistEntityInput>
+  }
+
+  export type MvUpdateManyWithWhereWithoutArtistEntityInput = {
+    where: MvScalarWhereInput
+    data: XOR<MvUpdateManyMutationInput, MvUncheckedUpdateManyWithoutArtistEntityInput>
   }
 
   export type UserCreateWithoutAudiobookCollectionsInput = {
@@ -32915,6 +35309,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
+    mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryCreateNestedManyWithoutAlbumInput
   }
@@ -32929,6 +35324,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
+    mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryUncheckedCreateNestedManyWithoutAlbumInput
   }
@@ -32988,6 +35384,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
+    mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUpdateManyWithoutAlbumNestedInput
   }
@@ -33002,6 +35399,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUncheckedUpdateManyWithoutAlbumNestedInput
   }
@@ -33050,6 +35448,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutLikedByUsersInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -33059,7 +35459,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -33071,11 +35473,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryCreateNestedManyWithoutTrackInput
     playlists?: PlaylistCreateNestedManyWithoutTracksInput
     folder?: FolderCreateNestedOneWithoutTracksInput
+    mvs?: MvCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUncheckedCreateWithoutLikedByUsersInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -33085,7 +35490,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -33097,6 +35504,7 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedCreateNestedManyWithoutTrackInput
     playlists?: PlaylistUncheckedCreateNestedManyWithoutTracksInput
+    mvs?: MvUncheckedCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackCreateOrConnectWithoutLikedByUsersInput = {
@@ -33165,6 +35573,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutLikedByUsersInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -33174,7 +35584,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -33186,11 +35598,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUpdateManyWithoutTracksNestedInput
     folder?: FolderUpdateOneWithoutTracksNestedInput
+    mvs?: MvUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateWithoutLikedByUsersInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -33200,7 +35615,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -33212,6 +35629,7 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUncheckedUpdateManyWithoutTracksNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type UserCreateWithoutListenedTracksInput = {
@@ -33258,6 +35676,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutListenedByUsersInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -33267,7 +35687,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -33279,11 +35701,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryCreateNestedManyWithoutTrackInput
     playlists?: PlaylistCreateNestedManyWithoutTracksInput
     folder?: FolderCreateNestedOneWithoutTracksInput
+    mvs?: MvCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUncheckedCreateWithoutListenedByUsersInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -33293,7 +35718,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -33305,6 +35732,7 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedCreateNestedManyWithoutTrackInput
     playlists?: PlaylistUncheckedCreateNestedManyWithoutTracksInput
+    mvs?: MvUncheckedCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackCreateOrConnectWithoutListenedByUsersInput = {
@@ -33395,6 +35823,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutListenedByUsersInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -33404,7 +35834,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -33416,11 +35848,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUpdateManyWithoutTracksNestedInput
     folder?: FolderUpdateOneWithoutTracksNestedInput
+    mvs?: MvUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateWithoutListenedByUsersInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -33430,7 +35865,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -33442,6 +35879,7 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUncheckedUpdateManyWithoutTracksNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type DeviceUpsertWithoutHistoriesInput = {
@@ -33523,6 +35961,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
+    mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     listenedByUsers?: UserAlbumHistoryCreateNestedManyWithoutAlbumInput
     collectionItems?: AudiobookCollectionAlbumCreateNestedManyWithoutAlbumInput
   }
@@ -33537,6 +35976,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
+    mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     listenedByUsers?: UserAlbumHistoryUncheckedCreateNestedManyWithoutAlbumInput
     collectionItems?: AudiobookCollectionAlbumUncheckedCreateNestedManyWithoutAlbumInput
   }
@@ -33614,6 +36054,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
+    mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     listenedByUsers?: UserAlbumHistoryUpdateManyWithoutAlbumNestedInput
     collectionItems?: AudiobookCollectionAlbumUpdateManyWithoutAlbumNestedInput
   }
@@ -33628,6 +36069,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     listenedByUsers?: UserAlbumHistoryUncheckedUpdateManyWithoutAlbumNestedInput
     collectionItems?: AudiobookCollectionAlbumUncheckedUpdateManyWithoutAlbumNestedInput
   }
@@ -33683,6 +36125,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
+    mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
     collectionItems?: AudiobookCollectionAlbumCreateNestedManyWithoutAlbumInput
   }
@@ -33697,6 +36140,7 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
+    mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
     collectionItems?: AudiobookCollectionAlbumUncheckedCreateNestedManyWithoutAlbumInput
   }
@@ -33774,6 +36218,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
+    mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
     collectionItems?: AudiobookCollectionAlbumUpdateManyWithoutAlbumNestedInput
   }
@@ -33788,6 +36233,7 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
     collectionItems?: AudiobookCollectionAlbumUncheckedUpdateManyWithoutAlbumNestedInput
   }
@@ -33836,6 +36282,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutLikedAsAudiobookByUsersInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -33845,7 +36293,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -33857,11 +36307,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryCreateNestedManyWithoutTrackInput
     playlists?: PlaylistCreateNestedManyWithoutTracksInput
     folder?: FolderCreateNestedOneWithoutTracksInput
+    mvs?: MvCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUncheckedCreateWithoutLikedAsAudiobookByUsersInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -33871,7 +36324,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -33883,6 +36338,7 @@ export namespace Prisma {
     listenedByUsers?: UserTrackHistoryUncheckedCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedCreateNestedManyWithoutTrackInput
     playlists?: PlaylistUncheckedCreateNestedManyWithoutTracksInput
+    mvs?: MvUncheckedCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackCreateOrConnectWithoutLikedAsAudiobookByUsersInput = {
@@ -33951,6 +36407,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutLikedAsAudiobookByUsersInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -33960,7 +36418,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -33972,11 +36432,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUpdateManyWithoutTracksNestedInput
     folder?: FolderUpdateOneWithoutTracksNestedInput
+    mvs?: MvUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateWithoutLikedAsAudiobookByUsersInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -33986,7 +36449,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -33998,6 +36463,7 @@ export namespace Prisma {
     listenedByUsers?: UserTrackHistoryUncheckedUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUncheckedUpdateManyWithoutTracksNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type UserCreateWithoutListenedAudiobooksInput = {
@@ -34044,6 +36510,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutListenedAsAudiobookByUsersInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -34053,7 +36521,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -34065,11 +36535,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeCreateNestedManyWithoutTrackInput
     playlists?: PlaylistCreateNestedManyWithoutTracksInput
     folder?: FolderCreateNestedOneWithoutTracksInput
+    mvs?: MvCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUncheckedCreateWithoutListenedAsAudiobookByUsersInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -34079,7 +36552,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -34091,6 +36566,7 @@ export namespace Prisma {
     listenedByUsers?: UserTrackHistoryUncheckedCreateNestedManyWithoutTrackInput
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedCreateNestedManyWithoutTrackInput
     playlists?: PlaylistUncheckedCreateNestedManyWithoutTracksInput
+    mvs?: MvUncheckedCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackCreateOrConnectWithoutListenedAsAudiobookByUsersInput = {
@@ -34159,6 +36635,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutListenedAsAudiobookByUsersInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -34168,7 +36646,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -34180,11 +36660,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUpdateManyWithoutTracksNestedInput
     folder?: FolderUpdateOneWithoutTracksNestedInput
+    mvs?: MvUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateWithoutListenedAsAudiobookByUsersInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -34194,7 +36677,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -34206,6 +36691,7 @@ export namespace Prisma {
     listenedByUsers?: UserTrackHistoryUncheckedUpdateManyWithoutTrackNestedInput
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUncheckedUpdateManyWithoutTracksNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type UserTrackLikeCreateWithoutUserInput = {
@@ -34901,6 +37387,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutPlaylistsInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -34910,7 +37398,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -34922,11 +37412,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryCreateNestedManyWithoutTrackInput
     folder?: FolderCreateNestedOneWithoutTracksInput
+    mvs?: MvCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUncheckedCreateWithoutPlaylistsInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -34936,7 +37429,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -34948,6 +37443,7 @@ export namespace Prisma {
     listenedByUsers?: UserTrackHistoryUncheckedCreateNestedManyWithoutTrackInput
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedCreateNestedManyWithoutTrackInput
+    mvs?: MvUncheckedCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackCreateOrConnectWithoutPlaylistsInput = {
@@ -35069,6 +37565,8 @@ export namespace Prisma {
 
   export type TrackCreateWithoutFolderInput = {
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -35078,7 +37576,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -35090,11 +37590,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryCreateNestedManyWithoutTrackInput
     playlists?: PlaylistCreateNestedManyWithoutTracksInput
+    mvs?: MvCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackUncheckedCreateWithoutFolderInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -35104,7 +37607,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -35116,6 +37621,7 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedCreateNestedManyWithoutTrackInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedCreateNestedManyWithoutTrackInput
     playlists?: PlaylistUncheckedCreateNestedManyWithoutTracksInput
+    mvs?: MvUncheckedCreateNestedManyWithoutTrackEntityInput
   }
 
   export type TrackCreateOrConnectWithoutFolderInput = {
@@ -35253,6 +37759,272 @@ export namespace Prisma {
     outputPath?: StringNullableFilter<"TtsChapterTask"> | string | null
   }
 
+  export type ArtistCreateWithoutMvsInput = {
+    name: string
+    avatar?: string | null
+    type?: $Enums.TrackType
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    tracks?: TrackCreateNestedManyWithoutArtistEntityInput
+  }
+
+  export type ArtistUncheckedCreateWithoutMvsInput = {
+    id?: number
+    name: string
+    avatar?: string | null
+    type?: $Enums.TrackType
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    tracks?: TrackUncheckedCreateNestedManyWithoutArtistEntityInput
+  }
+
+  export type ArtistCreateOrConnectWithoutMvsInput = {
+    where: ArtistWhereUniqueInput
+    create: XOR<ArtistCreateWithoutMvsInput, ArtistUncheckedCreateWithoutMvsInput>
+  }
+
+  export type AlbumCreateWithoutMvsInput = {
+    name: string
+    artist: string
+    cover?: string | null
+    year?: string | null
+    type?: $Enums.TrackType
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
+    likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
+    listenedByUsers?: UserAlbumHistoryCreateNestedManyWithoutAlbumInput
+    collectionItems?: AudiobookCollectionAlbumCreateNestedManyWithoutAlbumInput
+  }
+
+  export type AlbumUncheckedCreateWithoutMvsInput = {
+    id?: number
+    name: string
+    artist: string
+    cover?: string | null
+    year?: string | null
+    type?: $Enums.TrackType
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
+    likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
+    listenedByUsers?: UserAlbumHistoryUncheckedCreateNestedManyWithoutAlbumInput
+    collectionItems?: AudiobookCollectionAlbumUncheckedCreateNestedManyWithoutAlbumInput
+  }
+
+  export type AlbumCreateOrConnectWithoutMvsInput = {
+    where: AlbumWhereUniqueInput
+    create: XOR<AlbumCreateWithoutMvsInput, AlbumUncheckedCreateWithoutMvsInput>
+  }
+
+  export type TrackCreateWithoutMvsInput = {
+    name: string
+    fileName?: string | null
+    relativePath?: string | null
+    path: string
+    artist: string
+    album: string
+    cover?: string | null
+    duration?: number | null
+    lyrics?: string | null
+    index?: number | null
+    type?: $Enums.TrackType
+    createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
+    fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
+    episodeNumber?: number | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistEntity?: ArtistCreateNestedOneWithoutTracksInput
+    albumEntity?: AlbumCreateNestedOneWithoutTracksInput
+    likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
+    listenedByUsers?: UserTrackHistoryCreateNestedManyWithoutTrackInput
+    likedAsAudiobookByUsers?: UserAudiobookLikeCreateNestedManyWithoutTrackInput
+    listenedAsAudiobookByUsers?: UserAudiobookHistoryCreateNestedManyWithoutTrackInput
+    playlists?: PlaylistCreateNestedManyWithoutTracksInput
+    folder?: FolderCreateNestedOneWithoutTracksInput
+  }
+
+  export type TrackUncheckedCreateWithoutMvsInput = {
+    id?: number
+    name: string
+    fileName?: string | null
+    relativePath?: string | null
+    path: string
+    artist: string
+    album: string
+    cover?: string | null
+    duration?: number | null
+    lyrics?: string | null
+    index?: number | null
+    type?: $Enums.TrackType
+    createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
+    fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
+    episodeNumber?: number | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistId?: number | null
+    albumId?: number | null
+    folderId?: number | null
+    likedByUsers?: UserTrackLikeUncheckedCreateNestedManyWithoutTrackInput
+    listenedByUsers?: UserTrackHistoryUncheckedCreateNestedManyWithoutTrackInput
+    likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedCreateNestedManyWithoutTrackInput
+    listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedCreateNestedManyWithoutTrackInput
+    playlists?: PlaylistUncheckedCreateNestedManyWithoutTracksInput
+  }
+
+  export type TrackCreateOrConnectWithoutMvsInput = {
+    where: TrackWhereUniqueInput
+    create: XOR<TrackCreateWithoutMvsInput, TrackUncheckedCreateWithoutMvsInput>
+  }
+
+  export type ArtistUpsertWithoutMvsInput = {
+    update: XOR<ArtistUpdateWithoutMvsInput, ArtistUncheckedUpdateWithoutMvsInput>
+    create: XOR<ArtistCreateWithoutMvsInput, ArtistUncheckedCreateWithoutMvsInput>
+    where?: ArtistWhereInput
+  }
+
+  export type ArtistUpdateToOneWithWhereWithoutMvsInput = {
+    where?: ArtistWhereInput
+    data: XOR<ArtistUpdateWithoutMvsInput, ArtistUncheckedUpdateWithoutMvsInput>
+  }
+
+  export type ArtistUpdateWithoutMvsInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    tracks?: TrackUpdateManyWithoutArtistEntityNestedInput
+  }
+
+  export type ArtistUncheckedUpdateWithoutMvsInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    tracks?: TrackUncheckedUpdateManyWithoutArtistEntityNestedInput
+  }
+
+  export type AlbumUpsertWithoutMvsInput = {
+    update: XOR<AlbumUpdateWithoutMvsInput, AlbumUncheckedUpdateWithoutMvsInput>
+    create: XOR<AlbumCreateWithoutMvsInput, AlbumUncheckedCreateWithoutMvsInput>
+    where?: AlbumWhereInput
+  }
+
+  export type AlbumUpdateToOneWithWhereWithoutMvsInput = {
+    where?: AlbumWhereInput
+    data: XOR<AlbumUpdateWithoutMvsInput, AlbumUncheckedUpdateWithoutMvsInput>
+  }
+
+  export type AlbumUpdateWithoutMvsInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    artist?: StringFieldUpdateOperationsInput | string
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    year?: NullableStringFieldUpdateOperationsInput | string | null
+    type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
+    likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
+    listenedByUsers?: UserAlbumHistoryUpdateManyWithoutAlbumNestedInput
+    collectionItems?: AudiobookCollectionAlbumUpdateManyWithoutAlbumNestedInput
+  }
+
+  export type AlbumUncheckedUpdateWithoutMvsInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    artist?: StringFieldUpdateOperationsInput | string
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    year?: NullableStringFieldUpdateOperationsInput | string | null
+    type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
+    likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
+    listenedByUsers?: UserAlbumHistoryUncheckedUpdateManyWithoutAlbumNestedInput
+    collectionItems?: AudiobookCollectionAlbumUncheckedUpdateManyWithoutAlbumNestedInput
+  }
+
+  export type TrackUpsertWithoutMvsInput = {
+    update: XOR<TrackUpdateWithoutMvsInput, TrackUncheckedUpdateWithoutMvsInput>
+    create: XOR<TrackCreateWithoutMvsInput, TrackUncheckedCreateWithoutMvsInput>
+    where?: TrackWhereInput
+  }
+
+  export type TrackUpdateToOneWithWhereWithoutMvsInput = {
+    where?: TrackWhereInput
+    data: XOR<TrackUpdateWithoutMvsInput, TrackUncheckedUpdateWithoutMvsInput>
+  }
+
+  export type TrackUpdateWithoutMvsInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: StringFieldUpdateOperationsInput | string
+    album?: StringFieldUpdateOperationsInput | string
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    lyrics?: NullableStringFieldUpdateOperationsInput | string | null
+    index?: NullableIntFieldUpdateOperationsInput | number | null
+    type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
+    episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
+    albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
+    likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
+    listenedByUsers?: UserTrackHistoryUpdateManyWithoutTrackNestedInput
+    likedAsAudiobookByUsers?: UserAudiobookLikeUpdateManyWithoutTrackNestedInput
+    listenedAsAudiobookByUsers?: UserAudiobookHistoryUpdateManyWithoutTrackNestedInput
+    playlists?: PlaylistUpdateManyWithoutTracksNestedInput
+    folder?: FolderUpdateOneWithoutTracksNestedInput
+  }
+
+  export type TrackUncheckedUpdateWithoutMvsInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: StringFieldUpdateOperationsInput | string
+    album?: StringFieldUpdateOperationsInput | string
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    lyrics?: NullableStringFieldUpdateOperationsInput | string | null
+    index?: NullableIntFieldUpdateOperationsInput | number | null
+    type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
+    episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistId?: NullableIntFieldUpdateOperationsInput | number | null
+    albumId?: NullableIntFieldUpdateOperationsInput | number | null
+    folderId?: NullableIntFieldUpdateOperationsInput | number | null
+    likedByUsers?: UserTrackLikeUncheckedUpdateManyWithoutTrackNestedInput
+    listenedByUsers?: UserTrackHistoryUncheckedUpdateManyWithoutTrackNestedInput
+    likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedUpdateManyWithoutTrackNestedInput
+    listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedUpdateManyWithoutTrackNestedInput
+    playlists?: PlaylistUncheckedUpdateManyWithoutTracksNestedInput
+  }
+
   export type TtsTaskCreateWithoutChaptersInput = {
     id?: string
     bookName: string
@@ -35344,6 +38116,23 @@ export namespace Prisma {
     userId: number
     listenedAt?: Date | string
     progress?: number
+  }
+
+  export type MvCreateManyTrackEntityInput = {
+    id?: number
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistId?: number | null
+    albumId?: number | null
   }
 
   export type UserTrackLikeUpdateWithoutTrackInput = {
@@ -35455,9 +38244,61 @@ export namespace Prisma {
     userId?: IntFieldUpdateOperationsInput | number
   }
 
+  export type MvUpdateWithoutTrackEntityInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistEntity?: ArtistUpdateOneWithoutMvsNestedInput
+    albumEntity?: AlbumUpdateOneWithoutMvsNestedInput
+  }
+
+  export type MvUncheckedUpdateWithoutTrackEntityInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistId?: NullableIntFieldUpdateOperationsInput | number | null
+    albumId?: NullableIntFieldUpdateOperationsInput | number | null
+  }
+
+  export type MvUncheckedUpdateManyWithoutTrackEntityInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistId?: NullableIntFieldUpdateOperationsInput | number | null
+    albumId?: NullableIntFieldUpdateOperationsInput | number | null
+  }
+
   export type TrackCreateManyAlbumEntityInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -35467,13 +38308,32 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     artistId?: number | null
     folderId?: number | null
+  }
+
+  export type MvCreateManyAlbumEntityInput = {
+    id?: number
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    artistId?: number | null
+    trackId?: number | null
   }
 
   export type UserAlbumLikeCreateManyAlbumInput = {
@@ -35497,6 +38357,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutAlbumEntityInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35506,7 +38368,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -35518,11 +38382,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUpdateManyWithoutTracksNestedInput
     folder?: FolderUpdateOneWithoutTracksNestedInput
+    mvs?: MvUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateWithoutAlbumEntityInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35532,7 +38399,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -35544,11 +38413,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUncheckedUpdateManyWithoutTracksNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateManyWithoutAlbumEntityInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35558,13 +38430,65 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
+  }
+
+  export type MvUpdateWithoutAlbumEntityInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistEntity?: ArtistUpdateOneWithoutMvsNestedInput
+    trackEntity?: TrackUpdateOneWithoutMvsNestedInput
+  }
+
+  export type MvUncheckedUpdateWithoutAlbumEntityInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistId?: NullableIntFieldUpdateOperationsInput | number | null
+    trackId?: NullableIntFieldUpdateOperationsInput | number | null
+  }
+
+  export type MvUncheckedUpdateManyWithoutAlbumEntityInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    artistId?: NullableIntFieldUpdateOperationsInput | number | null
+    trackId?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type UserAlbumLikeUpdateWithoutAlbumInput = {
@@ -35624,6 +38548,8 @@ export namespace Prisma {
   export type TrackCreateManyArtistEntityInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -35633,7 +38559,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -35642,8 +38570,27 @@ export namespace Prisma {
     folderId?: number | null
   }
 
+  export type MvCreateManyArtistEntityInput = {
+    id?: number
+    name: string
+    path: string
+    artist?: string | null
+    album?: string | null
+    cover?: string | null
+    duration?: number | null
+    createdAt?: Date | string
+    fileModifiedAt?: Date | string | null
+    fileHash?: string | null
+    status?: $Enums.FileStatus
+    trashedAt?: Date | string | null
+    albumId?: number | null
+    trackId?: number | null
+  }
+
   export type TrackUpdateWithoutArtistEntityInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35653,7 +38600,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -35665,11 +38614,14 @@ export namespace Prisma {
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUpdateManyWithoutTracksNestedInput
     folder?: FolderUpdateOneWithoutTracksNestedInput
+    mvs?: MvUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateWithoutArtistEntityInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35679,7 +38631,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -35691,11 +38645,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUncheckedUpdateManyWithoutTracksNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateManyWithoutArtistEntityInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -35705,13 +38662,65 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
+  }
+
+  export type MvUpdateWithoutArtistEntityInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    albumEntity?: AlbumUpdateOneWithoutMvsNestedInput
+    trackEntity?: TrackUpdateOneWithoutMvsNestedInput
+  }
+
+  export type MvUncheckedUpdateWithoutArtistEntityInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    albumId?: NullableIntFieldUpdateOperationsInput | number | null
+    trackId?: NullableIntFieldUpdateOperationsInput | number | null
+  }
+
+  export type MvUncheckedUpdateManyWithoutArtistEntityInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    artist?: NullableStringFieldUpdateOperationsInput | string | null
+    album?: NullableStringFieldUpdateOperationsInput | string | null
+    cover?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fileHash?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
+    trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    albumId?: NullableIntFieldUpdateOperationsInput | number | null
+    trackId?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type AudiobookCollectionAlbumCreateManyCollectionInput = {
@@ -36066,6 +39075,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutPlaylistsInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36075,7 +39086,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -36087,11 +39100,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUpdateManyWithoutTrackNestedInput
     folder?: FolderUpdateOneWithoutTracksNestedInput
+    mvs?: MvUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateWithoutPlaylistsInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36101,7 +39117,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -36113,11 +39131,14 @@ export namespace Prisma {
     listenedByUsers?: UserTrackHistoryUncheckedUpdateManyWithoutTrackNestedInput
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedUpdateManyWithoutTrackNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateManyWithoutPlaylistsInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36127,7 +39148,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -36147,6 +39170,8 @@ export namespace Prisma {
   export type TrackCreateManyFolderInput = {
     id?: number
     name: string
+    fileName?: string | null
+    relativePath?: string | null
     path: string
     artist: string
     album: string
@@ -36156,7 +39181,9 @@ export namespace Prisma {
     index?: number | null
     type?: $Enums.TrackType
     createdAt?: Date | string
+    fileCreatedAt?: Date | string | null
     fileModifiedAt?: Date | string | null
+    scanOrder?: number | null
     episodeNumber?: number | null
     fileHash?: string | null
     status?: $Enums.FileStatus
@@ -36191,6 +39218,8 @@ export namespace Prisma {
 
   export type TrackUpdateWithoutFolderInput = {
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36200,7 +39229,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -36212,11 +39243,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUpdateManyWithoutTracksNestedInput
+    mvs?: MvUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateWithoutFolderInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36226,7 +39260,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
@@ -36238,11 +39274,14 @@ export namespace Prisma {
     likedAsAudiobookByUsers?: UserAudiobookLikeUncheckedUpdateManyWithoutTrackNestedInput
     listenedAsAudiobookByUsers?: UserAudiobookHistoryUncheckedUpdateManyWithoutTrackNestedInput
     playlists?: PlaylistUncheckedUpdateManyWithoutTracksNestedInput
+    mvs?: MvUncheckedUpdateManyWithoutTrackEntityNestedInput
   }
 
   export type TrackUncheckedUpdateManyWithoutFolderInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: NullableStringFieldUpdateOperationsInput | string | null
     path?: StringFieldUpdateOperationsInput | string
     artist?: StringFieldUpdateOperationsInput | string
     album?: StringFieldUpdateOperationsInput | string
@@ -36252,7 +39291,9 @@ export namespace Prisma {
     index?: NullableIntFieldUpdateOperationsInput | number | null
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fileCreatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fileModifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    scanOrder?: NullableIntFieldUpdateOperationsInput | number | null
     episodeNumber?: NullableIntFieldUpdateOperationsInput | number | null
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus

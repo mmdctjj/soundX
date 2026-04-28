@@ -4,6 +4,7 @@ import {
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import { getFavoriteAlbums, getFavoriteTracks } from "@soundx/services";
+import { useTranslation } from "react-i18next";
 import { useInfiniteScroll } from "ahooks";
 import {
   Button,
@@ -37,6 +38,7 @@ interface Result {
 }
 
 const Favorites: React.FC = () => {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"album" | "track">("album");
@@ -226,17 +228,17 @@ const Favorites: React.FC = () => {
     <div ref={scrollRef} className={styles.container}>
       <div className={styles.pageHeader}>
         <Title level={2} className={styles.title}>
-          收藏
+          {t("favorites.title")}
         </Title>
         <Flex gap={8} align="center">
           {type === "MUSIC" && (
             <Segmented
               options={[
-                { value: "album", icon: <AppstoreOutlined />, label: "专辑" },
+                { value: "album", icon: <AppstoreOutlined />, label: t("favorites.album") },
                 {
                   value: "track",
                   icon: <UnorderedListOutlined />,
-                  label: "歌曲",
+                  label: t("favorites.songs"),
                 },
               ]}
               value={viewMode}
@@ -250,7 +252,7 @@ const Favorites: React.FC = () => {
             loading={refreshing}
             className={styles.refreshButton}
           >
-            刷新
+            {t("favorites.refresh")}
           </Button>
         </Flex>
       </div>
@@ -276,7 +278,7 @@ const Favorites: React.FC = () => {
       )}
 
       {data && !data.hasMore && data.list.length > 0 && (
-        <div className={styles.noMore}>没有更多了</div>
+        <div className={styles.noMore}>{t("favorites.noMore")}</div>
       )}
 
       {data?.list.length === 0 && !loading && (
@@ -284,7 +286,7 @@ const Favorites: React.FC = () => {
           className={styles.noData}
           style={{ color: token.colorTextSecondary }}
         >
-          <Empty description="暂无收藏" />
+          <Empty description={t("favorites.noFavorites")} />
         </div>
       )}
     </div>

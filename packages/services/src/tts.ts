@@ -99,5 +99,5 @@ export const deleteTtsTask = (id: string) => {
 };
 
 export const getTtsPreviewUrl = (voice: string) => {
-  return `${TTS_BASE_URL}/api/tasks/preview?voice=${voice}&t=${Date.now()}`;
+  return request.get(`${TTS_BASE_URL}/api/tasks/preview?voice=${voice}&t=${Date.now()}`);
 };

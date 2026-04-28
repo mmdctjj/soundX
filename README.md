@@ -66,7 +66,7 @@ AudioDock（声仓） 是一个基于现代 Web 技术构建的音乐和有声�
 | 收藏记录             | ✅           | ✅     | ✅     | ✅     |
 | 桌面歌词             | ✅           | ❌     | 🚫     | 🚫     |
 | 和系统交互           | ✅           | ✅     | 🚫     | 🚫     |
-| TTS 生成有声书       | ❌           | ❌     | 🚫     | 🚫     |
+| TTS 生成有声书       | ✅           | ✅     | 🚫     | 🚫     |
 | 云盘聚合             | ✅           | ✅     | 🚫     | 🚫     |
 
 <p align="center">
@@ -92,53 +92,56 @@ AudioDock（声仓） 是一个基于现代 Web 技术构建的音乐和有声�
 version: "3.8"
 
 services:
-  # 1. API 后端服务 (Node.js)
-  api:
+  app:
     platform: linux/amd64
-    image: mmdctjj/audiodock-api:latest
-    container_name: audiodock-api
-
-    # 容器内部端口 (3000) 默认对内部网络开放，无需 ports 字段映射到宿主机
-    # 如果要直接测试 API，可以加上 ports: - "3000:3000"
+    image: mmdctjj/audiodock:latest
+    container_name: audiodock-app
     ports:
       - "8858:3000"
+      - "9958:9958"
 
     environment:
-      - AUDIO_BOOK_DIR=/audio
-      - MUSIC_BASE_DIR=/music
-      - CACHE_DIR=/covers
-      - DATABASE_URL=file:/data/dev.db
+      - NODE_ENV=production
+      - TXT_BASE_DIR=/txt # 小说目录
+      - AUDIO_BOOK_DIR=/audio # 有声书目录
+      - MUSIC_BASE_DIR=/music # 音乐目录
+      - MV_BASE_DIR=/mv # mv视频目录
+      - CACHE_DIR=/covers # 封面目录
+      - DATABASE_URL=file:/app/packages/db/prisma/dev.db # 数据库路径
       - JWT_SECRET=/.jwt_secret # JWT 密钥
+      - PORT=3000 # 端口，这里修改上面的 ports 中的端口也需要同步修改
+      - STRM_ADDRESS=http://192.168.1.12:5244 # strm 服务地址，没有可不填
+      - WEBDAV_MUSIC_URL=http://192.168.1.12:5005/音乐 # 音乐目录地址，没有可不填
+      - WEBDAV_AUDIOBOOK_URL=http://192.168.1.12:5005/有声书 # 有声书目录地址，没有可不填
+      - WEBDAV_MV_URL=http://192.168.1.12:5005/视频 # mv视频目录地址，没有可不填
+      - WEBDAV_USER=admin # 用户名，没有可不填
+      - WEBDAV_PASSWORD=123456 # 密码，没有可不填
+      - DISABLE_TTS=${DISABLE_TTS:-false} # 是否禁用 TTS 功能
+      - DISABLE_ASR=${DISABLE_ASR:-false} # 是否禁用 ASR 功能
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek} # LLM 提供商
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat} # LLM 模型
+      - LLM_BASE_URL=${LLM_BASE_URL:-} # LLM 服务地址
+      - LLM_TIMEOUT=${LLM_TIMEOUT:-60000} # LLM 超时时间
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7} # LLM 温度
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2048} # LLM 最大 token数
+      - LLM_API_KEY=${LLM_API_KEY:-} # LLM API 密钥
 
-    # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:
+      - /volume1/txt:/txt
       - /volume1/audio:/audio
-      - /volume1/music:/music
+      - /volume1/music:/music/
+      - /volume1/mv:/mv
       - ./covers:/covers
-      - api-db:/data
+      - app-db:/app/packages/db/prisma
       - ./.jwt_secret:/.jwt_secret
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
 
     restart: unless-stopped
     networks:
       - audiodock-network
 
-  # 2. Web 前端服务 (Nginx) - 用于托管静态文件和反向代理
-  web:
-    platform: linux/amd64
-    image: mmdctjj/audiodock-web:latest
-    container_name: audiodock-web
-    ports:
-      - "9958:9958" # <--- 将 Web 服务的 80 端口映射到宿主机的 8080 端口
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - api # 确保 API 容器先启动
-    networks:
-      - audiodock-network
-
 volumes:
-  api-cache: # 命名卷用于缓存
-  api-db: # 命名卷用于 SQLite 或其他数据文件
+  app-db:
 
 networks:
   audiodock-network:

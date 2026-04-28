@@ -1,0 +1,43 @@
+.language-switcher {
+  padding: 30px 0;
+  border-bottom: 1px solid;
+
+  .setting-info {
+    margin-bottom: 24px;
+  }
+
+  .setting-label {
+    font-size: 34px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .setting-description {
+    font-size: 26px;
+    line-height: 36px;
+  }
+
+  .language-options {
+    display: flex;
+    gap: 20px;
+  }
+
+  .lang-button {
+    display: flex;
+    align-items: center;
+    padding: 16px 28px;
+    border-radius: 16px;
+    border-width: 1px;
+    border-style: solid;
+
+    .lang-flag {
+      font-size: 32px;
+      margin-right: 12px;
+    }
+
+    .lang-label {
+      font-size: 28px;
+      font-weight: 500;
+    }
+  }
+}

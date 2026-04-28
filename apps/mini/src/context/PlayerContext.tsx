@@ -2,6 +2,24 @@ import { Album, Artist, Playlist, TrackType, UserAudiobookHistory, UserAudiobook
 import Taro from '@tarojs/taro';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getBaseURL } from '../utils/request';
+import {
+  AudioQuality,
+  AudioQualityOption,
+  buildTrackPlaybackUrl,
+  getTrackAudioQualityProfile,
+} from '../services/trackQuality';
+
+export enum PlayMode {
+  SEQUENCE = 'SEQUENCE',
+  LOOP_LIST = 'LOOP_LIST',
+  SHUFFLE = 'SHUFFLE',
+  LOOP_SINGLE = 'LOOP_SINGLE',
+}
+
+const PLAYBACK_MODE_KEY = 'playerPlaybackMode';
+const PLAYBACK_RATE_KEY = 'playerPlaybackRate';
+const SKIP_INTRO_KEY = 'skipIntroDuration';
+const SKIP_OUTRO_KEY = 'skipOutroDuration';
 
 // Simplified Track interface for MP
 export interface Track {
@@ -34,7 +52,7 @@ interface PlayerContextType {
   currentTrack: Track | null;
   trackList: Track[];
   isLoading: boolean;
-  playTrack: (track: Track) => Promise<void>;
+  playTrack: (track: Track, initialPosition?: number, preferredQuality?: AudioQuality) => Promise<void>;
   pause: () => void;
   resume: () => void;
   playNext: () => void;
@@ -43,9 +61,23 @@ interface PlayerContextType {
   currentTime: number;
   seek: (position: number) => void;
   setTrackList: (list: Track[]) => void;
-  playTrackList: (list: Track[], index: number) => Promise<void>;
+  playTrackList: (list: Track[], index: number, initialPosition?: number) => Promise<void>;
+  playMode: PlayMode;
+  togglePlayMode: () => void;
   showPlaylist: boolean;
   setShowPlaylist: (show: boolean) => void;
+  sleepTimer: number | null;
+  setSleepTimer: (minutes: number) => void;
+  clearSleepTimer: () => void;
+  playbackRate: number;
+  setPlaybackRate: (rate: number) => void;
+  currentAudioQuality: AudioQuality;
+  availableAudioQualities: AudioQualityOption[];
+  cycleAudioQuality: () => Promise<void>;
+  skipIntroDuration: number;
+  setSkipIntroDuration: (seconds: number) => void;
+  skipOutroDuration: number;
+  setSkipOutroDuration: (seconds: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType>({
@@ -63,8 +95,22 @@ const PlayerContext = createContext<PlayerContextType>({
   seek: () => {},
   setTrackList: () => {},
   playTrackList: async () => {},
+  playMode: PlayMode.SEQUENCE,
+  togglePlayMode: () => {},
   showPlaylist: false,
   setShowPlaylist: () => {},
+  sleepTimer: null,
+  setSleepTimer: () => {},
+  clearSleepTimer: () => {},
+  playbackRate: 1,
+  setPlaybackRate: () => {},
+  currentAudioQuality: 'lossless',
+  availableAudioQualities: [],
+  cycleAudioQuality: async () => {},
+  skipIntroDuration: 0,
+  setSkipIntroDuration: () => {},
+  skipOutroDuration: 0,
+  setSkipOutroDuration: () => {},
 });
 
 export const usePlayer = () => useContext(PlayerContext);
@@ -79,6 +125,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [playMode, setPlayMode] = useState<PlayMode>(PlayMode.SEQUENCE);
+  const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
+  const [playbackRate, setPlaybackRateState] = useState(1);
+  const [currentAudioQuality, setCurrentAudioQuality] = useState<AudioQuality>('lossless');
+  const [availableAudioQualities, setAvailableAudioQualities] = useState<AudioQualityOption[]>([]);
+  const [skipIntroDuration, setSkipIntroDurationState] = useState(0);
+  const [skipOutroDuration, setSkipOutroDurationState] = useState(0);
+  const isSkippingOutroRef = useRef(false);
 
   const setTrackList = (list: Track[]) => {
       setTrackListState(list);
@@ -141,6 +195,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const trackListRef = useRef(trackList);
   const currentTrackRef = useRef(currentTrack);
+  const playModeRef = useRef(playMode);
+  const skipOutroDurationRef = useRef(skipOutroDuration);
+  const playbackRateRef = useRef(playbackRate);
+  const currentAudioQualityRef = useRef<AudioQuality>('lossless');
 
   useEffect(() => {
     trackListRef.current = trackList;
@@ -150,14 +208,175 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     currentTrackRef.current = currentTrack;
   }, [currentTrack]);
 
+  useEffect(() => {
+    playModeRef.current = playMode;
+  }, [playMode]);
 
-  const playTrack = async (track: Track) => {
+  useEffect(() => {
+    skipOutroDurationRef.current = skipOutroDuration;
+  }, [skipOutroDuration]);
+
+  useEffect(() => {
+    playbackRateRef.current = playbackRate;
+  }, [playbackRate]);
+
+  useEffect(() => {
+    currentAudioQualityRef.current = currentAudioQuality;
+  }, [currentAudioQuality]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncCurrentTrackQuality = async () => {
+      if (!currentTrack || currentTrack.type === 'AUDIOBOOK') {
+        if (!cancelled) {
+          setAvailableAudioQualities([]);
+          setCurrentAudioQuality('lossless');
+        }
+        return;
+      }
+
+      const profile = await getTrackAudioQualityProfile(currentTrack);
+      if (cancelled) return;
+      setAvailableAudioQualities(profile.options);
+      setCurrentAudioQuality(profile.defaultQuality);
+    };
+
+    syncCurrentTrackQuality();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, currentTrack?.type]);
+
+  useEffect(() => {
+    try {
+      const storedMode = Taro.getStorageSync(PLAYBACK_MODE_KEY);
+      if (Object.values(PlayMode).includes(storedMode as PlayMode)) {
+        setPlayMode(storedMode as PlayMode);
+      }
+
+      const storedRate = parseFloat(Taro.getStorageSync(PLAYBACK_RATE_KEY));
+      if (!Number.isNaN(storedRate) && storedRate > 0) {
+        setPlaybackRateState(storedRate);
+      }
+
+      const storedIntro = parseInt(Taro.getStorageSync(SKIP_INTRO_KEY), 10);
+      if (!Number.isNaN(storedIntro) && storedIntro >= 0) {
+        setSkipIntroDurationState(storedIntro);
+      }
+
+      const storedOutro = parseInt(Taro.getStorageSync(SKIP_OUTRO_KEY), 10);
+      if (!Number.isNaN(storedOutro) && storedOutro >= 0) {
+        setSkipOutroDurationState(storedOutro);
+      }
+    } catch (error) {
+      console.error('Failed to load player preferences:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!sleepTimer || !isPlaying) return;
+    const timer = setInterval(() => {
+      if (Date.now() >= sleepTimer) {
+        pause();
+        setSleepTimerState(null);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [sleepTimer, isPlaying]);
+
+  const getRandomIndex = (listLength: number, excludeIndex: number) => {
+    if (listLength <= 1) return listLength === 1 ? 0 : -1;
+    let randomIndex = Math.floor(Math.random() * listLength);
+    if (randomIndex === excludeIndex) {
+      randomIndex = (randomIndex + 1) % listLength;
+    }
+    return randomIndex;
+  };
+
+  const getNextIndex = (currentIndex: number, mode: PlayMode, list: Track[]) => {
+    if (list.length === 0) return -1;
+    switch (mode) {
+      case PlayMode.SEQUENCE:
+        return currentIndex + 1 < list.length ? currentIndex + 1 : -1;
+      case PlayMode.LOOP_LIST:
+        return (currentIndex + 1) % list.length;
+      case PlayMode.SHUFFLE:
+        return getRandomIndex(list.length, currentIndex);
+      case PlayMode.LOOP_SINGLE:
+        return currentIndex;
+      default:
+        return currentIndex + 1 < list.length ? currentIndex + 1 : -1;
+    }
+  };
+
+  const getPreviousIndex = (currentIndex: number, mode: PlayMode, list: Track[]) => {
+    if (list.length === 0) return -1;
+    if (mode === PlayMode.SHUFFLE) {
+      return getRandomIndex(list.length, currentIndex);
+    }
+    if (mode === PlayMode.LOOP_SINGLE) return currentIndex;
+    if (currentIndex > 0) return currentIndex - 1;
+    return list.length - 1;
+  };
+
+  const getNextPlayMode = (current: PlayMode) => {
+    const modes = [
+      PlayMode.SEQUENCE,
+      PlayMode.SHUFFLE,
+      PlayMode.LOOP_LIST,
+      PlayMode.LOOP_SINGLE,
+    ];
+    const currentIndex = modes.indexOf(current);
+    return modes[(currentIndex + 1) % modes.length];
+  };
+
+  const applyStartPosition = (position: number) => {
+    if (position <= 0) return;
+    setTimeout(() => {
+      try {
+        bgAudioManager.current?.seek(position);
+      } catch (error) {
+        console.error('Failed to seek to start position:', error);
+      }
+    }, 250);
+  };
+
+  const prepareAudioQuality = async (
+    track: Track,
+    preferredQuality?: AudioQuality,
+  ): Promise<AudioQuality> => {
+    if (track.type === 'AUDIOBOOK') {
+      setAvailableAudioQualities([]);
+      setCurrentAudioQuality('lossless');
+      return 'lossless';
+    }
+
+    const profile = await getTrackAudioQualityProfile(track);
+    setAvailableAudioQualities(profile.options);
+
+    const nextQuality =
+      preferredQuality && profile.options.some((option) => option.quality === preferredQuality)
+        ? preferredQuality
+        : profile.defaultQuality;
+
+    setCurrentAudioQuality(nextQuality);
+    return nextQuality;
+  };
+
+
+  const playTrack = async (track: Track, initialPosition?: number, preferredQuality?: AudioQuality) => {
     setIsLoading(true);
     setCurrentTrack(track);
+    isSkippingOutroRef.current = false;
     
-    // Construct URL
     const baseUrl = getBaseURL();
-    const uri = track.path.startsWith('http') ? track.path : `${baseUrl}${track.path}`;
+    const selectedQuality = await prepareAudioQuality(track, preferredQuality);
+    const uri =
+      track.type === 'AUDIOBOOK'
+        ? (track.path.startsWith('http') ? track.path : `${baseUrl}${track.path}`)
+        : buildTrackPlaybackUrl(track, selectedQuality);
     const cover = track.cover 
       ? (track.cover.startsWith('http') ? track.cover : `${baseUrl}${track.cover}`) 
       : undefined;
@@ -168,8 +387,17 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         manager.epname = track.album || track.name;
         manager.singer = track.artist;
         manager.coverImgUrl = cover || '';
+        try {
+          (manager as any).playbackRate = playbackRateRef.current;
+        } catch (error) {
+          console.error('Failed to apply playback rate:', error);
+        }
         // Setting src starts playback automatically
         manager.src = uri; 
+        const startPosition = initialPosition !== undefined
+          ? initialPosition
+          : (track.type === 'AUDIOBOOK' ? skipIntroDuration : 0);
+        applyStartPosition(startPosition);
     }
   };
 
@@ -186,9 +414,20 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     const current = currentTrackRef.current;
     if (!current || list.length === 0) return;
 
+    if (playModeRef.current === PlayMode.LOOP_SINGLE) {
+      seek(0);
+      resume();
+      return;
+    }
+
     const currentIndex = list.findIndex(t => t.id === current.id);
-    const nextIndex = (currentIndex + 1) % list.length;
-    playTrack(list[nextIndex]);
+    if (currentIndex === -1) return;
+    const nextIndex = getNextIndex(currentIndex, playModeRef.current, list);
+    if (nextIndex !== -1) {
+      playTrack(list[nextIndex]);
+    } else {
+      pause();
+    }
   };
 
   const playPrevious = () => {
@@ -197,20 +436,114 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!current || list.length === 0) return;
 
     const currentIndex = list.findIndex(t => t.id === current.id);
-    const prevIndex = (currentIndex - 1 + list.length) % list.length;
-    playTrack(list[prevIndex]);
+    if (currentIndex === -1) return;
+    const prevIndex = getPreviousIndex(currentIndex, playModeRef.current, list);
+    if (prevIndex !== -1) {
+      playTrack(list[prevIndex]);
+    }
   };
 
   const seek = (position: number) => {
       bgAudioManager.current?.seek(position);
   };
 
-  const playTrackList = async (list: Track[], index: number) => {
+  const playTrackList = async (list: Track[], index: number, initialPosition?: number) => {
     setTrackList(list);
     if (list[index]) {
-      await playTrack(list[index]);
+      await playTrack(list[index], initialPosition);
     }
   };
+
+  const togglePlayMode = () => {
+    const nextMode = getNextPlayMode(playModeRef.current);
+    setPlayMode(nextMode);
+    try {
+      Taro.setStorageSync(PLAYBACK_MODE_KEY, nextMode);
+    } catch (error) {
+      console.error('Failed to save playback mode:', error);
+    }
+  };
+
+  const setSleepTimer = (minutes: number) => {
+    setSleepTimerState(Date.now() + minutes * 60 * 1000);
+  };
+
+  const clearSleepTimer = () => {
+    setSleepTimerState(null);
+  };
+
+  const cycleAudioQuality = async () => {
+    if (
+      !currentTrackRef.current ||
+      currentTrackRef.current.type === 'AUDIOBOOK' ||
+      availableAudioQualities.length <= 1
+    ) {
+      return;
+    }
+
+    const currentIndex = availableAudioQualities.findIndex(
+      (option) => option.quality === currentAudioQualityRef.current,
+    );
+    const nextOption =
+      availableAudioQualities[(currentIndex + 1) % availableAudioQualities.length] ||
+      availableAudioQualities[0];
+
+    await playTrack(currentTrackRef.current, currentTime, nextOption.quality);
+  };
+
+  const setPlaybackRate = (rate: number) => {
+    const manager = bgAudioManager.current;
+    try {
+      if (manager) {
+        (manager as any).playbackRate = rate;
+      }
+    } catch (error) {
+      console.error('Failed to set playback rate:', error);
+    }
+    setPlaybackRateState(rate);
+    try {
+      Taro.setStorageSync(PLAYBACK_RATE_KEY, String(rate));
+    } catch (error) {
+      console.error('Failed to save playback rate:', error);
+    }
+  };
+
+  const setSkipIntroDuration = (seconds: number) => {
+    setSkipIntroDurationState(seconds);
+    try {
+      Taro.setStorageSync(SKIP_INTRO_KEY, String(seconds));
+    } catch (error) {
+      console.error('Failed to save skip intro duration:', error);
+    }
+  };
+
+  const setSkipOutroDuration = (seconds: number) => {
+    setSkipOutroDurationState(seconds);
+    try {
+      Taro.setStorageSync(SKIP_OUTRO_KEY, String(seconds));
+    } catch (error) {
+      console.error('Failed to save skip outro duration:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      !currentTrack ||
+      currentTrack.type !== 'AUDIOBOOK' ||
+      skipOutroDurationRef.current <= 0 ||
+      !duration ||
+      !isPlaying ||
+      isSkippingOutroRef.current
+    ) {
+      return;
+    }
+
+    const remaining = duration - currentTime;
+    if (remaining <= skipOutroDurationRef.current && remaining >= 0) {
+      isSkippingOutroRef.current = true;
+      playNext();
+    }
+  }, [currentTime, duration, currentTrack, isPlaying]);
 
   return (
     <PlayerContext.Provider
@@ -229,8 +562,22 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         seek,
         setTrackList,
         playTrackList,
+        playMode,
+        togglePlayMode,
         showPlaylist,
-        setShowPlaylist
+        setShowPlaylist,
+        sleepTimer,
+        setSleepTimer,
+        clearSleepTimer,
+        playbackRate,
+        setPlaybackRate,
+        currentAudioQuality,
+        availableAudioQualities,
+        cycleAudioQuality,
+        skipIntroDuration,
+        setSkipIntroDuration,
+        skipOutroDuration,
+        setSkipOutroDuration,
       }}
     >
       {children}

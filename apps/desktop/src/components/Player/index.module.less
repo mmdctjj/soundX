@@ -33,14 +33,49 @@
 .songDetails {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+.trackMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .artistText {
-  width: 200px;
-  display: block;
+  max-width: 200px;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.qualityButton {
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.qualityButton:hover {
+  opacity: 1;
+}
+
+.qualityButtonDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .controls {
@@ -233,15 +268,42 @@
 .lyricsContainer {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 10px;
   height: 100%;
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.lyricsContainer::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.manualScrolling {
+  scrollbar-width: thin;
+}
+
+.manualScrolling::-webkit-scrollbar {
+  width: 8px;
+  height: 0;
+}
+
+.manualScrolling::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+}
+
+.manualScrolling::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .lyricsContent {
   width: 100%;
+  min-width: 0;
   text-align: center;
   padding: 50% 0; // Add padding to allow scrolling to top/bottom
 }
@@ -250,6 +312,9 @@
   margin: 20px 0;
   transition: all 0.3s ease;
   cursor: default;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .activeLyric {

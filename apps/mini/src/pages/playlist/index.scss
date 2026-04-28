@@ -1,5 +1,4 @@
 .playlist-page {
-  height: 100vh;
   display: flex;
   flex-direction: column;
   background: #f7f8fa;
@@ -30,12 +29,40 @@
   width: 64rpx;
 }
 
+.content {
+  flex: 1;
+}
+
+.track-list {
+  padding: 0 24rpx;
+}
+
+.photo-wall {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 24rpx;
+}
+
+.photo-wall-item {
+  box-sizing: border-box;
+  padding: 4rpx;
+}
+
+.photo-wall-image {
+  width: 100%;
+  height: 100%;
+  background-color: #e5e7eb;
+  display: block;
+}
+
 .actions {
   padding: 0 24rpx 16rpx;
 }
 
 .play-all {
-  background: #007aff;
+  background: #000000;
   color: #fff;
   border-radius: 999rpx;
   height: 72rpx;
@@ -51,7 +78,6 @@
 
 .content {
   flex: 1;
-  padding: 0 24rpx;
 }
 
 .track-item {
@@ -71,21 +97,31 @@
 .info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .name {
   font-size: 28rpx;
   color: #111827;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .name.active {
-  color: #007aff;
+  color: #000000;
 }
 
 .sub {
   margin-top: 6rpx;
   font-size: 24rpx;
   color: #6b7280;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .right {
@@ -97,7 +133,7 @@
 }
 
 .playing {
-  color: #007aff;
+  color: #000000;
   font-size: 22rpx;
 }
 

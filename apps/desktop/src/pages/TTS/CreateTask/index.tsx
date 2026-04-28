@@ -32,6 +32,8 @@ import {
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { trackEvent } from "../../../services/tracking";
+import { useTranslation } from "react-i18next";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -39,8 +41,10 @@ const { Option } = Select;
 // Types are now imported from @soundx/services
 
 const CreateTask: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const previewObjectUrlRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const [voices, setVoices] = useState<TtsVoice[]>([]);
@@ -80,15 +84,40 @@ const CreateTask: React.FC = () => {
   useEffect(() => {
     fetchVoices();
     fetchLocalFiles();
+    return () => {
+      if (previewObjectUrlRef.current) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+        previewObjectUrlRef.current = null;
+      }
+    };
   }, []);
 
   const handlePreview = async (voice: string) => {
     if (previewLoading) return;
     setPreviewLoading(voice);
+    trackEvent({
+      feature: "tts",
+      eventName: "tts_voice_preview",
+      metadata: { voice },
+    });
     try {
-      const previewUrl = getTtsPreviewUrl(voice);
+      const previewUrl = await getTtsPreviewUrl(voice);
       if (audioRef.current) {
-        audioRef.current.src = previewUrl;
+        const response = await fetch(previewUrl);
+        if (!response.ok) {
+          throw new Error(`Preview request failed: ${response.status}`);
+        }
+
+        const audioBlob = await response.blob();
+        if (previewObjectUrlRef.current) {
+          URL.revokeObjectURL(previewObjectUrlRef.current);
+        }
+        previewObjectUrlRef.current = URL.createObjectURL(audioBlob);
+
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current.src = previewObjectUrlRef.current;
+        audioRef.current.load();
 
         // 只有当音频真正开始播放（意味着后端已经合成完毕并返回）时才取消加载状态
         audioRef.current.onplaying = () => {
@@ -111,6 +140,13 @@ const CreateTask: React.FC = () => {
   const handleUpload = async (options: any) => {
     const { file, onSuccess, onError } = options;
     setLoading(true);
+    trackEvent({
+      feature: "tts",
+      eventName: "tts_upload_single_file",
+      metadata: {
+        fileName: file?.name || "",
+      },
+    });
     try {
       const res = await uploadTtsFile(file);
       if (res.success) {
@@ -143,6 +179,11 @@ const CreateTask: React.FC = () => {
     }
 
     setLoading(true);
+    trackEvent({
+      feature: "tts",
+      eventName: "tts_batch_identify",
+      metadata: { selectedCount: selectedRowKeys.length },
+    });
     try {
       const res = await identifyTtsBatch(selectedRowKeys as string[]);
 
@@ -167,6 +208,11 @@ const CreateTask: React.FC = () => {
 
   const handleProcessAll = async () => {
     setLoading(true);
+    trackEvent({
+      feature: "tts",
+      eventName: "tts_task_submit",
+      metadata: { taskCount: reviewData.length },
+    });
     try {
       const res = await createTtsBatchTasks(
         reviewData.map((item) => ({
@@ -221,9 +267,9 @@ const CreateTask: React.FC = () => {
       width: 100,
       render: (done: boolean) =>
         done ? (
-          <Tag color="success">已生成</Tag>
+          <Tag color="success">{t("tts.generated")}</Tag>
         ) : (
-          <Tag color="default">未生成</Tag>
+          <Tag color="default">{t("tts.notGenerated")}</Tag>
         ),
     },
     {
@@ -337,7 +383,16 @@ const CreateTask: React.FC = () => {
             }}
           >
             <Flex gap={8} align="center">
-              <Button type="text" onClick={() => navigate("/tts/tasks")}>
+              <Button
+                type="text"
+                onClick={() => {
+                  trackEvent({
+                    feature: "tts",
+                    eventName: "tts_task_list_open",
+                  });
+                  navigate("/tts/tasks");
+                }}
+              >
                 <ArrowLeftOutlined />
                 返回任务列表
               </Button>

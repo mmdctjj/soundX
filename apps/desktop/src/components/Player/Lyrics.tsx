@@ -1,4 +1,5 @@
 import { Typography, theme } from "antd";
+import { useTranslation } from "react-i18next";
 import React, { useEffect, useRef, useState } from "react";
 import styles from "./index.module.less";
 
@@ -15,11 +16,20 @@ interface LyricLine {
 }
 
 const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const [parsedLyrics, setParsedLyrics] = useState<LyricLine[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [showManualScrollbar, setShowManualScrollbar] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const autoScrollingRef = useRef(false);
+  const autoScrollResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const manualScrollHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // Parse lyrics
   useEffect(() => {
@@ -111,26 +121,64 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
         const containerHeight = container.clientHeight;
         const lineHeight = line.clientHeight;
         const offset = line.offsetTop - containerHeight / 2 + lineHeight / 2;
+        autoScrollingRef.current = true;
+        if (autoScrollResetTimerRef.current) {
+          clearTimeout(autoScrollResetTimerRef.current);
+        }
         container.scrollTo({
           top: offset,
           behavior: "smooth",
         });
+        autoScrollResetTimerRef.current = setTimeout(() => {
+          autoScrollingRef.current = false;
+        }, 500);
       }
     }
   }, [activeIndex]);
+
+  useEffect(() => {
+    return () => {
+      if (autoScrollResetTimerRef.current) {
+        clearTimeout(autoScrollResetTimerRef.current);
+      }
+      if (manualScrollHideTimerRef.current) {
+        clearTimeout(manualScrollHideTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleScroll = () => {
+    if (autoScrollingRef.current) {
+      return;
+    }
+
+    setShowManualScrollbar(true);
+    if (manualScrollHideTimerRef.current) {
+      clearTimeout(manualScrollHideTimerRef.current);
+    }
+    manualScrollHideTimerRef.current = setTimeout(() => {
+      setShowManualScrollbar(false);
+    }, 1200);
+  };
 
   if (!lyrics || parsedLyrics.length === 0) {
     return (
       <div className={styles.noLyrics}>
         <Text type="secondary" style={{ fontSize: "16px" }}>
-          暂无歌词
+          {t("player.noLyrics")}
         </Text>
       </div>
     );
   }
 
   return (
-    <div className={styles.lyricsContainer} ref={containerRef}>
+    <div
+      className={`${styles.lyricsContainer} ${
+        showManualScrollbar ? styles.manualScrolling : ""
+      }`}
+      ref={containerRef}
+      onScroll={handleScroll}
+    >
       <div className={styles.lyricsContent}>
         {parsedLyrics.map((line, index) => (
           <div

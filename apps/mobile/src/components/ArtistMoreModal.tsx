@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
 import { Artist } from "../models";
 
@@ -18,6 +20,7 @@ export const ArtistMoreModal: React.FC<ArtistMoreModalProps> = ({
   onClose,
   onUpdateCover,
 }) => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -25,16 +28,18 @@ export const ArtistMoreModal: React.FC<ArtistMoreModalProps> = ({
 
   return (
     <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropTransitionOutTiming={0}
+      style={styles.bottomSheetModal}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}
-          onPress={(e) => e.stopPropagation()}
-        >
+      <View style={styles.sheetWrapper}>
+        <View style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}>
           <View
             style={[
               styles.modalContent,
@@ -42,7 +47,7 @@ export const ArtistMoreModal: React.FC<ArtistMoreModalProps> = ({
             ]}
           >
             <View style={styles.handle} />
-            <Text style={[styles.title, { color: colors.text }]}>艺人选项</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('artistMore.title')}</Text>
             <Text style={[styles.artistName, { color: colors.secondary }]}>{artist.name}</Text>
 
             <TouchableOpacity
@@ -53,20 +58,22 @@ export const ArtistMoreModal: React.FC<ArtistMoreModalProps> = ({
               }}
             >
               <Ionicons name="image-outline" size={24} color={colors.text} />
-              <Text style={[styles.optionText, { color: colors.text }]}>修改封面</Text>
+              <Text style={[styles.optionText, { color: colors.text }]}>{t('artistMore.editCover')}</Text>
             </TouchableOpacity>
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  bottomSheetModal: {
+    margin: 0,
     justifyContent: "flex-end",
+  },
+  sheetWrapper: {
+    width: "100%",
     alignItems: "center",
   },
   modalContent: {

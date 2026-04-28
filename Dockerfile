@@ -7,7 +7,10 @@ RUN apt-get update \
   && apt-get install -y openssl \
   && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g pnpm
+# Use China registry mirror for faster/more reliable installs in builder stage too.
+RUN npm config set registry https://registry.npmmirror.com \
+  && npm install -g pnpm \
+  && pnpm config set registry https://registry.npmmirror.com
 WORKDIR /app
 
 # 1. 复制 lock + workspace 配置
@@ -16,6 +19,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # 2. 复制所有子包 package.json
 COPY packages/db/package.json ./packages/db/
 COPY packages/utils/package.json ./packages/utils/
+COPY packages/i18e/package.json ./packages/i18e/
 COPY packages/ws/package.json ./packages/ws/
 COPY packages/services/package.json ./packages/services/
 COPY services/api/package.json ./services/api/
@@ -29,6 +33,7 @@ COPY . .
 
 # 5. 构建所有 workspace
 RUN cd packages/utils && pnpm run build
+RUN cd packages/i18e && pnpm run build
 RUN cd packages/ws && pnpm run build
 RUN cd packages/db && pnpm run build
 RUN cd packages/services && pnpm run build
@@ -49,12 +54,13 @@ FROM node:22-bullseye-slim AS runner
 
 WORKDIR /app
 
-# 1. 安装运行环境 (Python3, Nginx, OpenSSL)
+# 1. 安装运行环境 (Python3, Nginx, OpenSSL, FFmpeg)
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     nginx \
     openssl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. 基础环境变量配置
@@ -74,6 +80,8 @@ COPY --from=builder /app/packages/db/prisma         ./packages/db/prisma
 COPY --from=builder /app/packages/db/generated      ./packages/db/generated
 COPY --from=builder /app/packages/utils/dist        ./packages/utils/dist
 COPY --from=builder /app/packages/utils/package.json ./packages/utils/package.json
+COPY --from=builder /app/packages/i18e/package.json ./packages/i18e/package.json
+COPY --from=builder /app/packages/i18e/dist        ./packages/i18e/dist
 COPY --from=builder /app/packages/ws/dist           ./packages/ws/dist
 COPY --from=builder /app/packages/ws/package.json   ./packages/ws/package.json
 COPY --from=builder /app/packages/services/dist     ./packages/services/dist
@@ -90,7 +98,12 @@ COPY services/asr /app/services/asr
 RUN python3 -m pip install --no-cache-dir -r /app/services/asr/requirements.txt
 
 # 5. 安装 Node 运行时依赖
-RUN npm install -g pnpm && pnpm install --prod --frozen-lockfile --ignore-scripts
+# Use China registry mirror for faster/more reliable installs.
+# pnpm will also use this registry once configured.
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm install -g pnpm \
+    && pnpm config set registry https://registry.npmmirror.com \
+    && pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # 6. 复制 Nginx 配置
 COPY nginx.conf /etc/nginx/nginx.conf
@@ -108,7 +121,7 @@ mkdir -p /app/packages/db/prisma\n\
 \n\
 # 2. 确保数据库存在并更新 schema\n\
 echo "Running prisma db push..."\n\
-cd /app/packages/db && npx prisma@6 db push --accept-data-loss\n\
+cd /app/packages/db && npx prisma@6 db push --accept-data-loss --skip-generate\n\
 \n\
 # 3. 启动 Nginx (后台运行)\n\
 echo "Starting Nginx..."\n\
@@ -117,7 +130,7 @@ nginx\n\
 # 4. 启动 Python TTS 服务 (后台运行)\n\
 if [ "$DISABLE_TTS" != "true" ]; then\n\
   echo "Starting TTS Service..."\n\
-  cd /app/services/tts && python3 -m uvicorn src.main:app --host 0.0.0.0 --port 8000 &\n\
+  cd /app/services/tts && (python3 -m uvicorn src.main:app --host 0.0.0.0 --port 8000 || echo "❌ TTS Service failed to start") > /var/log/tts.log 2>&1 &\n\
 else\n\
   echo "TTS Service is disabled."\n\
 fi\n\
@@ -125,7 +138,7 @@ fi\n\
 # 5. 启动 Python ASR 服务 (后台运行)\n\
 if [ "$DISABLE_ASR" != "true" ]; then\n\
   echo "Starting ASR Service..."\n\
-  cd /app/services/asr && python3 -m uvicorn src.main:app --host 0.0.0.0 --port 3300 &\n\
+  cd /app/services/asr && (HF_ENDPOINT=https://hf-mirror.com python3 -m uvicorn src.main:app --host 0.0.0.0 --port 3300 || echo "❌ ASR Service failed to start") > /var/log/asr.log 2>&1 &\n\
 else\n\
   echo "ASR Service is disabled."\n\
 fi\n\

@@ -1,20 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Slider } from "@miblanchard/react-native-slider";
-import { plusRedeemInternalTestCode } from "@soundx/services";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { plusDeleteMe, plusParticipateInternalTest } from "@soundx/services";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/context/AuthContext";
 import { useSettings } from "../src/context/SettingsContext";
@@ -27,13 +27,16 @@ import {
 import { trackEvent } from "../src/services/tracking";
 import { usePlayMode } from "../src/utils/playMode";
 import { getLocalVersion } from "../src/utils/updateUtils";
+import { getCachedVipStatus } from "../src/utils/vipStatus";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { colors, theme, toggleTheme, setTheme } = useTheme();
   const { mode, setMode } = usePlayMode();
-  const { logout, user, sourceType, device } = useAuth();
+  const { logout, user, sourceType, device, plusToken, setPlusToken } =
+    useAuth();
   const {
     acceptRelay,
     acceptSync,
@@ -44,13 +47,13 @@ export default function SettingsScreen() {
     voiceAssistantEnabled,
     recommendationLikeRatio,
     carModeEnabled,
+    screenBottomInset,
     experienceProgramEnabled,
     updateSetting,
   } = useSettings();
   const [isVip, setIsVip] = React.useState(false);
-  const [internalTestModalVisible, setInternalTestModalVisible] =
+  const [screenInsetModalVisible, setScreenInsetModalVisible] =
     React.useState(false);
-  const [internalTestCode, setInternalTestCode] = React.useState("");
   const [redeemingInternalTestCode, setRedeemingInternalTestCode] =
     React.useState(false);
   const [detailedSizes, setDetailedSizes] = React.useState<{
@@ -90,33 +93,32 @@ export default function SettingsScreen() {
   }, []);
 
   const checkVipStatus = async () => {
-    const status = await AsyncStorage.getItem("plus_vip_status");
-    const data = await AsyncStorage.getItem("plus_vip_data");
-    let vip = status === "true";
-    if (!vip && data) {
-      try {
-        const parsed = JSON.parse(data);
-        vip = !!(parsed?.vipTier && parsed.vipTier !== "NONE");
-      } catch {}
-    }
-    setIsVip(vip);
+    const cached = await getCachedVipStatus();
+    setIsVip(cached.isVip);
   };
 
   const handleClearCache = async (
     category: "covers" | "music" | "audiobooks" | "apks",
     label: string,
   ) => {
-    Alert.alert("清除缓存", `确定要清除${label}缓存吗？`, [
-      { text: "取消", style: "cancel" },
-      {
-        text: "确定",
-        onPress: async () => {
-          await clearSpecificCache(category);
-          await fetchCacheSize();
-          Alert.alert("已清除", `${label}缓存已清空`);
+    Alert.alert(
+      t("settings.clearCache"),
+      t("settings.confirmClearCache", { label }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.confirm"),
+          onPress: async () => {
+            await clearSpecificCache(category);
+            await fetchCacheSize();
+            Alert.alert(
+              t("settings.cacheCleared"),
+              `${label}${t("settings.cacheCleared")}`,
+            );
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const renderCacheRow = (
@@ -133,7 +135,7 @@ export default function SettingsScreen() {
           {label} ({size})
         </Text>
         <Text style={[styles.settingDescription, { color: colors.secondary }]}>
-          点击清除
+          {t("settings.tapToClear")}
         </Text>
       </View>
       <Ionicons name="trash-outline" size={20} color={colors.secondary} />
@@ -164,24 +166,54 @@ export default function SettingsScreen() {
     </View>
   );
 
+  const renderActionRow = (
+    label: string,
+    description: string,
+    onPress: () => void,
+    valueText?: string,
+  ) => (
+    <TouchableOpacity
+      style={[styles.settingRow, { borderBottomColor: colors.border }]}
+      onPress={onPress}
+    >
+      <View style={styles.settingInfo}>
+        <Text style={[styles.settingLabel, { color: colors.text }]}>
+          {label}
+        </Text>
+        <Text style={[styles.settingDescription, { color: colors.secondary }]}>
+          {description}
+        </Text>
+      </View>
+      <View style={styles.settingAction}>
+        {valueText ? (
+          <Text style={[styles.settingValue, { color: colors.secondary }]}>
+            {valueText}
+          </Text>
+        ) : null}
+        <Ionicons name="chevron-forward" size={20} color={colors.secondary} />
+      </View>
+    </TouchableOpacity>
+  );
+
   const handleToggleCarMode = async (val: boolean) => {
     if (val && !isVip) {
-      Alert.alert("仅限会员使用", "车机模式是会员专属功能，请前往会员页面开启。", [
-        { text: "好的" },
-        { text: "前往会员页面", onPress: () => router.push("/member-benefits" as any) }
+      Alert.alert(t("settings.vipOnly"), t("settings.carModeVipOnly"), [
+        { text: t("common.ok") },
+        {
+          text: t("settings.goToMemberPage"),
+          onPress: () => router.push("/member-benefits" as any),
+        },
       ]);
       return;
     }
     await updateSetting("carModeEnabled", val);
     await updateSetting("carLayoutMode", val);
-    if (val) {
-      trackEvent({
-        feature: "settings",
-        eventName: "car_mode_enable",
-        userId: user?.id ? String(user.id) : undefined,
-        deviceId: device?.id ? String(device.id) : undefined,
-      });
-    }
+    trackEvent({
+      feature: "settings",
+      eventName: val ? "car_mode_enable" : "car_mode_disable",
+      userId: user?.id ? String(user.id) : undefined,
+      deviceId: device?.id ? String(device.id) : undefined,
+    });
     if (val) {
       router.replace("/(tabs)");
     }
@@ -189,50 +221,60 @@ export default function SettingsScreen() {
 
   const handleToggleVoiceAssistant = async (val: boolean) => {
     if (val && !isVip) {
-      Alert.alert("仅限会员使用", "语音助手是会员专属功能，请前往会员页面开启。", [
-        { text: "好的" },
-        { text: "前往会员页面", onPress: () => router.push("/member-benefits" as any) }
+      Alert.alert(t("settings.vipOnly"), t("settings.voiceAssistantVipOnly"), [
+        { text: t("common.ok") },
+        {
+          text: t("settings.goToMemberPage"),
+          onPress: () => router.push("/member-benefits" as any),
+        },
       ]);
       return;
     }
     await updateSetting("voiceAssistantEnabled", val);
-    if (val) {
-      trackEvent({
-        feature: "voice",
-        eventName: "voice_assistant_enable",
-        userId: user?.id ? String(user.id) : undefined,
-        deviceId: device?.id ? String(device.id) : undefined,
-      });
-    }
+    trackEvent({
+      feature: "voice",
+      eventName: val ? "voice_assistant_enable" : "voice_assistant_disable",
+      userId: user?.id ? String(user.id) : undefined,
+      deviceId: device?.id ? String(device.id) : undefined,
+    });
   };
 
+  const carModeActive = carLayoutMode || carModeEnabled;
+
   const handleRedeemInternalTestCode = async () => {
-    const code = internalTestCode.trim();
-    const plusUserId = await AsyncStorage.getItem("plus_user_id");
-    if (!plusUserId) {
-      Alert.alert("无法提交", "请先登录会员账号后再兑换内测码。");
+    if (isVip) {
+      Alert.alert(
+        t("settings.betaTestAlreadyHas"),
+        t("settings.betaTestAlreadyHas"),
+      );
       return;
     }
-    if (!code) {
-      Alert.alert("请输入内测码", "内测码不能为空。");
+
+    const plusUserId = await AsyncStorage.getItem("plus_user_id");
+    if (!plusUserId) {
+      Alert.alert(t("settings.loginFirst"), t("settings.loginMemberFirst"));
       return;
     }
 
     try {
-      let memberUserId = plusUserId;
-      try {
-        memberUserId = JSON.parse(plusUserId);
-      } catch {}
-
       setRedeemingInternalTestCode(true);
-      const res = await plusRedeemInternalTestCode({
-        userId: String(memberUserId),
-        code,
+      trackEvent({
+        feature: "member",
+        eventName: "internal_test_participate_submit",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+      });
+      const vipStartsAt = new Date();
+      const vipEndsAt = new Date(vipStartsAt);
+      vipEndsAt.setMonth(vipEndsAt.getMonth() + 1);
+      const res = await plusParticipateInternalTest({
+        vipStartsAt: vipStartsAt.toISOString(),
+        vipEndsAt: vipEndsAt.toISOString(),
       });
       const payload = res.data?.data;
 
       if (res.data?.code !== 200 || !payload?.ok) {
-        throw new Error(res.data?.message || "内测码兑换失败");
+        throw new Error(res.data?.message || t("settings.betaTestFailed"));
       }
 
       await AsyncStorage.setItem("plus_vip_status", "true");
@@ -246,18 +288,78 @@ export default function SettingsScreen() {
       await AsyncStorage.setItem("plus_vip_updated_at", Date.now().toString());
       await syncWidgetMembership(true);
       setIsVip(true);
-      setInternalTestCode("");
-      setInternalTestModalVisible(false);
-      Alert.alert("兑换成功", "内测码已生效，会员权益已更新。");
+      trackEvent({
+        feature: "member",
+        eventName: "internal_test_participate_success",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+      });
+      Alert.alert(t("settings.betaTestSuccess"), t("settings.betaTestSuccess"));
     } catch (error) {
       console.error("Failed to redeem internal test code:", error);
+      trackEvent({
+        feature: "member",
+        eventName: "internal_test_participate_failed",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+        metadata: {
+          message: error instanceof Error ? error.message : "unknown_error",
+        },
+      });
       Alert.alert(
-        "兑换失败",
-        error instanceof Error ? error.message : "请稍后重试",
+        t("settings.betaTestFailed"),
+        error instanceof Error ? error.message : t("settings.betaTestFailed"),
       );
     } finally {
       setRedeemingInternalTestCode(false);
     }
+  };
+
+  const handleDeleteMemberAccount = () => {
+    if (!plusToken) {
+      Alert.alert(t("settings.loginFirst"), t("settings.loginFirst"));
+      router.replace("/member-login");
+      return;
+    }
+
+    Alert.alert(
+      t("settings.deleteMemberAccount"),
+      t("settings.deleteMemberConfirm"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.confirm"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const res = await plusDeleteMe();
+              if (res.data?.code !== 200 || !res.data?.data?.ok) {
+                throw new Error(
+                  res.data?.message || t("settings.deleteMemberFailed"),
+                );
+              }
+
+              await setPlusToken(null);
+              await syncWidgetMembership(false);
+              setIsVip(false);
+              Alert.alert(
+                t("settings.deleteMemberSuccess"),
+                t("settings.deleteMemberSuccess"),
+              );
+              router.replace("/member-login");
+            } catch (error) {
+              console.error("Failed to delete plus member account:", error);
+              Alert.alert(
+                t("settings.deleteMemberFailed"),
+                error instanceof Error
+                  ? error.message
+                  : t("settings.deleteMemberFailed"),
+              );
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -269,14 +371,16 @@ export default function SettingsScreen() {
         >
           <Ionicons name="chevron-back" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>设置</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {t("settings.title")}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-            账户
+            {t("settings.account")}
           </Text>
 
           {user?.is_admin && (
@@ -286,7 +390,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.settingInfo}>
                 <Text style={[styles.settingLabel, { color: colors.text }]}>
-                  管理后台
+                  {t("settings.admin")}
                 </Text>
                 <Text
                   style={[
@@ -294,7 +398,7 @@ export default function SettingsScreen() {
                     { color: colors.secondary },
                   ]}
                 >
-                  用户与系统设置
+                  {t("settings.adminDescription")}
                 </Text>
               </View>
               <Ionicons
@@ -311,34 +415,71 @@ export default function SettingsScreen() {
               { color: colors.primary, marginTop: 20 },
             ]}
           >
-            通用
+            {t("settings.general")}
           </Text>
 
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            onPress={() => router.push("/language" as any)}
+          >
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                {t("settings.language", "语言")}
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.secondary }]}
+              >
+                {t("settings.languageDescription", "选择应用显示语言")}
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.secondary}
+            />
+          </TouchableOpacity>
+
           {renderSettingRow(
-            "车机模式",
-            "左侧播放器，右侧内容区",
-            carLayoutMode || carModeEnabled,
+            t("settings.carMode"),
+            t("settings.carModeDescription"),
+            carModeActive,
             handleToggleCarMode,
           )}
 
+          {carModeActive &&
+            renderActionRow(
+              t("settings.screenInset"),
+              t("settings.screenInsetDescription"),
+              () => {
+                trackEvent({
+                  feature: "settings",
+                  eventName: "car_mode_screen_inset_open",
+                  userId: user?.id ? String(user.id) : undefined,
+                  deviceId: device?.id ? String(device.id) : undefined,
+                });
+                setScreenInsetModalVisible(true);
+              },
+              `${Math.round(screenBottomInset)}`,
+            )}
+
           {renderSettingRow(
-            "跟随系统主题",
-            "开启后将根据系统设置自动切换浅色/深色模式",
+            t("settings.autoTheme"),
+            t("settings.autoThemeDescription"),
             autoTheme,
             (val) => updateSetting("autoTheme", val),
           )}
 
           <View style={{ opacity: autoTheme ? 0.5 : 1 }}>
             {renderSettingRow(
-              "深色模式",
-              "开启或关闭应用的深色外观",
+              t("settings.darkMode"),
+              t("settings.darkModeDescription"),
               theme === "dark",
               autoTheme ? () => {} : toggleTheme,
             )}
 
             {renderSettingRow(
-              "春日主题",
-              "开启具有新春氛围的红金配色主题",
+              t("settings.festiveTheme"),
+              t("settings.festiveThemeDescription"),
               theme === "festive",
               autoTheme
                 ? () => {}
@@ -347,15 +488,15 @@ export default function SettingsScreen() {
           </View>
 
           {renderSettingRow(
-            "自动横竖屏",
-            "开启后应用将跟随手机重力感应自动旋转",
+            t("settings.autoOrientation"),
+            t("settings.autoOrientationDescription"),
             autoOrientation,
             (val) => updateSetting("autoOrientation", val),
           )}
 
           {renderSettingRow(
-            "语音助手",
-            "开启后显示全局语音助手小松鼠",
+            t("settings.voiceAssistant"),
+            t("settings.voiceAssistantDescription"),
             voiceAssistantEnabled,
             (val) => handleToggleVoiceAssistant(val),
           )}
@@ -365,13 +506,13 @@ export default function SettingsScreen() {
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                推荐偏好（喜欢/新鲜）
+                {t("settings.recommendationPreference")}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
-                喜欢 {recommendationLikeRatio}% · 新鲜{" "}
-                {100 - recommendationLikeRatio}%
+                {t("settings.like")} {recommendationLikeRatio}% ·{" "}
+                {t("settings.fresh")} {100 - recommendationLikeRatio}%
               </Text>
               <Slider
                 minimumValue={0}
@@ -394,29 +535,29 @@ export default function SettingsScreen() {
 
           {sourceType !== "Subsonic" &&
             renderSettingRow(
-              "有声书模式",
-              "切换音乐与有声书的显示内容",
+              t("settings.audiobookMode"),
+              t("settings.audiobookModeDescription"),
               mode === "AUDIOBOOK",
               (val) => setMode(val ? "AUDIOBOOK" : "MUSIC"),
             )}
 
           {renderSettingRow(
-            "接力播放",
-            "是否接受多设备之间播放接力",
+            t("settings.relayPlay"),
+            t("settings.relayPlayDescription"),
             acceptRelay,
             (val) => updateSetting("acceptRelay", val),
           )}
 
           {renderSettingRow(
-            "同步控制",
-            "是否接受同数据源下其他用户的同步控制请求",
+            t("settings.syncControl"),
+            t("settings.syncControlDescription"),
             acceptSync,
             (val) => updateSetting("acceptSync", val),
           )}
 
           {renderSettingRow(
-            "边听边存",
-            "播放时自动缓存到本地，下次播放优先使用本地文件",
+            t("settings.cacheWhilePlaying"),
+            t("settings.cacheWhilePlayingDescription"),
             cacheEnabled,
             (val) => updateSetting("cacheEnabled", val),
           )}
@@ -427,17 +568,29 @@ export default function SettingsScreen() {
               { color: colors.primary, marginTop: 20 },
             ]}
           >
-            存储管理
+            {t("settings.storage")}
           </Text>
-          {renderCacheRow("封面缓存", detailedSizes.covers, "covers")}
-          {renderCacheRow("音乐缓存", detailedSizes.music, "music")}
-          {renderCacheRow("有声书缓存", detailedSizes.audiobooks, "audiobooks")}
-          {renderCacheRow("安装包文件", detailedSizes.apks, "apks")}
+          {renderCacheRow(
+            t("settings.coverCache"),
+            detailedSizes.covers,
+            "covers",
+          )}
+          {renderCacheRow(
+            t("settings.musicCache"),
+            detailedSizes.music,
+            "music",
+          )}
+          {renderCacheRow(
+            t("settings.audiobookCache"),
+            detailedSizes.audiobooks,
+            "audiobooks",
+          )}
+          {renderCacheRow(t("settings.apkFiles"), detailedSizes.apks, "apks")}
         </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-            关于
+            {t("settings.about")}
           </Text>
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: colors.border }]}
@@ -445,12 +598,12 @@ export default function SettingsScreen() {
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                产品动态
+                {t("settings.productUpdates")}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
-                查看最新功能与版本更新
+                {t("settings.productUpdatesDescription")}
               </Text>
             </View>
             <Ionicons
@@ -462,16 +615,21 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: colors.border }]}
-            onPress={() => setInternalTestModalVisible(true)}
+            disabled={redeemingInternalTestCode}
+            onPress={() => void handleRedeemInternalTestCode()}
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                参与内测
+                {t("settings.joinBetaTest")}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
-                输入内测码以开通对应权益
+                {isVip
+                  ? t("settings.betaTestAlreadyHas")
+                  : redeemingInternalTestCode
+                    ? t("settings.betaTestApplying")
+                    : t("settings.betaTestDescription")}
               </Text>
             </View>
             <Ionicons
@@ -482,8 +640,8 @@ export default function SettingsScreen() {
           </TouchableOpacity>
 
           {renderSettingRow(
-            "参与用户体验计划",
-            "使用数据以改进产品",
+            t("settings.experienceProgram"),
+            t("settings.experienceProgramDescription"),
             experienceProgramEnabled,
             (val) => updateSetting("experienceProgramEnabled", val),
           )}
@@ -500,26 +658,37 @@ export default function SettingsScreen() {
               } as any);
             }}
           >
-            <Text style={styles.logoutText}>退出登录</Text>
+            <Text style={styles.logoutText}>{t("settings.logout")}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.deleteMemberButton}
+            onPress={handleDeleteMemberAccount}
+          >
+            <Text style={styles.deleteMemberText}>
+              {t("settings.deleteMemberAccount")}
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
           <Text style={[styles.versionText, { color: colors.secondary }]}>
-            AudioDock Mobile v{getLocalVersion()}
+            {`AudioDock Mobile v${getLocalVersion()}`}
           </Text>
         </View>
       </ScrollView>
 
       <Modal
-        visible={internalTestModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          if (!redeemingInternalTestCode) {
-            setInternalTestModalVisible(false);
-          }
-        }}
+        isVisible={screenInsetModalVisible}
+        onBackdropPress={() => setScreenInsetModalVisible(false)}
+        onBackButtonPress={() => setScreenInsetModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
+        statusBarTranslucent
       >
         <View style={styles.modalOverlay}>
           <View
@@ -532,28 +701,53 @@ export default function SettingsScreen() {
             ]}
           >
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              参与内测
+              {t("settings.screenInset")}
             </Text>
-            <Text style={[styles.modalDescription, { color: colors.secondary }]}>
-              请输入内测码
+            <Text
+              style={[styles.modalDescription, { color: colors.secondary }]}
+            >
+              {t("settings.screenInsetDescription")}
             </Text>
-            <TextInput
-              value={internalTestCode}
-              onChangeText={setInternalTestCode}
-              placeholder="请输入内测码"
-              placeholderTextColor={colors.secondary}
-              editable={!redeemingInternalTestCode}
-              autoCapitalize="none"
-              autoCorrect={false}
+
+            <View
               style={[
-                styles.modalInput,
-                {
-                  color: colors.text,
-                  borderColor: colors.border,
-                  backgroundColor: colors.background,
-                },
+                styles.sliderPanel,
+                { backgroundColor: "rgba(150, 150, 150, 0.08)" },
               ]}
-            />
+            >
+              <View style={styles.sliderHeader}>
+                <Text style={[styles.sliderLabel, { color: colors.text }]}>
+                  {t("settings.bottomInset")}
+                </Text>
+                <Text style={[styles.sliderNumber, { color: colors.primary }]}>
+                  {Math.round(screenBottomInset)}
+                </Text>
+              </View>
+              <Slider
+                minimumValue={0}
+                maximumValue={160}
+                step={1}
+                value={[screenBottomInset]}
+                onValueChange={(val) =>
+                  void updateSetting(
+                    "screenBottomInset",
+                    Math.round(val[0] || 0),
+                  )
+                }
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.border}
+                thumbTintColor={colors.primary}
+              />
+              <View style={styles.sliderHintRow}>
+                <Text style={[styles.sliderHint, { color: colors.secondary }]}>
+                  {t("settings.closerToBottom")}
+                </Text>
+                <Text style={[styles.sliderHint, { color: colors.secondary }]}>
+                  {t("settings.pageUp")}
+                </Text>
+              </View>
+            </View>
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[
@@ -561,29 +755,21 @@ export default function SettingsScreen() {
                   styles.modalCancelButton,
                   { borderColor: colors.border },
                 ]}
-                disabled={redeemingInternalTestCode}
-                onPress={() => setInternalTestModalVisible(false)}
+                onPress={() => void updateSetting("screenBottomInset", 0)}
               >
                 <Text style={[styles.modalCancelText, { color: colors.text }]}>
-                  取消
+                  {t("common.reset")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.modalButton,
                   styles.modalConfirmButton,
-                  {
-                    backgroundColor: redeemingInternalTestCode
-                      ? colors.border
-                      : colors.primary,
-                  },
+                  { backgroundColor: colors.primary },
                 ]}
-                disabled={redeemingInternalTestCode}
-                onPress={() => void handleRedeemInternalTestCode()}
+                onPress={() => setScreenInsetModalVisible(false)}
               >
-                <Text style={styles.modalConfirmText}>
-                  {redeemingInternalTestCode ? "提交中..." : "提交"}
-                </Text>
+                <Text style={styles.modalConfirmText}>{t("common.done")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -636,6 +822,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 20,
   },
+  settingAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   settingLabel: {
     fontSize: 17,
     fontWeight: "500",
@@ -644,6 +835,10 @@ const styles = StyleSheet.create({
   settingDescription: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  settingValue: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   logoutButton: {
     marginTop: 20,
@@ -654,6 +849,20 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  deleteMemberButton: {
+    marginTop: 12,
+    backgroundColor: "#FFF1F0",
+    borderWidth: 1,
+    borderColor: "#FFCCC7",
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  deleteMemberText: {
+    color: "#CF1322",
     fontSize: 17,
     fontWeight: "600",
   },
@@ -668,14 +877,19 @@ const styles = StyleSheet.create({
     marginBottom: -4,
   },
   modalOverlay: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    width: "100%",
+  },
+  centeredModal: {
+    margin: 0,
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
     width: "100%",
+    maxWidth: 420,
     borderRadius: 16,
     padding: 20,
     borderWidth: StyleSheet.hairlineWidth,
@@ -688,6 +902,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     marginBottom: 16,
+  },
+  sliderPanel: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 18,
+  },
+  sliderHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  sliderLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  sliderNumber: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  sliderHintRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
+  sliderHint: {
+    fontSize: 12,
   },
   modalInput: {
     borderWidth: 1,

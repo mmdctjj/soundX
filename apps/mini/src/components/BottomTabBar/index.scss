@@ -1,0 +1,46 @@
+.custom-secondary-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-top: 1rpx solid rgba(0, 0, 0, 0.1);
+  z-index: 900;
+}
+
+.bottom-tab-bar-main {
+  display: flex;
+  flex-direction: row;
+  height: 100rpx; /* Taro原生tabbar大致高度 */
+}
+
+.bottom-tab-item {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.bottom-tab-item-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 8rpx;
+}
+
+.bottom-tab-icon-img {
+  width: 48rpx;
+  height: 48rpx;
+  margin-bottom: 6rpx;
+}
+
+.bottom-tab-text {
+  font-size: 20rpx;
+  color: #999999;
+}
+
+.bottom-tab-bar-safe {
+  height: env(safe-area-inset-bottom);
+  background: #ffffff;
+}

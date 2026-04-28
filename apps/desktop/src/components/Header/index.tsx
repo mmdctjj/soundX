@@ -1,5 +1,6 @@
 import {
   AppstoreOutlined,
+  AudioOutlined,
   CrownFilled,
   CrownOutlined,
   CustomerServiceOutlined,
@@ -32,10 +33,12 @@ import {
   getImportTask,
   getRunningImportTask,
   getSearchHistory,
+  getCurrentUser,
+  plusDeleteMe,
   plusGetMe,
-  plusRedeemInternalTestCode,
+  plusParticipateInternalTest,
   searchAll,
-  setPlusToken,
+  setPlusToken as setPlusServiceToken,
   setServiceConfig,
   SOURCEMAP,
   TaskStatus,
@@ -44,6 +47,7 @@ import {
   useSubsonicAdapter,
   type ImportTask,
   type SearchResults as SearchResultsType,
+  speechToText,
 } from "@soundx/services";
 import {
   Button,
@@ -61,9 +65,11 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import { useTheme } from "../../context/ThemeContext";
+import { getBaseURL } from "../../https";
 import { TrackType } from "../../models";
 import { trackEvent } from "../../services/tracking";
 import { useAuthStore } from "../../store/auth";
@@ -83,6 +89,7 @@ const { Text } = Typography;
 const ServerSwitcherModal: React.FC<{
   onSelect: (url: string, type: string) => void;
 }> = ({ onSelect }) => {
+  const { t } = useTranslation();
   const [configs, setConfigs] = useState<
     Array<{
       type: string;
@@ -136,7 +143,7 @@ const ServerSwitcherModal: React.FC<{
             id: `migrated_${Date.now()}_${index}`,
             internal: h.value,
             external: "",
-            name: `历史记录 ${index + 1}`,
+            name: `${t('header.historyRecord')} ${index + 1}`,
           }));
           localStorage.setItem(configKey, JSON.stringify(migrated));
           allConfigs.push({ type, list: migrated });
@@ -204,7 +211,7 @@ const ServerSwitcherModal: React.FC<{
             const isSourceMatch = currentSource === type;
             const sourceLogo =
               type === "Emby" ? emby : type === "Subsonic" ? subsonic : logo;
-            const displayName = `${type}数据源[${index + 1}]`;
+            const displayName = `${type}${t('header.dataSource')}[${index + 1}]`;
 
             const renderAddressRow = (label: string, address: string) => {
               if (!address) return null;
@@ -244,7 +251,7 @@ const ServerSwitcherModal: React.FC<{
                   <Flex align="center" gap={8}>
                     {isActive ? (
                       <Text type="success" style={{ fontSize: 10 }}>
-                        ● 已连接
+                        ● {t('header.connected')}
                       </Text>
                     ) : (
                       <Button
@@ -254,7 +261,7 @@ const ServerSwitcherModal: React.FC<{
                         }}
                         style={{ fontSize: 10 }}
                       >
-                        连接
+                        {t('header.connect')}
                       </Button>
                     )}
                     {isConnecting && <Spin size="small" />}
@@ -298,8 +305,8 @@ const ServerSwitcherModal: React.FC<{
                     />
                   </Flex>
                   <Flex vertical gap={4}>
-                    {renderAddressRow("内网地址", item.internal)}
-                    {renderAddressRow("外网地址", item.external)}
+                    {renderAddressRow(t('header.internalAddress'), item.internal)}
+                    {renderAddressRow(t('header.externalAddress'), item.external)}
                   </Flex>
                 </Flex>
               </Card>
@@ -309,7 +316,7 @@ const ServerSwitcherModal: React.FC<{
 
         {configs.every((item) => item.list.length === 0) && (
           <Empty
-            description="暂无历史数据源"
+            description={t('header.noHistoryData')}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         )}
@@ -324,11 +331,29 @@ const ServerSwitcherModal: React.FC<{
             navigate("/source-manage");
           }}
         >
-          添加数据源
+          {t('header.addDataSource')}
         </Button>
       </Flex>
     </div>
   );
+};
+
+const getAvatarUrl = (path?: string | null, fallbackSeed?: string) => {
+  if (!path) {
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${fallbackSeed || "Felix"}`;
+  }
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+  const baseURL = getBaseURL();
+  const cleanBaseURL = baseURL.endsWith("/")
+    ? baseURL.substring(0, baseURL.length - 1)
+    : baseURL;
+  const cleanPath = path.startsWith("/") ? path.substring(1) : path;
+  return `${cleanBaseURL}/${cleanPath
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
 };
 
 const Header: React.FC = () => {
@@ -337,6 +362,7 @@ const Header: React.FC = () => {
   const location = useLocation();
   const { themeSetting, toggleTheme } = useTheme();
   const { token } = theme.useToken();
+  const { t } = useTranslation();
   const pollTimerRef = useRef<number | null>(null);
   const [modal, contextHolder] = Modal.useModal();
 
@@ -353,20 +379,41 @@ const Header: React.FC = () => {
     { keyword: string; count: number }[]
   >([]);
 
+  // ASR Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   // Mode state: 'music' | 'audiobook'
   const { mode: playMode, setMode: setPlayMode } = usePlayMode();
   const isRadioMode = usePlayerStore((state) => state.isRadioMode);
-  const { logout, user, device } = useAuthStore();
+  const { logout, user, device, setPlusToken: setMemberToken } = useAuthStore();
 
   // Import task state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importTask, setImportTask] = useState<ImportTask | null>(null);
   const [isPlusVip, setIsPlusVip] = useState(false);
   const [, setPlusVipData] = useState<any>(null);
-  const [isInternalTestModalOpen, setIsInternalTestModalOpen] = useState(false);
-  const [internalTestCode, setInternalTestCode] = useState("");
   const [redeemingInternalTestCode, setRedeemingInternalTestCode] =
     useState(false);
+
+  useEffect(() => {
+    const refreshCurrentUser = async () => {
+      if (!user) return;
+      try {
+        const res = await getCurrentUser();
+        if (res.code !== 200 || !res.data) return;
+        const serverAddress =
+          localStorage.getItem("serverAddress") || "http://localhost:3000";
+        localStorage.setItem(`user_${serverAddress}`, JSON.stringify(res.data));
+        useAuthStore.setState({ user: res.data as any });
+      } catch (error) {
+        console.warn("Failed to refresh current user", error);
+      }
+    };
+
+    void refreshCurrentUser();
+  }, [user?.id]);
 
   const fetchSearchMeta = async () => {
     try {
@@ -386,7 +433,7 @@ const Header: React.FC = () => {
       await clearSearchHistory();
       setSearchHistory([]);
     } catch (e) {
-      message.error("清空历史失败");
+      message.error(t('header.clearHistoryFailed'));
     }
   };
 
@@ -410,9 +457,43 @@ const Header: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    message.success("已退出/切换服务端账号");
+    message.success(t('header.logoutSuccess'));
     // Optionally reload to reset app state
     window.location.reload();
+  };
+
+  const handleDeleteMemberAccount = () => {
+    const plusToken = localStorage.getItem("plus_token");
+    if (!plusToken) {
+      message.warning(t('header.pleaseLoginMemberFirst'));
+      navigate("/member-login");
+      return;
+    }
+
+    modal.confirm({
+      title: t('header.cancelMembership'),
+      content: t('header.confirmCancelMembership'),
+      okText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          const res = await plusDeleteMe();
+          if (res.data?.code !== 200 || !res.data?.data?.ok) {
+            throw new Error(res.data?.message || t('header.cancelMembershipFailed'));
+          }
+
+          setMemberToken(null);
+          message.success(t('header.membershipCancelled'));
+          navigate("/member-login", { replace: true });
+        } catch (error) {
+          console.error("Failed to delete plus member account:", error);
+          message.error(
+            error instanceof Error ? error.message : t('header.cancelMembershipFailedRetry'),
+          );
+        }
+      },
+    });
   };
 
   // ... inside component
@@ -450,7 +531,11 @@ const Header: React.FC = () => {
     mode: "incremental" | "full" | "compact",
   ) => {
     message.loading(
-      `${mode === "incremental" ? "增量" : mode === "full" ? "全量" : "精简"}任务创建中...`,
+      mode === "incremental"
+        ? t('header.incremental') + t('header.taskCreating')
+        : mode === "full"
+          ? t('header.full') + t('header.taskCreating')
+          : t('header.compact') + t('header.taskCreating'),
     );
 
     try {
@@ -465,7 +550,7 @@ const Header: React.FC = () => {
           id: taskId,
           status: TaskStatus.INITIALIZING,
           mode,
-          message: mode === "compact" ? "正在启动精简任务..." : "正在初始化...",
+          message: mode === "compact" ? t('header.initializingCompact') : t('header.initializing'),
         });
 
         // Clear previous timer if any
@@ -475,11 +560,11 @@ const Header: React.FC = () => {
           pollTaskStatus(taskId);
         }, 1000);
       } else {
-        message.error(res.message || "任务创建失败");
+        message.error(res.message || t('header.taskCreateFailed'));
       }
     } catch (error) {
       console.error("Task creation error:", error);
-      message.error("创建任务失败，请检查网络或后端服务");
+      message.error(t('header.createTaskFailed'));
     }
   };
 
@@ -491,9 +576,9 @@ const Header: React.FC = () => {
         const { status, total } = res.data;
         if (status === TaskStatus.SUCCESS) {
           if (res.data.mode === "compact") {
-            message.success("精简完成");
+            message.success(t('header.compactComplete'));
           } else {
-            message.success(`导入成功！共导入 ${total} 首歌曲`);
+            message.success(t('header.importSuccess', { count: total }));
           }
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           // Auto close modal after a short delay
@@ -510,6 +595,55 @@ const Header: React.FC = () => {
   };
 
   // Search handlers
+  const handleToggleRecord = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          stream.getTracks().forEach(track => track.stop());
+          
+          try {
+            message.loading({ content: t('header.recognizing', '正在识别...'), key: 'asr' });
+            
+            const file = new File([audioBlob], 'record.webm', { type: 'audio/webm' });
+            const text = await speechToText(file);
+            
+            if (text) {
+              message.success({ content: t('header.recognizeSuccess', '识别成功'), key: 'asr' });
+              setSearchKeyword(text);
+              performSearch(text);
+            } else {
+              message.error({ content: t('header.recognizeFailed', '识别失败'), key: 'asr' });
+            }
+          } catch (error) {
+            console.error('ASR error:', error);
+            message.error({ content: t('header.recognizeError', '识别发生错误'), key: 'asr' });
+          }
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+      } catch (error) {
+        console.error('Microphone access denied:', error);
+        message.error(t('header.micAccessDenied', '无法访问麦克风'));
+      }
+    }
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchKeyword(value);
@@ -528,7 +662,7 @@ const Header: React.FC = () => {
     check().then((res) => {
       if (res.code == 200) {
       } else if (res.code === 401) {
-        message.error("登录信息已过期，请重新登录");
+        message.error(t('header.loginExpired'));
         logout();
       }
     });
@@ -579,7 +713,7 @@ const Header: React.FC = () => {
     const plusUserId = localStorage.getItem("plus_user_id");
 
     if (plusToken && plusUserId) {
-      setPlusToken(plusToken);
+      setPlusServiceToken(plusToken);
       // Remove quotes from JSON.stringify if present (though it's better to use JSON.parse)
       let id = plusUserId;
       try {
@@ -603,32 +737,36 @@ const Header: React.FC = () => {
   }, []);
 
   const handleRedeemInternalTestCode = async () => {
-    const code = internalTestCode.trim();
-    const plusUserId = localStorage.getItem("plus_user_id");
-    if (!plusUserId) {
-      message.error("请先登录会员账号后再兑换内测码");
+    if (isPlusVip) {
+      message.info(t('header.alreadyHasBetaAccess'));
       return;
     }
-    if (!code) {
-      message.warning("请输入内测码");
+
+    const plusUserId = localStorage.getItem("plus_user_id");
+    if (!plusUserId) {
+      message.error(t('header.pleaseLoginMemberFirstBeta'));
       return;
     }
 
     try {
-      let memberUserId = plusUserId;
-      try {
-        memberUserId = JSON.parse(plusUserId);
-      } catch {}
-
       setRedeemingInternalTestCode(true);
-      const res = await plusRedeemInternalTestCode({
-        userId: String(memberUserId),
-        code,
+      trackEvent({
+        feature: "member",
+        eventName: "internal_test_participate_submit",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+      });
+      const vipStartsAt = new Date();
+      const vipEndsAt = new Date(vipStartsAt);
+      vipEndsAt.setMonth(vipEndsAt.getMonth() + 1);
+      const res = await plusParticipateInternalTest({
+        vipStartsAt: vipStartsAt.toISOString(),
+        vipEndsAt: vipEndsAt.toISOString(),
       });
       const payload = res.data?.data;
 
       if (res.data?.code !== 200 || !payload?.ok) {
-        throw new Error(res.data?.message || "内测码兑换失败");
+        throw new Error(res.data?.message || t('header.participateInternalTestFailed'));
       }
 
       localStorage.setItem("plus_vip_status", "true");
@@ -642,12 +780,25 @@ const Header: React.FC = () => {
       localStorage.setItem("plus_vip_updated_at", Date.now().toString());
       setIsPlusVip(true);
       setPlusVipData(payload);
-      setInternalTestCode("");
-      setIsInternalTestModalOpen(false);
-      message.success("内测码兑换成功，会员权益已更新");
+      trackEvent({
+        feature: "member",
+        eventName: "internal_test_participate_success",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+      });
+      message.success(t('header.betaAccessGranted'));
     } catch (error) {
       console.error("Failed to redeem internal test code:", error);
-      message.error(error instanceof Error ? error.message : "兑换失败，请稍后重试");
+      trackEvent({
+        feature: "member",
+        eventName: "internal_test_participate_failed",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+        metadata: {
+          message: error instanceof Error ? error.message : "unknown_error",
+        },
+      });
+      message.error(error instanceof Error ? error.message : t('common.operationFailed'));
     } finally {
       setRedeemingInternalTestCode(false);
     }
@@ -658,21 +809,21 @@ const Header: React.FC = () => {
       {/* Navigation Controls */}
       <div className={styles.navControls}>
         <div className={styles.navGroup}>
-          <Tooltip title="后退">
+          <Tooltip title={t('header.back')}>
             <LeftOutlined
               onClick={() => navigate(-1)}
               className={styles.navIcon}
               style={iconStyle}
             />
           </Tooltip>
-          <Tooltip title="前进">
+          <Tooltip title={t('header.forward')}>
             <RightOutlined
               onClick={() => navigate(1)}
               className={styles.navIcon}
               style={iconStyle}
             />
           </Tooltip>
-          <Tooltip title="刷新">
+          <Tooltip title={t('header.refresh')}>
             <ReloadOutlined
               onClick={() => window.location.reload()}
               className={styles.navIcon}
@@ -683,12 +834,24 @@ const Header: React.FC = () => {
       </div>
 
       {/* Search Bar */}
-      <div className={styles.searchBar} ref={searchContainerRef}>
+      <div className={styles.searchBar} ref={searchContainerRef} style={{ display: 'flex', alignItems: 'center' }}>
+        <Tooltip title={isRecording ? t('header.stopRecord', '停止录音') : t('header.startRecord', '语音搜索')}>
+          <div
+            onClick={handleToggleRecord}
+            style={{
+              padding: '0 8px',
+              cursor: 'pointer',
+              color: isRecording ? token.colorError : token.colorTextSecondary,
+            }}
+          >
+            <AudioOutlined style={{ fontSize: 16 }} />
+          </div>
+        </Tooltip>
         <Input
           prefix={
             <SearchOutlined style={{ color: token.colorTextSecondary }} />
           }
-          placeholder="搜索单曲、艺术家、专辑"
+          placeholder={t('header.searchPlaceholder')}
           bordered={false}
           className={styles.searchInput}
           style={{ color: token.colorText }}
@@ -721,7 +884,7 @@ const Header: React.FC = () => {
         {playMode === TrackType.MUSIC &&
           !isSubsonicSource() &&
           !isEmbySource() && (
-            <Tooltip title="情景电台">
+            <Tooltip title={t('header.scenarioRadio')}>
               <div
                 className={`${styles.actionIcon} ${isRadioMode ? styles.radioActive : ""}`}
                 style={actionIconStyle}
@@ -736,7 +899,15 @@ const Header: React.FC = () => {
             <div
               className={styles.actionIcon}
               style={actionIconStyle}
-              onClick={() => navigate("/tts/tasks")}
+              onClick={() => {
+                trackEvent({
+                  feature: "tts",
+                  eventName: "tts_task_list_open",
+                  userId: user?.id ? String(user.id) : undefined,
+                  deviceId: device?.id ? String(device.id) : undefined,
+                });
+                navigate("/tts/tasks");
+              }}
             >
               <AppstoreOutlined />
             </div>
@@ -746,8 +917,8 @@ const Header: React.FC = () => {
           <Tooltip
             title={
               playMode === TrackType.MUSIC
-                ? "切换至有声书模式"
-                : "切换至音乐模式"
+                ? t('header.switchToAudiobookMode')
+                : t('header.switchToMusicMode')
             }
           >
             <div
@@ -765,7 +936,7 @@ const Header: React.FC = () => {
         )}
 
         {!isWeb() && (
-          <Tooltip title="mini播放器">
+          <Tooltip title={t('header.miniPlayer')}>
             <ImportOutlined
               className={styles.actionIcon}
               style={actionIconStyle}
@@ -779,7 +950,7 @@ const Header: React.FC = () => {
         )}
 
         {!isSubsonicSource() && (
-          <Tooltip title="文件夹">
+          <Tooltip title={t('header.folder')}>
             <div
               className={styles.actionIcon}
               style={actionIconStyle}
@@ -798,7 +969,7 @@ const Header: React.FC = () => {
           </Tooltip>
         )}
 
-        <Tooltip title="切换服务端">
+        <Tooltip title={t('header.switchServer')}>
           <div
             className={styles.actionIcon}
             style={actionIconStyle}
@@ -841,12 +1012,12 @@ const Header: React.FC = () => {
 
                 // 5. Cleanup and reload
                 Modal.destroyAll();
-                message.success(`已切换至 ${type} 服务端: ${url}`);
+                message.success(t('header.switchedTo', { type, url }));
                 window.location.reload();
               };
 
               modal.confirm({
-                title: "切换服务端",
+                title: t('header.switchServer'),
                 content: <ServerSwitcherModal onSelect={handleSwitchServer} />,
                 footer: null,
                 closable: true,
@@ -860,10 +1031,10 @@ const Header: React.FC = () => {
         <Tooltip
           title={
             themeSetting === "dark"
-              ? "切换至亮色模式"
+              ? t('header.switchToLightMode')
               : themeSetting === "light"
-                ? "切换至跟随系统"
-                : "切换至暗色模式"
+                ? t('header.switchToSystem')
+                : t('header.switchToDarkMode')
           }
         >
           <div
@@ -880,7 +1051,7 @@ const Header: React.FC = () => {
             )}
           </div>
         </Tooltip>
-        <Tooltip title="会员服务">
+        <Tooltip title={t('header.memberService')}>
           <div
             className={styles.actionIcon}
             style={{ ...actionIconStyle }}
@@ -909,14 +1080,22 @@ const Header: React.FC = () => {
           content={
             <div className={styles.userMenu}>
               <div className={styles.userMenuItem}>
-                嗨！{user?.username || "未知"}
+                {t('header.hi')}{user?.username || t('common.unknown')}
               </div>
               <div
                 className={styles.userMenuItem}
-                onClick={() => setIsInternalTestModalOpen(true)}
+                onClick={() => {
+                  if (!redeemingInternalTestCode) {
+                    void handleRedeemInternalTestCode();
+                  }
+                }}
               >
                 <CrownOutlined />
-                参与内测
+                {isPlusVip
+                  ? t('header.internalTestEnabled')
+                  : redeemingInternalTestCode
+                    ? t('header.internalTestApplying')
+                    : t('header.internalTest')}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -930,16 +1109,18 @@ const Header: React.FC = () => {
                       try {
                         const res = await uploadUserAvatar(user.id, file);
                         if (res.code === 200) {
-                          message.success(
-                            "头像修改成功，可能需要重新登录以应用部分界面！",
-                          );
+                          message.success(t('header.avatarChangeSuccess'));
                           // Updating user state is handled manually or via re-fetch
                           const url =
                             localStorage.getItem("serverAddress") ||
                             "http://localhost:3000";
+                          const nextAvatar =
+                            res.data?.avatar ||
+                            (res.data?.user as any)?.avatar ||
+                            user.avatar;
                           const updatedUser = {
                             ...user,
-                            avatar: res.data.avatar,
+                            avatar: nextAvatar,
                           };
                           localStorage.setItem(
                             `user_${url}`,
@@ -947,10 +1128,10 @@ const Header: React.FC = () => {
                           );
                           useAuthStore.setState({ user: updatedUser as any });
                         } else {
-                          message.error(res.message || "修改头像失败");
+                          message.error(res.message || t('header.avatarChangeFailed'));
                         }
                       } catch (err) {
-                        message.error("上传错误");
+                        message.error(t('header.uploadError'));
                       }
                     }
                   };
@@ -958,7 +1139,7 @@ const Header: React.FC = () => {
                 }}
               >
                 <PlusOutlined />
-                更换头像
+                {t('header.changeAvatar')}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -975,59 +1156,59 @@ const Header: React.FC = () => {
                   }
                 }}
               >
-                <GithubOutlined />求 Star！！！
+                <GithubOutlined />{t('header.giveStar')}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: "确认增量更新？",
-                    content: "增量更新只增加新数据，不删除旧数据",
-                    okText: "确认更新",
-                    cancelText: "取消",
+                    title: t('header.confirmIncrementalUpdate'),
+                    content: t('header.incrementalUpdateContent'),
+                    okText: t('header.confirmUpdate'),
+                    cancelText: t('common.cancel'),
                     onOk: () => handleUpdateLibrary("incremental"),
                   });
                 }}
               >
                 <RollbackOutlined />
-                增量更新音频文件
+                {t('header.incrementalUpdate')}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: "确认全量更新？",
+                    title: t('header.confirmFullUpdate'),
                     content:
-                      "全量更新将核对所有音频文件。您的播放历史、收藏记录、歌单由于文件指纹机制将得到保留。仅当文件在磁盘上被物理删除时，对应的记录才会被清除。",
-                    okText: "确认更新",
-                    cancelText: "取消",
+                      t('header.fullUpdateContent'),
+                    okText: t('header.confirmUpdate'),
+                    cancelText: t('common.cancel'),
                     onOk: () => handleUpdateLibrary("full"),
                   });
                 }}
               >
                 <RetweetOutlined />
-                全量更新音频文件
+                {t('header.fullUpdate')}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: "确认精简数据？",
+                    title: t('header.confirmCompactData'),
                     content:
-                      "将清除已标记为假死的数据，并核对数据库单曲路径。若文件不存在，将删除对应单曲及相关收藏/收听记录；若专辑无曲目会删除专辑；若艺术家无曲目和作品也会删除。",
-                    okText: "确认精简",
-                    cancelText: "取消",
+                      t('header.compactDataContent'),
+                    okText: t('header.confirmCompact'),
+                    cancelText: t('common.cancel'),
                     onOk: () => handleUpdateLibrary("compact"),
                   });
                 }}
               >
                 <DeleteOutlined />
-                精简数据
+                {t('header.compactData')}
               </div>
 
               <div className={styles.userMenuItem}>
                 <DeleteOutlined />
-                清空缓存文件
+                {t('header.clearCache')}
               </div>
 
               <div
@@ -1035,18 +1216,26 @@ const Header: React.FC = () => {
                 onClick={() => navigate("/product-updates")}
               >
                 <ReadOutlined className={styles.actionIcon} />
-                产品动态
+                {t('header.productUpdates')}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => navigate("/settings")}
               >
                 <SettingOutlined className={styles.actionIcon} />
-                设置
+                {t('common.settings')}
               </div>
               <div className={styles.userMenuItem} onClick={handleLogout}>
                 <LogoutOutlined />
-                退出/切换服务端账号
+                {t('header.logout')}
+              </div>
+              <div
+                className={styles.userMenuItem}
+                onClick={handleDeleteMemberAccount}
+                style={{ color: "#ff4d4f" }}
+              >
+                <DeleteOutlined />
+                {t('header.cancelMembership')}
               </div>
             </div>
           }
@@ -1058,11 +1247,7 @@ const Header: React.FC = () => {
           >
             <div className={styles.avatar}>
               <img
-                src={
-                  user?.avatar
-                    ? `${localStorage.getItem("serverAddress")}${user.avatar}`
-                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || "Felix"}`
-                }
+                src={getAvatarUrl(user?.avatar, user?.username || "Felix")}
                 alt="avatar"
               />
             </div>
@@ -1071,33 +1256,7 @@ const Header: React.FC = () => {
       </div>
       {contextHolder}
       <Modal
-        title="参与内测"
-        open={isInternalTestModalOpen}
-        onCancel={() => {
-          if (!redeemingInternalTestCode) {
-            setIsInternalTestModalOpen(false);
-          }
-        }}
-        onOk={() => void handleRedeemInternalTestCode()}
-        okText={redeemingInternalTestCode ? "提交中..." : "提交"}
-        cancelText="取消"
-        okButtonProps={{ loading: redeemingInternalTestCode }}
-        cancelButtonProps={{ disabled: redeemingInternalTestCode }}
-        destroyOnClose
-      >
-        <Flex vertical gap={12}>
-          <Text type="secondary">请输入内测码</Text>
-          <Input
-            value={internalTestCode}
-            onChange={(e) => setInternalTestCode(e.target.value)}
-            placeholder="请输入内测码"
-            disabled={redeemingInternalTestCode}
-            onPressEnter={() => void handleRedeemInternalTestCode()}
-          />
-        </Flex>
-      </Modal>
-      <Modal
-        title={importTask?.mode === "compact" ? "精简数据进度" : "数据入库进度"}
+        title={importTask?.mode === "compact" ? t('header.compactDataProgress') : t('header.importProgress')}
         open={isImportModalOpen}
         onCancel={() => {
           if (
@@ -1106,7 +1265,7 @@ const Header: React.FC = () => {
           ) {
             setIsImportModalOpen(false);
           } else {
-            message.info("任务正在后台运行...");
+            message.info(t('header.taskRunningBackground'));
             setIsImportModalOpen(false);
           }
         }}
@@ -1115,34 +1274,34 @@ const Header: React.FC = () => {
       >
         <div style={{ padding: "20px 0" }}>
           <div style={{ marginBottom: 16 }}>
-            状态：
+            {t('header.status')} 
             {importTask?.message &&
             importTask.status !== TaskStatus.FAILED &&
             importTask.status !== TaskStatus.SUCCESS
               ? importTask.message
               : importTask?.status === TaskStatus.INITIALIZING
                 ? importTask?.mode === "compact"
-                  ? "正在初始化精简任务..."
-                  : "正在初始化..."
+                  ? t('header.initializingCompact')
+                  : t('header.initializing')
                 : importTask?.status === TaskStatus.PREPARING
                   ? importTask?.mode === "compact"
-                    ? "正在精简数据库..."
-                    : "正在准备环境..."
+                    ? t('header.compactingDb')
+                    : t('header.preparingEnv')
                   : importTask?.status === TaskStatus.PARSING
-                    ? "正在解析媒体文件..."
+                    ? t('header.parsing')
                     : importTask?.status === TaskStatus.SUCCESS
                       ? importTask?.mode === "compact"
-                        ? "精简完成"
-                        : "入库完成"
+                        ? t('header.compactComplete')
+                        : t('header.importComplete')
                       : importTask?.status === TaskStatus.FAILED
                         ? importTask?.mode === "compact"
-                          ? "精简失败"
-                          : "入库失败"
-                        : "准备中"}
+                          ? t('header.compactFailed')
+                          : t('header.importFailed')
+                        : t('header.preparingOrDefault') }
           </div>
           {importTask?.status === TaskStatus.FAILED && (
             <div style={{ color: token.colorError, marginBottom: 16 }}>
-              错误：{importTask.message}
+              {t('common.error')}: {importTask.message}
             </div>
           )}
           <Progress
@@ -1165,7 +1324,7 @@ const Header: React.FC = () => {
             <Flex vertical gap={4} style={{ marginTop: 12 }}>
               <Flex justify="space-between" align="center">
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  本地文件入库进度
+                  {t('header.localFileProgress')}
                 </Text>
                 <Text style={{ fontSize: 13 }}>
                   {importTask?.localCurrent || 0} /{" "}
@@ -1174,11 +1333,20 @@ const Header: React.FC = () => {
               </Flex>
               <Flex justify="space-between" align="center">
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  WebDAV 文件入库进度
+                  {t('header.webdavFileProgress')}
                 </Text>
                 <Text style={{ fontSize: 13 }}>
                   {importTask?.webdavCurrent || 0} /{" "}
                   {importTask?.webdavTotal || 0}
+                </Text>
+              </Flex>
+              <Flex justify="space-between" align="center">
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {t('header.mvFileProgress')}
+                </Text>
+                <Text style={{ fontSize: 13 }}>
+                  {importTask?.mvCurrent || 0} /{" "}
+                  {importTask?.mvTotal || 0}
                 </Text>
               </Flex>
               <Flex
@@ -1191,7 +1359,7 @@ const Header: React.FC = () => {
                 }}
               >
                 <Text strong style={{ fontSize: 12 }}>
-                  总进度
+                  {t('header.totalProgress')}
                 </Text>
                 <Text strong style={{ fontSize: 13 }}>
                   {importTask?.current || 0} / {importTask?.total || 0}
@@ -1214,7 +1382,7 @@ const Header: React.FC = () => {
                 borderRadius: 4,
               }}
             >
-              正在处理: {importTask.currentFileName}
+              {t('header.processing')} {importTask.currentFileName}
             </div>
           )}
         </div>

@@ -6,6 +6,7 @@ import { NativeCollectionAdapter } from "./collection";
 import { NativePlaylistAdapter } from "./playlist";
 import { NativeTrackAdapter } from "./track";
 import { NativeUserAdapter } from "./user";
+import { NativeMvAdapter } from "./mv";
 
 export class NativeMusicAdapter implements IMusicAdapter {
   track = new NativeTrackAdapter();
@@ -15,4 +16,5 @@ export class NativeMusicAdapter implements IMusicAdapter {
   collection = new NativeCollectionAdapter();
   user = new NativeUserAdapter();
   auth = new NativeAuthAdapter();
+  mv = new NativeMvAdapter();
 }

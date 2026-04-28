@@ -20,6 +20,8 @@ export interface ImportTask {
   localCurrent?: number;
   webdavTotal?: number;
   webdavCurrent?: number;
+  mvTotal?: number;
+  mvCurrent?: number;
   currentFileName?: string;
 }
 

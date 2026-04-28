@@ -1,9 +1,11 @@
 import { Image, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { useTranslation } from 'react-i18next'
 import { SOURCEMAP, SOURCETIPSMAP, getSourceLogo } from '../../utils/sourceUtils'
 import './index.scss'
 
 export default function Login() {
+  const { t } = useTranslation();
   const params = Taro.getCurrentInstance().router?.params
   const adding = params?.adding === 'true'
 
@@ -20,8 +22,8 @@ export default function Login() {
     <View className='login-selection'>
       <View className='header'>
         <Image src={getSourceLogo('AudioDock')} className='app-logo' mode='aspectFill' />
-        <Text className='title'>选择数据源类型</Text>
-        <Text className='subtitle'>请选择您要连接的服务器类型</Text>
+        <Text className='title'>{t('loginSelect.title')}</Text>
+        <Text className='subtitle'>{t('loginSelect.subtitle')}</Text>
       </View>
 
       <View className='source-list'>
@@ -43,7 +45,7 @@ export default function Login() {
 
       <View className='scan-login'>
         <Text className='scan-login-text' onClick={handleScanLogin}>
-          扫码登录
+          {t('loginSelect.scanLogin')}
         </Text>
       </View>
     </View>

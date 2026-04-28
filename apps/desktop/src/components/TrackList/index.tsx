@@ -26,6 +26,7 @@ import {
 } from "antd";
 import type { ColumnProps } from "antd/es/table";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMessage } from "../../context/MessageContext";
 import { type Track, TrackType } from "../../models";
 import { downloadTrack } from "../../services/downloadManager";
@@ -73,6 +74,7 @@ const TrackList: React.FC<TrackListProps> = ({
   playlistSource,
 }) => {
   const message = useMessage();
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const { play, setPlaylist, currentTrack, isPlaying, pause, removeTrack, toggleLike } =
     usePlayerStore();
@@ -127,7 +129,7 @@ const TrackList: React.FC<TrackListProps> = ({
       // Modifying the track object in place is dirty but works for display if valid React update triggers.
       // Better: The parent handles data.
     } catch (error) {
-      message.error("操作失败");
+      message.error(t('common.error'));
     }
   };
 
@@ -141,7 +143,7 @@ const TrackList: React.FC<TrackListProps> = ({
         setPlaylists(res.data);
       }
     } catch (error) {
-      message.error("获取播放列表失败");
+      message.error(t('trackList.getPlaylistsFailed'));
     }
   };
 
@@ -150,13 +152,13 @@ const TrackList: React.FC<TrackListProps> = ({
     try {
       const res = await addTrackToPlaylist(playlistId, selectedTrack.id);
       if (res.code === 200) {
-        message.success("添加成功");
+        message.success(t('common.success'));
         setIsAddToPlaylistModalOpen(false);
       } else {
-        message.error("添加失败");
+        message.error(t('common.error'));
       }
     } catch (error) {
-      message.error("添加失败");
+      message.error(t('common.error'));
     }
   };
 
@@ -165,30 +167,30 @@ const TrackList: React.FC<TrackListProps> = ({
       const { data: impact } = await getDeletionImpact(track.id);
 
       modalApi.confirm({
-        title: "确定删除该音频文件吗?",
+        title: t('trackList.confirmDelete'),
         content: impact?.isLastTrackInAlbum
           ? `这是专辑《${impact.albumName}》的最后一个音频，删除后该专辑也将被同步删除。`
           : "删除后将无法恢复，且会同步删除本地原文件。",
-        okText: "删除",
+        okText: t('common.delete'),
         okType: "danger",
-        cancelText: "取消",
+        cancelText: t('common.cancel'),
         onOk: async () => {
           try {
             const res = await deleteTrack(track.id, impact?.isLastTrackInAlbum);
             if (res.code === 200) {
-              message.success("删除成功");
+              message.success(t('common.success'));
               removeTrack(track.id);
               if (onRefresh) onRefresh();
             } else {
-              message.error("删除失败");
+              message.error(t('common.error'));
             }
           } catch (error) {
-            message.error("删除失败");
+            message.error(t('common.error'));
           }
         },
       });
     } catch (error) {
-      message.error("获取删除影响失败");
+      message.error(t('trackList.getDeletionImpactFailed'));
     }
   };
 
@@ -208,7 +210,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showCover
       ? [
           {
-            title: "封面",
+            title: t('trackList.cover'),
             key: "cover",
             width: 60,
             render: (_: any, record: Track) => (
@@ -244,7 +246,7 @@ const TrackList: React.FC<TrackListProps> = ({
         ]
       : []),
     {
-      title: "标题",
+      title: t('trackList.title'),
       dataIndex: "name",
       key: "name",
       ellipsis: true,
@@ -266,7 +268,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showArtist
       ? [
           {
-            title: "艺术家",
+            title: t('trackList.artist'),
             dataIndex: "artist",
             key: "artist",
             ellipsis: true,
@@ -277,7 +279,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showAlbum
       ? [
           {
-            title: "专辑",
+            title: t('trackList.album'),
             dataIndex: ["album", "name"] as any, // Handle object or string based on backend?
             key: "album",
             ellipsis: true,
@@ -292,7 +294,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...((type === TrackType.AUDIOBOOK)
       ? [
           {
-            title: "进度",
+            title: t('trackList.progress'),
             dataIndex: "progress",
             key: "progress",
             width: 70,
@@ -314,7 +316,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showDuration
       ? [
           {
-            title: "时长",
+            title: t('trackList.duration'),
             dataIndex: "duration",
             key: "duration",
             width: 80,
@@ -334,7 +336,7 @@ const TrackList: React.FC<TrackListProps> = ({
               const items: MenuProps["items"] = [
                 {
                   key: "play",
-                  label: "播放",
+                  label: t('player.play'),
                   icon: <PlayCircleOutlined />,
                   onClick: (info) => {
                     info.domEvent.stopPropagation();
@@ -346,8 +348,8 @@ const TrackList: React.FC<TrackListProps> = ({
                   label: (record as any).likedByUsers?.some(
                     (like: any) => like.userId === user?.id
                   )
-                    ? "取消收藏"
-                    : "收藏",
+                    ? t('player.unlike')
+                    : t('player.like'),
                   icon: (record as any).likedByUsers?.some(
                     (like: any) => like.userId === user?.id
                   ) ? (
@@ -370,7 +372,7 @@ const TrackList: React.FC<TrackListProps> = ({
                 },
                 {
                   key: "add",
-                  label: "添加到播放列表",
+                  label: t('player.addToPlaylist'),
                   icon: <PlusOutlined />,
                   onClick: (info) => {
                     info.domEvent.stopPropagation();
@@ -379,20 +381,20 @@ const TrackList: React.FC<TrackListProps> = ({
                 },
                 {
                    key: "download",
-                   label: "下载",
+                   label: t('common.download'),
                    icon: <CloudDownloadOutlined />,
                    onClick: (info) => {
                      info.domEvent.stopPropagation();
-                     message.info(`正在下载 ${record.name}...`);
+                     message.info(t('common.downloading', { name: record.name }));
                      downloadTrack(record).then(success => {
-                       if (success) message.success(`${record.name} 下载成功`);
-                       else message.error(`${record.name} 下载失败`);
+                       if (success) message.success(t('common.downloadSuccess', { name: record.name }));
+                       else message.error(t('common.downloadFailed', { name: record.name }));
                      });
                    }
                 },
                 {
                   key: "delete",
-                  label: "删除",
+                  label: t('common.delete'),
                   icon: <DeleteOutlined />,
                   danger: true,
                   onClick: (info) => {
@@ -435,7 +437,7 @@ const TrackList: React.FC<TrackListProps> = ({
       />
 
       <Modal
-        title="添加到播放列表"
+        title={t('addToPlaylistModal.title')}
         open={isAddToPlaylistModalOpen}
         onCancel={() => setIsAddToPlaylistModalOpen(false)}
         footer={null}
@@ -449,7 +451,7 @@ const TrackList: React.FC<TrackListProps> = ({
               className={styles.playlistItem}
             >
               <Text>{item.name}</Text>
-              <Text type="secondary">{item._count?.tracks || 0} 首</Text>
+              <Text type="secondary">{item._count?.tracks || 0} {t('trackList.tracks')}</Text>
             </List.Item>
           )}
         />

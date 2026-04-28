@@ -14,10 +14,13 @@ import {
   type ScanLoginSessionStatus,
 } from "@soundx/services";
 import { Button, Form, Input, Layout, QRCode, Typography, message, theme } from "antd";
+import { useTranslation } from "react-i18next";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { useAuthStore } from "../../store/auth";
+import { useTheme } from "../../context/ThemeContext";
+import { trackEvent } from "../../services/tracking";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -28,10 +31,12 @@ type MemberLoginFormValues = {
 };
 
 const MemberLogin: React.FC = () => {
+  const { t } = useTranslation();
+  const { mode } = useTheme();
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const { setPlusToken } = useAuthStore();
+  const { setPlusToken, user, device } = useAuthStore();
   const [messageApi, contextHolder] = message.useMessage();
   const [scanSession, setScanSession] = useState<ScanLoginSession | null>(null);
   const [scanStatus, setScanStatus] = useState<ScanLoginSessionStatus | null>(null);
@@ -57,6 +62,12 @@ const MemberLogin: React.FC = () => {
 
   const createTargetSession = async () => {
     try {
+      trackEvent({
+        feature: "scan_login",
+        eventName: "member_login_qr_refresh",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+      });
       const res = await createScanLoginSession({
         role: "target",
         deviceKind: "desktop",
@@ -112,10 +123,25 @@ const MemberLogin: React.FC = () => {
           success: true,
         }).catch((reportErr) => console.error("Failed to report scan login result", reportErr));
         reportScanLoginResultViaSocket(scanSession.sessionId, scanSession.secret, true);
+        trackEvent({
+          feature: "scan_login",
+          eventName: "scan_login_result_success",
+          userId: user?.id ? String(user.id) : undefined,
+          deviceId: device?.id ? String(device.id) : undefined,
+        });
         messageApi.success("扫码登录成功");
         navigate("/", { replace: true });
       } catch (error) {
         console.error(error);
+        trackEvent({
+          feature: "scan_login",
+          eventName: "scan_login_result_failed",
+          userId: user?.id ? String(user.id) : undefined,
+          deviceId: device?.id ? String(device.id) : undefined,
+          metadata: {
+            message: error instanceof Error ? error.message : "unknown_error",
+          },
+        });
         messageApi.error(error instanceof Error ? error.message : "扫码登录失败");
         createTargetSession();
       } finally {
@@ -128,6 +154,12 @@ const MemberLogin: React.FC = () => {
 
   const handleSendCode = async () => {
     try {
+      trackEvent({
+        feature: "scan_login",
+        eventName: "member_login_send_code",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+      });
       const values = await form.validateFields(["phone"]);
 
       const hide = messageApi.loading("正在发送验证码...");
@@ -156,6 +188,12 @@ const MemberLogin: React.FC = () => {
 
   const onFinish = async (values: MemberLoginFormValues) => {
     setLoading(true);
+    trackEvent({
+      feature: "scan_login",
+      eventName: "member_login_submit",
+      userId: user?.id ? String(user.id) : undefined,
+      deviceId: device?.id ? String(device.id) : undefined,
+    });
     try {
       const res = await plusLogin({ phone: values.phone, code: values.code });
       setLoading(false);
@@ -166,6 +204,12 @@ const MemberLogin: React.FC = () => {
         localStorage.setItem("plus_token", plusToken);
         localStorage.setItem("plus_user_id", JSON.stringify(userId));
         setPlusToken(plusToken);
+        trackEvent({
+          feature: "scan_login",
+          eventName: "member_login_success",
+          userId: String(userId),
+          deviceId: device?.id ? String(device.id) : undefined,
+        });
 
         messageApi.success("会员登录成功");
         setTimeout(() => {
@@ -183,6 +227,15 @@ const MemberLogin: React.FC = () => {
         typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
           ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
           : "登录失败，请检查验证码";
+      trackEvent({
+        feature: "scan_login",
+        eventName: "member_login_failed",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+        metadata: {
+          message: messageText,
+        },
+      });
       messageApi.error(messageText);
     }
   };
@@ -203,13 +256,13 @@ const MemberLogin: React.FC = () => {
       <Content className={styles.container}>
         <div
           className={styles.card}
-          style={{ background: token.colorBgContainer }}
+          style={{ background: mode === 'dark' ? 'transparent' : token.colorBgContainer, border: mode === 'dark' ? 'none' : undefined, boxShadow: mode === 'dark' ? 'none' : undefined }}
         >
           <div className={styles.contentGrid}>
             <div className={styles.scanSection}>
               {scanStatus?.status === "waiting_confirm" ? (
                 <div style={{ textAlign: "center", padding: "40px 0" }}>
-                  <Title level={5}>等待手机端确认</Title>
+                  <Title level={5}>{t("memberLogin.scanWaiting")}</Title>
                   <Text type="secondary">手机已扫码。请在手机屏幕上确认发送...</Text>
                 </div>
               ) : (

@@ -2,6 +2,7 @@ import { getAlbumHistory, getFavoriteAlbums, getFavoriteTracks, getTrackHistory 
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
@@ -13,6 +14,7 @@ type TabType = 'current' | 'history' | 'favorites';
 type SubTabType = 'track' | 'album';
 
 const PlaylistModal = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { mode } = usePlayMode();
   const {
@@ -122,7 +124,7 @@ const PlaylistModal = () => {
           {isAlbum && <Text className='chevron icon icon-back' style={{ transform: 'rotate(180deg)' }} />}
           {mode === 'AUDIOBOOK' && (item as any).progress && !isAlbum && (
             <Text className='progress-text'>
-              已听{Math.floor(((item as any).progress / (item.duration || 1)) * 100)}%
+              {t('common.listened')}{Math.floor(((item as any).progress / (item.duration || 1)) * 100)}%
             </Text>
           )}
         </View>
@@ -137,9 +139,9 @@ const PlaylistModal = () => {
       <View className='playlist-modal-content' onClick={(e) => e.stopPropagation()}>
         <View className='modal-header'>
           {[
-            { id: 'current', label: `当前 (${trackList.length})` },
-            { id: 'history', label: '听过' },
-            { id: 'favorites', label: '收藏' },
+            { id: 'current', label: `${t('player.playOrderSequence')} (${trackList.length})` },
+            { id: 'history', label: t('common.listened') },
+            { id: 'favorites', label: t('common.favorites') },
           ].map((tab) => (
             <View
               key={tab.id}
@@ -156,8 +158,8 @@ const PlaylistModal = () => {
         {mode === 'MUSIC' && activeTab !== 'current' && (
           <View className='sub-tab-container'>
             {[
-              { id: 'album', label: '专辑' },
-              { id: 'track', label: '单曲' },
+              { id: 'album', label: t('nav.albums') },
+              { id: 'track', label: t('nav.tracks') },
             ].map((sub) => (
               <View
                 key={sub.id}
@@ -174,7 +176,7 @@ const PlaylistModal = () => {
 
         {loading ? (
           <View className='loading-container'>
-            <Text>加载中...</Text>
+            <Text>{t('common.loading')}</Text>
           </View>
         ) : (
           <ScrollView scrollY className='list-scroll'>
@@ -182,7 +184,7 @@ const PlaylistModal = () => {
               listData.map((item, index) => renderItem(item, index))
             ) : (
               <View className='empty-container'>
-                <Text className='empty-text'>暂无记录</Text>
+                <Text className='empty-text'>{t('common.noData')}</Text>
               </View>
             )}
           </ScrollView>

@@ -9,9 +9,10 @@ import { trackEvent } from "@/src/services/tracking";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { plusGetMe, toggleTrackLike, toggleTrackUnLike } from "@soundx/services";
+import { getMvByTrackId, plusGetMe, toggleTrackLike, toggleTrackUnLike } from "@soundx/services";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Animated,
   Alert,
@@ -185,6 +186,9 @@ export function PlayerDetailView({
     isLoading,
     playbackRate,
     setPlaybackRate,
+    currentAudioQuality,
+    availableAudioQualities,
+    cycleAudioQuality,
     isRadioMode,
   } = usePlayer();
   const [syncModalVisible, setSyncModalVisible] = useState(false);
@@ -197,10 +201,13 @@ export function PlayerDetailView({
   const [liked, setLiked] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [hasMv, setHasMv] = useState(false);
   const [syncCheckLoading, setSyncCheckLoading] = useState(false);
   const { user, device, setPlusToken } = useAuth();
+  const { t } = useTranslation();
   const [isVip, setIsVip] = useState(false);
   const [lyricFontSize, setLyricFontSize] = useState(16);
+  const [controlsBottomOffset, setControlsBottomOffset] = useState(0);
   const lineLayouts = useRef<{ [key: number]: any }>({});
 
   useEffect(() => {
@@ -233,9 +240,15 @@ export function PlayerDetailView({
       const plusToken = await AsyncStorage.getItem("plus_token");
       const plusUserId = await AsyncStorage.getItem("plus_user_id");
       if (!plusToken || !plusUserId) {
-        Alert.alert("提示", "该功能是VIP功能，仅在开通VIP的情况使用。", [
-          { text: "取消", style: "cancel" },
-          ...(Platform.OS !== "ios" ? [{ text: "立即开通", onPress: () => router.push("/member-benefits" as any), style: "default" as const }] : []),
+        Alert.alert(t("playerPage.notice"), t("playerPage.vipFeatureOnly"), [
+          { text: t("common.cancel"), style: "cancel" },
+          ...(Platform.OS !== "ios"
+            ? [{
+                text: t("playerPage.activateNow"),
+                onPress: () => router.push("/member-benefits" as any),
+                style: "default" as const,
+              }]
+            : []),
         ]);
         return;
       }
@@ -251,14 +264,20 @@ export function PlayerDetailView({
       if (isVip) {
         setSyncModalVisible(true);
       } else {
-        Alert.alert("提示", "该功能是VIP功能，仅在开通VIP的情况使用。", [
-          { text: "取消", style: "cancel" },
-          ...(Platform.OS !== "ios" ? [{ text: "立即开通", onPress: () => router.push("/member-benefits" as any), style: "default" as const }] : []),
+        Alert.alert(t("playerPage.notice"), t("playerPage.vipFeatureOnly"), [
+          { text: t("common.cancel"), style: "cancel" },
+          ...(Platform.OS !== "ios"
+            ? [{
+                text: t("playerPage.activateNow"),
+                onPress: () => router.push("/member-benefits" as any),
+                style: "default" as const,
+              }]
+            : []),
         ]);
       }
     } catch (error) {
       console.warn("Failed to check VIP status", error);
-      Alert.alert("提示", "会员状态获取失败，请稍后重试");
+      Alert.alert(t("playerPage.notice"), t("playerPage.vipStatusFailed"));
     } finally {
       setSyncCheckLoading(false);
     }
@@ -268,7 +287,24 @@ export function PlayerDetailView({
     AsyncStorage.getItem("lyric_font_size").then((val) => {
       if (val) setLyricFontSize(parseFloat(val));
     });
+    AsyncStorage.getItem("player_controls_bottom_offset").then((val) => {
+      if (val != null) {
+        const parsed = parseFloat(val);
+        if (!Number.isNaN(parsed)) {
+          setControlsBottomOffset(parsed);
+        }
+      }
+    });
   }, []);
+
+  useEffect(() => {
+    AsyncStorage.setItem(
+      "player_controls_bottom_offset",
+      String(controlsBottomOffset),
+    ).catch((error) => {
+      console.warn("Failed to save controls bottom offset", error);
+    });
+  }, [controlsBottomOffset]);
 
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideTimerRef = useRef<any>(null);
@@ -339,6 +375,34 @@ export function PlayerDetailView({
     };
     checkCacheStatus();
   }, [currentTrack]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkMvStatus = async () => {
+      if (!currentTrack || currentTrack.type === TrackType.AUDIOBOOK) {
+        if (!cancelled) setHasMv(false);
+        return;
+      }
+
+      try {
+        const mv = await getMvByTrackId(Number(currentTrack.id));
+        if (!cancelled) {
+          setHasMv(!!mv);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setHasMv(false);
+        }
+      }
+    };
+
+    checkMvStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id, currentTrack?.type]);
 
   const breatheAnim = useRef(new Animated.Value(1)).current;
 
@@ -519,6 +583,27 @@ export function PlayerDetailView({
   };
 
   if (!currentTrack) {
+    if (embedded && carModeEnabled) {
+      return (
+        <View
+          style={[
+            styles.container,
+            styles.carEmptyState,
+            { backgroundColor: colors.background },
+          ]}
+        >
+          <Text
+            style={[
+              styles.carEmptyStateText,
+              { color: colors.secondary },
+            ]}
+          >
+            {"AudioDock\n听见你的声音"}
+          </Text>
+        </View>
+      );
+    }
+
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={{ color: colors.text }}>No track playing</Text>
@@ -622,7 +707,7 @@ export function PlayerDetailView({
                         marginTop: 2,
                       }}
                     >
-                      已听{" "}
+                      {t("playerPage.listened")}{" "}
                       {Math.floor((displayProgress / (item.duration || 1)) * 100)}
                       %
                     </Text>
@@ -651,9 +736,29 @@ export function PlayerDetailView({
             text={currentTrack.name}
             style={[styles.trackTitle, { color: colors.text }]}
           />
-          <Text style={[styles.trackArtist, { color: colors.secondary }]}>
-            {currentTrack.artist}
-          </Text>
+          <View style={styles.trackMetaRow}>
+            <Text style={[styles.trackArtist, { color: colors.secondary }]}>
+              {currentTrack.artist}
+            </Text>
+            {currentTrack.type !== TrackType.AUDIOBOOK && (
+              <TouchableOpacity
+                onPress={() => {
+                  cycleAudioQuality();
+                  resetHideTimer();
+                }}
+                style={[
+                  styles.qualityButton,
+                  { borderColor: colors.border, backgroundColor: colors.card },
+                  availableAudioQualities.length <= 1 && styles.qualityButtonDisabled,
+                ]}
+                disabled={availableAudioQualities.length <= 1}
+              >
+                <Text style={[styles.qualityButtonText, { color: colors.text }]}>
+                  {availableAudioQualities.find((item) => item.quality === currentAudioQuality)?.label || "无损"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         <TouchableOpacity
           onPress={handleSyncPress}
@@ -678,22 +783,47 @@ export function PlayerDetailView({
           router={router}
           lyricFontSize={lyricFontSize}
           setLyricFontSize={setLyricFontSize}
+          controlsBottomOffset={controlsBottomOffset}
+          setControlsBottomOffset={setControlsBottomOffset}
         />
         {renderPlaylistModal && <PlaylistModal />}
         {currentTrack.type !== TrackType.AUDIOBOOK && (
-          <TouchableOpacity
-            onPress={() => {
-              handleToggleLike();
-              resetHideTimer();
-            }}
-            style={styles.likeButton}
-          >
-            <Ionicons
-              name={liked ? "heart" : "heart-outline"}
-              size={24}
-              color={liked ? colors.primary : colors.text}
-            />
-          </TouchableOpacity>
+          <>
+            {hasMv && (
+              <TouchableOpacity
+                onPress={() => {
+                  router.push({
+                    pathname: "/mv/[id]",
+                    params: {
+                      id: String(currentTrack.id),
+                      trackId: String(currentTrack.id),
+                    },
+                  } as any);
+                  resetHideTimer();
+                }}
+                style={styles.likeButton}
+              >
+                <Ionicons
+                  name="videocam-outline"
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => {
+                handleToggleLike();
+                resetHideTimer();
+              }}
+              style={styles.likeButton}
+            >
+              <Ionicons
+                name={liked ? "heart" : "heart-outline"}
+                size={24}
+                color={liked ? colors.primary : colors.text}
+              />
+            </TouchableOpacity>
+          </>
         )}
         <TouchableOpacity
           onPress={() => {
@@ -924,7 +1054,7 @@ export function PlayerDetailView({
                     <Text
                       style={[styles.lyricsText, { color: colors.secondary }]}
                     >
-                      暂无歌词
+                      {t("player.noLyrics")}
                     </Text>
                   )}
                 </ScrollView>
@@ -1036,7 +1166,7 @@ export function PlayerDetailView({
                     <Text
                       style={[styles.lyricsText, { color: colors.secondary }]}
                     >
-                      暂无歌词
+                      {t("player.noLyrics")}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1058,7 +1188,7 @@ export function PlayerDetailView({
           </View>
         </View>
 
-        <View>{renderControls()}</View>
+        <View style={{ marginBottom: controlsBottomOffset }}>{renderControls()}</View>
       </View>
     </View>
   );
@@ -1071,6 +1201,17 @@ export default function PlayerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  carEmptyState: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  carEmptyStateText: {
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: "center",
+    opacity: 0.55,
   },
   header: {
     flexDirection: "row",
@@ -1176,6 +1317,24 @@ const styles = StyleSheet.create({
   trackArtist: {
     fontSize: 14,
     textAlign: "left",
+  },
+  trackMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  qualityButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  qualityButtonDisabled: {
+    opacity: 0.65,
+  },
+  qualityButtonText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   timeContainer: {
     flexDirection: "row",

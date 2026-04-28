@@ -44,6 +44,7 @@ import { useCheckUpdate } from "./hooks/useCheckUpdate";
 import { socketService } from "./services/socket";
 import { useAuthStore } from "./store/auth";
 import { useSettingsStore, type SettingsState } from "./store/settings";
+import i18n from "./i18n";
 
 // Wrapper to provide consistent background and color based on theme tokens
 const RootWrapper = ({ children, mode }: { children: React.ReactNode; mode: string }) => {
@@ -89,7 +90,16 @@ const AppContent = () => {
 
   // Sync settings on startup
   const settings = useSettingsStore((state: SettingsState) => state);
-  const { autoLaunch, minimizeToTray } = settings.general;
+  const { autoLaunch, minimizeToTray, language } = settings.general;
+
+  useEffect(() => {
+    if (language === 'system') {
+      const systemLang = navigator.language.startsWith('zh') ? 'zh-CN' : 'en';
+      if (i18n.language !== systemLang) {
+        i18n.changeLanguage(systemLang);
+      }
+    }
+  }, [language, i18n.language]);
 
   useEffect(() => {
     if ((window as any).ipcRenderer) {
@@ -229,6 +239,18 @@ const AppContent = () => {
                                     element={<Category />}
                                   />
                                   <Route
+                                    path="/mvs"
+                                    element={<Mvs />}
+                                  />
+                                  <Route
+                                    path="/mv"
+                                    element={<MvDetail />}
+                                  />
+                                  <Route
+                                    path="/mv/:id"
+                                    element={<MvDetail />}
+                                  />
+                                  <Route
                                     path="/collections"
                                     element={<Collections />}
                                   />
@@ -314,6 +336,9 @@ const AppContent = () => {
 };
 
 // ... existing imports
+
+const Mvs = lazy(() => import("./pages/Mvs"));
+const MvDetail = lazy(() => import("./pages/MvDetail"));
 
 function App() {
   return (

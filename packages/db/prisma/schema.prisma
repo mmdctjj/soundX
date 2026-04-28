@@ -25,6 +25,8 @@ enum FileStatus {
 model Track {
   id        Int      @id @default(autoincrement())
   name      String
+  fileName  String?
+  relativePath String?
   path      String
   artist    String
   album     String
@@ -34,7 +36,9 @@ model Track {
   index     Int?      // Track order within the album
   type      TrackType @default(MUSIC)
   createdAt DateTime @default(now())
+  fileCreatedAt DateTime?
   fileModifiedAt DateTime?
+  scanOrder Int?
   episodeNumber Int? @default(0)
   
   // Fingerprinting and Soft Delete
@@ -56,6 +60,7 @@ model Track {
   playlists       Playlist[]
   folderId        Int?
   folder          Folder?  @relation(fields: [folderId], references: [id])
+  mvs             Mv[]
   
   @@index([fileHash])
   @@index([status])
@@ -73,6 +78,7 @@ model Album {
   trashedAt DateTime?
 
   tracks Track[] 
+  mvs    Mv[]
 
   /// 🔁 反向关系
   likedByUsers    UserAlbumLike[]
@@ -92,6 +98,7 @@ model Artist {
   trashedAt DateTime?
 
   tracks Track[]
+  mvs    Mv[]
 
   @@index([status])
 }
@@ -313,6 +320,34 @@ model TtsTask {
   chapters          TtsChapterTask[]
 
   @@map("tts_task")
+}
+
+model Mv {
+  id             Int       @id @default(autoincrement())
+  name           String
+  path           String
+  artist         String?
+  album          String?
+  cover          String?
+  duration       Int?
+  createdAt      DateTime  @default(now())
+  fileModifiedAt DateTime?
+  
+  // Fingerprinting and Soft Delete
+  fileHash       String?
+  status         FileStatus @default(ACTIVE)
+  trashedAt      DateTime?
+
+  // Relations to entity tables
+  artistId       Int?
+  artistEntity   Artist?   @relation(fields: [artistId], references: [id])
+  albumId        Int?
+  albumEntity    Album?    @relation(fields: [albumId], references: [id])
+  trackId        Int?
+  trackEntity    Track?    @relation(fields: [trackId], references: [id])
+
+  @@index([fileHash])
+  @@index([status])
 }
 
 model TtsChapterTask {

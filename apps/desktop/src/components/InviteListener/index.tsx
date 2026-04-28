@@ -1,5 +1,6 @@
 import { Button, notification, Space, Typography } from "antd";
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import type { Track } from "../../models";
 import { socketService } from "../../services/socket";
 import { trackEvent } from "../../services/tracking";
@@ -10,16 +11,29 @@ import { getCoverUrl } from "../../utils";
 
 const { Text } = Typography;
 
-const InviteContent: React.FC<{
+interface InviteContentProps {
   fromUserId: number;
   fromUsername?: string;
   fromDeviceName?: string;
   currentTrack?: Track;
-}> = ({ fromUserId, fromUsername, fromDeviceName, currentTrack }) => {
+  t: (key: string, options?: any) => string;
+}
+
+const InviteContent: React.FC<InviteContentProps> = ({
+  fromUserId,
+  fromUsername,
+  fromDeviceName,
+  currentTrack,
+  t,
+}) => {
   return (
     <div>
       <div style={{ marginBottom: 12 }}>
-        <Text strong>{fromUsername || `用户 ${fromUserId}`} {fromDeviceName ? `(${fromDeviceName})` : ''}</Text> 邀请你一同听歌
+        <Text strong>
+          {fromUsername || t("inviteListener.userId", { userId: fromUserId })}
+          {fromDeviceName ? ` (${fromDeviceName})` : ""}
+        </Text>{" "}
+        {t("inviteListener.inviteToListen")}
       </div>
       {currentTrack && (
         <div
@@ -75,6 +89,7 @@ const InviteContent: React.FC<{
 };
 
 const InviteListener: React.FC = () => {
+  const { t } = useTranslation();
   const [api, contextHolder] = notification.useNotification();
   const { play, setPlaylist } = usePlayerStore();
   const { user, device } = useAuthStore();
@@ -91,7 +106,7 @@ const InviteListener: React.FC = () => {
       progress?: number;
     }) => {
       console.log("InviteListener", payload);
-      const key = `invite-${payload.fromUserId}`; // Fixed key to prevent duplicates
+      const key = `invite-${payload.fromUserId}`;
 
       const { acceptSync } = useSettingsStore.getState().general;
       if (!acceptSync) {
@@ -126,7 +141,11 @@ const InviteListener: React.FC = () => {
           });
           if (payload.currentTrack) {
             const onSessionStart = () => {
-              play(payload.currentTrack, payload.currentTrack?.albumEntity?.id, payload.progress || 0);
+              play(
+                payload.currentTrack,
+                payload.currentTrack?.albumEntity?.id,
+                payload.progress || 0
+              );
               socketService.off("sync_session_started", onSessionStart);
             };
             socketService.on("sync_session_started", onSessionStart);
@@ -136,51 +155,49 @@ const InviteListener: React.FC = () => {
           }
         }
       };
-      
-      // Auto-close if handled elsewhere
+
       const handleInviteHandled = (evtPayload: { fromUserId: number }) => {
-           if (evtPayload.fromUserId === payload.fromUserId) {
-               api.destroy(key);
-               // socketService.off logic handled in cleanup? 
-               // This is a one-time listener per notification, effectively.
-           }
+        if (evtPayload.fromUserId === payload.fromUserId) {
+          api.destroy(key);
+        }
       };
       socketService.on("invite_handled", handleInviteHandled);
 
       const btn = (
         <Space>
           <Button size="small" onClick={() => handleRespond(false)}>
-            拒绝
+            {t("inviteListener.reject")}
           </Button>
           <Button
             type="primary"
             size="small"
             onClick={() => handleRespond(true)}
           >
-            接受
+            {t("inviteListener.accept")}
           </Button>
         </Space>
       );
 
       api.open({
-        message: "来自好友的邀请",
+        message: t("inviteListener.inviteFromFriend"),
         description: (
           <InviteContent
             fromUserId={payload.fromUserId}
             fromUsername={payload.fromUsername}
             fromDeviceName={payload.fromDeviceName}
             currentTrack={payload.currentTrack}
+            t={t}
           />
         ),
         key,
         showProgress: true,
         pauseOnHover: false,
-        duration: 60, // Keep open until user interacts or manually closed by timer
+        duration: 60,
         btn,
         placement: "topRight",
         onClose: () => {
-            socketService.off("invite_handled", handleInviteHandled);
-        }
+          socketService.off("invite_handled", handleInviteHandled);
+        },
       });
     };
 
@@ -189,7 +206,7 @@ const InviteListener: React.FC = () => {
     return () => {
       socketService.off("invite_received", handleInviteReceived);
     };
-  }, [api, play]);
+  }, [api, play, t]);
 
   return <>{contextHolder}</>;
 };

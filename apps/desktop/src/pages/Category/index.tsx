@@ -3,6 +3,7 @@ import { useInfiniteScroll } from "ahooks";
 import { HeartFilled, HeartOutlined } from "@ant-design/icons";
 import { Button, Col, Row, Typography, theme } from "antd";
 import React, { useEffect, useLayoutEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import Cover from "../../components/Cover/index";
 import type { Album } from "../../models";
 import { useAlbumListCache } from "../../store/category";
@@ -20,6 +21,7 @@ interface Result {
 const CACHE_KEY = "category_albums";
 
 const Category: React.FC = () => {
+  const { t } = useTranslation();
   // const [activeTab, setActiveTab] = useState<string>("1");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { mode } = usePlayMode();
@@ -29,7 +31,7 @@ const Category: React.FC = () => {
   const key = `${CACHE_KEY}_${mode}_${heartbeatModeActive ? "heartbeat" : "default"}`;
 
   const loadMoreAlbums = async (d: Result | undefined): Promise<Result> => {
-    const pageSize = 12;
+    const pageSize = 50;
     const loadCount = d?.loadCount || d?.loadCount === 0 ? d?.loadCount + 1 : 0; // 当前已经加载的页数
     setLoadCount(key, loadCount);
     try {
@@ -125,7 +127,7 @@ const Category: React.FC = () => {
     <div className={styles.container} ref={scrollRef}>
       <div className={styles.pageHeader}>
         <Typography.Title level={2} className={styles.title}>
-          专辑
+          {t("category.title")}
         </Typography.Title>
         {mode === "MUSIC" && (
           <Button
@@ -133,7 +135,7 @@ const Category: React.FC = () => {
             icon={heartbeatModeActive ? <HeartFilled /> : <HeartOutlined />}
             onClick={toggleHeartbeatMode}
           >
-            心动模式
+            {t("category.heartbeatMode")}
           </Button>
         )}
       </div>
@@ -156,14 +158,16 @@ const Category: React.FC = () => {
             </>
           )}
         </Row>
-        {data && !data.hasMore && data.list.length > 0 && (
-          <div
-            className={styles.noMore}
-            style={{ color: token.colorTextSecondary }}
-          >
-            没有更多了
-          </div>
-        )}
+        <div
+          className={styles.noMore}
+          style={{ color: token.colorTextSecondary }}
+        >
+          {data && data.list.length > 0
+            ? data.hasMore
+              ? `${t("category.totalAlbums", { count: data.total > 0 ? data.total : data.list.length })}, ${t("category.loadedAlbums", { count: data.list.length })}`
+              : `${t("category.totalAlbums", { count: data.total > 0 ? data.total : data.list.length })}, ${t("category.noMore")}`
+            : t("common.noData")}
+        </div>
       </div>
     </div>
   );

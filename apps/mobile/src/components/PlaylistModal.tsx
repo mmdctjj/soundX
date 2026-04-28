@@ -12,14 +12,14 @@ import {
     ActivityIndicator,
     FlatList,
     Image,
-    Modal,
-    Pressable,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { getBaseURL } from "../https";
 import { FloatingActionButtons } from "./FloatingActionButtons";
 
@@ -27,6 +27,7 @@ type TabType = "current" | "history" | "favorites";
 type SubTabType = "track" | "album";
 
 export const PlaylistModal = () => {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user, sourceType } = useAuth();
@@ -215,28 +216,30 @@ export const PlaylistModal = () => {
 
   return (
     <Modal
-      visible={showPlaylist}
-      transparent
-      animationType="slide"
-      onRequestClose={() => setShowPlaylist(false)}
+      isVisible={showPlaylist}
+      onBackdropPress={() => setShowPlaylist(false)}
+      onBackButtonPress={() => setShowPlaylist(false)}
+      useNativeDriver
+      hideModalContentWhileAnimating
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropTransitionOutTiming={0}
+      style={styles.bottomSheetModal}
     >
-      <Pressable style={styles.backdrop} onPress={() => setShowPlaylist(false)}>
-        <Pressable
-          style={styles.modalWrapper}
-          onPress={(e) => e.stopPropagation()}
-        >
+      <View style={styles.sheetWrapper}>
+        <View style={styles.modalWrapper}>
           <View
             style={[
               styles.modalContent,
-              { backgroundColor: colors.card, paddingBottom: insets.bottom },
+              { backgroundColor: colors.card },
             ]}
           >
             <View style={styles.modalHeader}>
               <View style={styles.tabRow}>
                 {[
-                  { id: "current", label: `当前 (${trackList.length})` },
-                  { id: "history", label: "听过" },
-                  { id: "favorites", label: "收藏" },
+                  { id: "current", label: t('playlist.currentPlaylist', { count: trackList.length }) },
+                  { id: "history", label: t('playlist.listened') },
+                  { id: "favorites", label: t('playlist.favorited') },
                 ].filter((tab) => !(sourceType === "Emby" && tab.id === "history")).map((tab) => (
                   <TouchableOpacity
                     key={tab.id}
@@ -272,8 +275,8 @@ export const PlaylistModal = () => {
             {mode === "MUSIC" && activeTab !== "current" && (
               <View style={styles.subTabContainer}>
                 {[
-                  { id: "album", label: "专辑" },
-                  { id: "track", label: "单曲" },
+                  { id: "album", label: t('playlist.album') },
+                  { id: "track", label: t('playlist.single') },
                 ].map((sub) => (
                   <TouchableOpacity
                     key={sub.id}
@@ -310,9 +313,14 @@ export const PlaylistModal = () => {
             ) : (
               <FlatList
                 ref={flatListRef}
+                style={styles.list}
                 data={listData}
                 keyExtractor={(item, index) => `${item.id}-${index}`}
                 renderItem={renderItem}
+                contentContainerStyle={[
+                  styles.listContent,
+                  { paddingBottom: insets.bottom },
+                ]}
                 ListEmptyComponent={
                   <View style={styles.center}>
                     <Text style={{ color: colors.secondary, marginTop: 20 }}>
@@ -341,16 +349,20 @@ export const PlaylistModal = () => {
               />
             )}
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
+  bottomSheetModal: {
+    margin: 0,
+    justifyContent: "flex-end",
+  },
+  sheetWrapper: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    width: "100%",
     justifyContent: "flex-end",
     alignItems: "center",
   },
@@ -358,12 +370,20 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "60%",
     maxWidth: 450,
+    alignSelf: "center",
   },
   modalContent: {
     height: "100%",
+    width: "100%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: "hidden",
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    flexGrow: 1,
   },
   modalHeader: {
     flexDirection: "row",

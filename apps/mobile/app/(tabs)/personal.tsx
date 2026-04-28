@@ -12,7 +12,6 @@ import {
   getRunningImportTask,
   uploadUserAvatar,
   getTrackHistory,
-  plusGetMe,
   setPlusToken,
   TaskStatus,
   type ImportTask,
@@ -20,6 +19,7 @@ import {
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -27,7 +27,6 @@ import {
   Easing,
   FlatList,
   Image,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -36,18 +35,22 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/AuthContext";
 import { usePlayer } from "../../src/context/PlayerContext";
 import { useTheme } from "../../src/context/ThemeContext";
 import { Playlist, Track } from "../../src/models";
+import SkeletonBlock from "../../src/components/SkeletonBlock";
 import {
   getDownloadedTracks,
   removeDownloadedTrack,
 } from "../../src/services/cache";
 import { getBaseURL } from "../../src/https";
+import { trackEvent } from "../../src/services/tracking";
 import { getImageUrl } from "../../src/utils/image";
 import { usePlayMode } from "../../src/utils/playMode";
+import { getCachedVipStatus, refreshVipStatus } from "../../src/utils/vipStatus";
 
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { CachedImage } from "@/src/components/CachedImage";
@@ -61,6 +64,7 @@ const ctjjLogo = require("../../assets/images/ctjj.png");
 
 type TabType = "playlists" | "favorites" | "history" | "downloads";
 type SubTabType = "track" | "album";
+type PendingMenuAction = "createPlaylist" | null;
 
 const StackedCover = ({ tracks }: { tracks: any[] }) => {
   const covers = (tracks || []).slice(0, 4);
@@ -101,10 +105,54 @@ const StackedCover = ({ tracks }: { tracks: any[] }) => {
   );
 };
 
+function PersonalListSkeleton({
+  activeTab,
+  mode,
+  selectedDownloadAlbumName,
+}: {
+  activeTab: TabType;
+  mode: string;
+  selectedDownloadAlbumName: string | null;
+}) {
+  const { colors } = useTheme();
+  const isPlaylist = activeTab === "playlists";
+  const isDownloadAlbum =
+    activeTab === "downloads" && mode === "AUDIOBOOK" && !selectedDownloadAlbumName;
+
+  return (
+    <View style={{ paddingBottom: 20 }}>
+      {Array.from({ length: 8 }).map((_, index) => (
+        <View
+          key={`personal-list-skeleton-${index}`}
+          style={[styles.item, { borderBottomColor: colors.card }]}
+        >
+          {isPlaylist ? (
+            <View style={styles.stackedCoverContainer}>
+              <SkeletonBlock width={50} height={50} borderRadius={8} style={{ position: "absolute", left: 12, top: 6, opacity: 0.7 }} />
+              <SkeletonBlock width={50} height={50} borderRadius={8} style={{ position: "absolute", left: 6, top: 3, opacity: 0.82 }} />
+              <SkeletonBlock width={50} height={50} borderRadius={8} />
+            </View>
+          ) : (
+            <SkeletonBlock width={50} height={50} borderRadius={8} style={{ marginRight: 15 }} />
+          )}
+          <View style={styles.itemInfo}>
+            <SkeletonBlock width={150} height={16} borderRadius={8} style={{ marginBottom: 8 }} />
+            <SkeletonBlock width={92} height={13} borderRadius={6 } />
+          </View>
+          {activeTab === "downloads" && !isDownloadAlbum ? (
+            <SkeletonBlock width={20} height={20} borderRadius={10} style={{ marginLeft: 10 }} />
+          ) : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function PersonalScreen() {
   const { theme, toggleTheme, colors } = useTheme();
+  const { t } = useTranslation();
   const { mode, setMode } = usePlayMode();
-  const { logout, user, switchServer, sourceType, setSourceType } = useAuth();
+  const { logout, user, switchServer, sourceType, setSourceType, device } = useAuth();
   const { playTrackList } = usePlayer();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -129,29 +177,57 @@ export default function PersonalScreen() {
   }, [user]);
 
   const handleOpenScanEntry = async () => {
+    trackEvent({
+      feature: "scan_login",
+      eventName: "scan_login_entry_click",
+      userId: user?.id ? String(user.id) : undefined,
+      deviceId: device?.id ? String(device.id) : undefined,
+    });
     const plusToken = await AsyncStorage.getItem("plus_token");
 
     if (!plusToken) {
-      Alert.alert("会员功能", "扫码登录仅限会员使用，请先登录会员账号。", [
-        { text: "取消", style: "cancel" },
+      Alert.alert(t("personalPage.memberOnlyTitle"), t("personalPage.scanLoginMemberOnly"), [
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "会员登录",
-          onPress: () => router.push("/member-login" as any),
+          text: t("personalPage.memberLogin"),
+          onPress: () => {
+            trackEvent({
+              feature: "scan_login",
+              eventName: "scan_login_member_login_redirect",
+              userId: user?.id ? String(user.id) : undefined,
+              deviceId: device?.id ? String(device.id) : undefined,
+            });
+            router.push("/member-login" as any);
+          },
         },
       ]);
       return;
     }
 
     if (isPlusVip) {
+      trackEvent({
+        feature: "scan_login",
+        eventName: "scan_login_page_open",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+      });
       router.push("/scan" as any);
       return;
     }
 
-    Alert.alert("会员功能", "开通会员才能使用扫码登录功能。", [
-      { text: "取消", style: "cancel" },
+    Alert.alert(t("personalPage.memberOnlyTitle"), t("personalPage.scanLoginVipRequired"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "去开通",
-        onPress: () => router.push("/member-benefits" as any),
+        text: t("personalPage.goActivate"),
+        onPress: () => {
+          trackEvent({
+            feature: "scan_login",
+            eventName: "scan_login_member_benefits_redirect",
+            userId: user?.id ? String(user.id) : undefined,
+            deviceId: device?.id ? String(device.id) : undefined,
+          });
+          router.push("/member-benefits" as any);
+        },
       },
     ]);
   };
@@ -161,7 +237,7 @@ export default function PersonalScreen() {
   const handleChangeAvatar = async () => {
     if (!user?.id || uploadingAvatar) return;
     if (sourceType !== "AudioDock") {
-      Alert.alert("提示", "当前源不支持修改头像");
+      Alert.alert(t("common.ok"), t("personalPage.avatarUnsupported"));
       return;
     }
     try {
@@ -191,11 +267,11 @@ export default function PersonalScreen() {
           await AsyncStorage.setItem(`user_${baseUrl}`, JSON.stringify(updated));
         }
       } else {
-        Alert.alert("修改失败", res.message || "上传头像失败");
+        Alert.alert(t("personalPage.updateFailed"), res.message || t("personalPage.uploadAvatarFailed"));
       }
     } catch (error) {
       console.error("Failed to upload user avatar:", error);
-      Alert.alert("修改失败", "上传头像失败");
+      Alert.alert(t("personalPage.updateFailed"), t("personalPage.uploadAvatarFailed"));
     } finally {
       setUploadingAvatar(false);
     }
@@ -256,6 +332,7 @@ export default function PersonalScreen() {
 
   // Import task state
   const [menuVisible, setMenuVisible] = useState(false);
+  const [pendingMenuAction, setPendingMenuAction] = useState<PendingMenuAction>(null);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importTask, setImportTask] = useState<ImportTask | null>(null);
   const pollTimerRef = React.useRef<any>(null);
@@ -297,29 +374,17 @@ export default function PersonalScreen() {
   // Fetch Plus VIP status
   React.useEffect(() => {
     const fetchVipStatus = async () => {
-        try {
-            const plusToken = await AsyncStorage.getItem("plus_token");
-            const plusUserId = await AsyncStorage.getItem("plus_user_id");
+      try {
+        const cached = await getCachedVipStatus();
+        setIsPlusVip(cached.isVip);
+        setPlusVipData(cached.vipData);
 
-            if (plusToken && plusUserId) {
-                setPlusToken(plusToken);
-                let id = plusUserId;
-                try {
-                    id = JSON.parse(plusUserId);
-                } catch (e) {
-                    // fallback
-                }
-
-                const res = await plusGetMe(id);
-                if (res.data.code === 200 && res.data.data) {
-                    const vipTier = res.data.data.vipTier;
-                    setIsPlusVip(vipTier && vipTier !== "NONE");
-                    setPlusVipData(res.data.data);
-                }
-            }
-        } catch (err) {
-            console.error("Failed to fetch plus profile mobile", err);
-        }
+        const latest = await refreshVipStatus({ setPlusToken });
+        setIsPlusVip(latest.isVip);
+        setPlusVipData(latest.vipData);
+      } catch (err) {
+        console.error("Failed to fetch plus profile mobile", err);
+      }
     };
 
     fetchVipStatus();
@@ -386,32 +451,52 @@ export default function PersonalScreen() {
 
   const handleOpenTtsTasks = () => {
     setMenuVisible(false);
+    trackEvent({
+      feature: "tts",
+      eventName: "tts_entry_click",
+      userId: user?.id ? String(user.id) : undefined,
+      deviceId: device?.id ? String(device.id) : undefined,
+    });
 
     if (isPlusVip) {
+      trackEvent({
+        feature: "tts",
+        eventName: "tts_task_list_open",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+      });
       router.push("/tts/tasks" as any);
       return;
     }
 
-    Alert.alert("会员功能", "开通会员才能使用 TTS 有声书转换功能", [
-      { text: "取消", style: "cancel" },
+    Alert.alert(t("common.memberFeature"), t("personalPage.ttsVipRequired"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "去开通",
-        onPress: () => router.push("/member-benefits" as any),
+        text: t("common.goActivate"),
+        onPress: () => {
+          trackEvent({
+            feature: "tts",
+            eventName: "tts_member_benefits_redirect",
+            userId: user?.id ? String(user.id) : undefined,
+            deviceId: device?.id ? String(device.id) : undefined,
+          });
+          router.push("/member-benefits" as any);
+        },
       },
     ]);
   };
 
   const handleDeleteDownload = (item: Track) => {
-    Alert.alert("删除下载", "确定要删除这首歌曲的下载吗？", [
-      { text: "取消", style: "cancel" },
+    Alert.alert(t("personalPage.deleteDownloadTitle"), t("personalPage.deleteDownloadMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "删除",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           await removeDownloadedTrack(item.id, item.path); // Use path as URL
           await loadData();
 
-          // 如果删除的是当前展开专辑里的最后一首歌，则返回专辑列表
+          // If the last track in the expanded downloaded album is removed, return to the album list.
           if (selectedDownloadAlbumName) {
             const tracks = await getDownloadedTracks();
             const stillHasAlbum = tracks.some(
@@ -467,7 +552,9 @@ export default function PersonalScreen() {
             status: TaskStatus.INITIALIZING,
             mode: updateMode,
             message:
-              updateMode === "compact" ? "正在启动精简任务..." : "正在初始化...",
+              updateMode === "compact"
+                ? t("personalPage.taskStartCompact")
+                : t("personalPage.taskInit"),
           });
 
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
@@ -475,39 +562,53 @@ export default function PersonalScreen() {
             pollTaskStatus(taskId);
           }, 1000);
         } else {
-          Alert.alert("错误", res.message || "任务创建失败");
+          Alert.alert(t("common.error"), res.message || t("personalPage.taskCreateFailed"));
         }
       } catch (error) {
         console.error("Task creation error:", error);
-        Alert.alert("错误", "创建任务失败，请检查网络或后端服务");
+        Alert.alert(t("common.error"), t("personalPage.taskCreateFailedHint"));
       }
     };
 
     if (updateMode === "compact") {
       Alert.alert(
-        "确认精简数据？",
-        "将清除已标记为假死的数据，并核对数据库单曲路径。若文件不存在，将删除对应单曲及相关收藏/收听记录；若专辑无曲目会删除专辑；若艺术家无曲目和作品也会删除。",
+        t("personalPage.confirmCompactTitle"),
+        t("personalPage.confirmCompactContent"),
         [
-          { text: "取消", style: "cancel" },
-          { text: "确认精简", style: "destructive", onPress: startTask },
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("personalPage.confirmCompactAction"),
+            style: "destructive",
+            onPress: startTask,
+          },
         ],
       );
     } else if (updateMode === "full") {
       Alert.alert(
-        "确认全量更新？",
-        "全量更新将核对所有音频文件。您的播放历史、收藏记录、歌单由于文件识别（指纹）机制将得到保留。仅当文件在磁盘上被物理删除时，对应的记录才会被清除。",
+        t("personalPage.confirmFullTitle"),
+        t("personalPage.confirmFullContent"),
         [
-          { text: "取消", style: "cancel" },
-          { text: "确认更新", style: "destructive", onPress: startTask },
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("personalPage.confirmUpdateAction"),
+            style: "destructive",
+            onPress: startTask,
+          },
         ],
       );
     } else {
-      // Incremental confirmation
-      Alert.alert("确认增量更新？", "增量更新只增加新数据，不删除旧数据", [
-        { text: "取消", style: "cancel" },
-        { text: "确认更新", onPress: startTask },
+      Alert.alert(t("personalPage.confirmIncrementalTitle"), t("personalPage.confirmIncrementalContent"), [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("personalPage.confirmUpdateAction"), onPress: startTask },
       ]);
     }
+  };
+
+  const handleMenuHide = () => {
+    if (pendingMenuAction === "createPlaylist") {
+      setCreateModalVisible(true);
+    }
+    setPendingMenuAction(null);
   };
 
   const pollTaskStatus = async (taskId: string) => {
@@ -640,7 +741,12 @@ export default function PersonalScreen() {
             </Text>
             <Text style={[styles.itemSubtitle, { color: colors.secondary }]}>
               {isPlaylist
-                ? `${(data as Playlist)._count?.tracks || (data as Playlist).tracks?.length || 0} 首`
+                ? t("common.trackCount", {
+                    count:
+                      (data as Playlist)._count?.tracks ||
+                      (data as Playlist).tracks?.length ||
+                      0,
+                  })
                 : isAlbum || isDownloadAlbum
                   ? data.artist || ""
                   : (data as Track).artist}
@@ -838,7 +944,7 @@ export default function PersonalScreen() {
         </TouchableOpacity>
         <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
             <Text style={[styles.nickname, { color: colors.text }]}>
-            {user?.username || "未登录"}
+            {user?.username || t("common.notLoggedIn")}
             </Text>
             {user && (
                 <TouchableOpacity onPress={async () => {
@@ -869,10 +975,10 @@ export default function PersonalScreen() {
       {/* Tabs */}
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
         {[
-          { key: "playlists", label: "播放列表" },
-          { key: "favorites", label: "收藏" },
-          { key: "history", label: "听过" },
-          { key: "downloads", label: "下载" },
+          { key: "playlists", label: t("personal.playlists") },
+          { key: "favorites", label: t("personal.favorites") },
+          { key: "history", label: t("personal.history") },
+          { key: "downloads", label: t("personalPage.downloads") },
         ].filter((tab) => !(sourceType === "Emby" && tab.key === "history")).map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -906,8 +1012,8 @@ export default function PersonalScreen() {
         (activeTab === "favorites" || activeTab === "history") && (
           <View style={styles.subTabContainer}>
             {[
-              { id: "album", label: "专辑" },
-              { id: "track", label: "单曲" },
+              { id: "album", label: t("personal.album") },
+              { id: "track", label: t("personal.track") },
             ].map((sub) => (
               <TouchableOpacity
                 key={sub.id}
@@ -951,7 +1057,7 @@ export default function PersonalScreen() {
               <Text
                 style={{ marginLeft: 5, color: colors.primary, fontSize: 16 }}
               >
-                返回 {selectedDownloadAlbumName}
+                {t("personalPage.backToAlbum", { name: selectedDownloadAlbumName })}
               </Text>
             </TouchableOpacity>
           </View>
@@ -959,9 +1065,11 @@ export default function PersonalScreen() {
 
       {/* List Content */}
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <PersonalListSkeleton
+          activeTab={activeTab}
+          mode={mode}
+          selectedDownloadAlbumName={selectedDownloadAlbumName}
+        />
       ) : (
         <FlatList
           data={getListData()}
@@ -973,7 +1081,7 @@ export default function PersonalScreen() {
           ListEmptyComponent={
             <View style={styles.center}>
               <Text style={{ color: colors.secondary, marginTop: 40 }}>
-                暂无数据
+                {t("common.noData")}
               </Text>
             </View>
           }
@@ -1000,10 +1108,15 @@ export default function PersonalScreen() {
 
 
       <Modal
-        visible={createModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setCreateModalVisible(false)}
+        isVisible={createModalVisible}
+        onBackdropPress={() => setCreateModalVisible(false)}
+        onBackButtonPress={() => setCreateModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
       >
         <View style={styles.createModalOverlay}>
           <View
@@ -1013,7 +1126,7 @@ export default function PersonalScreen() {
             ]}
           >
             <Text style={[styles.createModalTitle, { color: colors.text }]}>
-              新建播放列表
+              {t("playlist.newPlaylist")}
             </Text>
             <TextInput
               style={[
@@ -1024,7 +1137,7 @@ export default function PersonalScreen() {
                   backgroundColor: colors.background,
                 },
               ]}
-              placeholder="请输入列表名称"
+              placeholder={t("playlist.namePlaceholder")}
               placeholderTextColor={colors.secondary}
               value={newPlaylistName}
               onChangeText={setNewPlaylistName}
@@ -1038,7 +1151,7 @@ export default function PersonalScreen() {
                   setNewPlaylistName("");
                 }}
               >
-                <Text style={{ color: colors.secondary }}>取消</Text>
+                <Text style={{ color: colors.secondary }}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -1060,7 +1173,7 @@ export default function PersonalScreen() {
                       { color: theme === "dark" ? "#000" : "#fff" },
                     ]}
                   >
-                    确定
+                    {t("common.confirm")}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -1071,32 +1184,36 @@ export default function PersonalScreen() {
 
       {/* Action Selection Modal (Dropdown replacement) */}
       <Modal
-        visible={menuVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
+        isVisible={menuVisible}
+        onBackdropPress={() => setMenuVisible(false)}
+        onBackButtonPress={() => setMenuVisible(false)}
+        onModalHide={handleMenuHide}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.fullscreenModal}
       >
-        <TouchableOpacity
-          style={styles.menuOverlay}
-          activeOpacity={1}
-          onPress={() => setMenuVisible(false)}
-        >
+        <View style={styles.menuOverlay}>
           <View
             style={[
               styles.menuContent,
-              { backgroundColor: colors.card, top: insets.top + 50 },
+              {
+                backgroundColor: colors.card,
+              },
             ]}
           >
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => {
+                setPendingMenuAction("createPlaylist");
                 setMenuVisible(false);
-                setCreateModalVisible(true);
               }}
             >
               <Ionicons name="list-outline" size={22} color={colors.text} />
               <Text style={[styles.menuItemText, { color: colors.text }]}>
-                新建播放列表
+                {t("personal.createPlaylist")}
               </Text>
             </TouchableOpacity>
             <View
@@ -1108,7 +1225,7 @@ export default function PersonalScreen() {
             >
               <Ionicons name="refresh-outline" size={22} color={colors.text} />
               <Text style={[styles.menuItemText, { color: colors.text }]}>
-                增量更新音频文件
+                {t("personal.incrementalUpdate")}
               </Text>
             </TouchableOpacity>
             <View
@@ -1120,7 +1237,7 @@ export default function PersonalScreen() {
             >
               <Ionicons name="sync-outline" size={22} color={colors.text} />
               <Text style={[styles.menuItemText, { color: colors.text }]}>
-                全量更新音频文件
+                {t("personal.fullUpdate")}
               </Text>
             </TouchableOpacity>
             <View
@@ -1134,7 +1251,7 @@ export default function PersonalScreen() {
                 >
                   <Ionicons name="mic-outline" size={22} color={colors.text} />
                   <Text style={[styles.menuItemText, { color: colors.text }]}>
-                    TTS 有声书转换
+                    {t("personal.ttsConversion")}
                   </Text>
                 </TouchableOpacity>
                 <View
@@ -1148,18 +1265,24 @@ export default function PersonalScreen() {
             >
               <Ionicons name="trash-outline" size={22} color={colors.text} />
               <Text style={[styles.menuItemText, { color: colors.text }]}>
-                精简数据
+                {t("personal.compactData")}
               </Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Import Progress Modal */}
       <Modal
-        visible={importModalVisible}
-        transparent={true}
-        animationType="fade"
+        isVisible={importModalVisible}
+        onBackdropPress={() => setImportModalVisible(false)}
+        onBackButtonPress={() => setImportModalVisible(false)}
+        useNativeDriver
+        hideModalContentWhileAnimating
+        animationIn="fadeIn"
+        animationOut="fadeOut"
+        backdropTransitionOutTiming={0}
+        style={styles.centeredModal}
       >
         <View style={styles.importModalOverlay}>
           <View
@@ -1169,11 +1292,13 @@ export default function PersonalScreen() {
             ]}
           >
             <Text style={[styles.importModalTitle, { color: colors.text }]}>
-              {importTask?.mode === "compact" ? "精简数据进度" : "数据入库进度"}
+              {importTask?.mode === "compact"
+                ? t("personal.compactProgress")
+                : t("personal.importProgress")}
             </Text>
 
             <View style={styles.importStatusRow}>
-              <Text style={{ color: colors.secondary }}>状态：</Text>
+              <Text style={{ color: colors.secondary }}>{t("personalPage.statusLabel")}</Text>
               <Text style={{ color: colors.text, fontWeight: "500" }}>
                 {importTask?.message &&
                 importTask.status !== TaskStatus.FAILED &&
@@ -1181,29 +1306,29 @@ export default function PersonalScreen() {
                   ? importTask.message
                   : importTask?.status === TaskStatus.INITIALIZING
                     ? importTask?.mode === "compact"
-                      ? "正在初始化精简任务..."
-                      : "正在初始化..."
+                      ? t("personal.initializingCompact")
+                      : t("personal.initializing")
                     : importTask?.status === TaskStatus.PREPARING
                       ? importTask?.mode === "compact"
-                        ? "正在精简数据库..."
-                        : "正在准备环境..."
+                        ? t("personal.compactData")
+                        : t("personal.preparingEnv")
                     : importTask?.status === TaskStatus.PARSING
-                      ? "正在解析媒体文件..."
+                      ? t("personal.parsingMedia")
                       : importTask?.status === TaskStatus.SUCCESS
                         ? importTask?.mode === "compact"
-                          ? "精简完成"
-                          : "入库完成"
+                          ? t("personal.compactComplete")
+                          : t("personal.importComplete")
                         : importTask?.status === TaskStatus.FAILED
                           ? importTask?.mode === "compact"
-                            ? "精简失败"
-                            : "入库失败"
-                          : "准备中"}
+                            ? t("personal.compactFailed")
+                            : t("personal.importFailed")
+                          : t("common.loading")}
               </Text>
             </View>
 
             {importTask?.status === TaskStatus.FAILED && (
               <Text style={[styles.importErrorText, { color: colors.primary }]}>
-                错误：{importTask.message}
+                {t("personalPage.errorLabel")}{importTask.message}
               </Text>
             )}
 
@@ -1234,7 +1359,7 @@ export default function PersonalScreen() {
                 }}
               >
                 <Text style={{ color: colors.secondary, fontSize: 12 }}>
-                  本地文件
+                  {t("personalPage.localFiles")}
                 </Text>
                 <Text style={{ color: colors.text, fontSize: 12 }}>
                   {importTask?.localCurrent || 0} /{" "}
@@ -1249,11 +1374,26 @@ export default function PersonalScreen() {
                 }}
               >
                 <Text style={{ color: colors.secondary, fontSize: 12 }}>
-                  WebDAV 文件
+                  {t("personalPage.webdavFiles")}
                 </Text>
                 <Text style={{ color: colors.text, fontSize: 12 }}>
                   {importTask?.webdavCurrent || 0} /{" "}
                   {importTask?.webdavTotal || 0}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 4,
+                }}
+              >
+                <Text style={{ color: colors.secondary, fontSize: 12 }}>
+                  {t("personalPage.mvFiles")}
+                </Text>
+                <Text style={{ color: colors.text, fontSize: 12 }}>
+                  {importTask?.mvCurrent || 0} /{" "}
+                  {importTask?.mvTotal || 0}
                 </Text>
               </View>
               <View
@@ -1276,7 +1416,7 @@ export default function PersonalScreen() {
                     fontWeight: "bold",
                   }}
                 >
-                  总进度
+                  {t("personalPage.totalProgress")}
                 </Text>
                 <Text
                   style={{
@@ -1309,7 +1449,7 @@ export default function PersonalScreen() {
                     fontStyle: "italic",
                   }}
                 >
-                  正在处理: {importTask.currentFileName}
+                  {t("personalPage.processing", { name: importTask.currentFileName })}
                 </Text>
               </View>
             )}
@@ -1329,7 +1469,7 @@ export default function PersonalScreen() {
                     { color: theme === "dark" ? "#000" : "#fff" },
                   ]}
                 >
-                  关闭
+                  {t("common.close")}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -1337,7 +1477,7 @@ export default function PersonalScreen() {
                 style={styles.importHideBtn}
                 onPress={() => setImportModalVisible(false)}
               >
-                <Text style={{ color: colors.secondary }}>后台运行</Text>
+                <Text style={{ color: colors.secondary }}>{t("personalPage.backgroundRun")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1507,10 +1647,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   createModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
   createModalContent: {
     width: "80%",
@@ -1560,11 +1699,11 @@ const styles = StyleSheet.create({
   },
   menuOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.1)",
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   menuContent: {
-    position: "absolute",
-    left: 20,
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 0,
@@ -1590,10 +1729,19 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   importModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
+  },
+  centeredModal: {
+    margin: 0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullscreenModal: {
+    margin: 0,
+    justifyContent: "flex-start",
+    alignItems: "stretch",
   },
   importModalContent: {
     width: "90%",

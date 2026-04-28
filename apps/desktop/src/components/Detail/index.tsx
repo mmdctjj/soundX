@@ -14,12 +14,15 @@ import {
     SortDescendingOutlined,
 } from "@ant-design/icons";
 import {
+    type AlbumTrackSortBy,
     getAlbumById,
     getAlbumTracks,
     toggleAlbumLike,
     toggleAlbumUnLike,
     uploadAlbumCover,
+    getMvsByAlbum,
 } from "@soundx/services";
+import type { Mv } from "@soundx/services";
 import { useRequest } from "ahooks";
 import {
     Avatar,
@@ -35,6 +38,7 @@ import {
     Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useSearchParams } from "react-router-dom";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
 import { useMessage } from "../../context/MessageContext";
@@ -50,18 +54,21 @@ const { Title, Text } = Typography;
 
 const Detail: React.FC = () => {
   const message = useMessage();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
   const { user } = useAuthStore();
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [mvs, setMvs] = useState<Mv[]>([]);
+  const [activeTab, setActiveTab] = useState<"tracks" | "mvs">("tracks");
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<"asc" | "desc">("asc");
-  const [sortBy, setSortBy] = useState<"id" | "index" | "episodeNumber">(
-    "episodeNumber",
+  const [sortBy, setSortBy] = useState<AlbumTrackSortBy>(
+    "fileName",
   );
   const [keyword, setKeyword] = useState("");
   const [keywordMidValue, setKeywordMidValue] = useState("");
@@ -96,7 +103,7 @@ const Detail: React.FC = () => {
     onSuccess: (res) => {
       if (res.code === 200) {
         setIsLiked(true);
-        message.success("收藏成功");
+        message.success(t('detail.liked'));
       }
     },
   });
@@ -106,7 +113,7 @@ const Detail: React.FC = () => {
     onSuccess: (res) => {
       if (res.code === 200) {
         setIsLiked(false);
-        message.success("已取消收藏");
+        message.success(t('detail.unliked'));
       }
     },
   });
@@ -172,6 +179,15 @@ const Detail: React.FC = () => {
           (like: any) => like.userId === user?.id,
         );
         setIsLiked(isLikedByCurrentUser);
+        
+        // load MVs
+        if (res.data?.name) {
+            getMvsByAlbum(res.data.name, res.data.artist).then((mvRes: any[]) => {
+                if (mvRes?.length) {
+                    setMvs(mvRes);
+                }
+            }).catch((e: any) => console.error(e));
+        }
       }
     } catch (error) {
       console.error("Failed to fetch album details:", error);
@@ -183,7 +199,7 @@ const Detail: React.FC = () => {
     currentPage: number,
     currentSort: "asc" | "desc",
     currentKeyword: string,
-    currentSortBy: "id" | "index" | "episodeNumber",
+    currentSortBy: AlbumTrackSortBy,
   ) => {
     if (loading) return;
     setLoading(true);
@@ -248,7 +264,7 @@ const Detail: React.FC = () => {
     event.target.value = "";
     if (!file || !album) return;
     if (!isAudioDockSource) {
-      message.warning("仅 AudioDock 源支持修改封面");
+      message.warning(t('detail.audioDockOnlyCover'));
       return;
     }
     try {
@@ -256,13 +272,13 @@ const Detail: React.FC = () => {
       const res = await uploadAlbumCover(album.id, file);
       if (res.code === 200) {
         setAlbum(res.data);
-        message.success("封面已更新");
+        message.success(t('detail.coverUpdated'));
       } else {
-        message.error(res.message || "封面上传失败");
+        message.error(res.message || t('detail.coverUploadFailed'));
       }
     } catch (error) {
       console.error("Failed to upload album cover:", error);
-      message.error("封面上传失败");
+      message.error(t('detail.coverUploadFailed'));
     } finally {
       setUploadingCover(false);
     }
@@ -272,7 +288,7 @@ const Detail: React.FC = () => {
   const coverMenuItems: MenuProps["items"] = [
     {
       key: "upload",
-      label: "修改封面",
+      label: t('detail.modifyCover'),
       onClick: () => coverInputRef.current?.click(),
       disabled: uploadingCover || !isAudioDockSource,
     },
@@ -323,13 +339,13 @@ const Detail: React.FC = () => {
   const handleDownloadSelected = () => {
     const selectedTracks = tracks.filter((t) => selectedRowKeys.includes(t.id));
     if (selectedTracks.length === 0) {
-      message.warning("请先选择要下载的曲目");
+      message.warning(t('detail.selectTracksFirst'));
       return;
     }
-    message.info(`开始下载 ${selectedTracks.length} 首曲目`);
+    message.info(t('detail.downloadStarted', { count: selectedTracks.length }));
     downloadTracks(selectedTracks, (completed: number, total: number) => {
       if (completed === total) {
-        message.success(`${total} 首曲目下载完成`);
+        message.success(t('detail.downloadComplete', { count: total }));
         setIsSelectionMode(false);
         setSelectedRowKeys([]);
       }
@@ -368,6 +384,37 @@ const Detail: React.FC = () => {
   const showFloatingActions = tracks.length > 50;
   const canLocateCurrent =
     !!currentTrack && tracks.some((t) => t.id === currentTrack.id);
+  const isAudiobookAlbum = album?.type === "AUDIOBOOK";
+
+  const sortMenuItems: MenuProps["items"] = [
+    {
+      key: "sort-fileName",
+      label: t("detail.sortByFileName"),
+    },
+    {
+      key: "sort-episodeNumber",
+      label: t("detail.sortByOptimized"),
+    },
+    {
+      key: "sort-fileCreatedAt",
+      label: t("detail.sortByFileCreatedAt"),
+    },
+    {
+      key: "sort-fileModifiedAt",
+      label: t("detail.sortByFileModifiedAt"),
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "order-asc",
+      label: t("detail.sortAscending"),
+    },
+    {
+      key: "order-desc",
+      label: t("detail.sortDescending"),
+    },
+  ];
 
   return (
     <div className={styles.detailWrapper}>
@@ -478,6 +525,37 @@ const Detail: React.FC = () => {
                     type="secondary"
                     className={styles.actionGroup}
                   >
+                    {isAudiobookAlbum && activeTab === "tracks" && (
+                      <Dropdown
+                        menu={{
+                          items: sortMenuItems,
+                          onClick: ({ key }) => {
+                            if (key.startsWith("sort-")) {
+                              setSortBy(key.replace("sort-", "") as AlbumTrackSortBy);
+                            } else if (key === "order-asc") {
+                              setSort("asc");
+                            } else if (key === "order-desc") {
+                              setSort("desc");
+                            }
+                          },
+                          selectable: false,
+                        }}
+                        trigger={["click"]}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          className={styles.iconOnlyButton}
+                          icon={
+                            sort === "asc" ? (
+                              <SortAscendingOutlined className={styles.actionIcon} />
+                            ) : (
+                              <SortDescendingOutlined className={styles.actionIcon} />
+                            )
+                          }
+                        />
+                      </Dropdown>
+                    )}
                     {isLiked ? (
                       <HeartFilled
                         className={styles.actionIcon}
@@ -509,14 +587,14 @@ const Detail: React.FC = () => {
                           size="small"
                           onClick={() => setIsBatchAddModalOpen(true)}
                         >
-                          添加到...
+                          {t('detail.addTo')}...
                         </Button>
                         <Button
                           type="text"
                           size="small"
                           onClick={handleDownloadSelected}
                         >
-                          下载 ({selectedRowKeys.length})
+                          {t('detail.downloading', { count: selectedRowKeys.length })}
                         </Button>
                         <Button
                           size="small"
@@ -545,81 +623,105 @@ const Detail: React.FC = () => {
                     onChange={(e) => setKeywordMidValue(e.target.value)}
                     onPressEnter={() => setKeyword(keywordMidValue)}
                   />
-
-                  <Flex align="center" gap={4}>
-                    <Button
-                      type="text"
-                      size="small"
-                      className={styles.sortFieldBtn}
-                      onClick={() => {
-                        const sequence: ("id" | "index" | "episodeNumber")[] = [
-                          "episodeNumber",
-                          "index",
-                          "id",
-                        ];
-                        const next =
-                          sequence[
-                            (sequence.indexOf(sortBy) + 1) % sequence.length
-                          ];
-                        setSortBy(next);
-                      }}
-                      style={{
-                        color: token.colorTextSecondary,
-                        fontSize: "12px",
-                      }}
-                    >
-                      {sortBy === "id"
-                        ? "入库顺序"
-                        : sortBy === "index"
-                          ? "专辑顺序"
-                          : "优化排序"}
-                    </Button>
-                    {sort === "desc" ? (
-                      <SortAscendingOutlined
-                        className={styles.actionIcon}
-                        style={{ fontSize: "18px" }}
-                        onClick={() => setSort("asc")}
-                      />
-                    ) : (
-                      <SortDescendingOutlined
-                        className={styles.actionIcon}
-                        style={{ fontSize: "18px" }}
-                        onClick={() => setSort("desc")}
-                      />
-                    )}
-                  </Flex>
                 </div>
               </div>
 
+              {mvs.length > 0 && (
+                <div style={{ display: 'flex', gap: 24, marginBottom: 24, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+                  <div
+                    style={{
+                      padding: '12px 0',
+                      cursor: 'pointer',
+                      color: activeTab === 'tracks' ? token.colorPrimary : token.colorText,
+                      borderBottom: activeTab === 'tracks' ? `2px solid ${token.colorPrimary}` : '2px solid transparent',
+                      fontWeight: activeTab === 'tracks' ? 'bold' : 'normal'
+                    }}
+                    onClick={() => setActiveTab('tracks')}
+                  >
+                    {t('nav.tracks')} ({tracks.length})
+                  </div>
+                  <div
+                    style={{
+                      padding: '12px 0',
+                      cursor: 'pointer',
+                      color: activeTab === 'mvs' ? token.colorPrimary : token.colorText,
+                      borderBottom: activeTab === 'mvs' ? `2px solid ${token.colorPrimary}` : '2px solid transparent',
+                      fontWeight: activeTab === 'mvs' ? 'bold' : 'normal'
+                    }}
+                    onClick={() => setActiveTab('mvs')}
+                  >
+                    MV ({mvs.length})
+                  </div>
+                </div>
+              )}
+
               {/* Track List */}
-              <TrackList
-                tracks={tracks}
-                loading={loading}
-                type={album?.type}
-                onRefresh={handleRefresh}
-                rowSelection={
-                  isSelectionMode
-                    ? {
-                        selectedRowKeys,
-                        onChange: (keys: React.Key[]) =>
-                          setSelectedRowKeys(keys),
-                      }
-                    : undefined
-                }
-                albumId={album?.id}
-                playlistSource={
-                  album
-                    ? {
-                        type: "album" as const,
-                        id: album.id,
-                        pageSize: pageSize,
-                        currentPage: page - 1,
-                        hasMore: hasMore,
-                        params: { sort, keyword, sortBy },
-                      }
-                    : undefined
-                }
-              />
+              {activeTab === 'mvs' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {mvs.map((mv, index) => (
+                    <div 
+                      key={mv.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '8px',
+                        cursor: 'pointer',
+                        borderRadius: 8,
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = token.colorFillAlter}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                      onClick={() => window.location.href = `#/mv/${mv.id}`}
+                    >
+                      <div style={{ width: 40, textAlign: 'center', color: token.colorTextSecondary }}>
+                        {index + 1}
+                      </div>
+                      <img 
+                        src={getCoverUrl(mv, mv.id)} 
+                        alt={mv.name} 
+                        style={{ width: 80, height: 45, objectFit: 'cover', borderRadius: 4, marginRight: 16 }} 
+                      />
+                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ color: token.colorText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {mv.name}
+                        </div>
+                      </div>
+                      <div style={{ width: 80, textAlign: 'right', color: token.colorTextSecondary }}>
+                        {mv.duration ? `${Math.floor(mv.duration / 60)}:${String(mv.duration % 60).padStart(2, '0')}` : '--:--'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <TrackList
+                  tracks={tracks}
+                  loading={loading}
+                  type={album?.type}
+                  onRefresh={handleRefresh}
+                  rowSelection={
+                    isSelectionMode
+                      ? {
+                          selectedRowKeys,
+                          onChange: (keys: React.Key[]) =>
+                            setSelectedRowKeys(keys),
+                        }
+                      : undefined
+                  }
+                  albumId={album?.id}
+                  playlistSource={
+                    album
+                      ? {
+                          type: "album" as const,
+                          id: album.id,
+                          pageSize: pageSize,
+                          currentPage: page - 1,
+                          hasMore: hasMore,
+                          params: { sort, keyword, sortBy },
+                        }
+                      : undefined
+                  }
+                />
+              )}
               {/* Load More / Footer */}
               <div
                 style={{
@@ -629,7 +731,7 @@ const Detail: React.FC = () => {
                 }}
               >
                 {loading && page > 0 ? (
-                  <Text type="secondary">正在努力加载中...</Text>
+                  <Text type="secondary">{t('detail.loading')}</Text>
                 ) : hasMore ? (
                   <Button
                     type="text"
@@ -638,13 +740,13 @@ const Detail: React.FC = () => {
                     }
                     style={{ color: token.colorTextSecondary }}
                   >
-                    加载更多
+                    {t('detail.loadMore')}
                   </Button>
                 ) : (
                   tracks.length > 0 && (
                     <div style={{ opacity: 0.4 }}>
                       <Text type="secondary" style={{ fontSize: "12px" }}>
-                        — 已经到底啦 —
+                        — {t('detail.noMore')} —
                       </Text>
                     </div>
                   )

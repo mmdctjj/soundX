@@ -13,7 +13,7 @@ export const speechToText = async (audioFilePath: string): Promise<string> => {
 
   const token = Taro.getStorageSync('token')
   const uploadResult = await Taro.uploadFile({
-    url: `${baseURL}/asr`,
+    url: `${baseURL}/api/asr/text`,
     filePath: audioFilePath,
     name: 'audio',
     header: token ? { Authorization: `Bearer ${token}` } : undefined

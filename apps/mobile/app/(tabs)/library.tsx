@@ -3,10 +3,11 @@ import { CachedImage } from "@/src/components/CachedImage";
 import { FloatingActionButtons } from "@/src/components/FloatingActionButtons";
 import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { Ionicons } from "@expo/vector-icons";
-import { getArtistList, getCollections, loadMoreAlbum, loadMoreTrack } from "@soundx/services";
+import { getArtistList, getCollections, loadMoreAlbum, loadMoreTrack, getMvList } from "@soundx/services";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Animated,
@@ -52,6 +53,7 @@ const SongList = ({
   onToggleHeartbeatMode,
 }: SongListProps) => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { mode } = usePlayMode();
   const { playTrackList } = usePlayer();
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -125,17 +127,17 @@ const SongList = ({
       selectedTrackIds.includes(t.id),
     );
     if (selectedTracks.length === 0) {
-      Alert.alert("提示", "请先选择要下载的曲目");
+      Alert.alert(t("common.ok"), t("libraryPage.selectTracksFirst"));
       return;
     }
-    Alert.alert("批量下载", `确定要下载${selectedTrackIds?.length}首曲目吗？`, [
-      { text: "取消", style: "cancel" },
+    Alert.alert(t("libraryPage.batchDownloadTitle"), t("libraryPage.confirmBatchDownloadTracks", { count: selectedTrackIds?.length || 0 }), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "确定",
+        text: t("common.confirm"),
         onPress: () => {
           downloadTracks(selectedTracks, (completed: number, total: number) => {
             if (completed === total) {
-              Alert.alert("下载完成", `已成功下载 ${total} 首曲目`);
+              Alert.alert(t("libraryPage.downloadComplete"), t("libraryPage.downloadedTrackCount", { count: total }));
               setIsSelectionMode(false);
               setSelectedTrackIds([]);
             }
@@ -173,7 +175,7 @@ const SongList = ({
             </TouchableOpacity>
             <View style={{ flexDirection: "row", gap: 12 }}>
               <Text style={[styles.selectionText, { color: colors.text }]}>
-                已选择 {selectedTrackIds.length} 项
+                {t("libraryPage.selectedCount", { count: selectedTrackIds.length })}
               </Text>
               <TouchableOpacity
                 disabled={!selectedTrackIds.length}
@@ -284,6 +286,13 @@ const SongList = ({
               </View>
             </TouchableOpacity>
           )}
+          ListFooterComponent={
+            <View style={styles.listFooter}>
+              <Text style={[styles.listFooterText, { color: colors.secondary }]}>
+                {t("libraryPage.loadedTracks", { count: tracks.length })}
+              </Text>
+            </View>
+          }
           initialNumToRender={20}
           maxToRenderPerBatch={20}
           windowSize={10}
@@ -318,6 +327,7 @@ const ArtistList = ({
   onToggleHeartbeatMode: () => void;
 }) => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
@@ -456,6 +466,13 @@ const ArtistList = ({
         initialNumToRender={20}
         maxToRenderPerBatch={20}
         windowSize={10}
+        ListFooterComponent={
+          <View style={styles.listFooter}>
+            <Text style={[styles.listFooterText, { color: colors.secondary }]}>
+              {t("libraryPage.loadedArtists", { count: artists.length })}
+            </Text>
+          </View>
+        }
       />
       <FloatingActionButtons
         flatListRef={flatListRef}
@@ -479,6 +496,7 @@ const AlbumList = ({
   onToggleHeartbeatMode: () => void;
 }) => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
@@ -650,6 +668,13 @@ const AlbumList = ({
         initialNumToRender={20}
         maxToRenderPerBatch={20}
         windowSize={10}
+        ListFooterComponent={
+          <View style={styles.listFooter}>
+            <Text style={[styles.listFooterText, { color: colors.secondary }]}>
+              {t("libraryPage.loadedAlbums", { count: albums.length })}
+            </Text>
+          </View>
+        }
       />
       <FloatingActionButtons
         locateDisabled={
@@ -667,6 +692,7 @@ const AlbumList = ({
 
 const CollectionList = () => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const { mode } = usePlayMode();
   const { user } = useAuth();
@@ -764,11 +790,128 @@ const CollectionList = () => {
                 style={[styles.collectionMeta, { color: colors.secondary }]}
                 numberOfLines={1}
               >
-                {count} 张专辑
+                {t("libraryPage.artistAlbumCount", { count })}
               </Text>
             </TouchableOpacity>
           );
         }}
+        ListFooterComponent={
+          <View style={styles.listFooter}>
+            <Text style={[styles.listFooterText, { color: colors.secondary }]}>
+              {t("libraryPage.loadedCollections", { count: collections.length })}
+            </Text>
+          </View>
+        }
+      />
+    </View>
+  );
+};
+
+const MvList = () => {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const [mvs, setMvs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Calculate columns dynamically
+  const availableWidth = width - SCREEN_PADDING;
+  const numColumns = Math.max(
+    3,
+    Math.floor((availableWidth + GAP) / (TARGET_WIDTH + GAP)),
+  );
+  const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
+
+  useEffect(() => {
+    loadMvs();
+  }, []);
+
+  const loadMvs = async () => {
+    try {
+      setLoading(true);
+      const res = await getMvList(1000, 0);
+      if (res?.list) {
+        setMvs(res.list);
+      }
+    } catch (error) {
+      console.error("Failed to load mvs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <GridListSkeleton itemWidth={itemWidth} numColumns={numColumns} />;
+  }
+
+  return (
+    <View style={styles.listContainer}>
+      <FlatList
+        data={mvs}
+        numColumns={numColumns}
+        key={`mv-list-${numColumns}`}
+        columnWrapperStyle={{ gap: GAP, marginBottom: 15 }}
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={({ item }) => {
+          return (
+            <TouchableOpacity
+              style={{ width: itemWidth }}
+              onPress={() =>
+                router.push({
+                  pathname: "/mv/[id]",
+                  params: { id: String(item.id) },
+                })
+              }
+            >
+              <View
+                style={[
+                  styles.albumImageContainer,
+                  { width: itemWidth, height: itemWidth },
+                ]}
+              >
+                <CachedImage
+                  source={{
+                    uri: getImageUrl(
+                      item.cover,
+                      `https://picsum.photos/seed/mv-${item.id}/200/200`,
+                    ),
+                  }}
+                  style={[
+                    styles.albumImage,
+                    {
+                      width: itemWidth,
+                      height: itemWidth,
+                      backgroundColor: colors.card,
+                    },
+                  ]}
+                />
+              </View>
+              <Text
+                style={[styles.collectionTitle, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {item.name}
+              </Text>
+              <Text
+                style={[styles.collectionMeta, { color: colors.secondary }]}
+                numberOfLines={1}
+              >
+                {item.artist || t("common.unknownArtist")}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+        ListFooterComponent={
+          <View style={styles.listFooter}>
+            <Text style={[styles.listFooterText, { color: colors.secondary }]}>
+              {t("libraryPage.loadedMvs", { count: mvs.length })}
+            </Text>
+          </View>
+        }
       />
     </View>
   );
@@ -776,13 +919,27 @@ const CollectionList = () => {
 
 export default function LibraryScreen() {
   const { colors, theme } = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const { mode, setMode } = usePlayMode();
   const { sourceType, user, device } = useAuth();
   const { playTrackList } = usePlayer();
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<"songs" | "artists" | "albums" | "collections">(
-    "songs",
+  const [tabCounts, setTabCounts] = useState<{
+    songs: number | null;
+    artists: number | null;
+    albums: number | null;
+    collections: number | null;
+    mvs: number | null;
+  }>({
+    songs: null,
+    artists: null,
+    albums: null,
+    collections: null,
+    mvs: null,
+  });
+  const [activeTab, setActiveTab] = useState<"songs" | "artists" | "albums" | "collections" | "mvs">(
+    "songs"
   );
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<(number | string)[]>(
@@ -834,6 +991,103 @@ export default function LibraryScreen() {
     }
   }, [mode, heartbeatModeActive]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTabCounts = async () => {
+      try {
+        const [trackRes, artistRes, albumRes, collectionRes, mvRes] = await Promise.all([
+          mode === "MUSIC"
+            ? loadMoreTrack({
+                pageSize: 1,
+                loadCount: 0,
+                type: mode,
+              })
+            : Promise.resolve(null),
+          getArtistList(1, 0, mode),
+          loadMoreAlbum({
+            pageSize: 1,
+            loadCount: 0,
+            type: mode,
+          }),
+          mode === "AUDIOBOOK" && user
+            ? getCollections(user.id)
+            : Promise.resolve(null),
+          mode === "MUSIC"
+            ? getMvList(1, 0)
+            : Promise.resolve(null)
+        ]);
+
+        if (cancelled) return;
+
+        setTabCounts({
+          songs:
+            mode === "MUSIC"
+              ? (trackRes?.code === 200
+                  ? trackRes.data?.total ?? trackRes.data?.list?.length ?? 0
+                  : 0)
+              : null,
+          artists:
+            artistRes?.code === 200
+              ? artistRes.data?.total ?? artistRes.data?.list?.length ?? 0
+              : 0,
+          albums:
+            albumRes?.code === 200
+              ? albumRes.data?.total ?? albumRes.data?.list?.length ?? 0
+              : 0,
+          collections:
+            mode === "AUDIOBOOK"
+              ? (collectionRes?.code === 200 ? collectionRes.data?.length ?? 0 : 0)
+              : null,
+          mvs:
+            mode === "MUSIC"
+              ? (mvRes?.list?.length ? mvRes.total : 0)
+              : null,
+        });
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load library tab counts:", error);
+        }
+      }
+    };
+
+    loadTabCounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, user]);
+
+  const renderTabLabel = (
+    label: string,
+    count: number | null,
+    active: boolean,
+  ) => (
+    <Text
+      style={[
+        styles.segmentText,
+        {
+          color: active ? colors.background : colors.secondary,
+        },
+      ]}
+    >
+      {label}
+      {typeof count === "number" && (
+        <Text
+          style={[
+            styles.segmentCountText,
+            {
+              color: active ? colors.background : colors.secondary,
+            },
+          ]}
+        >
+          {" "}
+          {count}
+        </Text>
+      )}
+    </Text>
+  );
+
   return (
     <View
       style={[
@@ -859,7 +1113,9 @@ export default function LibraryScreen() {
             />
           </View>
         )}
-        <Text style={[styles.headerTitle, { color: colors.text }]}>声仓</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {t("libraryPage.title")}
+        </Text>
         <View style={styles.headerRight}>
           {mode === "MUSIC" && activeTab === "songs" && (
             <>
@@ -980,19 +1236,7 @@ export default function LibraryScreen() {
               ]}
               onPress={() => setActiveTab("songs")}
             >
-              <Text
-                style={[
-                  styles.segmentText,
-                  {
-                    color:
-                      activeTab === "songs"
-                        ? colors.background
-                        : colors.secondary,
-                  },
-                ]}
-              >
-                单曲
-              </Text>
+              {renderTabLabel(t("nav.tracks"), tabCounts.songs, activeTab === "songs")}
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -1002,19 +1246,7 @@ export default function LibraryScreen() {
             ]}
             onPress={() => setActiveTab("artists")}
           >
-            <Text
-              style={[
-                styles.segmentText,
-                {
-                  color:
-                    activeTab === "artists"
-                      ? colors.background
-                      : colors.secondary,
-                },
-              ]}
-            >
-              艺术家
-            </Text>
+            {renderTabLabel(t("nav.artists"), tabCounts.artists, activeTab === "artists")}
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -1023,20 +1255,19 @@ export default function LibraryScreen() {
             ]}
             onPress={() => setActiveTab("albums")}
           >
-            <Text
-              style={[
-                styles.segmentText,
-                {
-                  color:
-                    activeTab === "albums"
-                      ? colors.background
-                      : colors.secondary,
-                },
-              ]}
-            >
-              专辑
-            </Text>
+            {renderTabLabel(t("nav.albums"), tabCounts.albums, activeTab === "albums")}
           </TouchableOpacity>
+          {mode === "MUSIC" && (
+            <TouchableOpacity
+              style={[
+                styles.segmentItem,
+                activeTab === "mvs" && { backgroundColor: colors.primary },
+              ]}
+              onPress={() => setActiveTab("mvs")}
+            >
+              {renderTabLabel("MV", tabCounts.mvs, activeTab === "mvs")}
+            </TouchableOpacity>
+          )}
           {mode === "AUDIOBOOK" && (
             <TouchableOpacity
               style={[
@@ -1045,19 +1276,7 @@ export default function LibraryScreen() {
               ]}
               onPress={() => setActiveTab("collections")}
             >
-              <Text
-                style={[
-                  styles.segmentText,
-                  {
-                    color:
-                      activeTab === "collections"
-                        ? colors.background
-                        : colors.secondary,
-                  },
-                ]}
-              >
-                合集
-              </Text>
+              {renderTabLabel(t("collections.title"), tabCounts.collections, activeTab === "collections")}
             </TouchableOpacity>
           )}
         </View>
@@ -1088,6 +1307,8 @@ export default function LibraryScreen() {
             setHeartbeatModeActive((prev) => !prev)
           }
         />
+      ) : activeTab === "mvs" ? (
+        <MvList />
       ) : (
         <CollectionList />
       )}
@@ -1306,6 +1527,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
+  segmentCountText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
@@ -1396,6 +1621,13 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   songArtist: {
+    fontSize: 13,
+  },
+  listFooter: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  listFooterText: {
     fontSize: 13,
   },
   selectionHeader: {

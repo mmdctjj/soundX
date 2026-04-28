@@ -21,11 +21,12 @@ import * as path from 'path';
 import {
   IErrorResponse,
   ILoadMoreData,
+  INotFoundResponse,
   ISuccessResponse,
   ITableData,
 } from 'src/common/const';
 import { Public } from 'src/common/public.decorator';
-import { TrackService } from '../services/track';
+import { TrackPlaybackQuality, TrackService } from '../services/track';
 
 @Controller()
 export class TrackController {
@@ -350,8 +351,36 @@ export class TrackController {
   }
 
   @Public()
+  @Get('/track/:id/playback-qualities')
+  async getPlaybackQualities(@Param('id') id: string): Promise<ISuccessResponse<any> | IErrorResponse | INotFoundResponse> {
+    try {
+      const track = await this.trackService.findById(parseInt(id));
+      if (!track) {
+        return { code: 404, message: 'Track not found' };
+      }
+
+      const profile = await this.trackService.getTrackPlaybackProfile(track);
+      return {
+        code: 200,
+        message: 'success',
+        data: profile,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        message: error,
+      };
+    }
+  }
+
+  @Public()
   @Get('/track/stream/:id')
-  async streamTrack(@Param('id') id: string, @Res() res: Response, @Req() req: Request) {
+  async streamTrack(
+    @Param('id') id: string,
+    @Query('quality') quality: TrackPlaybackQuality | undefined,
+    @Res() res: Response,
+    @Req() req: Request,
+  ) {
     try {
       const track = await this.trackService.findById(parseInt(id));
       if (!track) {
@@ -363,12 +392,21 @@ export class TrackController {
         return this.proxyStream(track.path, req, res);
       }
 
-      let filePath = this.trackService.getFilePath(track.path);
+      const playbackProfile = await this.trackService.getTrackPlaybackProfile(track);
+      const requestedQuality = quality && playbackProfile.options.some(option => option.quality === quality)
+        ? quality
+        : playbackProfile.defaultQuality;
+
+      const playbackFile = await this.trackService.resolvePlaybackFile(track, requestedQuality);
+      let filePath = playbackFile.filePath;
       
       // Fallback for .strm files that were incorrectly saved as local paths
       if ((!filePath || !fs.existsSync(filePath)) && track.path.includes('.strm')) {
           // If the DB path is a local URL like /music/..., get the actual disk path
-          filePath = this.trackService.getFilePath(track.path);
+          const resolvedFilePath = this.trackService.getFilePath(track.path);
+          if (resolvedFilePath) {
+            filePath = resolvedFilePath;
+          }
       }
 
       if (!filePath || !fs.existsSync(filePath)) {
@@ -377,6 +415,10 @@ export class TrackController {
       }
 
       const ext = path.extname(filePath).toLowerCase();
+
+      if (playbackFile.contentType) {
+        res.setHeader('Content-Type', playbackFile.contentType);
+      }
 
       // If it's a .strm file stored as a local path, read it and proxy
       if (ext === '.strm') {

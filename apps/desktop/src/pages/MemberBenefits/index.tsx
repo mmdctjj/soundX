@@ -3,6 +3,7 @@ import {
   ArrowLeftOutlined,
   CheckOutlined,
   CloseOutlined,
+  LogoutOutlined,
   QuestionCircleOutlined,
   WechatFilled,
 } from "@ant-design/icons";
@@ -27,6 +28,7 @@ import {
   theme,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import { useAuthStore } from "../../store/auth";
@@ -36,6 +38,7 @@ const { Title, Text } = Typography;
 const { Content } = Layout;
 
 const MemberBenefits: React.FC = () => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const message = useMessage();
@@ -48,10 +51,17 @@ const MemberBenefits: React.FC = () => {
   const [pricing, setPricing] = useState<VipCurrentLowestPriceData | null>(
     null,
   );
+  const [memberPhone, setMemberPhone] = useState("");
   const isElectronRuntime =
     typeof window !== "undefined" && !!(window as any).ipcRenderer;
   const paymentWindowRef = useRef<Window | null>(null);
   const stopPollingRef = useRef(false);
+
+  const maskPhone = (value?: string | null) => {
+    const normalized = String(value || "").replace(/\D/g, "");
+    if (normalized.length < 7) return "";
+    return `${normalized.slice(0, 3)}****${normalized.slice(-4)}`;
+  };
 
   const formatPrice = (price: number | null | undefined) => {
     if (typeof price !== "number" || Number.isNaN(price)) return "--";
@@ -113,6 +123,35 @@ const MemberBenefits: React.FC = () => {
     };
 
     void loadPricing();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadMemberPhone = async () => {
+      try {
+        const plusUserId = localStorage.getItem("plus_user_id");
+        if (!plusUserId) return;
+        let id: any = plusUserId;
+        try {
+          id = JSON.parse(plusUserId);
+        } catch {}
+        const res = await plusGetMe(id);
+        console.log("Fetched member profile", res);
+        const phone = res.data?.data?.phone || res.data?.data?.mobile || "";
+        if (mounted) {
+          setMemberPhone(maskPhone(phone));
+        }
+      } catch (error) {
+        console.warn("Failed to fetch member phone", error);
+      }
+    };
+
+    void loadMemberPhone();
 
     return () => {
       mounted = false;
@@ -214,7 +253,7 @@ const MemberBenefits: React.FC = () => {
     stopPollingRef.current = false;
     const popup = openCashierWindow(paymentUrl);
     if (!popup) {
-      message.warning("支付窗口被拦截，请允许弹窗后重试");
+      message.warning(t('memberBenefits.paymentWindowBlocked'));
       return;
     }
 
@@ -224,7 +263,7 @@ const MemberBenefits: React.FC = () => {
         paymentWindowRef.current?.close();
       } catch {}
       paymentWindowRef.current = null;
-      message.success("支付成功，会员权益已生效");
+      message.success(t('memberBenefits.paymentSuccess'));
       navigate("/member-detail", { replace: true });
       return;
     }
@@ -235,7 +274,7 @@ const MemberBenefits: React.FC = () => {
         paymentWindowRef.current?.close();
       } catch {}
       paymentWindowRef.current = null;
-      message.success("支付成功，会员权益已生效");
+      message.success(t('memberBenefits.paymentSuccess'));
       navigate("/member-detail", { replace: true });
       return;
     }
@@ -402,6 +441,12 @@ const MemberBenefits: React.FC = () => {
             <Title level={4} style={{ margin: 0 }}>
               会员权益
             </Title>
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, minWidth: 72, textAlign: "right" }}
+            >
+              {memberPhone || ""}
+            </Text>
           </div>
 
           <Divider style={{ margin: "12px 0" }} />
@@ -426,7 +471,7 @@ const MemberBenefits: React.FC = () => {
           />
 
           <div style={{ marginTop: 40, marginBottom: 20 }}>
-            <Text style={{ textAlign: "center" }}>会员方案</Text>
+            <Text style={{ textAlign: "center" }}>{t("memberBenefits.memberPlan")}</Text>
             <Flex gap={20} justify="space-between" style={{ marginTop: 24 }}>
               <Card
                 className={`${styles.priceCard} ${selectedPlan === "annual" ? styles.selectedCard : ""}`}
@@ -438,7 +483,7 @@ const MemberBenefits: React.FC = () => {
                   borderWidth: selectedPlan === "annual" ? 2 : 1,
                 }}
               >
-                <Title level={5}>年卡</Title>
+                <Title level={5}>{t("memberBenefits.annualCard")}</Title>
                 <div className={styles.price}>
                   <span className={styles.currency}>¥</span>
                   <span className={styles.amount}>
@@ -478,8 +523,8 @@ const MemberBenefits: React.FC = () => {
                 hoverable
                 onClick={() => setSelectedPlan("lifetime")}
               >
-                <div className={styles.proBadge}>推荐</div>
-                <Title level={5}>永久卡</Title>
+                <div className={styles.proBadge}>{t("memberBenefits.recommended")}</div>
+                <Title level={5}>{t("memberBenefits.permanentCard")}</Title>
                 <div className={styles.price}>
                   <span className={styles.currency}>¥</span>
                   <span className={styles.amount}>
@@ -513,7 +558,7 @@ const MemberBenefits: React.FC = () => {
           </div>
 
           <div style={{ marginTop: 8, marginBottom: 8 }}>
-            <Text>支付方式</Text>
+            <Text>{t("memberBenefits.paymentMethod")}</Text>
             <div>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 虚拟产品售出无法退款，请理性消费
@@ -541,7 +586,7 @@ const MemberBenefits: React.FC = () => {
               }}
             >
               <WechatFilled style={{ fontSize: 24, color: "#1AAD19" }} />
-              <Text style={{ fontWeight: 500 }}>微信</Text>
+              <Text style={{ fontWeight: 500 }}>{t("memberBenefits.wechatPay")}</Text>
             </Flex>
             <Flex
               align="center"
@@ -559,14 +604,22 @@ const MemberBenefits: React.FC = () => {
               }}
             >
               <AlipayCircleFilled style={{ fontSize: 24, color: "#02A9F1" }} />
-              <Text style={{ fontWeight: 500 }}>支付宝</Text>
+              <Text style={{ fontWeight: 500 }}>{t("memberBenefits.alipay")}</Text>
             </Flex>
           </Flex>
 
           <Divider style={{ margin: "28px 0 16px" }} />
 
-          <Flex gap={12} className={styles.accountActions}>
-            <Button onClick={handleChangeMember}>切换会员账号</Button>
+          <Flex vertical gap={12} className={styles.accountActions}>
+            <Button
+              danger
+              size="large"
+              icon={<LogoutOutlined />}
+              className={styles.logoutButton}
+              onClick={handleChangeMember}
+            >
+              退出/切换会员账号
+            </Button>
           </Flex>
         </div>
       </Content>

@@ -9,6 +9,15 @@ export enum TrackType {
   AUDIOBOOK = "AUDIOBOOK",
 }
 
+export type AlbumTrackSortBy =
+  | "id"
+  | "index"
+  | "episodeNumber"
+  | "fileName"
+  | "fileCreatedAt"
+  | "fileModifiedAt"
+  | "scanOrder";
+
 export interface IErrorResponse {
   code: number;
   message: string;
@@ -46,6 +55,8 @@ export interface TimelineItem {
 export interface Track {
   id: number | string;
   name: string;
+  fileName?: string | null;
+  relativePath?: string | null;
   path: string;
   artist: string;
   artistEntity: Artist;
@@ -57,6 +68,10 @@ export interface Track {
   index: number | null;
   type: TrackType;
   createdAt: string | Date; // DateTime in Prisma maps to Date object or ISO string in JSON
+  fileCreatedAt?: string | Date | null;
+  fileModifiedAt?: string | Date | null;
+  scanOrder?: number | null;
+  episodeNumber?: number | null;
   artistId?: number | string;
   albumId?: number | string;
   folderId?: number | string;
@@ -214,4 +229,22 @@ export interface Folder {
   type: TrackType;
   children?: Folder[];
   tracks?: Track[];
+}
+
+export interface Mv {
+  id: number | string;
+  name: string;
+  path: string;
+  artist: string | null;
+  album: string | null;
+  cover: string | null;
+  duration: number | null;
+  createdAt: string | Date;
+  fileModifiedAt: string | Date | null;
+  trackId: number | string | null;
+  artistId: number | string | null;
+  albumId: number | string | null;
+  artistEntity?: Artist;
+  albumEntity?: Album;
+  trackEntity?: Track;
 }

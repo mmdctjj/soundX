@@ -1,4 +1,4 @@
-import { getArtistList } from "@soundx/services";
+import { loadMoreArtist } from "@soundx/services";
 import { useInfiniteScroll } from "ahooks";
 import { HeartFilled, HeartOutlined } from "@ant-design/icons";
 import {
@@ -13,6 +13,7 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useLayoutEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { getBaseURL } from "../../https";
 import { type Artist } from "../../models";
@@ -31,6 +32,7 @@ interface Result {
 }
 
 const ArtistList: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { mode } = usePlayMode();
@@ -42,26 +44,22 @@ const ArtistList: React.FC = () => {
   const key = `${CACHE_KEY}_${mode}_${heartbeatModeActive ? "heartbeat" : "default"}`;
 
   const loadMoreArtists = async (d: Result | undefined): Promise<Result> => {
-    const current = d?.loadCount || d?.loadCount === 0 ? d?.loadCount + 1 : 0; // 当前已经加载的页数
-    const pageSize = 20;
+    const current = d?.loadCount || d?.loadCount === 0 ? d?.loadCount + 1 : 0;
+    const pageSize = 50;
 
     try {
-      // TODO: Update getArtistList to support pagination and type filtering
-      // For now, we might need to fetch all or use existing API
-      // Assuming we will update the service to support these params
-      const res = await getArtistList(
+      const res = await loadMoreArtist({
         pageSize,
-        current,
-        mode,
-        mode === "MUSIC" && heartbeatModeActive ? "heartbeat" : undefined,
-      );
-      const { list } = res.data;
-      const newList = d?.list ? [...d.list, ...list] : list;
-      setList(key, newList);
-      setLoadCount(key, res?.data?.loadCount);
+        loadCount: current,
+        type: mode,
+        sortBy: mode === "MUSIC" && heartbeatModeActive ? "heartbeat" : undefined,
+      });
 
       if (res.code === 200 && res.data) {
         const { list, total } = res.data;
+        const newList = d?.list ? [...d.list, ...list] : list;
+        setList(key, newList);
+        setLoadCount(key, res?.data?.loadCount);
         return {
           list,
           hasMore: (d?.list?.length || 0) < Number(total),
@@ -142,7 +140,7 @@ const ArtistList: React.FC = () => {
     <div ref={scrollRef} className={styles.container}>
       <div className={styles.pageHeader}>
         <Typography.Title level={2} className={styles.title}>
-          艺术家
+          {t("artistList.title")}
         </Typography.Title>
         {mode === "MUSIC" && (
           <Button
@@ -150,7 +148,7 @@ const ArtistList: React.FC = () => {
             icon={heartbeatModeActive ? <HeartFilled /> : <HeartOutlined />}
             onClick={toggleHeartbeatMode}
           >
-            心动模式
+            {t("artistList.heartbeatMode")}
           </Button>
         )}
       </div>
@@ -209,17 +207,19 @@ const ArtistList: React.FC = () => {
             ))}
         </Row>
 
-        {data && !data.hasMore && data.list.length > 0 && (
-          <div
-            className={styles.noMore}
-            style={{ color: token.colorTextSecondary }}
-          >
-            没有更多了
-          </div>
-        )}
+        <div
+          className={styles.noMore}
+          style={{ color: token.colorTextSecondary }}
+        >
+          {data && data.list.length > 0
+            ? data.hasMore
+              ? `${t("artistList.totalArtists", { count: data.total > 0 ? data.total : data.list.length })}, ${t("artistList.loadedArtists", { count: data.list.length })}`
+              : `${t("artistList.totalArtists", { count: data.total > 0 ? data.total : data.list.length })}, ${t("artistList.noMore")}`
+            : t("artistList.noData")}
+        </div>
 
         {!loading && !loadingMore && (!data || data.list.length === 0) && (
-          <Empty description="暂无艺术家" />
+          <Empty description={t("artistList.noData")} />
         )}
       </div>
     </div>

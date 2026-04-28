@@ -35,11 +35,40 @@
   flex: 1;
 }
 
+.tabs {
+  display: flex;
+  flex-direction: row;
+  margin-top: 20rpx;
+  border-bottom: 1rpx solid #eee;
+  background-color: #fff;
+
+  .tab-item {
+    flex: 1;
+    text-align: center;
+    padding: 20rpx 0;
+    
+    .tab-text {
+      font-size: 28rpx;
+      color: #666;
+    }
+
+    &.active {
+      border-bottom: 4rpx solid #000;
+      
+      .tab-text {
+        color: #000;
+        font-weight: bold;
+      }
+    }
+  }
+}
+
 .header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 120rpx 40rpx 40rpx;
+  height: auto !important;
+  padding: calc(env(safe-area-inset-top) + 180rpx) 40rpx 40rpx;
 }
 
 .cover {
@@ -49,6 +78,7 @@
   margin-bottom: 30rpx;
   box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.15);
   background-color: #eee;
+  flex-shrink: 0;
 }
 
 .title {
@@ -71,9 +101,10 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 24rpx;
 }
 
-.play-all-btn {
+.album-play-all-btn {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -81,16 +112,21 @@
   padding: 20rpx 50rpx;
   border-radius: 50rpx;
   margin-right: 30rpx;
+  color: #fff;
 }
 
-.play-icon {
-  color: #fff;
+.album-play-icon {
+  color: currentColor;
   font-size: 30rpx;
   margin-right: 15rpx;
+
+  &.icon-play {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23ffffff' d='M133 440a35.37 35.37 0 01-17.5-4.67c-12-6.8-19.46-20-19.46-34.39V111.06c0-14.39 7.46-27.59 19.46-34.39a35.13 35.13 0 0135.74.45l247.85 148.36a36 36 0 010 61l-247.89 148.4A35.5 35.5 0 01133 440z'/%3E%3C/svg%3E");
+  }
 }
 
-.play-text {
-  color: #fff;
+.album-play-text {
+  color: currentColor;
   font-size: 32rpx;
   font-weight: bold;
 }
@@ -110,8 +146,108 @@
   color: #999;
 }
 
+.sort-icon-btn {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sort-icon-text {
+  font-size: 34rpx;
+  color: #333;
+  font-weight: 600;
+}
+
 .track-list {
   padding: 0 40rpx;
+}
+
+.sort-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-end;
+  z-index: 30;
+}
+
+.sort-modal-sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 28rpx 28rpx 40rpx;
+  box-sizing: border-box;
+}
+
+.sort-modal-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 12rpx;
+}
+
+.sort-modal-title.order-title {
+  margin-top: 24rpx;
+}
+
+.sort-modal-item {
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1rpx solid #ececec;
+}
+
+.sort-modal-item.active .sort-modal-item-text,
+.sort-modal-item.active .sort-modal-check {
+  color: #111;
+  font-weight: 600;
+}
+
+.sort-modal-item-text {
+  font-size: 28rpx;
+  color: #444;
+}
+
+.sort-modal-check {
+  font-size: 28rpx;
+  color: #111;
+}
+
+.sort-order-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 8rpx;
+}
+
+.sort-order-button {
+  flex: 1;
+  height: 84rpx;
+  border-radius: 20rpx;
+  border: 2rpx solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+
+.sort-order-button.active {
+  background: #111;
+  border-color: #111;
+}
+
+.sort-order-button-text {
+  font-size: 28rpx;
+  color: #222;
+  font-weight: 600;
+}
+
+.sort-order-button.active .sort-order-button-text {
+  color: #fff;
 }
 
 .track-item {

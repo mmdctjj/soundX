@@ -2,14 +2,14 @@
   "miniprogramRoot": "dist/",
   "projectname": "soundX-mini",
   "description": "SoundX WeChat Mini Program",
-  "appid": "wx2bc7054921c8a2ed",
+  "appid": "wxb5972cba5fe9eb74",
   "setting": {
     "urlCheck": true,
-    "es6": false,
+    "es6": true,
     "enhance": false,
     "postcss": false,
     "preloadBackgroundData": false,
-    "minified": false,
+    "minified": true,
     "newFeature": true,
     "coverView": true,
     "nodeModules": false,
@@ -47,7 +47,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "3.13.1",
+  "libVersion": "3.14.3",
   "srcMiniprogramRoot": "dist/",
   "packOptions": {
     "ignore": [],

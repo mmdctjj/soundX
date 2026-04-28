@@ -43,7 +43,7 @@ export const useSettingsStore = create<SettingsState>()(
       general: {
         autoLaunch: false,
         minimizeToTray: true,
-        language: 'zh-CN',
+        language: 'system',
         theme: 'system',
         acceptRelay: true,
         acceptSync: true,

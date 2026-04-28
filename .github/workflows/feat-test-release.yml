@@ -47,6 +47,7 @@ jobs:
       - name: Build Dependencies
         run: |
           pnpm --filter @soundx/ws run build
+          pnpm --filter @soundx/i18e run build
           pnpm --filter @soundx/utils run build
           pnpm --filter @soundx/db run generate
           pnpm --filter @soundx/services run build
@@ -87,8 +88,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          distribution: "zulu"
+          java-version: "17"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -102,7 +103,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install
@@ -121,6 +122,7 @@ jobs:
       - name: Build Dependencies
         run: |
           pnpm --filter @soundx/ws run build
+          pnpm --filter @soundx/i18e run build
           pnpm --filter @soundx/utils run build
           pnpm --filter @soundx/db run generate
 

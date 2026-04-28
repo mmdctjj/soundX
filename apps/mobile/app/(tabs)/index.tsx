@@ -15,8 +15,8 @@ import {
 import * as Device from "expo-device";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   Animated,
   Easing,
   FlatList,
@@ -32,6 +32,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { initBaseURL } from "@/src/https";
 import { Image as ExpoImage } from "expo-image";
 import { CachedImage } from "../../src/components/CachedImage";
+import SkeletonBlock from "../../src/components/SkeletonBlock";
 import { useAuth } from "../../src/context/AuthContext";
 import { useSettings } from "../../src/context/SettingsContext";
 import { useTheme } from "../../src/context/ThemeContext";
@@ -46,8 +47,94 @@ interface Section {
   type: "artist" | "album" | "track";
 }
 
+function HomeSkeleton({ insets }: { insets: { top: number } }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <SkeletonBlock width={72} height={30} borderRadius={10} />
+          <View style={styles.headerRight}>
+            <SkeletonBlock width={36} height={36} borderRadius={18} style={{ marginRight: 10 }} />
+            <SkeletonBlock width={36} height={36} borderRadius={18} />
+          </View>
+        </View>
+
+        <View style={styles.searchBar}>
+          <SkeletonBlock width={180} height={18} borderRadius={9} />
+        </View>
+
+        {Array.from({ length: 3 }).map((_, sectionIndex) => (
+          <View key={`home-skeleton-section-${sectionIndex}`}>
+            <View style={styles.sectionHeader}>
+              <SkeletonBlock width={96} height={26} borderRadius={10} />
+              <SkeletonBlock width={20} height={20} borderRadius={10} />
+            </View>
+
+            {sectionIndex === 2 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                {Array.from({ length: 3 }).map((__, columnIndex) => (
+                  <View key={`track-skeleton-column-${columnIndex}`} style={styles.trackColumn}>
+                    {Array.from({ length: 2 }).map((___, rowIndex) => (
+                      <View key={`track-skeleton-${columnIndex}-${rowIndex}`} style={styles.trackCard}>
+                        <SkeletonBlock width={50} height={50} borderRadius={4} />
+                        <View style={styles.trackInfo}>
+                          <SkeletonBlock width={140} height={14} borderRadius={7} style={{ marginBottom: 6 }} />
+                          <SkeletonBlock width={96} height={12} borderRadius={6} />
+                        </View>
+                        <View style={styles.trackActions}>
+                          <SkeletonBlock width={18} height={18} borderRadius={9} style={{ marginBottom: 10 }} />
+                          <SkeletonBlock width={18} height={18} borderRadius={9} />
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                {Array.from({ length: 4 }).map((__, itemIndex) => (
+                  <View
+                    key={`card-skeleton-${sectionIndex}-${itemIndex}`}
+                    style={sectionIndex === 0 ? styles.artistCard : styles.albumCard}
+                  >
+                    <SkeletonBlock
+                      width={sectionIndex === 0 ? 100 : 120}
+                      height={sectionIndex === 0 ? 100 : 120}
+                      borderRadius={sectionIndex === 0 ? 50 : 10}
+                      style={{ marginBottom: 8 }}
+                    />
+                    <SkeletonBlock width={sectionIndex === 0 ? 76 : 92} height={12} borderRadius={6} style={{ marginBottom: 6 }} />
+                    {sectionIndex !== 0 ? (
+                      <SkeletonBlock width={68} height={12} borderRadius={6} />
+                    ) : null}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        ))}
+
+        <View style={styles.reorderButton}>
+          <SkeletonBlock width={20} height={20} borderRadius={10} />
+          <SkeletonBlock width={72} height={16} borderRadius={8} />
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const { colors, theme } = useTheme();
+  const { t } = useTranslation();
   const {
     playTrack,
     startRadioMode,
@@ -155,19 +242,19 @@ export default function HomeScreen() {
         const newSections: Section[] = [
           {
             id: "artists",
-            title: "艺术家",
+            title: t("home.artists"),
             data: artistsRes.code === 200 ? artistsRes.data : [],
             type: "artist",
           },
           {
             id: "recent",
-            title: "最近上新",
+            title: t("home.recentAlbums"),
             data: recentRes.code === 200 ? recentRes.data : [],
             type: "album",
           },
           {
             id: "recommended",
-            title: "为你推荐",
+            title: t("home.recommended"),
             data: recommendedRes.code === 200 ? recommendedRes.data : [],
             type: "album",
           },
@@ -176,7 +263,7 @@ export default function HomeScreen() {
         if (mode === "MUSIC" && tracksRes?.code === 200) {
           newSections.push({
             id: "tracks",
-            title: "上新单曲",
+            title: t("home.newTracks"),
             data: tracksRes.data,
             type: "track",
           });
@@ -185,7 +272,7 @@ export default function HomeScreen() {
         if (mode === "AUDIOBOOK" && historyRes?.code === 200) {
           newSections.push({
             id: "history",
-            title: "继续收听",
+            title: t("home.continueListening"),
             data: historyRes.data.list.map((item: any) => item.album),
             type: "album",
           });
@@ -217,7 +304,7 @@ export default function HomeScreen() {
         setRefreshing(false);
       }
     },
-    [mode, recommendationLikeRatio, recommendCacheKey],
+    [mode, recommendationLikeRatio, recommendCacheKey, t, user],
   );
 
   useFocusEffect(
@@ -302,20 +389,7 @@ export default function HomeScreen() {
   };
 
   if (loading && !refreshing) {
-    return (
-      <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: colors.background,
-            paddingTop: insets.top,
-            justifyContent: "center",
-          },
-        ]}
-      >
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <HomeSkeleton insets={insets} />;
   }
 
   return (
@@ -372,7 +446,7 @@ export default function HomeScreen() {
               </View>
             </>
           )}
-          <Text style={[styles.headerTitle, { color: colors.text }]}>推荐</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t("homePage.title")}</Text>
           <View style={styles.headerRight}>
             {mode === "MUSIC" && sourceType !== "Emby" && (
               <TouchableOpacity
@@ -436,7 +510,7 @@ export default function HomeScreen() {
           onPress={() => router.push("/search")}
         >
           <Text style={[styles.searchText, { color: colors.secondary }]}>
-            搜索单曲，艺术家，专辑
+            {t("homePage.searchPlaceholder")}
           </Text>
         </TouchableOpacity>
 
@@ -785,7 +859,7 @@ export default function HomeScreen() {
           }
         >
           <Ionicons name="settings-outline" size={20} color={colors.primary} />
-          <Text style={{ color: colors.primary }}>调整顺序</Text>
+          <Text style={{ color: colors.primary }}>{t("homePage.adjustOrder")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

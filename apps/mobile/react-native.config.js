@@ -12,7 +12,7 @@ module.exports = {
     },
     "react-native-wechat-lib": {
       platforms: {
-        android: null,
+        android: {},
       },
     },
   },

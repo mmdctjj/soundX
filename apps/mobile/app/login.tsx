@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../src/context/ThemeContext";
 
@@ -22,6 +23,7 @@ export default function LoginSelectionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const { t } = useTranslation();
 
   const getLogo = (key: string) => {
     switch (key) {
@@ -43,9 +45,11 @@ export default function LoginSelectionScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
             <Image source={logo} style={styles.appLogo} />
-            <Text style={[styles.title, { color: colors.text }]}>选择数据源类型</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {t("loginSelect.title")}
+            </Text>
             <Text style={[styles.subtitle, { color: colors.secondary }]}>
-                请选择您要连接的服务器类型
+                {t("loginSelect.subtitle")}
             </Text>
         </View>
 

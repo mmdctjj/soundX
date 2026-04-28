@@ -16,6 +16,7 @@ import { AudiobookCollectionController } from './controllers/audiobook-collectio
 import { FolderController } from './controllers/folder';
 import { ImportController } from './controllers/import';
 import { LlmController } from './controllers/llm.controller';
+import { MvController } from './controllers/mv';
 import { PlaylistController } from './controllers/playlist';
 import { SearchRecordController } from './controllers/search-record';
 import { ScanLoginController } from './controllers/scan-login.controller';
@@ -37,6 +38,7 @@ import { AudiobookCollectionService } from './services/audiobook-collection';
 import { FolderService } from './services/folder';
 import { ImportService } from './services/import';
 import { LlmService } from './services/llm.service';
+import { MvService } from './services/mv';
 import { PlaylistService } from './services/playlist';
 import { SearchRecordService } from './services/search-record';
 import { ScanLoginService } from './services/scan-login.service';
@@ -46,6 +48,7 @@ import { UserAlbumHistoryService } from './services/user-album-history';
 import { UserAlbumLikeService } from './services/user-album-like';
 import { UserAudiobookHistoryService } from './services/user-audiobook-history';
 import { UserAudiobookLikeService } from './services/user-audiobook-like';
+import { DatabaseSchemaService } from './services/database-schema.service';
 import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
 
@@ -96,6 +99,7 @@ import { UserTrackLikeService } from './services/user-track-like';
     SearchRecordController,
     ScanLoginController,
     LlmController,
+    MvController,
   ],
   providers: [
     UserService,
@@ -107,6 +111,7 @@ import { UserTrackLikeService } from './services/user-track-like';
     UserAlbumLikeService,
     UserAudiobookHistoryService,
     UserAudiobookLikeService,
+    DatabaseSchemaService,
     UserTrackHistoryService,
     UserTrackLikeService,
     ImportService,
@@ -129,6 +134,7 @@ import { UserTrackLikeService } from './services/user-track-like';
     SearchRecordService,
     ScanLoginService,
     LlmService,
+    MvService,
     SyncGateway,
   ],
 })

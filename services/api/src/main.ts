@@ -5,8 +5,10 @@ import { AppModule } from './app.module';
 
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { Logger } from 'nestjs-pino';
+import * as fs from 'fs';
 import * as path from 'path';
 import { resolvePathList } from './common/path-list';
+import { DatabaseSchemaService } from './services/database-schema.service';
 import { ImportService } from './services/import';
 import { TrackService } from './services/track';
 
@@ -19,8 +21,12 @@ async function bootstrap() {
 
 
   const cacheDir = path.resolve(process.env.CACHE_DIR || './');
+  const transcodedMvDir = path.join(cacheDir, 'transcoded-mv');
   const musicBaseDirs = resolvePathList(process.env.MUSIC_BASE_DIR, './');
   const audioBookDirs = resolvePathList(process.env.AUDIO_BOOK_DIR, './');
+  const mvDirs = resolvePathList(process.env.MV_BASE_DIR, './');
+
+  fs.mkdirSync(transcodedMvDir, { recursive: true });
 
 
   // Serve static files from cache directory
@@ -36,6 +42,9 @@ async function bootstrap() {
   for (const musicBaseDir of musicBaseDirs) {
     app.useStaticAssets(musicBaseDir, {
       prefix: '/music/',
+      setHeaders: (res, path) => {
+        res.set('Accept-Ranges', 'bytes');
+      }
     });
   }
 
@@ -44,8 +53,35 @@ async function bootstrap() {
   for (const audioBookDir of audioBookDirs) {
     app.useStaticAssets(audioBookDir, {
       prefix: '/audio/',
+      setHeaders: (res, path) => {
+        res.set('Accept-Ranges', 'bytes');
+      }
     });
   }
+
+  // Serve MV files
+  console.log(`Serving MV files from: ${mvDirs.join(',')}`);
+  for (const mvDir of mvDirs) {
+    app.useStaticAssets(mvDir, {
+      prefix: '/music/', // Since import.ts convertToHttpUrl maps MV files to /music/ prefix currently
+      setHeaders: (res, path) => {
+        res.set('Accept-Ranges', 'bytes');
+        // Make sure proper video content type is returned
+        if (path.endsWith('.mp4')) res.set('Content-Type', 'video/mp4');
+        else if (path.endsWith('.webm')) res.set('Content-Type', 'video/webm');
+        else if (path.endsWith('.mkv')) res.set('Content-Type', 'video/x-matroska');
+      }
+    });
+  }
+
+  console.log(`Serving transcoded MV files from: ${transcodedMvDir}`);
+  app.useStaticAssets(transcodedMvDir, {
+    prefix: '/music/',
+    setHeaders: (res, path) => {
+      res.set('Accept-Ranges', 'bytes');
+      if (path.endsWith('.mp4')) res.set('Content-Type', 'video/mp4');
+    }
+  });
 
   // TTS Service Proxy
   const ttsServiceUrl = process.env.TTS_SERVICE_URL || 'http://localhost:8000';
@@ -87,17 +123,20 @@ async function bootstrap() {
 
 
   // 启动完成后调用 service
+  const databaseSchemaService = app.get(DatabaseSchemaService);
+  await databaseSchemaService.ensureTrackSortColumns();
+
   const trackService = app.get(TrackService);
   const count = await trackService.trackCount();
 
   if (count === 0) {
     console.log('Database is empty, starting initial import...');
     const myService = app.get(ImportService);
-    await myService.createTask(musicBaseDirs, audioBookDirs, cacheDir);
+    await myService.createTask(musicBaseDirs, audioBookDirs, mvDirs, cacheDir);
   } else {
     console.log(`Database has ${count} tracks, skipping initial import. Starting watcher...`);
     const myService = app.get(ImportService);
-    myService.setupWatcher(musicBaseDirs, audioBookDirs, cacheDir);
+    myService.setupWatcher(musicBaseDirs, audioBookDirs, mvDirs, cacheDir);
   }
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');

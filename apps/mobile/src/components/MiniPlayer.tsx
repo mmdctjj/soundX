@@ -5,11 +5,23 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { usePlayer } from "../context/PlayerContext";
 import { useTheme } from "../context/ThemeContext";
 import { getBaseURL } from "../https";
+import { TrackType } from "../models";
 
 export const MiniPlayer = () => {
   const { colors } = useTheme();
   const router = useRouter();
-  const { currentTrack, isPlaying, pause, resume, playNext, playPrevious, setShowPlaylist, isRadioMode } =
+  const {
+    currentTrack,
+    isPlaying,
+    pause,
+    resume,
+    playNext,
+    playPrevious,
+    setShowPlaylist,
+    isRadioMode,
+    currentAudioQuality,
+    availableAudioQualities,
+  } =
     usePlayer();
 
   if (!currentTrack) return null;
@@ -53,12 +65,29 @@ export const MiniPlayer = () => {
           >
             {currentTrack.name}
           </Text>
-          <Text
-            style={[styles.artist, { color: colors.secondary }]}
-            numberOfLines={1}
-          >
-            {currentTrack.artist}
-          </Text>
+          <View style={styles.artistRow}>
+            <Text
+              style={[styles.artist, { color: colors.secondary }]}
+              numberOfLines={1}
+            >
+              {currentTrack.artist}
+            </Text>
+            {currentTrack.type !== TrackType.AUDIOBOOK && (
+              <View
+                style={[
+                  styles.qualityBadge,
+                  { borderColor: colors.border, backgroundColor: colors.card },
+                ]}
+              >
+                <Text
+                  style={[styles.qualityBadgeText, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  {availableAudioQualities.find((item) => item.quality === currentAudioQuality)?.label || "无损"}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -118,6 +147,23 @@ const styles = StyleSheet.create({
   },
   artist: {
     fontSize: 12,
+    flexShrink: 1,
+  },
+  artistRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  qualityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  qualityBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
   },
   controls: {
     flexDirection: "row",

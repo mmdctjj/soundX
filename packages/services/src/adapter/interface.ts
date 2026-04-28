@@ -1,4 +1,13 @@
-import { Album, Artist, AudiobookCollection, AudiobookCollectionAlbum, ILoadMoreData, ISuccessResponse, ITableData, Playlist, Track } from "../models";
+import { Album, AlbumTrackSortBy, Artist, AudiobookCollection, AudiobookCollectionAlbum, ILoadMoreData, ISuccessResponse, ITableData, Playlist, Track, Mv } from "../models";
+
+export interface IMvAdapter {
+  getMvList(pageSize: number, skip: number, keyword?: string): Promise<{ list: Mv[]; total: number }>;
+  getMvById(id: number | string): Promise<Mv | null>;
+  getMvsByArtist(artist: string): Promise<Mv[]>;
+  getMvsByAlbum(album: string, artist: string): Promise<Mv[]>;
+  getMvByTrackId(trackId: number | string): Promise<Mv | null>;
+  getRandomMvs(limit: number): Promise<Mv[]>;
+}
 
 export interface ITrackAdapter {
   getTrackList(): Promise<ISuccessResponse<Track[]>>;
@@ -32,7 +41,7 @@ export interface IAlbumAdapter {
   getRecommendedAlbums(type?: string, random?: boolean, pageSize?: number, likeRatio?: number): Promise<ISuccessResponse<Album[]>>;
   getRecentAlbums(type?: string, random?: boolean, pageSize?: number): Promise<ISuccessResponse<Album[]>>;
   getAlbumById(id: number | string): Promise<ISuccessResponse<Album>>;
-  getAlbumTracks(id: number | string, pageSize: number, skip: number, sort?: "asc" | "desc", keyword?: string, userId?: number | string, sortBy?: string): Promise<ISuccessResponse<{ list: any[]; total: number }>>;
+  getAlbumTracks(id: number | string, pageSize: number, skip: number, sort?: "asc" | "desc", keyword?: string, userId?: number | string, sortBy?: AlbumTrackSortBy): Promise<ISuccessResponse<{ list: any[]; total: number }>>;
   getAlbumsByArtist(artist: string): Promise<ISuccessResponse<Album[]>>;
   getCollaborativeAlbumsByArtist(artist: string): Promise<ISuccessResponse<Album[]>>;
   uploadAlbumCover(id: number | string, file: any): Promise<ISuccessResponse<Album>>;
@@ -91,4 +100,5 @@ export interface IMusicAdapter {
   collection: IAudioCollectionAdapter;
   user: IUserAdapter;
   auth: IAuthAdapter;
+  mv: IMvAdapter;
 }

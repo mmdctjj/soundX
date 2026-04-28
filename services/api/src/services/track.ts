@@ -1,18 +1,58 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileStatus, PrismaClient, Track, TrackType } from '@soundx/db';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getTrackHeartbeatScoreMap } from './heartbeat-score';
 import { toSimplified } from '../common/zh-utils';
 import { resolvePathList } from '../common/path-list';
 
+export type AlbumTrackSortBy =
+  | 'id'
+  | 'index'
+  | 'episodeNumber'
+  | 'fileName'
+  | 'fileCreatedAt'
+  | 'fileModifiedAt'
+  | 'scanOrder';
+
+export type TrackPlaybackQuality = 'lossless' | 'high' | 'standard';
+
+export interface TrackPlaybackQualityOption {
+  quality: TrackPlaybackQuality;
+  label: string;
+  codec: string;
+  bitrate: string;
+}
+
+export interface TrackPlaybackProfile {
+  defaultQuality: TrackPlaybackQuality;
+  options: TrackPlaybackQualityOption[];
+}
+
+interface TrackProbeInfo {
+  bitrate: number | null;
+  isLossless: boolean;
+}
+
 @Injectable()
 export class TrackService {
   private prisma: PrismaClient;
+  private readonly transcodeTasks = new Map<string, Promise<string>>();
+  private readonly naturalFileNameCollator = new Intl.Collator('zh-CN', {
+    numeric: true,
+    sensitivity: 'base',
+  });
 
   constructor(private readonly configService: ConfigService) {
     this.prisma = new PrismaClient();
+  }
+
+  private getFileNameSortKey(track: Pick<Track, 'fileName' | 'name' | 'relativePath'>): string {
+    const rawName = track.fileName || track.name || track.relativePath || '';
+    const ext = path.extname(rawName);
+    return ext ? rawName.slice(0, -ext.length) : rawName;
   }
 
   public getFilePath(trackPath: string): string | null {
@@ -20,8 +60,8 @@ export class TrackService {
       const musicBaseDirs = resolvePathList(this.configService.get<string>('MUSIC_BASE_DIR'), './');
       const relativePath = trackPath.replace('/music/', '');
       for (const musicBaseDir of musicBaseDirs) {
-        const candidate = path.join(musicBaseDir, relativePath);
-        if (fs.existsSync(candidate)) return candidate;
+        const candidate = this.resolveCandidatePath(musicBaseDir, relativePath);
+        if (candidate) return candidate;
       }
       return path.join(musicBaseDirs[0], relativePath);
     }
@@ -29,12 +69,253 @@ export class TrackService {
       const audioBookDirs = resolvePathList(this.configService.get<string>('AUDIO_BOOK_DIR'), './');
       const relativePath = trackPath.replace('/audio/', '');
       for (const audioBookDir of audioBookDirs) {
-        const candidate = path.join(audioBookDir, relativePath);
-        if (fs.existsSync(candidate)) return candidate;
+        const candidate = this.resolveCandidatePath(audioBookDir, relativePath);
+        if (candidate) return candidate;
       }
       return path.join(audioBookDirs[0], relativePath);
     }
     return null;
+  }
+
+  private resolveCandidatePath(baseDir: string, relativePath: string): string | null {
+    const normalizedBaseDir = path.resolve(baseDir);
+    const normalizedRelativePath = relativePath.replace(/^[/\\]+/, '');
+    const baseName = path.basename(normalizedBaseDir);
+    const tried = new Set<string>();
+
+    const tryCandidate = (candidatePath: string): string | null => {
+      const resolvedCandidate = path.resolve(candidatePath);
+      if (tried.has(resolvedCandidate)) {
+        return null;
+      }
+      tried.add(resolvedCandidate);
+      return fs.existsSync(resolvedCandidate) ? resolvedCandidate : null;
+    };
+
+    const directCandidate = tryCandidate(path.join(normalizedBaseDir, normalizedRelativePath));
+    if (directCandidate) {
+      return directCandidate;
+    }
+
+    let trimmedPath = normalizedRelativePath;
+    while (trimmedPath === baseName || trimmedPath.startsWith(`${baseName}${path.sep}`)) {
+      trimmedPath = trimmedPath === baseName
+        ? ''
+        : trimmedPath.slice(baseName.length + 1);
+      const trimmedCandidate = tryCandidate(path.join(normalizedBaseDir, trimmedPath));
+      if (trimmedCandidate) {
+        return trimmedCandidate;
+      }
+    }
+
+    const parentCandidate = tryCandidate(path.join(path.dirname(normalizedBaseDir), normalizedRelativePath));
+    if (parentCandidate) {
+      return parentCandidate;
+    }
+
+    return null;
+  }
+
+  private getTranscodeCacheDir(): string {
+    const configured = this.configService.get<string>('TRANSCODE_CACHE_DIR');
+    const cacheDir = configured
+      ? path.resolve(configured)
+      : path.resolve(process.cwd(), 'music', 'transcoded-audio');
+
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+
+    return cacheDir;
+  }
+
+  private async probeTrack(filePath: string): Promise<TrackProbeInfo> {
+    const ext = path.extname(filePath).toLowerCase();
+    const extLossless = new Set(['.flac', '.wav', '.ape', '.aiff', '.alac']);
+
+    return new Promise((resolve) => {
+      const ffprobe = spawn('ffprobe', [
+        '-v', 'error',
+        '-print_format', 'json',
+        '-show_format',
+        '-show_streams',
+        filePath,
+      ]);
+
+      let stdout = '';
+
+      ffprobe.stdout.on('data', (chunk) => {
+        stdout += chunk.toString();
+      });
+
+      const fallback = () =>
+        resolve({
+          bitrate: null,
+          isLossless: extLossless.has(ext),
+        });
+
+      ffprobe.on('error', fallback);
+      ffprobe.on('close', () => {
+        try {
+          const parsed = JSON.parse(stdout || '{}');
+          const format = parsed?.format || {};
+          const streams = Array.isArray(parsed?.streams) ? parsed.streams : [];
+          const audioStream = streams.find((stream: any) => stream?.codec_type === 'audio') || {};
+          const codecName = String(audioStream?.codec_name || format?.format_name || '').toLowerCase();
+          const bitrateRaw = Number(audioStream?.bit_rate || format?.bit_rate || 0) || null;
+          const isLossless =
+            extLossless.has(ext) ||
+            ['flac', 'alac', 'wavpack', 'ape', 'pcm_s16le', 'pcm_s24le', 'pcm_s32le'].includes(codecName);
+
+          resolve({
+            bitrate: bitrateRaw,
+            isLossless,
+          });
+        } catch {
+          fallback();
+        }
+      });
+    });
+  }
+
+  public async getTrackPlaybackProfile(track: Track): Promise<TrackPlaybackProfile> {
+    if (track.path.startsWith('http')) {
+      return {
+        defaultQuality: 'lossless',
+        options: [
+          { quality: 'lossless', label: '无损', codec: '原始', bitrate: '原始' },
+        ],
+      };
+    }
+
+    const filePath = this.getFilePath(track.path);
+    if (!filePath || !fs.existsSync(filePath)) {
+      return {
+        defaultQuality: 'lossless',
+        options: [
+          { quality: 'lossless', label: '无损', codec: '原始', bitrate: '原始' },
+        ],
+      };
+    }
+
+    const probe = await this.probeTrack(filePath);
+
+    if (probe.isLossless) {
+      return {
+        defaultQuality: 'lossless',
+        options: [
+          { quality: 'lossless', label: '无损', codec: 'FLAC', bitrate: '原始' },
+          { quality: 'high', label: '高品质', codec: 'AAC', bitrate: '256kbps' },
+          { quality: 'standard', label: '标准', codec: 'AAC', bitrate: '128kbps' },
+        ],
+      };
+    }
+
+    if ((probe.bitrate || 0) >= 256_000) {
+      return {
+        defaultQuality: 'high',
+        options: [
+          { quality: 'high', label: '高品质', codec: 'AAC', bitrate: '256kbps' },
+          { quality: 'standard', label: '标准', codec: 'AAC', bitrate: '128kbps' },
+        ],
+      };
+    }
+
+    return {
+      defaultQuality: 'standard',
+      options: [
+        { quality: 'standard', label: '标准', codec: 'AAC', bitrate: '128kbps' },
+      ],
+    };
+  }
+
+  private getTranscodeCachePath(track: Track, quality: Exclude<TrackPlaybackQuality, 'lossless'>): string {
+    const cacheDir = this.getTranscodeCacheDir();
+    const fingerprint = (track as any).fileHash || `${track.id}_${(track as any).fileModifiedAt || ''}`;
+    return path.join(cacheDir, `${fingerprint}_${quality}.m4a`);
+  }
+
+  public async resolvePlaybackFile(track: Track, quality: TrackPlaybackQuality): Promise<{ filePath: string; contentType: string }> {
+    if (track.path.startsWith('http')) {
+      return {
+        filePath: track.path,
+        contentType: 'audio/mpeg',
+      };
+    }
+
+    const sourcePath = this.getFilePath(track.path);
+    if (!sourcePath || !fs.existsSync(sourcePath)) {
+      throw new Error('File not found');
+    }
+
+    if (quality === 'lossless') {
+      const ext = path.extname(sourcePath).toLowerCase();
+      const contentTypeMap: Record<string, string> = {
+        '.flac': 'audio/flac',
+        '.wav': 'audio/wav',
+        '.m4a': 'audio/mp4',
+        '.aac': 'audio/aac',
+        '.mp3': 'audio/mpeg',
+      };
+
+      return {
+        filePath: sourcePath,
+        contentType: contentTypeMap[ext] || 'audio/mpeg',
+      };
+    }
+
+    const cachedPath = this.getTranscodeCachePath(track, quality);
+    if (fs.existsSync(cachedPath)) {
+      return {
+        filePath: cachedPath,
+        contentType: 'audio/mp4',
+      };
+    }
+
+    const taskKey = `${track.id}:${quality}`;
+    if (!this.transcodeTasks.has(taskKey)) {
+      const bitrate = quality === 'high' ? '256k' : '128k';
+      const task = new Promise<string>((resolve, reject) => {
+        const ffmpeg = spawn('ffmpeg', [
+          '-y',
+          '-i', sourcePath,
+          '-vn',
+          '-c:a', 'aac',
+          '-b:a', bitrate,
+          '-movflags', '+faststart',
+          cachedPath,
+        ]);
+
+        let stderr = '';
+
+        ffmpeg.stderr.on('data', (chunk) => {
+          stderr += chunk.toString();
+        });
+
+        ffmpeg.on('error', (error) => {
+          reject(error);
+        });
+
+        ffmpeg.on('close', (code) => {
+          if (code === 0 && fs.existsSync(cachedPath)) {
+            resolve(cachedPath);
+            return;
+          }
+
+          reject(new Error(stderr || `ffmpeg exited with code ${code}`));
+        });
+      }).finally(() => {
+        this.transcodeTasks.delete(taskKey);
+      });
+
+      this.transcodeTasks.set(taskKey, task);
+    }
+
+    const filePath = await this.transcodeTasks.get(taskKey)!;
+    return {
+      filePath,
+      contentType: 'audio/mp4',
+    };
   }
 
   private async deleteFileSafely(trackPath: string) {
@@ -82,7 +363,7 @@ export class TrackService {
     sort: 'asc' | 'desc' = 'asc',
     keyword?: string,
     userId?: number,
-    sortBy: 'id' | 'index' | 'episodeNumber' = 'episodeNumber',
+    sortBy: AlbumTrackSortBy = 'episodeNumber',
     albumId?: number,
   ): Promise<Track[]> {
     const where: any = {
@@ -101,11 +382,68 @@ export class TrackService {
       where.name = { contains: simplifiedKeyword };
     }
 
+    if (sortBy === 'fileName') {
+      const tracks = await this.prisma.track.findMany({
+        where,
+        include: {
+          artistEntity: true,
+          albumEntity: true,
+          likedByUsers: true
+        },
+      });
+
+      tracks.sort((a, b) => {
+        const primary = this.naturalFileNameCollator.compare(
+          this.getFileNameSortKey(a),
+          this.getFileNameSortKey(b),
+        );
+        if (primary !== 0) {
+          return sort === 'asc' ? primary : -primary;
+        }
+
+        const relativePathCompare = this.naturalFileNameCollator.compare(
+          a.relativePath || '',
+          b.relativePath || '',
+        );
+        if (relativePathCompare !== 0) {
+          return sort === 'asc' ? relativePathCompare : -relativePathCompare;
+        }
+
+        return sort === 'asc' ? a.id - b.id : b.id - a.id;
+      });
+
+      return await this.attachProgressToTracks(
+        tracks.slice(skip, skip + pageSize),
+        userId || 1,
+      );
+    }
+
+    const orderBy: any[] = [];
+    switch (sortBy) {
+      case 'id':
+        orderBy.push({ id: sort });
+        break;
+      case 'index':
+        orderBy.push({ index: sort }, { relativePath: sort }, { id: sort });
+        break;
+      case 'fileCreatedAt':
+        orderBy.push({ fileCreatedAt: sort }, { relativePath: sort }, { id: sort });
+        break;
+      case 'fileModifiedAt':
+        orderBy.push({ fileModifiedAt: sort }, { relativePath: sort }, { id: sort });
+        break;
+      case 'scanOrder':
+        orderBy.push({ scanOrder: sort }, { id: sort });
+        break;
+      case 'episodeNumber':
+      default:
+        orderBy.push({ episodeNumber: sort }, { index: sort }, { relativePath: sort }, { id: sort });
+        break;
+    }
+
     const tracks = await this.prisma.track.findMany({
       where,
-      orderBy: [
-        { [sortBy]: sort },
-      ],
+      orderBy,
       skip: skip,
       take: pageSize,
       include: {

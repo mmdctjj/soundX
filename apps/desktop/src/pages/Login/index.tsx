@@ -5,25 +5,25 @@ import {
   LockOutlined,
   UserOutlined,
 } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import {
+  useEmbyAdapter as activateEmbyAdapter,
+  useNativeAdapter as activateNativeAdapter,
+  useSubsonicAdapter as activateSubsonicAdapter,
   check,
-  claimScanLoginSession,
   consumeScanLoginSession,
   createScanLoginSession,
   getScanLoginSession,
-  reportScanLoginResult,
-  reportScanLoginResultViaSocket,
-  subscribeScanLoginSession,
   login,
   register,
+  reportScanLoginResult,
+  reportScanLoginResultViaSocket,
   type ScanLoginSession,
   type ScanLoginSessionStatus,
   setServiceConfig,
   SOURCEMAP,
   SOURCETIPSMAP,
-  useEmbyAdapter as activateEmbyAdapter,
-  useNativeAdapter as activateNativeAdapter,
-  useSubsonicAdapter as activateSubsonicAdapter,
+  subscribeScanLoginSession,
 } from "@soundx/services";
 import {
   AutoComplete,
@@ -32,8 +32,8 @@ import {
   Flex,
   Form,
   Input,
-  QRCode,
   message,
+  QRCode,
   Typography,
 } from "antd";
 import React, { useEffect, useState } from "react";
@@ -41,9 +41,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import emby from "../../assets/emby.png";
 import logo from "../../assets/logo.png";
 import subsonic from "../../assets/subsonic.png";
+import { useTheme } from "../../context/ThemeContext";
 import { useAuthStore } from "../../store/auth";
-import { collectDesktopScanLoginPayload, applyDesktopScanLoginResult } from "../../utils/scanLogin";
+import { trackEvent } from "../../services/tracking";
 import { isWeb } from "../../utils/platform";
+import { applyDesktopScanLoginResult } from "../../utils/scanLogin";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -63,16 +65,17 @@ type LoginFormValues = {
 };
 
 const Login: React.FC = () => {
+  const { t } = useTranslation();
+  const { mode } = useTheme();
   const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
   const location = useLocation();
-  const { login: setLogin } = useAuthStore();
+  const { login: setLogin, user, device } = useAuthStore();
 
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [scanSession, setScanSession] = useState<ScanLoginSession | null>(null);
   const [scanStatus, setScanStatus] = useState<ScanLoginSessionStatus | null>(null);
-  const [scanBusy, setScanBusy] = useState(false);
   const [loginForm] = Form.useForm();
 
   const queryParams = new URLSearchParams(location.search);
@@ -121,6 +124,12 @@ const Login: React.FC = () => {
 
   const createTargetSession = async () => {
     try {
+      trackEvent({
+        feature: "scan_login",
+        eventName: "scan_login_qr_refresh",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+      });
       const res = await createScanLoginSession({
         role: "target",
         deviceKind: "desktop",
@@ -138,7 +147,7 @@ const Login: React.FC = () => {
       });
     } catch (error) {
       console.error(error);
-      messageApi.error("创建扫码会话失败");
+      messageApi.error(t("login.scanSessionCreateFailed"));
     }
   };
 
@@ -166,7 +175,6 @@ const Login: React.FC = () => {
 
     const consumeConfirmedScan = async () => {
       try {
-        setScanBusy(true);
         const res = await consumeScanLoginSession(scanSession.sessionId, {
           secret: scanSession.secret,
         });
@@ -188,14 +196,27 @@ const Login: React.FC = () => {
           success: true,
         }).catch((reportErr) => console.error("Failed to report scan login result", reportErr));
         reportScanLoginResultViaSocket(scanSession.sessionId, scanSession.secret, true);
-        messageApi.success("扫码登录成功");
+        trackEvent({
+          feature: "scan_login",
+          eventName: "scan_login_result_success",
+          userId: user?.id ? String(user.id) : undefined,
+          deviceId: device?.id ? String(device.id) : undefined,
+        });
+        messageApi.success(t("login.scanLoginSuccess"));
         navigate("/");
       } catch (error) {
         console.error(error);
-        messageApi.error(error instanceof Error ? error.message : "扫码登录失败");
+        trackEvent({
+          feature: "scan_login",
+          eventName: "scan_login_result_failed",
+          userId: user?.id ? String(user.id) : undefined,
+          deviceId: device?.id ? String(device.id) : undefined,
+          metadata: {
+            message: error instanceof Error ? error.message : "unknown_error",
+          },
+        });
+        messageApi.error(error instanceof Error ? error.message : t("login.scanLoginFailed"));
         createTargetSession();
-      } finally {
-        setScanBusy(false);
       }
     };
 
@@ -306,7 +327,7 @@ const Login: React.FC = () => {
         id: Date.now().toString(),
         internal: internal || "",
         external: external || "",
-        name: `服务器 ${existingConfigs.length + 1}`,
+        name: t("login.server", { index: existingConfigs.length + 1 }),
       });
     }
     localStorage.setItem(configKey, JSON.stringify(existingConfigs));
@@ -379,11 +400,20 @@ const Login: React.FC = () => {
       return external;
     }
 
-    throw new Error("无法连接到服务器，请检查地址");
+    throw new Error(t("login.connectionFailed"));
   };
 
   const handleFinish = async (values: LoginFormValues) => {
     setLoading(true);
+    trackEvent({
+      feature: "scan_login",
+      eventName: isLogin ? "source_login_submit" : "source_register_submit",
+      userId: user?.id ? String(user.id) : undefined,
+      deviceId: device?.id ? String(device.id) : undefined,
+      metadata: {
+        sourceType,
+      },
+    });
     const type = sourceType;
     let internalAddress = values.internalAddress || "";
     const externalAddress = values.externalAddress || "";
@@ -395,7 +425,7 @@ const Login: React.FC = () => {
     }
 
     if (!internalAddress && !externalAddress) {
-      messageApi.error("请至少输入一个地址");
+      messageApi.error(t("login.enterAddress"));
       setLoading(false);
       return;
     }
@@ -436,7 +466,16 @@ const Login: React.FC = () => {
           localStorage.setItem(userKey, JSON.stringify(userData));
           if (device) localStorage.setItem(deviceKey, JSON.stringify(device));
           setLogin(newToken, userData as never, device);
-          messageApi.success("登录成功");
+          trackEvent({
+            feature: "scan_login",
+            eventName: "source_login_success",
+            userId: userData?.id ? String(userData.id) : undefined,
+            deviceId: device?.id ? String(device.id) : undefined,
+            metadata: {
+              sourceType,
+            },
+          });
+          messageApi.success(t("login.loginSuccess"));
           navigate("/");
         }
       } else {
@@ -448,45 +487,34 @@ const Login: React.FC = () => {
           localStorage.setItem(userKey, JSON.stringify(userData));
           if (device) localStorage.setItem(deviceKey, JSON.stringify(device));
           setLogin(newToken, userData as never, device);
-          messageApi.success("注册成功");
+          trackEvent({
+            feature: "scan_login",
+            eventName: "source_register_success",
+            userId: userData?.id ? String(userData.id) : undefined,
+            deviceId: device?.id ? String(device.id) : undefined,
+            metadata: {
+              sourceType,
+            },
+          });
+          messageApi.success(t("login.registerSuccess"));
           navigate("/");
         }
       }
     } catch (error) {
       console.error(error);
-      messageApi.error(error instanceof Error ? error.message : "操作失败");
+      trackEvent({
+        feature: "scan_login",
+        eventName: isLogin ? "source_login_failed" : "source_register_failed",
+        userId: user?.id ? String(user.id) : undefined,
+        deviceId: device?.id ? String(device.id) : undefined,
+        metadata: {
+          sourceType,
+          message: error instanceof Error ? error.message : "unknown_error",
+        },
+      });
+      messageApi.error(error instanceof Error ? error.message : t("login.operationFailed"));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDesktopScan = async () => {
-    try {
-      setScanBusy(true);
-      const payload = await collectDesktopScanLoginPayload();
-      if (!payload.nativeAuth && !payload.plusAuth) {
-        messageApi.error("当前设备还没有可供迁移的登录态，请先在本机登录");
-        return;
-      }
-
-      const sessionId = window.prompt("请输入被扫码设备上的会话二维码内容");
-      if (!sessionId) return;
-
-      const parsed = JSON.parse(sessionId);
-      if (parsed?.kind !== "soundx-scan-login") {
-        throw new Error("不是有效的扫码登录二维码");
-      }
-
-      await claimScanLoginSession(parsed.sessionId, {
-        secret: parsed.secret,
-        payload,
-      });
-      messageApi.success("扫码成功，请在被扫码设备确认导入");
-    } catch (error) {
-      console.error(error);
-      messageApi.error(error instanceof Error ? error.message : "扫码登录失败");
-    } finally {
-      setScanBusy(false);
     }
   };
 
@@ -509,40 +537,51 @@ const Login: React.FC = () => {
         className={styles.backButton}
         onClick={() => navigate("/source-manage")}
       >
-        返回选择
+        {t("login.backToSelect")}
       </Button>
       {contextHolder}
 
-      <div className={styles.content}>
-        <div className={styles.scanPanel}>
-          {scanStatus?.status === "waiting_confirm" ? (
-            <div className={styles.confirmPanel} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
-              <Title level={5} style={{ marginBottom: 16 }}>
-                等待手机端确认
-              </Title>
-              <Text type="secondary" style={{ textAlign: "center" }}>
-                手机已扫码。请在手机屏幕上勾选要导入的数据源，并在手机上点击确认发送...
-              </Text>
-            </div>
-          ) : (
-            <div className={styles.qrPanel}>
-              {qrValue ? <QRCode value={qrValue} size={180} bordered={false} /> : null}
-              <Text type="secondary" className={styles.qrText}>
-                手机竖屏模式下进入登录页后扫码即可。Desktop 与 mobile 横屏都属于被扫码设备。
-              </Text>
-              <Button onClick={createTargetSession}>刷新二维码</Button>
-              <Button type="link" onClick={handleDesktopScan} loading={scanBusy}>
-                当前设备作为主动扫码端
-              </Button>
-            </div>
-          )}
-        </div>
+      <div
+        className={styles.card}
+        style={
+          mode === "dark"
+            ? { background: "transparent", border: "none", boxShadow: "none" }
+            : {}
+        }
+      >
+        <div className={styles.contentGrid}>
+          <div className={styles.scanSection}>
+            {scanStatus?.status === "waiting_confirm" ? (
+              <div
+                className={styles.confirmPanel}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 200,
+                }}
+              >
+                <Title level={5} style={{ marginBottom: 16 }}>
+                  {t("login.waitingConfirm")}
+                </Title>
+                <Text type="secondary" style={{ textAlign: "center" }}>
+                  {t("login.scanInstructions")}
+                </Text>
+              </div>
+            ) : (
+              <div className={styles.qrPanel}>
+                {qrValue ? <QRCode value={qrValue} size={180} bordered={false} /> : null}
+                <Button onClick={createTargetSession}>{t("login.refreshQR")}</Button>
+              </div>
+            )}
+          </div>
 
-        <div className={styles.formPanel}>
+          <div className={styles.formSection}>
           <div className={styles.header} style={{ marginBottom: isWeb() ? 20 : 0 }}>
             <img src={getLogo(sourceType)} alt={sourceType} className={styles.logo} />
             <Title style={{ margin: 0 }} level={4}>
-              {sourceType} {isLogin ? "登录" : "注册"}
+              {sourceType} {isLogin ? t("login.login") : t("login.register")}
             </Title>
             <Text type="secondary">
               {SOURCETIPSMAP[sourceType as keyof typeof SOURCETIPSMAP]}
@@ -556,7 +595,7 @@ const Login: React.FC = () => {
             className={styles.form}
             onFinish={handleFinish}
           >
-            <Form.Item label="内网地址" name="internalAddress">
+            <Form.Item label={t("login.internalAddress")} name="internalAddress">
               <AutoComplete
                 options={serverHistory.map((item) => ({
                   value: item.value,
@@ -581,7 +620,7 @@ const Login: React.FC = () => {
               </AutoComplete>
             </Form.Item>
 
-            <Form.Item label="外网地址" name="externalAddress">
+            <Form.Item label={t("login.externalAddress")} name="externalAddress">
               <AutoComplete
                 options={serverHistory.map((item) => ({
                   value: item.value,
@@ -604,28 +643,28 @@ const Login: React.FC = () => {
             </Form.Item>
 
             <Form.Item name="username" rules={[{ required: true }]}>
-              <Input prefix={<UserOutlined />} placeholder="用户名" />
+              <Input prefix={<UserOutlined />} placeholder={t("login.username")} />
             </Form.Item>
             <Form.Item name="password" rules={[{ required: true }]}>
-              <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+              <Input.Password prefix={<LockOutlined />} placeholder={t("login.password")} />
             </Form.Item>
 
             {!isLogin && (
               <Form.Item
                 name="confirmPassword"
                 rules={[
-                  { required: true, message: "请确认密码" },
+                  { required: true, message: t("login.confirmPasswordRequired") },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
                       if (!value || getFieldValue("password") === value) {
                         return Promise.resolve();
                       }
-                      return Promise.reject(new Error("两次输入的密码不一致"));
+                      return Promise.reject(new Error(t("login.passwordMismatch")));
                     },
                   }),
                 ]}
               >
-                <Input.Password prefix={<LockOutlined />} placeholder="确认密码" />
+                <Input.Password prefix={<LockOutlined />} placeholder={t("login.confirmPassword")} />
               </Form.Item>
             )}
 
@@ -637,7 +676,7 @@ const Login: React.FC = () => {
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
                     >
-                      记住我
+                      {t("login.rememberMe")}
                     </Checkbox>
                     {sourceType === "AudioDock" && (
                       <Button
@@ -646,18 +685,18 @@ const Login: React.FC = () => {
                         onClick={() => navigate("/forgot-password")}
                         style={{ padding: 0 }}
                       >
-                        忘记密码?
+                        {t("login.forgotPassword")}
                       </Button>
                     )}
                   </div>
                 </Form.Item>
                 <Button htmlType="submit" block loading={loading}>
-                  登录
+                  {t("login.login")}
                 </Button>
               </>
             ) : (
               <Button htmlType="submit" type="primary" block loading={loading}>
-                注册
+                {t("login.register")}
               </Button>
             )}
 
@@ -667,9 +706,10 @@ const Login: React.FC = () => {
               onClick={() => setIsLogin((prev) => !prev)}
               style={{ marginTop: 12 }}
             >
-              {isLogin ? "没有账号？去注册" : "已有账号？去登录"}
+              {isLogin ? t("login.noAccount") : t("login.hasAccount")}
             </Button>
           </Form>
+          </div>
         </div>
       </div>
     </div>
