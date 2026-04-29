@@ -72,8 +72,6 @@ public class MediaControlBridgeModule: Module {
     center.nextTrackCommand.removeTarget(nil)
     center.previousTrackCommand.removeTarget(nil)
     center.changePlaybackPositionCommand.removeTarget(nil)
-    center.skipForwardCommand.removeTarget(nil)
-    center.skipBackwardCommand.removeTarget(nil)
 
     center.playCommand.isEnabled = true
     center.pauseCommand.isEnabled = true
@@ -81,11 +79,6 @@ public class MediaControlBridgeModule: Module {
     center.nextTrackCommand.isEnabled = true
     center.previousTrackCommand.isEnabled = true
     center.changePlaybackPositionCommand.isEnabled = true
-
-    center.skipForwardCommand.preferredIntervals = [15]
-    center.skipBackwardCommand.preferredIntervals = [15]
-    center.skipForwardCommand.isEnabled = true
-    center.skipBackwardCommand.isEnabled = true
 
     center.playCommand.addTarget { [weak self] _ in
       self?.emitAction("play")
@@ -114,14 +107,6 @@ public class MediaControlBridgeModule: Module {
       }
       return .commandFailed
     }
-    center.skipForwardCommand.addTarget { [weak self] _ in
-      self?.emitAction("jumpForward", interval: 15)
-      return .success
-    }
-    center.skipBackwardCommand.addTarget { [weak self] _ in
-      self?.emitAction("jumpBackward", interval: 15)
-      return .success
-    }
   }
 
   private func teardownRemoteCommands() {
@@ -132,16 +117,12 @@ public class MediaControlBridgeModule: Module {
     center.nextTrackCommand.removeTarget(nil)
     center.previousTrackCommand.removeTarget(nil)
     center.changePlaybackPositionCommand.removeTarget(nil)
-    center.skipForwardCommand.removeTarget(nil)
-    center.skipBackwardCommand.removeTarget(nil)
     center.playCommand.isEnabled = false
     center.pauseCommand.isEnabled = false
     center.togglePlayPauseCommand.isEnabled = false
     center.nextTrackCommand.isEnabled = false
     center.previousTrackCommand.isEnabled = false
     center.changePlaybackPositionCommand.isEnabled = false
-    center.skipForwardCommand.isEnabled = false
-    center.skipBackwardCommand.isEnabled = false
   }
 
   private func updateRemoteCommandAvailability(canSkipNext: Bool, canSkipPrevious: Bool) {
@@ -151,10 +132,16 @@ public class MediaControlBridgeModule: Module {
   }
 
   private func applyNowPlayingUpdates(_ updates: [String: Any]) {
+    // IMPORTANT:
+    // TrackPlayer may already have populated MPNowPlayingInfoCenter (including artwork).
+    // If we overwrite with our own dictionary (which may not include artwork),
+    // the lockscreen/Control Center cover will disappear.
+    var merged = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? nowPlayingInfo
     for (key, value) in updates {
-      nowPlayingInfo[key] = value
+      merged[key] = value
     }
-    MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    nowPlayingInfo = merged
+    MPNowPlayingInfoCenter.default().nowPlayingInfo = merged
   }
 
   private func emitAction(_ action: String, position: Double? = nil, interval: Double? = nil) {
