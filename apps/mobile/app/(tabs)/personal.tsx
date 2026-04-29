@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
 import {
   createCompactTask,
   createImportTask,
@@ -286,6 +285,7 @@ export default function PersonalScreen() {
   const [activeTab, setActiveTab] = useState<TabType>("playlists");
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>("track");
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     checkUpdate();
@@ -339,20 +339,16 @@ export default function PersonalScreen() {
   const [isPlusVip, setIsPlusVip] = useState(false);
   const [plusVipData, setPlusVipData] = useState<any>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (user) {
-        loadData();
-      }
-    }, [user, activeTab, activeSubTab, mode]),
-  );
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user, activeTab, activeSubTab, mode]);
 
   // Reset selected album when tab changes or mode changes
-  useFocusEffect(
-    useCallback(() => {
-      setSelectedDownloadAlbumName(null);
-    }, [activeTab, mode]),
-  );
+  useEffect(() => {
+    setSelectedDownloadAlbumName(null);
+  }, [activeTab, mode]);
 
   React.useEffect(() => {
     if (user) {
@@ -446,8 +442,14 @@ export default function PersonalScreen() {
       console.error("Failed to load personal data:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData();
+  }, [user, activeTab, activeSubTab, mode]);
 
   const handleOpenTtsTasks = () => {
     setMenuVisible(false);
@@ -1074,6 +1076,8 @@ export default function PersonalScreen() {
         <FlatList
           data={getListData()}
           renderItem={renderItem}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
           keyExtractor={(item) =>
             (item.id || item.name).toString() + (item.type || "")
           } // item.id might be duplicated if same album in multiple contexts? Or safe.

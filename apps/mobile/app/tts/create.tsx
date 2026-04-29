@@ -24,7 +24,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../src/context/ThemeContext";
-import { getBaseURL } from "../../src/https";
 import { trackEvent } from "../../src/services/tracking";
 
 export default function TtsCreateTaskScreen() {
@@ -98,7 +97,7 @@ export default function TtsCreateTaskScreen() {
       if (soundRef.current) {
         await soundRef.current.unloadAsync();
       }
-      const previewUrl = getBaseURL() + getTtsPreviewUrl(voice);
+      const previewUrl = await getTtsPreviewUrl(voice);
       console.log("Previewing voice:", voice, "URL:", previewUrl);
       
       const { sound } = await Audio.Sound.createAsync(

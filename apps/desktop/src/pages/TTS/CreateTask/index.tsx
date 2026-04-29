@@ -44,7 +44,6 @@ const CreateTask: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement>(null);
-  const previewObjectUrlRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const [voices, setVoices] = useState<TtsVoice[]>([]);
@@ -84,12 +83,6 @@ const CreateTask: React.FC = () => {
   useEffect(() => {
     fetchVoices();
     fetchLocalFiles();
-    return () => {
-      if (previewObjectUrlRef.current) {
-        URL.revokeObjectURL(previewObjectUrlRef.current);
-        previewObjectUrlRef.current = null;
-      }
-    };
   }, []);
 
   const handlePreview = async (voice: string) => {
@@ -103,20 +96,9 @@ const CreateTask: React.FC = () => {
     try {
       const previewUrl = await getTtsPreviewUrl(voice);
       if (audioRef.current) {
-        const response = await fetch(previewUrl);
-        if (!response.ok) {
-          throw new Error(`Preview request failed: ${response.status}`);
-        }
-
-        const audioBlob = await response.blob();
-        if (previewObjectUrlRef.current) {
-          URL.revokeObjectURL(previewObjectUrlRef.current);
-        }
-        previewObjectUrlRef.current = URL.createObjectURL(audioBlob);
-
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
-        audioRef.current.src = previewObjectUrlRef.current;
+        audioRef.current.src = previewUrl;
         audioRef.current.load();
 
         // 只有当音频真正开始播放（意味着后端已经合成完毕并返回）时才取消加载状态
