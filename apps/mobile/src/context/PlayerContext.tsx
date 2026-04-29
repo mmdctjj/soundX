@@ -844,13 +844,19 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       compactCapabilities.push(Capability.JumpForward);
     }
 
+    const jumpOptions = isAudiobookAndroid
+      ? {
+          // @ts-ignore
+          jumpForwardInterval: 15,
+          // @ts-ignore
+          jumpBackwardInterval: 15,
+        }
+      : {};
+
     await TrackPlayer.updateOptions({
       capabilities,
       compactCapabilities,
-      // @ts-ignore
-      jumpForwardInterval: 15,
-      // @ts-ignore
-      jumpBackwardInterval: 15,
+      ...jumpOptions,
       // ✨ 优化：缩短进度更新间隔以提高片尾跳过精度
       progressUpdateEventInterval: 1,
       android: {

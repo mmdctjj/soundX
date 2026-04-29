@@ -215,8 +215,9 @@ export default function HomeScreen() {
           );
           if (cachedSections) {
             setSections(cachedSections);
-            setSections(cachedSections);
             setLoading(false);
+            setRefreshing(false);
+            return;
           }
         }
 

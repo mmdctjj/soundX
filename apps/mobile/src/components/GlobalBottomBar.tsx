@@ -52,6 +52,11 @@ export const GlobalBottomBar = () => {
               style={styles.tabItem}
               onPress={() => {
                 if (isActive) return;
+                const navigate = (router as any).navigate;
+                if (typeof navigate === "function") {
+                  navigate(tab.href as any);
+                  return;
+                }
                 router.push(tab.href as any);
               }}
             >

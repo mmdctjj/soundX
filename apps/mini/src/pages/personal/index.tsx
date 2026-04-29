@@ -14,7 +14,7 @@ import {
   TaskStatus,
 } from '@soundx/services';
 import { Image, Input, ScrollView, Text, View } from '@tarojs/components';
-import Taro, { useDidShow } from '@tarojs/taro';
+import Taro from '@tarojs/taro';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
@@ -123,13 +123,6 @@ export default function Personal() {
       setLoading(false);
     }
   }, [activeTab, activeSubTab, mode, user]);
-
-  useDidShow(() => {
-    refreshSourceType();
-    if (user) {
-      loadData();
-    }
-  });
 
   useEffect(() => {
     refreshSourceType();
@@ -483,7 +476,18 @@ export default function Personal() {
         </View>
       )}
 
-      <ScrollView scrollY className='list-scroll'>
+      <ScrollView
+        scrollY
+        className='list-scroll'
+        refresherEnabled
+        onRefresherRefresh={() => {
+          refreshSourceType();
+          if (user) {
+            loadData();
+          }
+        }}
+        refresherTriggered={loading}
+      >
         <View className='list-content'>
           {renderList()}
           <View className='page-bottom-spacer' />

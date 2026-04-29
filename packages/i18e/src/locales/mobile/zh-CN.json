@@ -449,6 +449,8 @@
     "paymentWindowClosed": "支付窗口已关闭。如已完成支付，稍后可在会员详情查看是否生效。",
     "wechatComingSoon": "微信支付正在上线中，请使用支付宝支付",
     "priceUnavailable": "当前会员价格暂不可用，请稍后重试",
+    "paymentLinkFailed": "无法打开支付链接",
+    "wechatParamsMissing": "后端未返回微信支付参数",
     "alipayParamsMissing": "后端未返回支付宝支付参数",
     "requestFailedRetry": "请求失败，请稍后重试",
     "networkFailed": "网络请求失败，请检查网络设置",
