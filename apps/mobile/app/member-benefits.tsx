@@ -370,6 +370,7 @@ export default function MemberBenefitsScreen() {
           orderId,
           tradeNo: "",
           paidAt: new Date().toISOString(),
+          method: "ALIPAY",
         },
       } as any);
       return;
@@ -383,6 +384,7 @@ export default function MemberBenefitsScreen() {
           orderId,
           tradeNo: "",
           paidAt: new Date().toISOString(),
+          method: "ALIPAY",
         },
       } as any);
       return;
@@ -425,7 +427,7 @@ export default function MemberBenefitsScreen() {
         if (method === "WECHAT") {
           if (wechatPay) {
             await ensureWeChatRegistered(wechatPay.appId, WECHAT_UNIVERSAL_LINK);
-            await payWithWeChat({
+            const wechatResult = await payWithWeChat({
               appId: wechatPay.appId,
               partnerId: wechatPay.partnerId,
               prepayId: wechatPay.prepayId,
@@ -434,6 +436,19 @@ export default function MemberBenefitsScreen() {
               sign: wechatPay.sign,
               package: wechatPay.packageValue ?? wechatPay.package ?? "Sign=WXPay",
             }, paymentUrl);
+            console.log("[Pay][WeChat] result", wechatResult);
+            const wechatErrCode = typeof wechatResult === "object" ? wechatResult?.errCode : wechatResult;
+            if (wechatErrCode === 0) {
+              router.replace({
+                pathname: "/member-payment-success",
+                params: {
+                  orderId: resolvedOrderId,
+                  tradeNo: "",
+                  paidAt: new Date().toISOString(),
+                  method: "WECHAT",
+                },
+              } as any);
+            }
           } else if (paymentUrl) {
             const supported = await Linking.canOpenURL(paymentUrl);
             if (supported) {
@@ -461,6 +476,7 @@ export default function MemberBenefitsScreen() {
                   orderId: resolvedOrderId,
                   tradeNo,
                   paidAt: new Date().toISOString(),
+                  method: "ALIPAY",
                 },
               } as any);
             }
@@ -828,6 +844,7 @@ export default function MemberBenefitsScreen() {
                   {t("memberBenefitsPage.wechat")}
                 </Text>
               </TouchableOpacity>
+              {/* TODO: 临时隐藏支付宝支付按钮，保留支付逻辑 */}
               <TouchableOpacity
                 style={[
                   styles.paymentItem,
@@ -835,6 +852,7 @@ export default function MemberBenefitsScreen() {
                     backgroundColor: colors.card,
                     borderColor: colors.border,
                     opacity: loading ? 0.6 : 1,
+                    display: "none" as any,
                   },
                 ]}
                 onPress={() => handlePayment("ALIPAY")}
