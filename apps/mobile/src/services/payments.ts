@@ -1,10 +1,24 @@
-import { Alert, Linking, Platform } from "react-native";
+import { Alert, DeviceEventEmitter, Linking, NativeModules, Platform } from "react-native";
 import { plusCreatePayment, CreatePaymentDto, plusVerifyAppleIap, type AppleIapVerifyDto } from "@soundx/services";
-import type * as WeChatTypes from "react-native-wechat-lib";
 import type AlipayTypes from "@uiw/react-native-alipay";
 import type * as RNIapTypes from "react-native-iap";
 
-type WeChatModule = typeof WeChatTypes;
+type WeChatNativeModule = {
+  registerApp: (
+    appId: string,
+    universalLink: string | undefined,
+    callback: (error?: string | null, result?: boolean) => void,
+  ) => void;
+  pay: (
+    payload: Record<string, unknown>,
+    callback: (error?: string | null) => void,
+  ) => void;
+};
+
+type WeChatModule = {
+  registerApp: (appId: string, universalLink?: string) => Promise<boolean>;
+  pay: (payload: Record<string, unknown>) => Promise<unknown>;
+};
 type AlipayModule = typeof AlipayTypes;
 type RNIapModule = typeof RNIapTypes;
 
@@ -14,14 +28,55 @@ let cachedIapModule: RNIapModule | null | undefined;
 
 const loadWeChatModule = (): WeChatModule | null => {
   if (cachedWeChatModule !== undefined) return cachedWeChatModule;
-  try {
-    console.log("[Pay][WeChat] require start");
-    cachedWeChatModule = require("react-native-wechat-lib") as WeChatModule;
-    console.log("[Pay][WeChat] require success", Object.keys(cachedWeChatModule || {}));
-  } catch (error) {
-    console.warn("Native module missing: react-native-wechat-lib", error);
+  const nativeModule = ((NativeModules as any)?.RCTWeChat ??
+    (NativeModules as any)?.WeChat) as WeChatNativeModule | undefined;
+
+  console.log("[Pay][WeChat] native module", {
+    nativeKeys: Object.keys((NativeModules as any) || {}).filter(
+      (key) => key === "RCTWeChat" || key === "WeChat",
+    ),
+    hasRegister: !!nativeModule?.registerApp,
+    hasPay: !!nativeModule?.pay,
+  });
+
+  if (!nativeModule?.registerApp || !nativeModule?.pay) {
     cachedWeChatModule = null;
+    return cachedWeChatModule;
   }
+
+  cachedWeChatModule = {
+    registerApp: (appId: string, universalLink?: string) =>
+      new Promise<boolean>((resolve, reject) => {
+        nativeModule.registerApp(appId, universalLink, (error, result) => {
+          if (error) {
+            reject(new Error(String(error)));
+            return;
+          }
+          resolve(Boolean(result));
+        });
+      }),
+    pay: (payload: Record<string, unknown>) =>
+      new Promise((resolve, reject) => {
+        const subscription = DeviceEventEmitter.addListener(
+          "WeChat_Resp",
+          (resp) => {
+            if (resp?.type !== "PayReq.Resp") return;
+            subscription.remove();
+            if (resp?.errCode === 0) {
+              resolve(resp);
+              return;
+            }
+            reject(new Error(resp?.errStr || String(resp?.errCode || "WeChat pay failed")));
+          },
+        );
+
+        nativeModule.pay(payload, (error) => {
+          if (!error) return;
+          subscription.remove();
+          reject(new Error(String(error)));
+        });
+      }),
+  };
   return cachedWeChatModule;
 };
 
