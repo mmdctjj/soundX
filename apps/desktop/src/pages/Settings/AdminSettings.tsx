@@ -33,7 +33,11 @@ const AdminSettings: React.FC = () => {
         const res = await toggleRegistrationSetting(val);
         if (res.code === 200) {
             setRegistrationAllowed(val);
-            message.success(val ? "已允许注册" : "已禁止注册");
+            message.success(
+              val
+                ? t("settings.registrationEnabled")
+                : t("settings.registrationDisabled"),
+            );
         } else {
             message.error(res.message);
         }
@@ -42,9 +46,9 @@ const AdminSettings: React.FC = () => {
     return (
         <div>
            <Space style={{ marginBottom: 16 }}>
-               <span>允许新用户注册:</span>
+               <span>{t("settings.allowNewUserRegistration")}:</span>
                <Switch checked={registrationAllowed} onChange={toggleRegistration} loading={settingLoading} />
-               <Button onClick={() => navigate("/admin/users")}>{t("admin.userManagement")}</Button>
+               <Button onClick={() => navigate("/admin/users")}>{t("adminUserManagement.title")}</Button>
            </Space>
         </div>
     );

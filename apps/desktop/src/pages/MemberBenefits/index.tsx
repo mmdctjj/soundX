@@ -22,6 +22,7 @@ import {
   Flex,
   Layout,
   Modal,
+  QRCode,
   Table,
   Tooltip,
   Typography,
@@ -52,6 +53,8 @@ const MemberBenefits: React.FC = () => {
     null,
   );
   const [memberPhone, setMemberPhone] = useState("");
+  const [wechatQrModalOpen, setWechatQrModalOpen] = useState(false);
+  const [wechatQrCode, setWechatQrCode] = useState("");
   const isElectronRuntime =
     typeof window !== "undefined" && !!(window as any).ipcRenderer;
   const paymentWindowRef = useRef<Window | null>(null);
@@ -79,7 +82,10 @@ const MemberBenefits: React.FC = () => {
     const pad = (value: number) => String(value).padStart(2, "0");
     const format = (value: Date) =>
       `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
-    return `${format(start)} 至 ${format(end)}`;
+    return t("memberBenefits.dateRange", {
+      start: format(start),
+      end: format(end),
+    });
   };
 
   const hasDiscount = (plan: VipCurrentLowestPricePlan | null | undefined) =>
@@ -249,6 +255,24 @@ const MemberBenefits: React.FC = () => {
     return popup;
   };
 
+  const closeWechatQrModal = () => {
+    stopPollingRef.current = true;
+    setWechatQrModalOpen(false);
+    setWechatQrCode("");
+  };
+
+  const handlePaymentActivated = () => {
+    stopPollingRef.current = true;
+    setWechatQrModalOpen(false);
+    setWechatQrCode("");
+    try {
+      paymentWindowRef.current?.close();
+    } catch {}
+    paymentWindowRef.current = null;
+    message.success(t("memberBenefits.paymentSuccess"));
+    navigate("/member-detail", { replace: true });
+  };
+
   const openCashierAndWaitForPayment = async (paymentUrl: string) => {
     stopPollingRef.current = false;
     const popup = openCashierWindow(paymentUrl);
@@ -259,33 +283,52 @@ const MemberBenefits: React.FC = () => {
 
     const activated = await waitForVipActivation();
     if (activated) {
-      try {
-        paymentWindowRef.current?.close();
-      } catch {}
-      paymentWindowRef.current = null;
-      message.success(t('memberBenefits.paymentSuccess'));
-      navigate("/member-detail", { replace: true });
+      handlePaymentActivated();
       return;
     }
 
     const paidAfterClose = await refreshVipStatus();
     if (paidAfterClose) {
-      try {
-        paymentWindowRef.current?.close();
-      } catch {}
-      paymentWindowRef.current = null;
-      message.success(t('memberBenefits.paymentSuccess'));
-      navigate("/member-detail", { replace: true });
+      handlePaymentActivated();
+      return;
+    }
+
+    if (stopPollingRef.current) {
       return;
     }
 
     if (paymentWindowRef.current?.closed) {
-      message.info(
-        "支付窗口已关闭。如已完成支付，可稍后进入会员详情查看状态。",
-      );
-    } else {
-      message.info("支付处理中，可在收银台完成支付后自动返回会员状态。");
+      message.info(t("memberBenefits.cashierClosed"));
+      return;
     }
+
+    message.info(t("memberBenefits.cashierProcessing"));
+  };
+
+  const openWechatQrCodeAndWaitForPayment = async (qrCodeValue: string) => {
+    stopPollingRef.current = false;
+    setWechatQrCode(qrCodeValue);
+    setWechatQrModalOpen(true);
+    message.info(t("memberBenefits.wechatQrInstruction"));
+
+    const activated = await waitForVipActivation();
+    if (activated) {
+      handlePaymentActivated();
+      return;
+    }
+
+    const paidAfterClose = await refreshVipStatus();
+    if (paidAfterClose) {
+      handlePaymentActivated();
+      return;
+    }
+
+    if (stopPollingRef.current) {
+      message.info(t("memberBenefits.wechatQrClosed"));
+      return;
+    }
+
+    message.info(t("memberBenefits.paymentStatusTimeout"));
   };
 
   const clearMemberSession = () => {
@@ -297,32 +340,27 @@ const MemberBenefits: React.FC = () => {
 
   const handleChangeMember = () => {
     modal.confirm({
-      title: "切换会员账号",
-      content: "继续后会清除当前会员账号的本地登录状态，并跳转到会员登录页。",
-      okText: "确认",
-      cancelText: "取消",
+      title: t("memberBenefits.switchConfirm"),
+      content: t("memberBenefits.switchConfirmDesc"),
+      okText: t("memberBenefits.confirm"),
+      cancelText: t("common.cancel"),
       onOk: () => {
         clearMemberSession();
-        message.success("已退出当前会员账号");
+        message.success(t("memberBenefits.logoutSuccess"));
         navigate("/member-login", { replace: true });
       },
     });
   };
 
   const handlePayment = async (method: "WECHAT" | "ALIPAY") => {
-    if (method === "WECHAT") {
-      message.info("微信支付正在上线中，请使用支付宝支付");
-      return;
-    }
-
     if (selectedPlanPrice == null) {
-      message.warning("当前会员价格暂不可用，请稍后重试");
+      message.warning(t("memberBenefits.priceUnavailable"));
       return;
     }
 
     const userIdStr = localStorage.getItem("plus_user_id");
     if (!userIdStr) {
-      message.error("请先登录会员账号");
+      message.error(t("common.loginFirst"));
       navigate("/member-login");
       return;
     }
@@ -333,7 +371,12 @@ const MemberBenefits: React.FC = () => {
     } catch (e) {}
 
     setLoading(true);
-    const hideLoading = message.loading(`正在发起支付宝支付...`, 0);
+    const hideLoading = message.loading(
+      method === "WECHAT"
+        ? t("memberBenefits.createWechatPayment")
+        : t("memberBenefits.createAlipayPayment"),
+      0,
+    );
 
     try {
       const res = await plusCreatePayment({
@@ -350,48 +393,60 @@ const MemberBenefits: React.FC = () => {
 
       hideLoading();
       if (res.data.code === 201 || res.data.code === 200) {
-        const { paymentUrl, alipayPay } = res.data.data;
+        const { paymentUrl, qrCode, alipayPay } = res.data.data || {};
+
+        if (method === "WECHAT") {
+          const wechatQrValue = qrCode || paymentUrl;
+          if (wechatQrValue) {
+            message.success(t("memberBenefits.wechatQrReady"));
+            void openWechatQrCodeAndWaitForPayment(wechatQrValue);
+          } else {
+            message.error(t("memberBenefits.wechatQrFailed"));
+          }
+          return;
+        }
+
         if (paymentUrl) {
           void openCashierAndWaitForPayment(paymentUrl);
           if (!alipayPay?.orderString) {
-            message.success("支付宝收银台已打开");
+            message.success(t("memberBenefits.alipayCashierOpened"));
           } else {
-            message.success("支付订单创建成功");
+            message.success(t("memberBenefits.paymentOrderCreated"));
           }
         } else {
-          message.info("订单已创建，请在手机端完成支付");
+          message.info(t("memberBenefits.orderCreated"));
         }
       } else {
-        message.error(res.data.message || "支付发起失败");
+        message.error(res.data.message || t("memberBenefits.paymentFailed"));
       }
     } catch (e: any) {
       hideLoading();
-      message.error(e.response?.data?.message || "网络请求失败，请重试");
+      message.error(e.response?.data?.message || t("memberBenefits.networkError"));
     } finally {
       setLoading(false);
     }
   };
 
   const comparisonData = [
-    { key: "1", feature: "基础功能", nonMember: true, member: true },
-    { key: "2", feature: "设备接力", nonMember: true, member: true },
-    { key: "3", feature: "同步控制", nonMember: false, member: true },
-    { key: "4", feature: "TTS生成有声书", nonMember: false, member: true },
-    { key: "5", feature: "TV版 (待上线)", nonMember: false, member: true },
-    { key: "6", feature: "车机模式", nonMember: false, member: true },
-    { key: "7", feature: "扫码登录", nonMember: false, member: true },
-    { key: "8", feature: "语音助手", nonMember: false, member: true },
+    { key: "1", feature: t("memberBenefits.basicFeatures"), nonMember: true, member: true },
+    { key: "2", feature: t("memberBenefits.deviceRelay"), nonMember: true, member: true },
+    { key: "3", feature: t("memberBenefits.syncControl"), nonMember: false, member: true },
+    { key: "4", feature: t("memberBenefits.ttsGeneration"), nonMember: false, member: true },
+    { key: "5", feature: t("memberBenefits.tvVersion"), nonMember: false, member: true },
+    { key: "6", feature: t("memberBenefits.carMode"), nonMember: false, member: true },
+    { key: "7", feature: t("memberBenefits.scanLogin"), nonMember: false, member: true },
+    { key: "8", feature: t("memberBenefits.voiceAssistant"), nonMember: false, member: true },
   ];
 
   const columns = [
     {
-      title: "权益功能",
+      title: t("memberBenefits.benefits"),
       dataIndex: "feature",
       key: "feature",
       width: "40%",
     },
     {
-      title: "非会员",
+      title: t("memberBenefits.nonMember"),
       dataIndex: "nonMember",
       key: "nonMember",
       align: "center" as const,
@@ -403,7 +458,7 @@ const MemberBenefits: React.FC = () => {
         ),
     },
     {
-      title: "会员",
+      title: t("memberBenefits.member"),
       dataIndex: "member",
       key: "member",
       align: "center" as const,
@@ -430,6 +485,29 @@ const MemberBenefits: React.FC = () => {
           style={{ background: token.colorBgContainer }}
         >
           {contextHolder}
+          <Modal
+            title={t("memberBenefits.wechatQrTitle")}
+            open={wechatQrModalOpen}
+            onCancel={closeWechatQrModal}
+            footer={null}
+            centered
+            destroyOnHidden
+          >
+            <Flex vertical align="center" gap={12}>
+              {wechatQrCode ? (
+                <QRCode value={wechatQrCode} size={220} bordered={false} />
+              ) : null}
+              <Text style={{ fontWeight: 500 }}>
+                {t("memberBenefits.wechatQrInstruction")}
+              </Text>
+              <Text
+                type="secondary"
+                style={{ textAlign: "center", display: "block" }}
+              >
+                {t("memberBenefits.wechatQrDesc")}
+              </Text>
+            </Flex>
+          </Modal>
           {/* Header */}
           <div className={styles.pageHeader}>
             <Button
@@ -439,7 +517,7 @@ const MemberBenefits: React.FC = () => {
               className={styles.backBtn}
             />
             <Title level={4} style={{ margin: 0 }}>
-              会员权益
+              {t("memberBenefits.title")}
             </Title>
             <Text
               type="secondary"
@@ -455,7 +533,7 @@ const MemberBenefits: React.FC = () => {
             <Alert
               type="info"
               showIcon
-              message={`${pricing.name} 活动正在进行中${activityDateRange ? ` · ${activityDateRange}` : ""}`}
+              message={`${t("memberBenefits.activity", { name: pricing.name })}${activityDateRange ? ` · ${activityDateRange}` : ""}`}
               style={{ marginBottom: 16 }}
             />
           ) : null}
@@ -483,16 +561,18 @@ const MemberBenefits: React.FC = () => {
                   borderWidth: selectedPlan === "annual" ? 2 : 1,
                 }}
               >
-                <Title level={5}>{t("memberBenefits.annualCard")}</Title>
+                <Title level={5}>{t("memberBenefits.annual")}</Title>
                 <div className={styles.price}>
                   <span className={styles.currency}>¥</span>
                   <span className={styles.amount}>
                     {formatPrice(pricing?.annual?.currentPrice)}
                   </span>
-                  <span className={styles.unit}>/年</span>
+                  <span className={styles.unit}>{t("memberBenefits.perYear")}</span>
                   {pricing?.name ? (
                     <Tooltip
-                      title={pricing.description || "当前活动暂无更多说明"}
+                      title={
+                        pricing.description || t("memberBenefits.activityDescFallback")
+                      }
                     >
                       <QuestionCircleOutlined className={styles.unitIcon} />
                     </Tooltip>
@@ -501,14 +581,17 @@ const MemberBenefits: React.FC = () => {
                 {hasDiscount(pricing?.annual) ? (
                   <div className={styles.priceMeta}>
                     <Text delete type="secondary">
-                      原价 ¥{formatPrice(pricing?.annual?.originalPrice)}
+                      {t("memberBenefits.originalPrice", {
+                        price: formatPrice(pricing?.annual?.originalPrice),
+                      })}
                     </Text>
                     <Text type="secondary">
-                      立省{" "}
-                      {formatPrice(
-                        (pricing?.annual?.originalPrice ?? 0) -
-                          (pricing?.annual?.currentPrice ?? 0),
-                      )}
+                      {t("memberBenefits.save", {
+                        price: formatPrice(
+                          (pricing?.annual?.originalPrice ?? 0) -
+                            (pricing?.annual?.currentPrice ?? 0),
+                        ),
+                      })}
                     </Text>
                   </div>
                 ) : null}
@@ -524,16 +607,18 @@ const MemberBenefits: React.FC = () => {
                 onClick={() => setSelectedPlan("lifetime")}
               >
                 <div className={styles.proBadge}>{t("memberBenefits.recommended")}</div>
-                <Title level={5}>{t("memberBenefits.permanentCard")}</Title>
+                <Title level={5}>{t("memberBenefits.lifetime")}</Title>
                 <div className={styles.price}>
                   <span className={styles.currency}>¥</span>
                   <span className={styles.amount}>
                     {formatPrice(pricing?.lifetime?.currentPrice)}
                   </span>
-                  <span className={styles.unit}>/永久</span>
+                  <span className={styles.unit}>{t("memberBenefits.permanent")}</span>
                   {pricing?.name ? (
                     <Tooltip
-                      title={pricing.description || "当前活动暂无更多说明"}
+                      title={
+                        pricing.description || t("memberBenefits.activityDescFallback")
+                      }
                     >
                       <QuestionCircleOutlined className={styles.unitIcon} />
                     </Tooltip>
@@ -542,14 +627,17 @@ const MemberBenefits: React.FC = () => {
                 {hasDiscount(pricing?.lifetime) ? (
                   <div className={styles.priceMeta}>
                     <Text delete type="secondary">
-                      原价 ¥{formatPrice(pricing?.lifetime?.originalPrice)}
+                      {t("memberBenefits.originalPrice", {
+                        price: formatPrice(pricing?.lifetime?.originalPrice),
+                      })}
                     </Text>
                     <Text type="secondary">
-                      立省{" "}
-                      {formatPrice(
-                        (pricing?.lifetime?.originalPrice ?? 0) -
-                          (pricing?.lifetime?.currentPrice ?? 0),
-                      )}
+                      {t("memberBenefits.save", {
+                        price: formatPrice(
+                          (pricing?.lifetime?.originalPrice ?? 0) -
+                            (pricing?.lifetime?.currentPrice ?? 0),
+                        ),
+                      })}
                     </Text>
                   </div>
                 ) : null}
@@ -561,7 +649,7 @@ const MemberBenefits: React.FC = () => {
             <Text>{t("memberBenefits.paymentMethod")}</Text>
             <div>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                虚拟产品售出无法退款，请理性消费
+                {t("memberBenefits.refundNote")}
               </Text>
             </div>
           </div>
@@ -618,7 +706,7 @@ const MemberBenefits: React.FC = () => {
               className={styles.logoutButton}
               onClick={handleChangeMember}
             >
-              退出/切换会员账号
+              {t("memberBenefits.logoutSwitch")}
             </Button>
           </Flex>
         </div>

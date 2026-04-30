@@ -52,7 +52,7 @@ const UserManagement: React.FC = () => {
         message.error(res.message);
       }
     } catch (error) {
-      message.error("获取用户列表失败");
+      message.error(t("adminUserManagement.fetchUsersFailed"));
     } finally {
       setLoading(false);
     }
@@ -64,12 +64,14 @@ const UserManagement: React.FC = () => {
 
   const handleDeleteUser = async (id: number) => {
     modal.confirm({
-      title: "确认删除用户",
-      content: "删除后无法恢复，确定要删除吗？",
+      title: t("adminUserManagement.deleteConfirmTitle"),
+      content: t("adminUserManagement.deleteConfirmContent"),
+      okText: t("common.confirm"),
+      cancelText: t("common.cancel"),
       onOk: async () => {
         const res = await deleteAdminUser(id);
         if (res.code === 200) {
-          messageApi.success("删除成功");
+          messageApi.success(t("adminUserManagement.deleteSuccess"));
           fetchUsers();
         } else {
           messageApi.error(res.message);
@@ -79,11 +81,10 @@ const UserManagement: React.FC = () => {
   };
 
   const handleSetExpiration = async () => {
-    // ... existing handleSetExpiration ...
     if (selectedUserId === null) return;
     const res = await setAdminUserExpiration(selectedUserId, expirationDays);
     if (res.code === 200) {
-      messageApi.success("设置成功");
+      messageApi.success(t("adminUserManagement.setSuccess"));
       setExpirationModalVisible(false);
       fetchUsers();
     } else {
@@ -96,7 +97,7 @@ const UserManagement: React.FC = () => {
       const values = await form.validateFields();
       const res = await createAdminUser(values);
       if (res.code === 200) {
-        messageApi.success("创建成功");
+        messageApi.success(t("adminUserManagement.createSuccess"));
         setCreateModalVisible(false);
         form.resetFields();
         fetchUsers();
@@ -109,38 +110,41 @@ const UserManagement: React.FC = () => {
   };
 
   const columns = [
-    // ... existing columns ...
     {
-      title: "ID",
+      title: t("adminUserManagement.id"),
       dataIndex: "id",
       key: "id",
       width: 60,
     },
     {
-      title: "用户名",
+      title: t("adminUserManagement.username"),
       dataIndex: "username",
       key: "username",
     },
     {
-      title: "管理员",
+      title: t("adminUserManagement.isAdmin"),
       dataIndex: "is_admin",
       key: "is_admin",
       render: (val: boolean) =>
-        val ? <Tag color="gold">{t("admin.admin")}</Tag> : <Tag>{t("admin.normalUser")}</Tag>,
+        val ? (
+          <Tag color="gold">{t("adminUserManagement.adminUser")}</Tag>
+        ) : (
+          <Tag>{t("adminUserManagement.normalUser")}</Tag>
+        ),
     },
     {
-      title: "注册时间",
+      title: t("adminUserManagement.createdAt"),
       dataIndex: "createdAt",
       key: "createdAt",
       render: (val: string) =>
         val ? dayjs(val).format("YYYY-MM-DD HH:mm") : "-",
     },
     {
-      title: "过期时间",
+      title: t("adminUserManagement.expiresAt"),
       dataIndex: "expiresAt",
       key: "expiresAt",
       render: (val: string) => {
-        if (!val) return <Tag color="green">{t("admin.permanent")}</Tag>;
+        if (!val) return <Tag color="green">{t("adminUserManagement.permanent")}</Tag>;
         const date = dayjs(val);
         const isExpired = date.isBefore(dayjs());
         return (
@@ -151,7 +155,7 @@ const UserManagement: React.FC = () => {
       },
     },
     {
-      title: "操作",
+      title: t("adminUserManagement.actions"),
       key: "action",
       render: (_: any, record: User) => (
         <Space>
@@ -161,18 +165,18 @@ const UserManagement: React.FC = () => {
                 size="small"
                 onClick={() => {
                   setSelectedUserId(record.id as number);
-                  setExpirationDays(null); // default to unset? or keep user input?
+                  setExpirationDays(null);
                   setExpirationModalVisible(true);
                 }}
               >
-                设置有效期
+                {t("adminUserManagement.setExpiration")}
               </Button>
               <Button
                 size="small"
                 danger
                 onClick={() => handleDeleteUser(record.id as number)}
               >
-                删除
+                {t("common.delete")}
               </Button>
             </>
           )}
@@ -193,21 +197,21 @@ const UserManagement: React.FC = () => {
             icon={<LeftOutlined />}
             onClick={() => navigate(-1)}
           >
-            返回
+            {t("header.back")}
           </Button>
           <Title level={4} style={{ margin: 0 }}>
-            用户管理
+            {t("adminUserManagement.title")}
           </Title>
         </Space>
         <div style={{ marginTop: 16 }}>
           <Space style={{ marginBottom: 16 }}>
-            <Button onClick={fetchUsers}>{t("admin.refreshList")}</Button>
+            <Button onClick={fetchUsers}>{t("common.refresh")}</Button>
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => setCreateModalVisible(true)}
             >
-              创建用户
+              {t("adminUserManagement.createUser")}
             </Button>
           </Space>
         </div>
@@ -225,67 +229,69 @@ const UserManagement: React.FC = () => {
       {messageContextHolder}
 
       <Modal
-        title="创建新用户"
+        title={t("adminUserManagement.createUserTitle")}
         open={createModalVisible}
         onOk={handleCreateUser}
         onCancel={() => setCreateModalVisible(false)}
+        okText={t("common.confirm")}
+        cancelText={t("common.cancel")}
       >
         <Form form={form} layout="vertical">
           <Form.Item
             name="username"
-            label="用户名"
-            rules={[{ required: true, message: "请输入用户名" }]}
+            label={t("adminUserManagement.usernameLabel")}
+            rules={[{ required: true, message: t("adminUserManagement.usernameRequired") }]}
           >
-            <Input placeholder="请输入用户名" />
+            <Input placeholder={t("adminUserManagement.usernamePlaceholder")} />
           </Form.Item>
           <Form.Item
             name="password"
-            label="密码"
-            rules={[{ required: true, message: "请输入密码" }]}
+            label={t("adminUserManagement.passwordLabel")}
+            rules={[{ required: true, message: t("adminUserManagement.passwordRequired") }]}
           >
-            <Input.Password placeholder="请输入密码" />
+            <Input.Password placeholder={t("adminUserManagement.passwordPlaceholder")} />
           </Form.Item>
           <Form.Item name="is_admin" valuePropName="checked">
-            <Checkbox>{t("admin.setAsAdmin")}</Checkbox>
+            <Checkbox>{t("adminUserManagement.setAsAdmin")}</Checkbox>
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="设置过期时间"
+        title={t("adminUserManagement.setExpirationTitle")}
         open={expirationModalVisible}
         onOk={handleSetExpiration}
         onCancel={() => setExpirationModalVisible(false)}
+        okText={t("common.confirm")}
+        cancelText={t("common.cancel")}
       >
         <div style={{ padding: "20px 0" }}>
-          <p>
-            设置多少天后过期（空值或0表示手动指定日期，此处仅支持快捷设置天数，置空则取消过期时间）
-          </p>
+          <p>{t("adminUserManagement.setExpirationHint")}</p>
           <Space direction="vertical" style={{ width: "100%" }}>
             <Space>
               <Button
                 type={expirationDays === 7 ? "primary" : "default"}
                 onClick={() => setExpirationDays(7)}
               >
-                7天
+                {t("adminUserManagement.sevenDays")}
               </Button>
               <Button
                 type={expirationDays === 30 ? "primary" : "default"}
                 onClick={() => setExpirationDays(30)}
               >
-                30天
+                {t("adminUserManagement.thirtyDays")}
               </Button>
               <Button
                 type={expirationDays === 365 ? "primary" : "default"}
                 onClick={() => setExpirationDays(365)}
               >
-                一年
+                {t("adminUserManagement.oneYear")}
               </Button>
               <Button
                 type={expirationDays === null ? "primary" : "default"}
                 onClick={() => setExpirationDays(null)}
               >
-                永久有效
+                {t("adminUserManagement.permanent")}
               </Button>
             </Space>
           </Space>
