@@ -116,6 +116,7 @@ export type PaymentClientType = "app" | "web" | "desktop" | "mobile" | "mini";
 
 export interface CreatePaymentDto {
   userId: string;
+  couponCode?: string;
   amount: number;
   currency: string;
   method: PaymentMethod;
@@ -231,6 +232,19 @@ export interface DeletePlusMeResponse {
   deletedAt: string;
 }
 
+export interface MyCouponItem {
+  id: string;
+  code: string;
+  discountPercent: number;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface MyCouponsResponse {
+  data: MyCouponItem[];
+  total: number;
+}
+
 // --- API Functions ---
 
 /**
@@ -322,6 +336,13 @@ export const plusGetVipCurrentLowestPrice = async () => {
  */
 export const plusGetVipStatus = async (userId: string) => {
   return plusRequest.get<ISuccessResponse<{ isVip: boolean; tier: VipTier; expiresAt: string | null }>>("/vip/status", { params: { userId } });
+};
+
+/**
+ * CouponController_getMine: Get my active coupons
+ */
+export const plusGetMyCoupons = async () => {
+  return plusRequest.get<ISuccessResponse<MyCouponsResponse>>("/coupons/mine");
 };
 
 export const plusRedeemInternalTestCode = async (

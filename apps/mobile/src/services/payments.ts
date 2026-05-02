@@ -203,11 +203,13 @@ export const createPlusPayment = async (
   userIdRaw: string,
   plan: PaymentPlan,
   method: PaymentMethod,
-  amount: number
+  amount: number,
+  couponCode?: string
 ) => {
   const payload: CreatePaymentDto = {
     userId: normalizeUserId(userIdRaw),
     amount,
+    couponCode,
     currency: "CNY",
     method,
     clientType: "app",
