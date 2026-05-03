@@ -55,6 +55,7 @@ import {
   AudioQualityOption,
   buildTrackPlaybackUrl,
   getTrackAudioQualityProfile,
+  resolveTrackAudioQuality,
 } from "../services/trackQuality";
 import { useAuth } from "./AuthContext";
 import { useNotification } from "./NotificationContext";
@@ -181,6 +182,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [sleepTimer, setSleepTimerState] = useState<number | null>(null);
   const [playbackRate, setPlaybackRateState] = useState(1);
   const [currentAudioQuality, setCurrentAudioQuality] = useState<AudioQuality>("lossless");
+  const [preferredAudioQuality, setPreferredAudioQuality] = useState<AudioQuality>("lossless");
   const [availableAudioQualities, setAvailableAudioQualities] = useState<AudioQualityOption[]>([]);
   const [isRadioMode, setIsRadioMode] = useState(false);
 
@@ -217,6 +219,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const positionRef = React.useRef(position);
   const playbackRateRef = React.useRef(playbackRate);
   const currentAudioQualityRef = React.useRef<AudioQuality>("lossless");
+  const preferredAudioQualityRef = React.useRef<AudioQuality>("lossless");
   const isRadioModeRef = React.useRef(isRadioMode);
   const skipIntroDurationRef = React.useRef(skipIntroDuration);
   const skipOutroDurationRef = React.useRef(skipOutroDuration);
@@ -236,6 +239,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     currentAudioQualityRef.current = currentAudioQuality;
   }, [currentAudioQuality]);
+
+  useEffect(() => {
+    preferredAudioQualityRef.current = preferredAudioQuality;
+  }, [preferredAudioQuality]);
 
   useEffect(() => {
     playModeRef.current = playMode;
@@ -264,7 +271,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       const profile = await getTrackAudioQualityProfile(currentTrack);
       if (cancelled) return;
       setAvailableAudioQualities(profile.options);
-      setCurrentAudioQuality(profile.defaultQuality);
+      setCurrentAudioQuality(
+        resolveTrackAudioQuality(profile, preferredAudioQualityRef.current),
+      );
     };
 
     syncCurrentTrackQuality();
@@ -794,11 +803,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const profile = await getTrackAudioQualityProfile(track);
     setAvailableAudioQualities(profile.options);
-
-    const nextQuality =
-      preferredQuality && profile.options.some((option) => option.quality === preferredQuality)
-        ? preferredQuality
-        : profile.defaultQuality;
+    const nextQuality = resolveTrackAudioQuality(
+      profile,
+      preferredQuality ?? preferredAudioQualityRef.current,
+    );
 
     setCurrentAudioQuality(nextQuality);
     return nextQuality;
@@ -1158,6 +1166,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!isSetup) return;
     if (!fromRadio) {
       setIsRadioMode(false);
+    }
+    if (preferredQuality) {
+      setPreferredAudioQuality(preferredQuality);
     }
     try {
       // ✨ 幂等性检查：如果已经是当前歌曲，且没有大幅度进度偏差，则不重置播放器
@@ -1942,6 +1953,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       availableAudioQualities[(currentIndex + 1) % availableAudioQualities.length] ||
       availableAudioQualities[0];
 
+    setPreferredAudioQuality(nextOption.quality);
     await playTrack(
       currentTrackRef.current,
       positionRef.current,

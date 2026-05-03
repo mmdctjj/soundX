@@ -14,6 +14,8 @@ export interface AudioQualityProfile {
   options: AudioQualityOption[];
 }
 
+const AUDIO_QUALITY_PRIORITY: AudioQuality[] = ['lossless', 'high', 'standard'];
+
 export const getFallbackAudioQualityProfile = (): AudioQualityProfile => ({
   defaultQuality: "lossless",
   options: [
@@ -42,6 +44,27 @@ export const getTrackAudioQualityProfile = async (track: { id: number | string; 
     console.error("Failed to load track audio quality profile:", error);
     return getFallbackAudioQualityProfile();
   }
+};
+
+export const resolveTrackAudioQuality = (
+  profile: AudioQualityProfile,
+  preferredQuality?: AudioQuality,
+): AudioQuality => {
+  if (preferredQuality && profile.options.some((option) => option.quality === preferredQuality)) {
+    return preferredQuality;
+  }
+
+  if (profile.options.some((option) => option.quality === profile.defaultQuality)) {
+    return profile.defaultQuality;
+  }
+
+  for (const quality of AUDIO_QUALITY_PRIORITY) {
+    if (profile.options.some((option) => option.quality === quality)) {
+      return quality;
+    }
+  }
+
+  return 'lossless';
 };
 
 const upsertQueryParam = (url: string, key: string, value?: string): string => {

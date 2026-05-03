@@ -136,6 +136,8 @@
   .player-track-artist {
       font-size: 28rpx;
       color: #666;
+      flex: 1;
+      min-width: 0;
   }
 
   .player-track-meta {
@@ -143,6 +145,7 @@
       flex-direction: row;
       align-items: center;
       gap: 12rpx;
+      min-width: 0;
   }
 
   .player-quality-btn {
@@ -150,6 +153,7 @@
       border-radius: 999rpx;
       border: 1rpx solid #d9d9d9;
       background: #fff;
+      flex-shrink: 0;
 
       &.disabled {
           opacity: 0.65;
