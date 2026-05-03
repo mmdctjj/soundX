@@ -15,6 +15,7 @@ import {
   Space,
   Switch,
   Typography,
+  message,
   theme,
 } from "antd";
 import React from "react";
@@ -27,6 +28,18 @@ import AdminSettings from "./AdminSettings";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
+
+const PRESERVED_KEYS = new Set([
+  "serverAddress",
+  "selectedSourceType",
+  "plus_token",
+  "plus_user_id",
+  "plus_vip_status",
+  "plus_vip_data",
+  "plus_vip_updated_at",
+  "userId",
+  "i18nextLng",
+]);
 
 const Settings: React.FC = () => {
   const { token } = theme.useToken();
@@ -43,11 +56,19 @@ const Settings: React.FC = () => {
   } = useSettingsStore();
 
   const [cacheSize, setCacheSize] = React.useState<string>(t("common.loading"));
+  const [clearing, setClearing] = React.useState(false);
 
   const fetchCacheSize = async () => {
-    if ((window as any).ipcRenderer) {
+    if (!(window as any).ipcRenderer) {
+      setCacheSize("--");
+      return;
+    }
+    try {
       const size = await (window as any).ipcRenderer.invoke("cache:get-size");
       setCacheSize(formatSize(size));
+    } catch (error) {
+      console.warn("Failed to fetch cache size", error);
+      setCacheSize("--");
     }
   };
 
@@ -60,9 +81,30 @@ const Settings: React.FC = () => {
   };
 
   const handleClearCache = async () => {
-    if ((window as any).ipcRenderer) {
-      await (window as any).ipcRenderer.invoke("cache:clear");
+    setClearing(true);
+    try {
+      if ((window as any).ipcRenderer) {
+        await (window as any).ipcRenderer.invoke("cache:clear");
+      }
+      // Clear localStorage except login and data source keys
+      const keysToPreserve: Record<string, string> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && PRESERVED_KEYS.has(key)) {
+          keysToPreserve[key] = localStorage.getItem(key) || "";
+        }
+      }
+      localStorage.clear();
+      for (const [key, value] of Object.entries(keysToPreserve)) {
+        localStorage.setItem(key, value);
+      }
       await fetchCacheSize();
+      message.success(t("settings.cacheCleared"));
+    } catch (error) {
+      console.warn("Failed to clear cache", error);
+      message.error(t("common.error"));
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -440,7 +482,7 @@ const Settings: React.FC = () => {
           <div className={styles.label}>{t("settings.clearCache")}</div>
           <div className={styles.control}>
             <Space>
-              <Button onClick={handleClearCache}>{t("settings.clearCache")}</Button>
+              <Button onClick={handleClearCache} loading={clearing}>{t("settings.clearCache")}</Button>
               <Text className={styles.description}>
                 {t("settings.tapToClear")}: {cacheSize}
               </Text>

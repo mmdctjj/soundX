@@ -983,9 +983,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     playModeRef.current = nextMode;
     setPlayMode(nextMode);
     await AsyncStorage.setItem(PLAYBACK_MODE_KEY, nextMode);
-    if (nextMode === PlayMode.SHUFFLE && currentTrackRef.current) {
-      await playTrack(currentTrackRef.current, undefined, false, true);
-    }
     savePlaybackState(mode);
   };
 
