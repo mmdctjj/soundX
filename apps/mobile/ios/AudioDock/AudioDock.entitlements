@@ -6,5 +6,8 @@
     <array>
       <string>group.com.audiodock.app</string>
     </array>
+    <!-- CarPlay: 声明支持车载音频应用 (NowPlaying 自动集成) -->
+    <key>com.apple.developer.carplay-audio</key>
+    <true/>
   </dict>
 </plist>

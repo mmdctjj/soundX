@@ -78,6 +78,7 @@ export const updateMediaControlBridgeMetadata = async (params: {
   artist?: string;
   album?: string;
   duration?: number;
+  lyrics?: string;
 }) => {
   if (!isMediaControlBridgeAvailable()) return;
   try {
@@ -85,7 +86,8 @@ export const updateMediaControlBridgeMetadata = async (params: {
       params.title ?? "",
       params.artist ?? "",
       params.album ?? "",
-      params.duration ?? 0
+      params.duration ?? 0,
+      params.lyrics ?? ""
     );
   } catch (e) {
     console.warn("[MediaControlBridge] updateMetadata failed:", e);
@@ -98,4 +100,18 @@ export const subscribeMediaControlBridgeEvents = (
   if (!emitter) return { remove: () => {} };
   // @ts-ignore: 我们已经在构造函数中声明了类型，但在某些版本中可能仍需忽略
   return emitter.addListener("MediaControlBridgeEvent", callback);
+};
+
+/**
+ * 仅更新当前歌词行（轻量调用，不重推完整元数据）
+ * 用于 CarWith / Android Auto / CarPlay 歌词实时滚动
+ */
+export const updateMediaControlBridgeLyrics = async (lyrics: string): Promise<void> => {
+  if (!isMediaControlBridgeAvailable()) return;
+  try {
+    // 复用 updateMetadata，仅传 lyrics 字段，其余传空避免覆盖现有数据
+    await moduleRef.updateMetadata("", "", "", 0, lyrics);
+  } catch (e) {
+    console.warn("[MediaControlBridge] updateLyrics failed:", e);
+  }
 };

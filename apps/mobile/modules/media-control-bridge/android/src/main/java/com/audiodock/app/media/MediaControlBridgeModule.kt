@@ -50,13 +50,15 @@ class MediaControlBridgeModule : Module() {
       return@Function true
     }
 
-    Function("updateMetadata") { title: String?, artist: String?, album: String?, duration: Double? ->
+    Function("updateMetadata") { title: String?, artist: String?, album: String?, duration: Double?, lyrics: String? ->
       ensureSession()
       val metadata = MediaMetadataCompat.Builder().apply {
-        putString(MediaMetadataCompat.METADATA_KEY_TITLE, title ?: "")
-        putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist ?: "")
-        putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album ?: "")
-        putLong(MediaMetadataCompat.METADATA_KEY_DURATION, ((duration ?: 0.0) * 1000.0).toLong())
+        if (!title.isNullOrEmpty()) putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+        if (!artist.isNullOrEmpty()) putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+        if (!album.isNullOrEmpty()) putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+        if (duration != null && duration > 0) putLong(MediaMetadataCompat.METADATA_KEY_DURATION, (duration * 1000.0).toLong())
+        // CarWith / Android Auto: 通过 WRITER 字段推送当前歌词行
+        putString(MediaMetadataCompat.METADATA_KEY_WRITER, lyrics ?: "")
       }.build()
       mediaSession?.setMetadata(metadata)
       return@Function true

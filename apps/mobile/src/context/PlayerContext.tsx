@@ -38,7 +38,9 @@ import { Track, TrackType } from "../models";
 import {
   updateMediaControlBridgeMetadata,
   updateMediaControlBridgePlaybackState,
+  updateMediaControlBridgeLyrics,
 } from "../services/mediaControlBridge";
+import { getActiveLyricLine } from "../utils/lyrics";
 import { socketService } from "../services/socket";
 import {
   resolveArtworkUriForPlayer,
@@ -549,6 +551,24 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     playbackRateRef.current = playbackRate;
   }, [playbackRate]);
+
+  // ✨ 车机歌词推送：当播放进度变化时，推送当前歌词行到 CarWith / Android Auto / CarPlay
+  const lastLyricRef = React.useRef<string>("");
+  useEffect(() => {
+    const track = currentTrackRef.current;
+    if (!track?.lyrics) {
+      if (lastLyricRef.current !== "") {
+        lastLyricRef.current = "";
+        updateMediaControlBridgeLyrics("");
+      }
+      return;
+    }
+    const line = getActiveLyricLine(track.lyrics, position);
+    if (line !== lastLyricRef.current) {
+      lastLyricRef.current = line;
+      updateMediaControlBridgeLyrics(line);
+    }
+  }, [position, currentTrack]);
 
   const syncMediaControlCenterState = async () => {
     if (Platform.OS !== "android") return;
