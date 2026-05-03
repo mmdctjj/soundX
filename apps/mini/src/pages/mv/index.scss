@@ -1,5 +1,4 @@
 page {
-  background-color: #000;
   height: 100%;
 }
 
@@ -8,38 +7,179 @@ page {
   flex-direction: column;
   width: 100%;
   height: 100vh;
-  background-color: #000;
 
   &.empty {
     justify-content: center;
     align-items: center;
   }
 
-  .loading-text, .empty-text {
-    color: #fff;
+  .loading-text,
+  .empty-text {
     font-size: 32rpx;
+  }
+
+  .mv-info {
+    padding: 24rpx 30rpx 18rpx;
+    display: flex;
+    flex-direction: column;
+    gap: 10rpx;
+  }
+
+  .mv-title {
+    font-size: 36rpx;
+    font-weight: bold;
+    line-height: 1.3;
+  }
+
+  .mv-artist {
+    font-size: 26rpx;
+    line-height: 1.4;
+  }
+
+  .mv-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .mv-video {
     width: 100%;
     height: calc(100vw * 9 / 16);
-    margin-top: env(safe-area-inset-top);
+    background-color: #000;
+    flex-shrink: 0;
   }
 
-  .mv-info {
-    padding: 30rpx;
-    flex-direction: column;
-    
-    .mv-title {
-      color: #fff;
-      font-size: 36rpx;
-      font-weight: bold;
-      margin-bottom: 10rpx;
+  .mv-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 24rpx;
+    margin-top: 24rpx;
+    margin-bottom: 24rpx;
+    flex-shrink: 0;
+  }
+
+  .mv-control-btn {
+    width: 84rpx;
+    height: 84rpx;
+    border-radius: 42rpx;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.primary {
+      width: 108rpx;
+      height: 108rpx;
+      border-radius: 54rpx;
+      background: rgba(0, 0, 0, 0.6);
     }
 
-    .mv-artist {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 28rpx;
+    &.disabled {
+      opacity: 0.4;
     }
+  }
+
+  .mv-control-icon {
+    color: #fff;
+    font-size: 34rpx;
+    line-height: 1;
+
+    &.primary {
+      font-size: 42rpx;
+    }
+  }
+
+  .mv-playlist-section {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    padding: 0 24rpx;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mv-playlist-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12rpx;
+    flex-shrink: 0;
+  }
+
+  .mv-playlist-title {
+    font-size: 30rpx;
+    font-weight: 600;
+  }
+
+  .mv-playlist-count {
+    font-size: 22rpx;
+  }
+
+  .mv-playlist-list {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .mv-playlist-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 20rpx 12rpx;
+    gap: 20rpx;
+    border-bottom: 1rpx solid rgba(0, 0, 0, 0.08);
+
+    &.active {
+      background-color: rgba(0, 0, 0, 0.06);
+      border-radius: 16rpx;
+    }
+  }
+
+  .mv-playlist-item-index {
+    width: 48rpx;
+    text-align: center;
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 24rpx;
+
+    &.active {
+      font-weight: bold;
+    }
+  }
+
+  .mv-playlist-item-cover {
+    width: 120rpx;
+    height: 68rpx;
+    border-radius: 8rpx;
+    flex-shrink: 0;
+  }
+
+  .mv-playlist-item-info {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .mv-playlist-item-name {
+    font-size: 28rpx;
+
+    &.active {
+      font-weight: 600;
+    }
+  }
+
+  .mv-playlist-item-artist {
+    font-size: 22rpx;
+    margin-top: 4rpx;
+  }
+
+  .mv-playlist-active {
+    width: 32rpx;
+    text-align: center;
+    font-size: 22rpx;
+    flex-shrink: 0;
   }
 }

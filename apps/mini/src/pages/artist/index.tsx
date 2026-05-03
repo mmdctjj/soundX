@@ -1,4 +1,5 @@
 import { Album, Artist, Track, getAlbumsByArtist, getArtistById, getCollaborativeAlbumsByArtist, getTracksByArtist, Mv, getMvsByArtist } from '@soundx/services';
+import { mvPlaylistStore } from '../../store/mvPlaylist';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
@@ -141,11 +142,14 @@ export default function ArtistDetail() {
                  <View className='section'>
                      <Text className='section-title'>MV ({mvs.length})</Text>
                      <ScrollView scrollX className='horizontal-list'>
-                         {mvs.map(mv => (
+                         {mvs.map((mv, mvIndex) => (
                              <View 
                                 key={mv.id} 
                                 className='album-card'
-                                onClick={() => Taro.navigateTo({ url: `/pages/mv/index?id=${mv.id}` })}
+                                onClick={() => {
+                                  mvPlaylistStore.setPlaylist(mvs, mvIndex);
+                                  Taro.navigateTo({ url: `/pages/mv/index?id=${mv.id}` });
+                                }}
                              >
                                  <Image src={getImageUrl(mv.cover)} className='album-cover mv-cover' mode='aspectFill' />
                                  <Text className='album-name' numberOfLines={1}>{mv.name}</Text>

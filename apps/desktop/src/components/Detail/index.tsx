@@ -39,12 +39,13 @@ import {
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
 import { useMessage } from "../../context/MessageContext";
 import { type Album, type Track } from "../../models";
 import { downloadTracks } from "../../services/downloadManager";
 import { useAuthStore } from "../../store/auth";
+import { useMvPlaylistStore } from "../../store/mvPlaylist";
 import { usePlayerStore } from "../../store/player";
 import { getCoverUrl } from "../../utils";
 import TrackList from "../TrackList";
@@ -55,9 +56,11 @@ const { Title, Text } = Typography;
 const Detail: React.FC = () => {
   const message = useMessage();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
   const { user } = useAuthStore();
+  const { setPlaylist: setMvPlaylist } = useMvPlaylistStore();
 
   const [album, setAlbum] = useState<Album | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -671,7 +674,10 @@ const Detail: React.FC = () => {
                       }}
                       onMouseEnter={e => e.currentTarget.style.backgroundColor = token.colorFillAlter}
                       onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                      onClick={() => window.location.href = `#/mv/${mv.id}`}
+                      onClick={() => {
+                        setMvPlaylist(mvs, index);
+                        navigate(`/mv/${mv.id}`);
+                      }}
                     >
                       <div style={{ width: 40, textAlign: 'center', color: token.colorTextSecondary }}>
                         {index + 1}
