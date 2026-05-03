@@ -143,6 +143,10 @@ const MvDetail: React.FC = () => {
               <button
                 type="button"
                 className={`${styles.controlBtn} ${!hasPrev() ? styles.controlBtnDisabled : ""}`}
+                style={{
+                  background: hasPrev() ? token.colorFillSecondary : token.colorFillQuaternary,
+                  color: hasPrev() ? token.colorText : token.colorTextQuaternary,
+                }}
                 onClick={handlePrevMv}
                 disabled={!hasPrev()}
                 aria-label="上一首"
@@ -152,6 +156,10 @@ const MvDetail: React.FC = () => {
               <button
                 type="button"
                 className={`${styles.controlBtn} ${styles.controlBtnPrimary}`}
+                style={{
+                  background: token.colorFillSecondary,
+                  color: token.colorText,
+                }}
                 onClick={togglePlayback}
                 aria-label={isPlaying ? "暂停" : "播放"}
               >
@@ -160,6 +168,10 @@ const MvDetail: React.FC = () => {
               <button
                 type="button"
                 className={`${styles.controlBtn} ${!hasNext() ? styles.controlBtnDisabled : ""}`}
+                style={{
+                  background: hasNext() ? token.colorFillSecondary : token.colorFillQuaternary,
+                  color: hasNext() ? token.colorText : token.colorTextQuaternary,
+                }}
                 onClick={handleNextMv}
                 disabled={!hasNext()}
                 aria-label="下一首"
