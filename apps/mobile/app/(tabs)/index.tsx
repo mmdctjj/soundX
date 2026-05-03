@@ -214,6 +214,30 @@ export default function HomeScreen() {
             recommendCacheKey,
           );
           if (cachedSections) {
+            // Always try to attach fresh history data even when using cache,
+            // because user may not have been available when cache was written.
+            if (mode === "AUDIOBOOK" && user) {
+              try {
+                const historyRes = await getAlbumHistory(user.id, 0, pageSize, "AUDIOBOOK");
+                if (historyRes.code === 200 && historyRes.data?.list?.length > 0) {
+                  const historyData = historyRes.data.list.map((item: any) => item.album);
+                  const existingIndex = cachedSections.findIndex((s) => s.id === "history");
+                  const historySection: Section = {
+                    id: "history",
+                    title: t("home.continueListening"),
+                    data: historyData,
+                    type: "album",
+                  };
+                  if (existingIndex >= 0) {
+                    cachedSections[existingIndex] = historySection;
+                  } else {
+                    cachedSections.push(historySection);
+                  }
+                }
+              } catch (e) {
+                console.warn("Failed to fetch history for cached sections:", e);
+              }
+            }
             setSections(cachedSections);
             setLoading(false);
             setRefreshing(false);
