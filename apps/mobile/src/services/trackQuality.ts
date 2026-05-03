@@ -27,6 +27,9 @@ export const getFallbackAudioQualityProfile = (): AudioQualityProfile => ({
 });
 
 export const getTrackAudioQualityProfile = async (track: { id: number | string; path: string }): Promise<AudioQualityProfile> => {
+  if (track.path.startsWith("http")) {
+    return getFallbackAudioQualityProfile();
+  }
   // Some adapters may provide an absolute http(s) `path`. That should not block
   // fetching quality profile (it is keyed by track id).
 
@@ -59,6 +62,10 @@ export const buildTrackPlaybackUrl = (
   track: { id: number | string; path: string },
   quality?: AudioQuality,
 ): string => {
+  if (track.path.startsWith("http")) {
+    return track.path;
+  }
+
   const baseURL = getBaseURL().replace(/\/$/, "");
   const streamPrefix = `${baseURL}/track/stream/${track.id}`;
 

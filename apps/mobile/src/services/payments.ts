@@ -203,11 +203,13 @@ export const createPlusPayment = async (
   userIdRaw: string,
   plan: PaymentPlan,
   method: PaymentMethod,
-  amount: number
+  amount: number,
+  couponCode?: string
 ) => {
   const payload: CreatePaymentDto = {
     userId: normalizeUserId(userIdRaw),
     amount,
+    couponCode,
     currency: "CNY",
     method,
     clientType: "app",
@@ -239,7 +241,7 @@ export const payWithWeChat = async (
   try {
     const WeChat = getWeChatModule();
     console.log("[Pay][WeChat] payload", payload);
-    await WeChat.pay({
+    const wechatResult = await WeChat.pay({
       partnerId: payload.partnerId,
       prepayId: payload.prepayId,
       nonceStr: payload.nonceStr,
@@ -247,8 +249,8 @@ export const payWithWeChat = async (
       package: payload.package ?? "Sign=WXPay",
       sign: payload.sign,
     });
-    console.log("[Pay][WeChat] pay invoked");
-    return;
+    console.log("[Pay][WeChat] pay invoked", wechatResult);
+    return wechatResult;
   } catch (error) {
     console.warn("[Pay][WeChat] error", error);
     if (fallbackUrl) {

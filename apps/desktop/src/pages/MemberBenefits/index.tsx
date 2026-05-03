@@ -10,7 +10,9 @@ import {
 import {
   plusCreatePayment,
   plusGetMe,
+  plusGetMyCoupons,
   plusGetVipCurrentLowestPrice,
+  type MyCouponItem,
   type VipCurrentLowestPriceData,
   type VipCurrentLowestPricePlan,
 } from "@soundx/services";
@@ -23,6 +25,7 @@ import {
   Layout,
   Modal,
   QRCode,
+  Select,
   Table,
   Tooltip,
   Typography,
@@ -53,6 +56,9 @@ const MemberBenefits: React.FC = () => {
     null,
   );
   const [memberPhone, setMemberPhone] = useState("");
+  const [coupons, setCoupons] = useState<MyCouponItem[]>([]);
+  const [selectedCouponCode, setSelectedCouponCode] = useState<string | undefined>();
+  const selectedCoupon = coupons.find((c) => c.code === selectedCouponCode);
   const [wechatQrModalOpen, setWechatQrModalOpen] = useState(false);
   const [wechatQrCode, setWechatQrCode] = useState("");
   const isElectronRuntime =
@@ -129,6 +135,29 @@ const MemberBenefits: React.FC = () => {
     };
 
     void loadPricing();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCoupons = async () => {
+      try {
+        const res = await plusGetMyCoupons();
+        if (!mounted) return;
+        if (res.data.code === 200) {
+          const activeCoupons = (res.data.data?.data || []).filter((item) => !!item?.code);
+          setCoupons(activeCoupons);
+        }
+      } catch (error) {
+        console.warn("Failed to fetch coupons", error);
+      }
+    };
+
+    void loadCoupons();
 
     return () => {
       mounted = false;
@@ -382,6 +411,7 @@ const MemberBenefits: React.FC = () => {
       const res = await plusCreatePayment({
         userId,
         amount: selectedPlanPrice,
+        couponCode: selectedCouponCode,
         currency: "CNY",
         method,
         clientType: isElectronRuntime ? "desktop" : "web",
@@ -643,6 +673,38 @@ const MemberBenefits: React.FC = () => {
                 ) : null}
               </Card>
             </Flex>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <Text>{t("memberBenefits.couponLabel", "选择优惠券")}</Text>
+            <Select
+              allowClear
+              style={{ width: "100%", marginTop: 8 }}
+              placeholder={t("memberBenefits.couponPlaceholder", "不使用优惠券") as string}
+              value={selectedCouponCode}
+              onChange={(value) => setSelectedCouponCode(value)}
+              options={coupons.map((item) => {
+                const zhe = (100 - item.discountPercent) / 10;
+                const zheLabel = Number.isInteger(zhe) ? `${zhe}折` : `${zhe.toFixed(1)}折`;
+                return {
+                  value: item.code,
+                  label: `${item.code} · ${zheLabel}`,
+                };
+              })}
+            />
+            {selectedCoupon && selectedPlanPrice != null ? (
+              <div style={{ marginTop: 8 }}>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  {t("memberBenefits.couponFinalPrice", "优惠后价格")}：
+                  <Text style={{ color: token.colorPrimary, fontWeight: 600, fontSize: 16 }}>
+                    ¥{formatPrice(selectedPlanPrice * (100 - selectedCoupon.discountPercent) / 100)}
+                  </Text>
+                  <Text delete type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                    ¥{formatPrice(selectedPlanPrice)}
+                  </Text>
+                </Text>
+              </div>
+            ) : null}
           </div>
 
           <div style={{ marginTop: 8, marginBottom: 8 }}>
