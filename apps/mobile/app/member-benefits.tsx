@@ -2,7 +2,9 @@ import { AntDesign, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   plusGetMe,
+  plusGetMyCoupons,
   plusGetVipCurrentLowestPrice,
+  type MyCouponItem,
   type VipCurrentLowestPriceData,
   type VipCurrentLowestPricePlan,
 } from "@soundx/services";
@@ -58,6 +60,8 @@ export default function MemberBenefitsScreen() {
   );
   const [pricingLoading, setPricingLoading] = useState(true);
   const [memberPhone, setMemberPhone] = useState("");
+  const [coupons, setCoupons] = useState<MyCouponItem[]>([]);
+  const [selectedCouponCode, setSelectedCouponCode] = useState<string | null>(null);
 
   const maskPhone = (value?: string | null) => {
     const normalized = String(value || "").replace(/\D/g, "");
@@ -192,6 +196,29 @@ export default function MemberBenefitsScreen() {
     };
 
     void loadMemberPhone();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCoupons = async () => {
+      try {
+        const res = await plusGetMyCoupons();
+        if (!mounted) return;
+        if (res.data.code === 200) {
+          setCoupons((res.data.data?.data || []).filter((item) => !!item?.code));
+        }
+      } catch (error) {
+        console.warn("Failed to fetch coupons", error);
+      }
+    };
+
+    void loadCoupons();
 
     return () => {
       mounted = false;
@@ -416,6 +443,7 @@ export default function MemberBenefitsScreen() {
         selectedPlan,
         method,
         selectedPlanPrice,
+        selectedCouponCode || undefined,
       );
 
       if (res.data.code === 201 || res.data.code === 200) {
@@ -620,7 +648,28 @@ export default function MemberBenefitsScreen() {
         </View>
 
         {/* Pricing Plans */}
-        <View style={styles.dividerContainer}>
+      <View style={styles.couponSection}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>选择优惠券</Text>
+        <TouchableOpacity
+          style={[styles.couponPicker, { borderColor: colors.border, backgroundColor: colors.card }]}
+          onPress={() => {
+            const options = [{ text: "不使用优惠券", onPress: () => setSelectedCouponCode(null) }].concat(
+              coupons.map((item) => ({
+                text: `${item.code} · -${item.discountPercent}%`,
+                onPress: () => setSelectedCouponCode(item.code),
+              })),
+            );
+            Alert.alert("选择优惠券", undefined, options as any);
+          }}
+        >
+          <Text style={{ color: colors.text }}>
+            {selectedCouponCode || "不使用优惠券"}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.dividerContainer}>
           <Text style={[styles.dividerText, { color: colors.secondary }]}>
             {t("memberBenefitsPage.planTitle")}
           </Text>
@@ -1087,3 +1136,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 });
+    marginTop: 16,
+    gap: 8,
+  },
+  couponPicker: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
