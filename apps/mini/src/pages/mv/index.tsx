@@ -144,10 +144,6 @@ export default function MvPlayer() {
 
   return (
     <View className='mv-container' style={{ backgroundColor: colors.background }}>
-      <View className='mv-info'>
-        <Text className='mv-title' style={{ color: colors.text }}>{mv.name}</Text>
-        {mv.artist && <Text className='mv-artist' style={{ color: colors.secondary }}>{mv.artist}</Text>}
-      </View>
 
       <View className='mv-content'>
         <Video
@@ -162,31 +158,30 @@ export default function MvPlayer() {
           onPause={() => setIsPlaying(false)}
           onEnded={handleEnded}
         />
-        <View className='mv-controls'>
-          <View
-            className={`mv-control-btn ${mvPlaylistStore.hasPrev() ? '' : 'disabled'}`}
-            onClick={mvPlaylistStore.hasPrev() ? handlePrev : undefined}
-          >
-            <Text className='mv-control-icon'>⏮</Text>
-          </View>
-          <View className='mv-control-btn primary' onClick={togglePlay}>
-            <Text className='mv-control-icon primary'>{isPlaying ? '⏸' : '▶'}</Text>
-          </View>
-          <View
-            className={`mv-control-btn ${mvPlaylistStore.hasNext() ? '' : 'disabled'}`}
-            onClick={mvPlaylistStore.hasNext() ? handleNext : undefined}
-          >
-            <Text className='mv-control-icon'>⏭</Text>
-          </View>
-        </View>
-
         {displayPlaylist.length > 0 && (
           <View className='mv-playlist-section'>
             <View className='mv-playlist-header'>
-              <Text className='mv-playlist-title' style={{ color: colors.text }}>待播放 MV</Text>
               <Text className='mv-playlist-count' style={{ color: colors.secondary }}>
-                {displayCurrentIndex + 1} / {displayPlaylist.length}
+                <Text className='mv-playlist-title' style={{ color: colors.text }}>待播放 MV</Text>
+                ({displayCurrentIndex + 1} / {displayPlaylist.length})
               </Text>
+              <View className='mv-controls'>
+                <View
+                  className={`mv-control-btn ${mvPlaylistStore.hasPrev() ? '' : 'disabled'}`}
+                  onClick={mvPlaylistStore.hasPrev() ? handlePrev : undefined}
+                >
+                  <Text className='mv-control-icon'>⏮</Text>
+                </View>
+                <View className='mv-control-btn' onClick={togglePlay}>
+                  <Text className='mv-control-icon'>{isPlaying ? '⏸' : '▶'}</Text>
+                </View>
+                <View
+                  className={`mv-control-btn ${mvPlaylistStore.hasNext() ? '' : 'disabled'}`}
+                  onClick={mvPlaylistStore.hasNext() ? handleNext : undefined}
+                >
+                  <Text className='mv-control-icon'>⏭</Text>
+                </View>
+              </View>
             </View>
             <ScrollView scrollY className='mv-playlist-list'>
               {displayPlaylist.map((item, index) => (

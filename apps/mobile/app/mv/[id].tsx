@@ -184,34 +184,33 @@ export default function MvScreen() {
             />
           </View>
         )}
-
-        <View style={styles.controlsSection}>
-          <TouchableOpacity
-            style={[styles.controlBtn, !hasPrev && styles.controlBtnDisabled]}
-            onPress={handlePrevMv}
-            disabled={!hasPrev}
-          >
-            <Ionicons name="play-skip-back" size={22} color={hasPrev ? "#fff" : "rgba(255,255,255,0.35)"} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.playBtn} onPress={togglePlayback}>
-            <Ionicons name={isPlaying ? "pause" : "play"} size={30} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.controlBtn, !hasNext && styles.controlBtnDisabled]}
-            onPress={handleNextMv}
-            disabled={!hasNext}
-          >
-            <Ionicons name="play-skip-forward" size={22} color={hasNext ? "#fff" : "rgba(255,255,255,0.35)"} />
-          </TouchableOpacity>
-        </View>
-
         {displayPlaylist.length > 0 && (
           <View style={styles.playlistSection}>
             <View style={styles.playlistHeader}>
-              <Text style={[styles.playlistTitle, { color: colors.text }]}>待播放 MV</Text>
               <Text style={[styles.playlistCount, { color: colors.secondary }]}>
-                {displayCurrentIndex + 1} / {displayPlaylist.length}
+                <Text style={[styles.playlistTitle, { color: colors.text }]}>待播放 MV</Text>
+                ({displayCurrentIndex + 1} / {displayPlaylist.length})
               </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'flex-start' }}>
+                <TouchableOpacity
+                  style={[styles.controlBtn, !hasPrev && styles.controlBtnDisabled]}
+                  onPress={handlePrevMv}
+                  disabled={!hasPrev}
+                >
+                  <Ionicons name="play-skip-back" size={22} color={hasPrev ? colors.text : "rgba(255,255,255,0.35)"} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.playBtn} onPress={togglePlayback}>
+                  <Ionicons name={isPlaying ? "pause" : "play"} size={30} color={colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.controlBtn, !hasNext && styles.controlBtnDisabled]}
+                  onPress={handleNextMv}
+                  disabled={!hasNext}
+                >
+                  <Ionicons name="play-skip-forward" size={22} color={hasNext ? colors.text : "rgba(255,255,255,0.35)"} />
+                </TouchableOpacity>
+              </View>
+              
             </View>
             <FlatList
               data={displayPlaylist}
@@ -318,7 +317,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -329,7 +327,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },

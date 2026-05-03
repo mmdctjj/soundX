@@ -89,18 +89,16 @@
   height: 46px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
   font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  transition: filter 0.2s ease, transform 0.2s ease;
 }
 
 .controlBtn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
+  filter: brightness(0.96);
   transform: translateY(-1px);
 }
 
@@ -108,12 +106,9 @@
   width: 58px;
   height: 58px;
   font-size: 32px;
-  background: rgba(255, 255, 255, 0.18);
 }
 
 .controlBtnDisabled {
-  color: rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.08);
   cursor: not-allowed;
 }
 
