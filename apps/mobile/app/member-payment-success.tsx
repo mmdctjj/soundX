@@ -14,7 +14,9 @@ export default function MemberPaymentSuccessScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const tradeNo = String(params.tradeNo || "");
+  const orderId = String(params.orderId || "");
   const paidAtRaw = String(params.paidAt || "");
+  const method = String(params.method || "ALIPAY").toUpperCase();
   const [refreshing, setRefreshing] = useState(true);
 
   const paidAt = useMemo(() => {
@@ -63,8 +65,10 @@ export default function MemberPaymentSuccessScreen() {
         </View>
 
         <View style={styles.infoBlock}>
-          <Text style={[styles.infoLabel, { color: colors.secondary }]}>支付宝交易号</Text>
-          <Text style={[styles.infoValue, { color: colors.text }]}>{tradeNo || "-"}</Text>
+          <Text style={[styles.infoLabel, { color: colors.secondary }]}>
+            {method === "WECHAT" ? "微信交易号" : "支付宝交易号"}
+          </Text>
+          <Text style={[styles.infoValue, { color: colors.text }]}>{tradeNo || orderId || "-"}</Text>
         </View>
 
         {refreshing && (
@@ -80,7 +84,7 @@ export default function MemberPaymentSuccessScreen() {
           style={[styles.primaryButton, { backgroundColor: colors.primary }]}
           onPress={() => router.replace("/member-detail")}
         >
-          <Text style={styles.primaryButtonText}>查看会员详情</Text>
+          <Text style={[styles.primaryButtonText, { color: colors.background }]}>查看会员详情</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -145,7 +149,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   primaryButtonText: {
-    color: "#fff",
     fontSize: 14,
     fontWeight: "600",
   },

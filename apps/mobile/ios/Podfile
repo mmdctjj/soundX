@@ -76,29 +76,42 @@ target 'AudioDock' do
       end
     end
 
-    # Fix fmt consteval errors by forcing C++20 and disabling consteval in fmt
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |config|
-        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-        config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
-        # Some pods override language standard; force via flags too.
-        if target.name == 'fmt'
-          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -std=c++20 -DFMT_USE_CONSTEVAL=0 -DFMT_HEADER_ONLY'
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = '$(inherited) FMT_USE_CONSTEVAL=0'
-        else
-          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -std=c++20'
-        end
+    # Patch fmt to bypass consteval errors with newer Xcode/Clang (Xcode 26+).
+    fmt_dir = File.join(installer.sandbox.root, 'fmt', 'include', 'fmt')
+
+    # 1) Add #define FMT_USE_CONSTEVAL 0 at the top of base.h to disable consteval globally in fmt
+    fmt_base_h = File.join(fmt_dir, 'base.h')
+    if File.exist?(fmt_base_h)
+      content = File.read(fmt_base_h)
+      unless content.include?('// FMT_CONSTEVAL patched')
+        content = "// FMT_CONSTEVAL patched\n#define FMT_USE_CONSTEVAL 0\n" + content
+        File.write(fmt_base_h, content)
+        puts "Patched fmt base.h with FMT_USE_CONSTEVAL=0"
       end
     end
 
-    # Ensure app and other user targets inherit C++20 as well.
-    installer.aggregate_targets.each do |aggregate_target|
-      aggregate_target.user_project.targets.each do |target|
-        target.build_configurations.each do |config|
-          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
-          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -std=c++20 -DFMT_USE_CONSTEVAL=0'
-        end
+    # 2) Replace FMT_STRING_IMPL macro with a simple pass-through in format.h
+    fmt_format_h = File.join(fmt_dir, 'format.h')
+    if File.exist?(fmt_format_h)
+      content = File.read(fmt_format_h)
+      unless content.include?('// FMT_STRING patched')
+        content.sub!(/^#define FMT_STRING_IMPL\(s, base, explicit\).*?^  \}\(\)/m,
+          "// FMT_STRING patched: bypass consteval for Xcode 26+ Clang compatibility\n" \
+          "#define FMT_STRING_IMPL(s, base, explicit) (s)")
+        File.write(fmt_format_h, content)
+        puts "Patched fmt FMT_STRING macro in format.h"
+      end
+    end
+
+    # 3) Strip FMT_STRING wrappers in format-inl.h
+    fmt_format_inl_h = File.join(fmt_dir, 'format-inl.h')
+    if File.exist?(fmt_format_inl_h)
+      content = File.read(fmt_format_inl_h)
+      unless content.include?('// FMT_STRING_INL patched')
+        content = content.gsub('FMT_STRING(', '(')
+        content = "// FMT_STRING_INL patched\n" + content
+        File.write(fmt_format_inl_h, content)
+        puts "Patched fmt FMT_STRING calls in format-inl.h"
       end
     end
     installer.aggregate_targets.each do |aggregate_target|
