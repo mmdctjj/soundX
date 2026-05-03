@@ -63,10 +63,13 @@ const PlaybackNotification: React.FC = () => {
     <Modal
       isVisible={!!notification}
       backdropOpacity={0}
-      animationIn="fadeIn"
-      animationOut="fadeOut"
-      backdropTransitionOutTiming={0}
       style={styles.notificationModal}
+      useNativeDriverForBackdrop
+      animationInTiming={200}
+      animationOutTiming={200}
+      backdropTransitionInTiming={200}
+      backdropTransitionOutTiming={200}
+      hideModalContentWhileAnimating
     >
       <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
         <View style={[styles.content, { backgroundColor: colors.card, shadowColor: colors.text }]}>

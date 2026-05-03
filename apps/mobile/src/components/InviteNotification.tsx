@@ -75,11 +75,14 @@ const InviteNotification: React.FC = () => {
     <Modal
       isVisible={!!currentInvite}
       backdropOpacity={0}
-      animationIn="fadeIn"
-      animationOut="fadeOut"
-      backdropTransitionOutTiming={0}
       onBackButtonPress={() => setCurrentInvite(null)}
       style={styles.notificationModal}
+      useNativeDriverForBackdrop
+      animationInTiming={200}
+      animationOutTiming={200}
+      backdropTransitionInTiming={200}
+      backdropTransitionOutTiming={200}
+      hideModalContentWhileAnimating
     >
       <View style={{ flex: 1 }} pointerEvents="box-none">
         <Animated.View
