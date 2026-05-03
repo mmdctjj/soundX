@@ -30,6 +30,8 @@ export const getTrackAudioQualityProfile = async (track: { id: number | string; 
   if (track.path.startsWith("http")) {
     return getFallbackAudioQualityProfile();
   }
+  // Some adapters may provide an absolute http(s) `path`. That should not block
+  // fetching quality profile (it is keyed by track id).
 
   try {
     const res = await request.get<any, { code: number; data: AudioQualityProfile }>(
@@ -42,6 +44,20 @@ export const getTrackAudioQualityProfile = async (track: { id: number | string; 
   }
 };
 
+const upsertQueryParam = (url: string, key: string, value?: string): string => {
+  const idx = url.indexOf("?");
+  const base = idx >= 0 ? url.slice(0, idx) : url;
+  const query = idx >= 0 ? url.slice(idx + 1) : "";
+  const parts = query ? query.split("&").filter(Boolean) : [];
+  const filtered = parts.filter((p) => decodeURIComponent(p.split("=")[0] || "") !== key);
+
+  if (value !== undefined) {
+    filtered.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+  }
+
+  return filtered.length ? `${base}?${filtered.join("&")}` : base;
+};
+
 export const buildTrackPlaybackUrl = (
   track: { id: number | string; path: string },
   quality?: AudioQuality,
@@ -51,6 +67,15 @@ export const buildTrackPlaybackUrl = (
   }
 
   const baseURL = getBaseURL().replace(/\/$/, "");
+  const streamPrefix = `${baseURL}/track/stream/${track.id}`;
+
+  // If we already have a stream URL from our server, just upsert quality param.
+  // Otherwise (third-party URL), keep the original.
+  if (track.path.startsWith("http")) {
+    if (!track.path.startsWith(streamPrefix)) return track.path;
+    return upsertQueryParam(track.path, "quality", quality);
+  }
+
   const qualityQuery = quality ? `?quality=${quality}` : "";
   return `${baseURL}/track/stream/${track.id}${qualityQuery}`;
 };

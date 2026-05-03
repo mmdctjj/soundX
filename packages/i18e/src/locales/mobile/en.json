@@ -441,6 +441,8 @@
     "paymentWindowClosed": "The payment window was closed. If payment completed, please check member details later.",
     "wechatComingSoon": "WeChat Pay is coming soon. Please use Alipay for now",
     "priceUnavailable": "Current member pricing is unavailable. Please try again later",
+    "paymentLinkFailed": "Cannot open payment link",
+    "wechatParamsMissing": "Backend did not return WeChat payment parameters",
     "alipayParamsMissing": "Backend did not return Alipay payment parameters",
     "requestFailedRetry": "Request failed, please try again later",
     "networkFailed": "Network request failed, please check your connection",

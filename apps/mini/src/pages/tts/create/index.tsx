@@ -13,7 +13,6 @@ import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useRef, useState } from 'react';
 import MiniPlayer from '../../../components/MiniPlayer';
-import { getBaseURL } from '../../../utils/request';
 import './index.scss';
 import BottomTabBar from '../../../components/BottomTabBar';
 
@@ -67,7 +66,7 @@ export default function TtsCreate() {
     }
   };
 
-  const handlePreview = (voice: string) => {
+  const handlePreview = async (voice: string) => {
     if (previewLoading) return;
     setPreviewLoading(voice);
 
@@ -76,10 +75,10 @@ export default function TtsCreate() {
         audioContextRef.current.stop();
       }
 
-      const audioContext = wx.createInnerAudioContext();
+      const audioContext = Taro.createInnerAudioContext();
       audioContextRef.current = audioContext;
 
-      const previewUrl = getBaseURL() + getTtsPreviewUrl(voice);
+      const previewUrl = await getTtsPreviewUrl(voice);
       audioContext.src = previewUrl;
 
       audioContext.onPlay(() => {

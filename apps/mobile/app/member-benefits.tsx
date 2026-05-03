@@ -2,7 +2,9 @@ import { AntDesign, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   plusGetMe,
+  plusGetMyCoupons,
   plusGetVipCurrentLowestPrice,
+  type MyCouponItem,
   type VipCurrentLowestPriceData,
   type VipCurrentLowestPricePlan,
 } from "@soundx/services";
@@ -12,6 +14,8 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
+  Linking,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -27,10 +31,12 @@ import {
   assertIosIapPolicy,
   createPlusPayment,
   endIapConnection,
+  ensureWeChatRegistered,
   finalizeIapPurchase,
   IAP_PRODUCT_IDS,
   initIapConnection,
   payWithAlipay,
+  payWithWeChat,
   registerIapListeners,
   requestIapPurchase,
   verifyAppleIapReceipt,
@@ -55,6 +61,9 @@ export default function MemberBenefitsScreen() {
   );
   const [pricingLoading, setPricingLoading] = useState(true);
   const [memberPhone, setMemberPhone] = useState("");
+  const [coupons, setCoupons] = useState<MyCouponItem[]>([]);
+  const [selectedCouponCode, setSelectedCouponCode] = useState<string | null>(null);
+  const [couponModalVisible, setCouponModalVisible] = useState(false);
 
   const maskPhone = (value?: string | null) => {
     const normalized = String(value || "").replace(/\D/g, "");
@@ -177,7 +186,7 @@ export default function MemberBenefitsScreen() {
         let id: any = plusUserId;
         try {
           id = JSON.parse(plusUserId);
-        } catch {}
+        } catch { }
         const res = await plusGetMe(id);
         const phone = res.data?.data?.phone || res.data?.data?.mobile || "";
         if (mounted) {
@@ -189,6 +198,29 @@ export default function MemberBenefitsScreen() {
     };
 
     void loadMemberPhone();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCoupons = async () => {
+      try {
+        const res = await plusGetMyCoupons();
+        if (!mounted) return;
+        if (res.data.code === 200) {
+          setCoupons((res.data.data?.data || []).filter((item) => !!item?.code));
+        }
+      } catch (error) {
+        console.warn("Failed to fetch coupons", error);
+      }
+    };
+
+    void loadCoupons();
 
     return () => {
       mounted = false;
@@ -280,7 +312,7 @@ export default function MemberBenefitsScreen() {
         try {
           const parsed = JSON.parse(extendInfo);
           if (parsed?.tradeNo) return String(parsed.tradeNo);
-        } catch {}
+        } catch { }
       }
       if (typeof (result as any).result === "string") {
         const raw = (result as any).result as string;
@@ -290,7 +322,7 @@ export default function MemberBenefitsScreen() {
             parsed?.alipay_trade_app_pay_response?.trade_no ||
             parsed?.alipay_trade_app_pay_response?.tradeNo;
           if (tradeNo) return String(tradeNo);
-        } catch {}
+        } catch { }
         return parseFromString(raw);
       }
     }
@@ -359,7 +391,7 @@ export default function MemberBenefitsScreen() {
     if (winner.type === "payment" && winner.paid) {
       try {
         await WebBrowser.dismissBrowser();
-      } catch {}
+      } catch { }
       await browserPromise.catch(() => null);
       router.replace({
         pathname: "/member-payment-success",
@@ -392,11 +424,6 @@ export default function MemberBenefitsScreen() {
   };
 
   const handlePayment = async (method: "WECHAT" | "ALIPAY") => {
-    if (method === "WECHAT") {
-      Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.wechatComingSoon"));
-      return;
-    }
-
     if (selectedPlanPrice == null) {
       Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.priceUnavailable"));
       return;
@@ -418,28 +445,37 @@ export default function MemberBenefitsScreen() {
         selectedPlan,
         method,
         selectedPlanPrice,
+        selectedCouponCode || undefined,
       );
 
       if (res.data.code === 201 || res.data.code === 200) {
         const { paymentUrl, wechatPay, alipayPay, orderId } =
           res.data.data || {};
         const resolvedOrderId = orderId ?? "";
-        // if (method === "WECHAT") {
-        //   if (wechatPay) {
-        //     await ensureWeChatRegistered(WECHAT_APP_ID, WECHAT_UNIVERSAL_LINK);
-        //     await payWithWeChat(wechatPay, paymentUrl);
-        //   } else if (paymentUrl) {
-        //     const supported = await Linking.canOpenURL(paymentUrl);
-        //     if (supported) {
-        //       await Linking.openURL(paymentUrl);
-        //     } else {
-        //       Alert.alert("Notice", "Order created, but the payment link could not be opened automatically.");
-        //     }
-        //   } else {
-        //     Alert.alert("Payment failed", "Backend did not return WeChat payment params.");
-        //   }
-        //   return;
-        // }
+        if (method === "WECHAT") {
+          if (wechatPay) {
+            await ensureWeChatRegistered(wechatPay.appId, WECHAT_UNIVERSAL_LINK);
+            await payWithWeChat({
+              appId: wechatPay.appId,
+              partnerId: wechatPay.partnerId,
+              prepayId: wechatPay.prepayId,
+              nonceStr: wechatPay.nonceStr,
+              timeStamp: wechatPay.timeStamp ?? (wechatPay as any).timestamp ?? "",
+              sign: wechatPay.sign,
+              package: wechatPay.package ?? "Sign=WXPay",
+            }, paymentUrl);
+          } else if (paymentUrl) {
+            const supported = await Linking.canOpenURL(paymentUrl);
+            if (supported) {
+              await Linking.openURL(paymentUrl);
+            } else {
+              Alert.alert(t("memberBenefitsPage.notice"), t("memberBenefitsPage.paymentLinkFailed"));
+            }
+          } else {
+            Alert.alert(t("memberBenefitsPage.paymentFailed"), t("memberBenefitsPage.wechatParamsMissing"));
+          }
+          return;
+        }
 
         if (method === "ALIPAY") {
           if (alipayPay?.orderString) {
@@ -697,7 +733,7 @@ export default function MemberBenefitsScreen() {
                   {t("memberBenefitsPage.save")}{" "}
                   {formatPrice(
                     (pricing?.annual?.originalPrice ?? 0) -
-                      (pricing?.annual?.currentPrice ?? 0),
+                    (pricing?.annual?.currentPrice ?? 0),
                   )}
                 </Text>
               </View>
@@ -766,12 +802,115 @@ export default function MemberBenefitsScreen() {
                   {t("memberBenefitsPage.save")}{" "}
                   {formatPrice(
                     (pricing?.lifetime?.originalPrice ?? 0) -
-                      (pricing?.lifetime?.currentPrice ?? 0),
+                    (pricing?.lifetime?.currentPrice ?? 0),
                   )}
                 </Text>
               </View>
             ) : null}
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.dividerContainer}>
+          <Text style={[styles.dividerText, { color: colors.text }]}>选择优惠券</Text>
+        </View>
+        <View>
+          <TouchableOpacity
+            style={[styles.couponPicker, { borderColor: colors.border, backgroundColor: colors.card }]}
+            onPress={() => setCouponModalVisible(true)}
+          >
+            <Text style={{ color: colors.text }}>
+              {selectedCouponCode || "不使用优惠券"}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={colors.text} />
+          </TouchableOpacity>
+          {(() => {
+            const selectedCoupon = coupons.find((c) => c.code === selectedCouponCode);
+            if (!selectedCoupon || selectedPlanPrice == null) return null;
+            const finalPrice = selectedPlanPrice * (100 - selectedCoupon.discountPercent) / 100;
+            return (
+              <View style={{ marginTop: 8 }}>
+                <Text style={{ color: colors.secondary, fontSize: 13 }}>
+                  优惠后价格：
+                  <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 16 }}>
+                    ¥{formatPrice(finalPrice)}
+                  </Text>
+                  <Text style={{ color: colors.secondary, fontSize: 12, textDecorationLine: "line-through", marginLeft: 16 }}>
+                    ¥{formatPrice(selectedPlanPrice)}
+                  </Text>
+                </Text>
+              </View>
+            );
+          })()}
+
+          <Modal
+            visible={couponModalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setCouponModalVisible(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setCouponModalVisible(false)}
+            >
+              <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>选择优惠券</Text>
+                <ScrollView style={{ maxHeight: 360 }}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalOption,
+                      {
+                        backgroundColor:
+                          selectedCouponCode === null ? colors.primary + "18" : "transparent",
+                        borderBottomWidth: 0.5,
+                        borderBottomColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => {
+                      setSelectedCouponCode(null);
+                      setCouponModalVisible(false);
+                    }}
+                  >
+                    <Text style={{ color: colors.text, fontSize: 15 }}>不使用优惠券</Text>
+                    {selectedCouponCode === null && (
+                      <Ionicons name="checkmark" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                  {coupons.map((item) => {
+                    const zhe = (100 - item.discountPercent) / 10;
+                    const zheLabel = Number.isInteger(zhe) ? `${zhe}折` : `${zhe.toFixed(1)}折`;
+                    const isSelected = selectedCouponCode === item.code;
+                    return (
+                      <TouchableOpacity
+                        key={item.code}
+                        style={[
+                          styles.modalOption,
+                          {
+                            backgroundColor: isSelected ? colors.primary + "18" : "transparent",
+                            borderBottomWidth: 0.5,
+                            borderBottomColor: colors.border,
+                          },
+                        ]}
+                        onPress={() => {
+                          setSelectedCouponCode(item.code);
+                          setCouponModalVisible(false);
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.text, fontSize: 15 }}>
+                            {item.code} · {zheLabel}
+                          </Text>
+                        </View>
+                        {isSelected && (
+                          <Ionicons name="checkmark" size={20} color={colors.primary} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </View>
 
         {/* Payment Methods */}
@@ -1080,4 +1219,42 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: 20,
   },
+  couponPicker: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  modalContent: {
+    width: "100%",
+    borderRadius: 16,
+    paddingTop: 20,
+    paddingBottom: 12,
+    overflow: "hidden",
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 12,
+    paddingHorizontal: 20,
+  },
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
 });
+

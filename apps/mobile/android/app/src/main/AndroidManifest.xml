@@ -60,6 +60,8 @@
         <data android:scheme="audiodock"/>
       </intent-filter>
     </activity>
+    <activity android:name=".wxapi.WXEntryActivity" android:label="@string/app_name" android:exported="true" android:taskAffinity="com.audiodock.app" android:launchMode="singleTask"/>
+    <activity android:name=".wxapi.WXPayEntryActivity" android:label="@string/app_name" android:exported="true"/>
     <receiver android:name=".widget.AudioDockWidgetProvider" android:exported="false">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>

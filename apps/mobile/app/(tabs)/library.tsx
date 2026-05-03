@@ -210,6 +210,8 @@ const SongList = ({
           ref={flatListRef}
           data={tracks}
           style={{ flex: 1 }}
+          onRefresh={loadTracks}
+          refreshing={loading}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           keyExtractor={(item) => item.id.toString()}
@@ -412,6 +414,8 @@ const ArtistList = ({
         ref={flatListRef}
         data={artists}
         numColumns={numColumns}
+        onRefresh={loadArtists}
+        refreshing={loading}
         columnWrapperStyle={{ gap: GAP, marginBottom: 15 }}
         style={{ flex: 1 }}
         key={`artist-list-${numColumns}`}
@@ -587,6 +591,8 @@ const AlbumList = ({
         ref={flatListRef}
         data={albums}
         numColumns={numColumns}
+        onRefresh={loadAlbums}
+        refreshing={loading}
         key={`album-list-${numColumns}`}
         columnWrapperStyle={{ gap: GAP, marginBottom: 15 }}
         style={{ flex: 1 }}
@@ -740,6 +746,8 @@ const CollectionList = () => {
       <FlatList
         data={collections}
         numColumns={numColumns}
+        onRefresh={loadCollections}
+        refreshing={loading}
         key={`collection-list-${numColumns}`}
         columnWrapperStyle={{ gap: GAP, marginBottom: 15 }}
         style={{ flex: 1 }}
@@ -853,6 +861,8 @@ const MvList = () => {
       <FlatList
         data={mvs}
         numColumns={numColumns}
+        onRefresh={loadMvs}
+        refreshing={loading}
         key={`mv-list-${numColumns}`}
         columnWrapperStyle={{ gap: GAP, marginBottom: 15 }}
         style={{ flex: 1 }}

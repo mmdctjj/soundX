@@ -1,4 +1,4 @@
-import { request } from "./request";
+import { getBaseURL, request } from "./request";
 
 const TTS_BASE_URL = "/tts";
 
@@ -98,6 +98,17 @@ export const deleteTtsTask = (id: string) => {
   return request.delete(`${TTS_BASE_URL}/api/tasks/${id}`);
 };
 
-export const getTtsPreviewUrl = (voice: string) => {
-  return request.get(`${TTS_BASE_URL}/api/tasks/preview?voice=${voice}&t=${Date.now()}`);
+export const getTtsPreviewUrl = async (voice: string, text?: string): Promise<string> => {
+  const baseURL = getBaseURL().replace(/\/$/, "");
+  const query = new URLSearchParams({
+    voice,
+    t: String(Date.now()),
+  });
+
+  if (text) {
+    query.set("text", text);
+  }
+
+  const path = `${TTS_BASE_URL}/api/tasks/preview?${query.toString()}`;
+  return baseURL ? `${baseURL}${path}` : path;
 };
