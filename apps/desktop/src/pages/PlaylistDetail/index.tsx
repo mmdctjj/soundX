@@ -48,6 +48,7 @@ import { downloadTracks } from "../../services/downloadManager";
 import { trackEvent } from "../../services/tracking";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
+import { usePlaylistStore } from "../../store/playlist";
 import { getCoverUrl } from "../../utils";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
@@ -178,6 +179,10 @@ const PlaylistDetail: React.FC = () => {
         message.success(t('common.success'));
         setIsEditModalOpen(false);
         fetchPlaylist();
+        // Refresh sidebar playlist list
+        if (user?.id) {
+          usePlaylistStore.getState().fetchPlaylists(mode, user.id);
+        }
       }
     } catch (error) {
       message.error(t('common.error'));

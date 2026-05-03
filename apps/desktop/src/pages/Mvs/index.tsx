@@ -5,12 +5,16 @@ import type { Mv } from "@soundx/services";
 import Cover from "../../components/Cover";
 import styles from "./index.module.less";
 import { useTranslation } from "react-i18next";
+import { useMvPlaylistStore } from "../../store/mvPlaylist";
+import { useNavigate } from "react-router-dom";
 
 const { Title } = Typography;
 
 const Mvs: React.FC = () => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const navigate = useNavigate();
+  const { setPlaylist } = useMvPlaylistStore();
   const [items, setItems] = useState<Mv[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -74,9 +78,17 @@ const Mvs: React.FC = () => {
 
       {items.length > 0 ? (
         <Row gutter={[20, 20]}>
-          {items.map((mv) => (
+          {items.map((mv, index) => (
             <Col key={mv.id}>
-              <Cover item={mv as any} type="mv" aspectRatio={16 / 9} />
+              <Cover
+                item={mv as any}
+                type="mv"
+                aspectRatio={16 / 9}
+                onClick={() => {
+                  setPlaylist(items, index);
+                  navigate(`/mv/${mv.id}`);
+                }}
+              />
             </Col>
           ))}
         </Row>

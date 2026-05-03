@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  overflow-y: auto;
+  overflow: hidden;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(100px);
   -webkit-backdrop-filter: blur(100px);
@@ -39,24 +39,103 @@
 }
 
 .videoWrapper {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   justify-content: center;
   align-items: center;
   background-color: #000;
   min-height: 400px;
-  max-height: 70vh;
+  height: min(70vh, calc(100vw * 9 / 16));
 }
 
 .video {
   width: 100%;
   height: 100%;
-  max-height: 100%;
   object-fit: contain;
 }
 
 .info {
-  padding: 24px 32px;
+  padding: 24px 32px 28px;
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.infoMain {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+}
+
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.controlBtn {
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.controlBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.controlBtnPrimary {
+  width: 58px;
+  height: 58px;
+  font-size: 32px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.controlBtnDisabled {
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: not-allowed;
+}
+
+.metaBlock {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 900px) {
+  .videoWrapper {
+    height: min(56vh, calc(100vw * 9 / 16));
+  }
+
+  .titleRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .infoMain {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

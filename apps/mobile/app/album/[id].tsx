@@ -12,6 +12,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { Album, Track } from "@/src/models";
 import { downloadTracks } from "@/src/services/downloadManager";
 import { getImageUrl } from "@/src/utils/image";
+import { mvPlaylistStore } from "@/src/store/mvPlaylist";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -489,7 +490,10 @@ export default function AlbumDetailScreen() {
             return (
               <TouchableOpacity
                 style={[styles.trackItem, { borderBottomColor: colors.border }]}
-                onPress={() => router.push({ pathname: "/mv/[id]", params: { id: String(item.id) } } as any)}
+                onPress={() => {
+                  mvPlaylistStore.setPlaylist(mvs, index);
+                  router.push({ pathname: "/mv/[id]", params: { id: String(item.id) } } as any);
+                }}
               >
                 <View style={styles.trackIndexContainer}>
                   <Text style={[styles.trackIndex, { color: colors.secondary }]}>{index + 1}</Text>

@@ -1,4 +1,5 @@
 import { Album, Artist, Track, getCollections, loadMoreAlbum, loadMoreArtist, loadMoreTrack, Mv, getMvList } from '@soundx/services';
+import { mvPlaylistStore } from '../../store/mvPlaylist';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useMemo, useState } from 'react';
@@ -482,8 +483,11 @@ export default function Library() {
                        let url = '';
                        if (activeTab === 'artists') url = `/pages/artist/index?id=${item.id}`;
                        else if (activeTab === 'collections') url = `/pages/collection/index?id=${item.id}`;
-                       else if (activeTab === 'mvs') url = `/pages/mv/index?id=${item.id}`;
-                       else url = `/pages/album/index?id=${item.id}`;
+                       else if (activeTab === 'mvs') {
+                         const mvIndex = sortedItems.findIndex((s: any) => s.id === item.id);
+                         mvPlaylistStore.setPlaylist(sortedItems as Mv[], mvIndex >= 0 ? mvIndex : 0);
+                         url = `/pages/mv/index?id=${item.id}`;
+                       } else url = `/pages/album/index?id=${item.id}`;
                        Taro.navigateTo({ url });
                      }}
                    >

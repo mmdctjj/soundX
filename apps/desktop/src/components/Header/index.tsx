@@ -1206,7 +1206,50 @@ const Header: React.FC = () => {
                 {t('header.compactData')}
               </div>
 
-              <div className={styles.userMenuItem}>
+              <div
+                className={styles.userMenuItem}
+                onClick={() => {
+                  modal.confirm({
+                    title: t('header.clearCache'),
+                    content: t('settings.confirmClearCache', { label: '' }),
+                    okText: t('common.confirm'),
+                    cancelText: t('common.cancel'),
+                    onOk: async () => {
+                      try {
+                        if ((window as any).ipcRenderer) {
+                          await (window as any).ipcRenderer.invoke("cache:clear");
+                        }
+                        const PRESERVED_KEYS = new Set([
+                          "serverAddress",
+                          "selectedSourceType",
+                          "plus_token",
+                          "plus_user_id",
+                          "plus_vip_status",
+                          "plus_vip_data",
+                          "plus_vip_updated_at",
+                          "userId",
+                          "i18nextLng",
+                        ]);
+                        const keysToPreserve: Record<string, string> = {};
+                        for (let i = 0; i < localStorage.length; i++) {
+                          const key = localStorage.key(i);
+                          if (key && PRESERVED_KEYS.has(key)) {
+                            keysToPreserve[key] = localStorage.getItem(key) || "";
+                          }
+                        }
+                        localStorage.clear();
+                        for (const [key, value] of Object.entries(keysToPreserve)) {
+                          localStorage.setItem(key, value);
+                        }
+                        message.success(t("settings.cacheCleared"));
+                      } catch (error) {
+                        console.warn("Failed to clear cache", error);
+                        message.error(t("common.error"));
+                      }
+                    },
+                  });
+                }}
+              >
                 <DeleteOutlined />
                 {t('header.clearCache')}
               </div>

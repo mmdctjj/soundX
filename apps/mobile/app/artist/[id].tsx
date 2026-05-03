@@ -10,6 +10,7 @@ import { useTheme } from "@/src/context/ThemeContext";
 import { Album, Artist, Track, TrackType } from "@/src/models";
 import { downloadTracks } from "@/src/services/downloadManager";
 import { getImageUrl } from "@/src/utils/image";
+import { mvPlaylistStore } from "@/src/store/mvPlaylist";
 import { usePlayMode } from "@/src/utils/playMode";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -491,11 +492,14 @@ export default function ArtistDetailScreen() {
               showsHorizontalScrollIndicator={false}
               style={{ paddingHorizontal: 20, paddingBottom: 20 }}
             >
-              {mvs.map((mv) => (
+              {mvs.map((mv, mvIndex) => (
                 <TouchableOpacity
                   key={mv.id}
                   style={styles.albumCard}
-                  onPress={() => router.push({ pathname: "/mv/[id]", params: { id: String(mv.id) } } as any)}
+                  onPress={() => {
+                    mvPlaylistStore.setPlaylist(mvs, mvIndex);
+                    router.push({ pathname: "/mv/[id]", params: { id: String(mv.id) } } as any);
+                  }}
                 >
                   <View style={styles.albumCoverContainer}>
                     <Image

@@ -160,18 +160,20 @@ export class ImportService implements OnModuleInit {
 
       const isMvFile = /\.(mp4|mkv|avi|webm)$/i.test(item.path);
 
+      // Skip video files found in music/audiobook WebDAV folders — only MV folders should contain videos
+      if (isMvFile && !isMvDir) {
+        this.logger.log(`Skipping video file in non-MV WebDAV folder: ${item.path}`);
+        return;
+      }
+
       // Folder ID is null for WebDAV for now as it doesn't map to local folder tree easily
       const nextScanOrder = task ? (task.current || 0) + 1 : undefined;
       const sortFields = this.getTrackSortFields(item.originalPath || item.path, '', nextScanOrder);
       await this.processTrackData(item, type, '', cachePath, item.path, null, '', sortFields);
 
       if (task) {
-        if (isMvFile || isMvDir) {
+        if (isMvDir) {
           task.mvCurrent = (task.mvCurrent || 0) + 1;
-          if (!isMvDir) {
-            task.mvTotal = (task.mvTotal || 0) + 1;
-            task.webdavTotal = (task.webdavTotal || 0) - 1;
-          }
         } else {
           task.webdavCurrent = (task.webdavCurrent || 0) + 1;
         }
@@ -1008,10 +1010,10 @@ export class ImportService implements OnModuleInit {
       task.message = '正在统计本地文件数量...';
       console.log('Counting local paths for music and musicPaths...', musicPaths);
       const musicCount = (await Promise.all(
-        musicPaths.map((musicPath) => this.scanner!.countFiles(musicPath))
+        musicPaths.map((musicPath) => this.scanner!.countFiles(musicPath, { audioOnly: true }))
       )).reduce((sum, count) => sum + count, 0);
       const audiobookCount = (await Promise.all(
-        audiobookPaths.map((audiobookPath) => this.scanner!.countFiles(audiobookPath))
+        audiobookPaths.map((audiobookPath) => this.scanner!.countFiles(audiobookPath, { audioOnly: true }))
       )).reduce((sum, count) => sum + count, 0);
       const mvCount = (await Promise.all(
         mvPaths.map((mvPath) => this.scanner!.countFiles(mvPath))
@@ -1049,9 +1051,9 @@ export class ImportService implements OnModuleInit {
       task.status = TaskStatus.PARSING;
       task.message = '正在解析媒体文件...';
 
-      const processItem = async (item: ScanResult, type: TrackType, audioBasePath: string, isWebDAV = false) => {
-        // If it's an MV, handle it differently and return early
-        if (this.isMvFile(item.path)) {
+      const processItem = async (item: ScanResult, type: TrackType, audioBasePath: string, isWebDAV = false, isMvPath = false) => {
+        // Only treat as MV when scanning MV paths, not from music/audiobook folders
+        if (isMvPath && this.isMvFile(item.path)) {
           const mvTarget = item.path.startsWith('http')
             ? { sourcePath: item.path, publicUrl: item.path }
             : await this.ensureMvAsMp4(item.originalPath || item.path, cachePath, isWebDAV);
@@ -1097,8 +1099,8 @@ export class ImportService implements OnModuleInit {
       for (const mvPath of mvPaths) {
         await this.scanner.scanMv(mvPath, async (item) => {
           task.currentFileName = item.title || path.basename(item.path);
-          // type is MUSIC since it belongs to music mode
-          await processItem(item, TrackType.MUSIC, mvPath);
+          // type is MUSIC since it belongs to music mode, isMvPath=true to only treat designated MV folder files as MVs
+          await processItem(item, TrackType.MUSIC, mvPath, false, true);
           task.mvCurrent = (task.mvCurrent || 0) + 1;
         });
       }

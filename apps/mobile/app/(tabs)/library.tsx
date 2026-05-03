@@ -28,6 +28,7 @@ import { downloadTracks } from "../../src/services/downloadManager";
 import { getImageUrl } from "../../src/utils/image";
 import { usePlayMode } from "../../src/utils/playMode";
 import { trackEvent } from "../../src/services/tracking";
+import { mvPlaylistStore } from "../../src/store/mvPlaylist";
 
 const GAP = 15;
 const SCREEN_PADDING = 40; // 20 horizontal padding * 2
@@ -873,12 +874,13 @@ const MvList = () => {
           return (
             <TouchableOpacity
               style={{ width: itemWidth }}
-              onPress={() =>
+              onPress={() => {
+                mvPlaylistStore.setPlaylist(mvs, mvs.findIndex((mv) => mv.id === item.id));
                 router.push({
                   pathname: "/mv/[id]",
                   params: { id: String(item.id) },
-                })
-              }
+                });
+              }}
             >
               <View
                 style={[

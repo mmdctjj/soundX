@@ -428,6 +428,7 @@ function RootLayoutNav() {
     rootSegment === "scan" ||
     rootSegment === "scan-confirm" ||
     rootSegment === "language" ||
+    rootSegment === "mv" ||
     rootSegment === "modal";
   const showBottomBar = !hideBottomBar;
   const playerPanelWidth = carLayoutSize.height > 0 ? (carLayoutSize.height * 9) / 16 : 0;

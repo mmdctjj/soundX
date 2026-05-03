@@ -45,7 +45,7 @@ export class LocalMusicScanner {
         }
         results.push(metadata);
       }
-    });
+    }, { audioOnly: true });
     return results;
   }
 
@@ -93,13 +93,14 @@ export class LocalMusicScanner {
         }
         results.push(metadata);
       }
-    });
+    }, { audioOnly: true });
     return results;
   }
 
-  async countFiles(dir: string): Promise<number> {
+  async countFiles(dir: string, options?: { audioOnly?: boolean }): Promise<number> {
     let count = 0;
     if (!fs.existsSync(dir)) return 0;
+    const extensionPattern = options?.audioOnly ? this.AUDIO_EXTENSIONS : this.ALL_MEDIA_EXTENSIONS;
 
     const traverseCount = (currentDir: string) => {
       try {
@@ -113,7 +114,7 @@ export class LocalMusicScanner {
             const stat = fs.statSync(fullPath);
             if (stat.isDirectory()) {
               traverseCount(fullPath);
-            } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(file)) {
+            } else if (extensionPattern.test(file)) {
               count++;
             }
           } catch (e) {
@@ -129,7 +130,12 @@ export class LocalMusicScanner {
     return count;
   }
 
-  private async traverse(dir: string, callback: (path: string) => Promise<void>) {
+  private readonly AUDIO_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|strm)$/i;
+  private readonly VIDEO_EXTENSIONS = /\.(mp4|mkv|avi|webm)$/i;
+  private readonly ALL_MEDIA_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i;
+
+  private async traverse(dir: string, callback: (path: string) => Promise<void>, options?: { audioOnly?: boolean }) {
+    const extensionPattern = options?.audioOnly ? this.AUDIO_EXTENSIONS : this.ALL_MEDIA_EXTENSIONS;
     try {
       const files = fs.readdirSync(dir);
       for (const file of files) {
@@ -140,8 +146,8 @@ export class LocalMusicScanner {
         try {
           const stat = fs.statSync(fullPath);
           if (stat.isDirectory()) {
-            await this.traverse(fullPath, callback);
-          } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(file)) {
+            await this.traverse(fullPath, callback, options);
+          } else if (extensionPattern.test(file)) {
             await callback(fullPath);
           }
         } catch (e) {
