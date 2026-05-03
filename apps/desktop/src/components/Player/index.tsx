@@ -66,6 +66,7 @@ import {
   type AudioQualityOption,
   buildTrackPlaybackUrl,
   getTrackAudioQualityProfile,
+  resolveTrackAudioQuality,
 } from "../../services/trackQuality";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
@@ -111,6 +112,8 @@ const Player: React.FC = () => {
   const { mode: appMode } = usePlayMode();
   const [hasMv, setHasMv] = useState(false);
   const [currentAudioQuality, setCurrentAudioQuality] =
+    useState<AudioQuality>("lossless");
+  const [preferredAudioQuality, setPreferredAudioQuality] =
     useState<AudioQuality>("lossless");
   const [availableAudioQualities, setAvailableAudioQualities] = useState<
     AudioQualityOption[]
@@ -169,7 +172,9 @@ const Player: React.FC = () => {
       const profile = await getTrackAudioQualityProfile(currentTrack);
       if (!cancelled) {
         setAvailableAudioQualities(profile.options);
-        setCurrentAudioQuality(profile.defaultQuality);
+        setCurrentAudioQuality(
+          resolveTrackAudioQuality(profile, preferredAudioQualityRef.current),
+        );
       }
     };
 
@@ -215,6 +220,11 @@ const Player: React.FC = () => {
 
   const queueListRef = useRef<QueueListRef>(null);
   const fullQueueListRef = useRef<QueueListRef>(null);
+  const preferredAudioQualityRef = useRef<AudioQuality>("lossless");
+
+  useEffect(() => {
+    preferredAudioQualityRef.current = preferredAudioQuality;
+  }, [preferredAudioQuality]);
 
   const handleLocateTrack = () => {
     queueListRef.current?.scrollToActive();
@@ -286,6 +296,7 @@ const Player: React.FC = () => {
         (currentIndex + 1) % availableAudioQualities.length
       ] || availableAudioQualities[0];
 
+    setPreferredAudioQuality(nextOption.quality);
     setCurrentAudioQuality(nextOption.quality);
   };
   const [sleepTimerEndTime, setSleepTimerEndTime] = useState<number | null>(
