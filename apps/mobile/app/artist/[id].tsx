@@ -109,7 +109,7 @@ export default function ArtistDetailScreen() {
       setLoading(true);
       const [artistRes] = await Promise.all([getArtistById(artistId)]);
 
-      if (artistRes.code === 200) {
+      if (artistRes.code === 200 && artistRes.data) {
         setArtist(artistRes.data);
         const artistQueryKey =
           sourceType === "Emby" ? String(artistId) : artistRes.data.name;

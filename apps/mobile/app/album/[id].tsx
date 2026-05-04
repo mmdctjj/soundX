@@ -94,7 +94,7 @@ export default function AlbumDetailScreen() {
         getAlbumTracks(albumId, PAGE_SIZE, 0, currentSort, undefined, user?.id, currentSortBy),
       ]);
 
-      if (albumRes.code === 200) {
+      if (albumRes.code === 200 && albumRes.data) {
         setAlbum(albumRes.data);
         const likedByUsers = albumRes.data.likedByUsers || [];
         const isLikedByCurrentUser = likedByUsers.some(

@@ -134,7 +134,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
 
   const handleArtistDetails = () => {
     setVisible(false);
-    if (currentTrack?.artistId) {
+    if (currentTrack?.artistId && currentTrack?.artist && currentTrack.artist !== "未知") {
       onClose();
       router.push(`/artist/${currentTrack.artistId}`);
     }
@@ -142,7 +142,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
 
   const handleAlbumDetails = () => {
     setVisible(false);
-    if (currentTrack?.albumId) {
+    if (currentTrack?.albumId && currentTrack?.album && currentTrack.album !== "未知") {
       onClose();
       router.push(`/album/${currentTrack.albumId}`);
     }
@@ -277,13 +277,13 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       icon: "person-outline" as const,
       label: t('playerMore.artistDetails'),
       onPress: handleArtistDetails,
-      disabled: !currentTrack?.artistId,
+      disabled: !currentTrack?.artistId || !currentTrack?.artist || currentTrack.artist === "未知",
     },
     {
       icon: "albums-outline" as const,
       label: t('playerMore.albumDetails'),
       onPress: handleAlbumDetails,
-      disabled: !currentTrack?.albumId,
+      disabled: !currentTrack?.albumId || !currentTrack?.album || currentTrack.album === "未知",
     },
     {
       icon: "document-text-outline" as const,
