@@ -17,7 +17,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import Modal from "react-native-modal";
+import { Modal, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { getBaseURL } from "../https";
@@ -221,18 +221,8 @@ export const PlaylistModal = () => {
   };
 
   return (
-    <Modal
-      isVisible={showPlaylist}
-      onBackdropPress={() => setShowPlaylist(false)}
-      onBackButtonPress={() => setShowPlaylist(false)}
-      useNativeDriver
-      hideModalContentWhileAnimating
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropTransitionOutTiming={0}
-      style={styles.bottomSheetModal}
-    >
-      <View style={styles.sheetWrapper}>
+    <Modal visible={showPlaylist} transparent animationType="slide" onRequestClose={() => setShowPlaylist(false)}>
+      <Pressable style={styles.backdrop} onPress={() => setShowPlaylist(false)}>
         <View style={styles.modalWrapper}>
           <View
             style={[
@@ -356,21 +346,16 @@ export const PlaylistModal = () => {
             )}
           </View>
         </View>
-      </View>
+      </Pressable>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomSheetModal: {
-    margin: 0,
-    justifyContent: "flex-end",
-  },
-  sheetWrapper: {
+  backdrop: {
     flex: 1,
-    width: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
-    alignItems: "center",
   },
   modalWrapper: {
     width: "100%",

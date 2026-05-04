@@ -11,12 +11,13 @@ import { useTranslation } from "react-i18next";
 import {
     Alert,
     Platform,
+    Pressable,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from "react-native";
-import Modal from "react-native-modal";
+import { Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isCached } from "../services/cache";
 import { downloadTrack } from "../services/downloadManager";
@@ -415,322 +416,316 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
   return (
     <>
       <Modal
-        isVisible={visible}
-        onBackdropPress={onClose}
-        onBackButtonPress={onClose}
-        useNativeDriver
-        hideModalContentWhileAnimating
-        animationIn="slideInUp"
-        animationOut="slideOutDown"
-        backdropTransitionOutTiming={0}
-        onModalHide={openPendingModal}
-        style={styles.bottomSheetModal}
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={onClose}
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
       >
-        <View style={styles.bottomSheetWrapper}>
-          <View
-            style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}
-          >
+        <Pressable style={styles.backdrop} onPress={onClose}>
+          <View style={styles.bottomSheetWrapper}>
             <View
-              style={[
-                styles.modalContent,
-                { backgroundColor: colors.card, paddingBottom: insets.bottom },
-              ]}
+              style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}
             >
-              <View style={styles.handle} />
-              <Text style={[styles.title, { color: colors.text }]}>
-                {t('playerMore.moreOptions')}
-              </Text>
+              <View
+                style={[
+                  styles.modalContent,
+                  { backgroundColor: colors.card, paddingBottom: insets.bottom },
+                ]}
+              >
+                <View style={styles.handle} />
+                <Text style={[styles.title, { color: colors.text }]}>
+                  {t('playerMore.moreOptions')}
+                </Text>
 
-              {/* Audiobook Controls */}
-              {currentTrack?.type === TrackType.AUDIOBOOK && (
-                <View style={styles.audiobookControls}>
+                {/* Audiobook Controls */}
+                {currentTrack?.type === TrackType.AUDIOBOOK && (
+                  <View style={styles.audiobookControls}>
+                    <TouchableOpacity
+                      style={styles.skipButton}
+                      onPress={() => openSkipModal("intro")}
+                    >
+                      <Ionicons
+                        name="play-skip-back-outline"
+                        size={32}
+                        color={
+                          skipIntroDuration > 0 ? colors.primary : colors.text
+                        }
+                      />
+                      <Text
+                        style={[styles.controlLabel, { color: colors.secondary }]}
+                      >
+                        {t('playerMore.intro')}
+                      </Text>
+                      {/* ✨ 实时显示当前设置 */}
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          color: colors.primary,
+                          marginTop: 2,
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {skipIntroDuration > 0 ? `${skipIntroDuration}s` : t('playerMore.turnOff')}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={handleSkipBackward}
+                    >
+                      <MaterialCommunityIcons
+                        name="rewind-15"
+                        size={32}
+                        color={colors.text}
+                      />
+                      <Text
+                        style={[styles.controlLabel, { color: colors.secondary }]}
+                      >
+                        {t('playerMore.back15s')}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={handleTogglePlaybackRate}
+                    >
+                      <Ionicons
+                        name="speedometer-outline"
+                        size={32}
+                        color={colors.text}
+                      />
+                      <Text
+                        style={[styles.controlLabel, { color: colors.secondary }]}
+                      >
+                        {playbackRate}x
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={handleSkipForward}
+                    >
+                      <MaterialCommunityIcons
+                        name="fast-forward-15"
+                        size={32}
+                        color={colors.text}
+                      />
+                      <Text
+                        style={[styles.controlLabel, { color: colors.secondary }]}
+                      >
+                        {t('playerMore.forward15s')}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.skipButton}
+                      onPress={() => openSkipModal("outro")}
+                    >
+                      <Ionicons
+                        name="play-skip-forward-outline"
+                        size={32}
+                        color={
+                          skipOutroDuration > 0 ? colors.primary : colors.text
+                        }
+                      />
+                      <Text
+                        style={[styles.controlLabel, { color: colors.secondary }]}
+                      >
+                        {t('playerMore.outro')}
+                      </Text>
+                      {/* ✨ 实时显示当前设置 */}
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          color: colors.primary,
+                          marginTop: 2,
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {skipOutroDuration > 0 ? `${skipOutroDuration}s` : t('playerMore.turnOff')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {standardOptions
+                  .filter(opt => !opt.hidden)
+                  .map((option, index) => (
                   <TouchableOpacity
-                    style={styles.skipButton}
-                    onPress={() => openSkipModal("intro")}
-                  >
-                    <Ionicons
-                      name="play-skip-back-outline"
-                      size={32}
-                      color={
-                        skipIntroDuration > 0 ? colors.primary : colors.text
-                      }
-                    />
-                    <Text
-                      style={[styles.controlLabel, { color: colors.secondary }]}
-                    >
-                      {t('playerMore.intro')}
-                    </Text>
-                    {/* ✨ 实时显示当前设置 */}
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        color: colors.primary,
-                        marginTop: 2,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {skipIntroDuration > 0 ? `${skipIntroDuration}s` : t('playerMore.turnOff')}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={handleSkipBackward}
-                  >
-                    <MaterialCommunityIcons
-                      name="rewind-15"
-                      size={32}
-                      color={colors.text}
-                    />
-                    <Text
-                      style={[styles.controlLabel, { color: colors.secondary }]}
-                    >
-                      {t('playerMore.back15s')}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={handleTogglePlaybackRate}
-                  >
-                    <Ionicons
-                      name="speedometer-outline"
-                      size={32}
-                      color={colors.text}
-                    />
-                    <Text
-                      style={[styles.controlLabel, { color: colors.secondary }]}
-                    >
-                      {playbackRate}x
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={handleSkipForward}
-                  >
-                    <MaterialCommunityIcons
-                      name="fast-forward-15"
-                      size={32}
-                      color={colors.text}
-                    />
-                    <Text
-                      style={[styles.controlLabel, { color: colors.secondary }]}
-                    >
-                      {t('playerMore.forward15s')}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.skipButton}
-                    onPress={() => openSkipModal("outro")}
-                  >
-                    <Ionicons
-                      name="play-skip-forward-outline"
-                      size={32}
-                      color={
-                        skipOutroDuration > 0 ? colors.primary : colors.text
-                      }
-                    />
-                    <Text
-                      style={[styles.controlLabel, { color: colors.secondary }]}
-                    >
-                      {t('playerMore.outro')}
-                    </Text>
-                    {/* ✨ 实时显示当前设置 */}
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        color: colors.primary,
-                        marginTop: 2,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {skipOutroDuration > 0 ? `${skipOutroDuration}s` : t('playerMore.turnOff')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {standardOptions
-                .filter(opt => !opt.hidden)
-                .map((option, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.option,
-                    { borderBottomColor: colors.border },
-                    option.disabled && styles.optionDisabled,
-                  ]}
-                  onPress={option.onPress}
-                  disabled={option.disabled}
-                >
-                  <Ionicons
-                    name={option.icon as any}
-                    size={24}
-                    color={option.disabled ? colors.secondary : colors.text}
-                  />
-                  <Text
+                    key={index}
                     style={[
-                      styles.optionText,
-                      {
-                        color: option.disabled ? colors.secondary : colors.text,
-                      },
+                      styles.option,
+                      { borderBottomColor: colors.border },
+                      option.disabled && styles.optionDisabled,
                     ]}
+                    onPress={option.onPress}
+                    disabled={option.disabled}
                   >
-                    {option.label}
-                  </Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={colors.secondary}
-                  />
-                </TouchableOpacity>
-              ))}
+                    <Ionicons
+                      name={option.icon as any}
+                      size={24}
+                      color={option.disabled ? colors.secondary : colors.text}
+                    />
+                    <Text
+                      style={[
+                        styles.optionText,
+                        {
+                          color: option.disabled ? colors.secondary : colors.text,
+                        },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={colors.secondary}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </View>
-        </View>
+        </Pressable>
       </Modal>
 
       {/* --- 全新设计的跳过片头/片尾弹窗 (全局配置版) --- */}
       <Modal
-        isVisible={skipModalVisible}
-        onBackdropPress={cancelSkip}
-        onBackButtonPress={cancelSkip}
-        useNativeDriver
-        hideModalContentWhileAnimating
-        animationIn="fadeIn"
-        animationOut="fadeOut"
-        backdropTransitionOutTiming={0}
-        statusBarTranslucent
-        style={styles.bottomSheetModal}
+        visible={skipModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelSkip}
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
       >
-        <View style={styles.bottomSheetWrapper}>
-          <View
-            style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}
-          >
+        <Pressable style={styles.backdrop} onPress={cancelSkip}>
+          <View style={styles.bottomSheetWrapper}>
             <View
-              style={[
-                styles.modalContent,
-                {
-                  backgroundColor: colors.card,
-                  paddingBottom: insets.bottom + 20,
-                },
-              ]}
+              style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}
             >
-              <View style={styles.handle} />
-
-              <Text
+              <View
                 style={[
-                  styles.title,
-                  { color: colors.text, textAlign: "center" },
+                  styles.modalContent,
+                  {
+                    backgroundColor: colors.card,
+                    paddingBottom: insets.bottom + 20,
+                  },
                 ]}
               >
-                {skipModalType === "intro"
-                  ? t('playerMore.setAutoSkipIntro')
-                  : t('playerMore.setAutoSkipOutro')}
-              </Text>
-              <Text
-                style={{
-                  textAlign: "center",
-                  color: colors.secondary,
-                  fontSize: 12,
-                  marginBottom: 10,
-                }}
-              >
-                {t('playerMore.appliesToAllAudiobooks')}
-              </Text>
+                <View style={styles.handle} />
 
-              {/* 核心时间控制区域 */}
-              <View style={{ alignItems: "center", paddingVertical: 10 }}>
-                {/* 大字号时间显示 */}
+                <Text
+                  style={[
+                    styles.title,
+                    { color: colors.text, textAlign: "center" },
+                  ]}
+                >
+                  {skipModalType === "intro"
+                    ? t('playerMore.setAutoSkipIntro')
+                    : t('playerMore.setAutoSkipOutro')}
+                </Text>
                 <Text
                   style={{
-                    fontSize: 48,
-                    fontWeight: "bold",
-                    color: colors.primary,
-                    fontVariant: ["tabular-nums"],
+                    textAlign: "center",
+                    color: colors.secondary,
+                    fontSize: 12,
+                    marginBottom: 10,
                   }}
                 >
-                  {formatTime(tempSkipTime)}
+                  {t('playerMore.appliesToAllAudiobooks')}
                 </Text>
 
-                {/* 加减控制栏 */}
+                {/* 核心时间控制区域 */}
+                <View style={{ alignItems: "center", paddingVertical: 10 }}>
+                  {/* 大字号时间显示 */}
+                  <Text
+                    style={{
+                      fontSize: 48,
+                      fontWeight: "bold",
+                      color: colors.primary,
+                      fontVariant: ["tabular-nums"],
+                    }}
+                  >
+                    {formatTime(tempSkipTime)}
+                  </Text>
+
+                  {/* 加减控制栏 */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 16,
+                      marginTop: 20,
+                    }}
+                  >
+                    <AdjustButton amount={-10} label="-10" />
+                    <AdjustButton amount={-1} label="-1" />
+
+                    <View
+                      style={{
+                        width: 1,
+                        height: 20,
+                        backgroundColor: colors.border,
+                      }}
+                    />
+
+                    <AdjustButton amount={1} label="+1" />
+                    <AdjustButton amount={10} label="+10" />
+                  </View>
+
+                  {/* 常用预设快捷键 */}
+                  <View style={{ flexDirection: "row", gap: 10, marginTop: 24 }}>
+                    <TimePresetChip seconds={30} />
+                    <TimePresetChip seconds={60} />
+                    <TimePresetChip seconds={90} />
+                    <TimePresetChip seconds={120} />
+                  </View>
+                </View>
+
+                {/* 底部操作按钮 */}
                 <View
                   style={{
                     flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 16,
-                    marginTop: 20,
+                    paddingHorizontal: 20,
+                    paddingTop: 10,
+                    gap: 12,
                   }}
                 >
-                  <AdjustButton amount={-10} label="-10" />
-                  <AdjustButton amount={-1} label="-1" />
-
-                  <View
+                  <TouchableOpacity
+                    onPress={clearSkip} // 改为关闭/重置
                     style={{
-                      width: 1,
-                      height: 20,
-                      backgroundColor: colors.border,
+                      flex: 1,
+                      padding: 14,
+                      alignItems: "center",
+                      backgroundColor: "rgba(255, 59, 48, 0.1)", // 红色背景
+                      borderRadius: 12,
                     }}
-                  />
+                  >
+                    <Text style={{ color: "#FF3B30", fontWeight: "600" }}>
+                      {t('playerMore.turnOff')}
+                    </Text>
+                  </TouchableOpacity>
 
-                  <AdjustButton amount={1} label="+1" />
-                  <AdjustButton amount={10} label="+10" />
+                  <TouchableOpacity
+                    onPress={confirmSkip}
+                    style={{
+                      flex: 2,
+                      padding: 14,
+                      alignItems: "center",
+                      backgroundColor: colors.primary,
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Text style={{ color: "#FFF", fontWeight: "bold" }}>
+                      {t('common.done')}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-
-                {/* 常用预设快捷键 */}
-                <View style={{ flexDirection: "row", gap: 10, marginTop: 24 }}>
-                  <TimePresetChip seconds={30} />
-                  <TimePresetChip seconds={60} />
-                  <TimePresetChip seconds={90} />
-                  <TimePresetChip seconds={120} />
-                </View>
-              </View>
-
-              {/* 底部操作按钮 */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  paddingHorizontal: 20,
-                  paddingTop: 10,
-                  gap: 12,
-                }}
-              >
-                <TouchableOpacity
-                  onPress={clearSkip} // 改为关闭/重置
-                  style={{
-                    flex: 1,
-                    padding: 14,
-                    alignItems: "center",
-                    backgroundColor: "rgba(255, 59, 48, 0.1)", // 红色背景
-                    borderRadius: 12,
-                  }}
-                >
-                  <Text style={{ color: "#FF3B30", fontWeight: "600" }}>
-                    {t('playerMore.turnOff')}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={confirmSkip}
-                  style={{
-                    flex: 2,
-                    padding: 14,
-                    alignItems: "center",
-                    backgroundColor: colors.primary,
-                    borderRadius: 12,
-                  }}
-                >
-                  <Text style={{ color: "#FFF", fontWeight: "bold" }}>
-                    {t('common.done')}
-                  </Text>
-                </TouchableOpacity>
               </View>
             </View>
           </View>
-        </View>
+        </Pressable>
       </Modal>
 
       <SleepTimerModal
@@ -753,17 +748,13 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
       />
 
       <Modal
-        isVisible={controlsPositionVisible}
-        onBackdropPress={() => setControlsPositionVisible(false)}
-        onBackButtonPress={() => setControlsPositionVisible(false)}
-        useNativeDriver
-        hideModalContentWhileAnimating
-        animationIn="fadeIn"
-        animationOut="fadeOut"
-        backdropTransitionOutTiming={0}
-        style={styles.centeredModal}
+        visible={controlsPositionVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setControlsPositionVisible(false)}
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
       >
-        <View style={styles.centeredBackdrop}>
+        <Pressable style={styles.centeredBackdrop} onPress={() => setControlsPositionVisible(false)}>
           <View style={styles.centeredModalWrapper}>
             <View
               style={[
@@ -864,7 +855,7 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
               </View>
             </View>
           </View>
-        </View>
+        </Pressable>
       </Modal>
 
       <EqualizerModal
@@ -883,20 +874,18 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  bottomSheetModal: {
-    margin: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   bottomSheetWrapper: {
     justifyContent: "flex-end",
     alignItems: "center",
   },
-  centeredModal: {
-    margin: 0,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   centeredBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,

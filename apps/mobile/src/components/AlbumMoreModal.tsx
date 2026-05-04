@@ -3,12 +3,13 @@ import { addTracksToPlaylist, createPlaylist } from "@soundx/services";
 import React from "react";
 import {
     Alert,
+    Modal,
+    Pressable,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
-import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
@@ -68,19 +69,15 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
 
   return (
     <Modal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      useNativeDriver
-      hideModalContentWhileAnimating
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropTransitionOutTiming={0}
-      style={styles.bottomSheetModal}
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
     >
-      <View style={styles.sheetWrapper}>
-        <View
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable
           style={{ width: "100%", maxWidth: 450, alignSelf: 'center' }}
+          onPress={(e) => e.stopPropagation()}
         >
           <View
             style={[
@@ -158,20 +155,17 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
               <Text style={[styles.optionText, { color: colors.text }]}>{t('albumMore.batchDownload')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomSheetModal: {
-    margin: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
-  },
-  sheetWrapper: {
-    width: "100%",
-    alignItems: 'center',
   },
   modalContent: {
     borderTopLeftRadius: 20,

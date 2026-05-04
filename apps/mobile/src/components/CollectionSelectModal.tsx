@@ -4,13 +4,14 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { addAlbumToCollection, createCollection, getCollectionMembership, getCollections } from "@soundx/services";
@@ -110,120 +111,116 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
   return (
     <>
       <Modal
-        isVisible={visible}
-        onBackdropPress={onClose}
-        onBackButtonPress={onClose}
-        useNativeDriver
-        hideModalContentWhileAnimating
-        animationIn="slideInUp"
-        animationOut="slideOutDown"
-        backdropTransitionOutTiming={0}
-        style={styles.bottomSheetModal}
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={onClose}
       >
-        <View style={styles.sheetWrapper}>
-          <View
-            style={{ width: "100%", maxWidth: 450, alignSelf: "center", backgroundColor: colors.card, paddingBottom: 0 }}
+        <Pressable style={styles.backdrop} onPress={onClose}>
+          <Pressable
+            style={{ width: "100%", maxWidth: 450, alignSelf: 'center' }}
+            onPress={(e) => e.stopPropagation()}
           >
             <View
-              style={[
-                styles.modalContent
-              ]}
+              style={{ width: "100%", maxWidth: 450, alignSelf: "center", backgroundColor: colors.card, paddingBottom: 0 }}
             >
-              <View style={styles.handle} />
-              <View style={styles.headerRow}>
-                <Text style={[styles.title, { color: colors.text }]}>{t('collection.selectCollection')}</Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setCreateVisible(true);
-                    setNameInput("");
-                    onClose();
-                  }}
-                >
-                  <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
-                </TouchableOpacity>
-              </View>
-              <Text style={[styles.subtitle, { color: colors.secondary }]}>
-                {album.name}
-              </Text>
-              <View style={{ height: '100%' }}>
-                {loading ? (
-                  <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 12 }} />
-                ) : (
-                  <FlatList
-                    data={collections}
-                    keyExtractor={(item) => String(item.id)}
-                    contentInset={{ bottom: insets.bottom }}
-                    scrollIndicatorInsets={{ bottom: insets.bottom }}
-                    contentInsetAdjustmentBehavior="never"
-                    renderItem={({ item }) => {
-                      const previewCover =
-                        item.cover || item.items?.[0]?.album?.cover || null;
-                      const count = item._count?.items ?? item.items?.length ?? 0;
-                      const selected = membershipSet.has(Number(item.id));
-                      return (
-                        <TouchableOpacity
-                          style={styles.option}
-                          onPress={() => addToCollection(Number(item.id))}
-                          disabled={selected}
-                        >
-                          <CachedImage
-                            source={{
-                              uri: getImageUrl(
-                                previewCover,
-                                `https://picsum.photos/seed/collection-${item.id}/200/200`,
-                              ),
-                            }}
-                            style={styles.cover}
-                          />
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.optionText, { color: colors.text }]} numberOfLines={1}>
-                              {item.name}
-                            </Text>
-                            <Text style={[styles.countText, { color: colors.secondary }]}>
-                              {t('collection.albumCount', { count })}
-                            </Text>
-                          </View>
-                          <Ionicons
-                            name={selected ? "checkmark-circle" : "ellipse-outline"}
-                            size={20}
-                            color={selected ? colors.primary : colors.border}
-                          />
-                        </TouchableOpacity>
-                      );
+              <View
+                style={[
+                  styles.modalContent
+                ]}
+              >
+                <View style={styles.handle} />
+                <View style={styles.headerRow}>
+                  <Text style={[styles.title, { color: colors.text }]}>{t('collection.selectCollection')}</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setCreateVisible(true);
+                      setNameInput("");
+                      onClose();
                     }}
-                    ItemSeparatorComponent={() => (
-                      <View style={{ height: 1, backgroundColor: colors.border, opacity: 0.3 }} />
-                    )}
-                    contentContainerStyle={{
-                      paddingBottom: 50,
-                    }}
-                    ListEmptyComponent={
-                      <Text style={[styles.emptyText, { color: colors.secondary }]}>
-                        {t('collection.noCollections')}
-                      </Text>
-                    }
-                  />
-                )}
+                  >
+                    <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.subtitle, { color: colors.secondary }]}>
+                  {album.name}
+                </Text>
+                <View style={{ height: '100%' }}>
+                  {loading ? (
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 12 }} />
+                  ) : (
+                    <FlatList
+                      data={collections}
+                      keyExtractor={(item) => String(item.id)}
+                      contentInset={{ bottom: insets.bottom }}
+                      scrollIndicatorInsets={{ bottom: insets.bottom }}
+                      contentInsetAdjustmentBehavior="never"
+                      renderItem={({ item }) => {
+                        const previewCover =
+                          item.cover || item.items?.[0]?.album?.cover || null;
+                        const count = item._count?.items ?? item.items?.length ?? 0;
+                        const selected = membershipSet.has(Number(item.id));
+                        return (
+                          <TouchableOpacity
+                            style={styles.option}
+                            onPress={() => addToCollection(Number(item.id))}
+                            disabled={selected}
+                          >
+                            <CachedImage
+                              source={{
+                                uri: getImageUrl(
+                                  previewCover,
+                                  `https://picsum.photos/seed/collection-${item.id}/200/200`,
+                                ),
+                              }}
+                              style={styles.cover}
+                            />
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.optionText, { color: colors.text }]} numberOfLines={1}>
+                                {item.name}
+                              </Text>
+                              <Text style={[styles.countText, { color: colors.secondary }]}>
+                                {t('collection.albumCount', { count })}
+                              </Text>
+                            </View>
+                            <Ionicons
+                              name={selected ? "checkmark-circle" : "ellipse-outline"}
+                              size={20}
+                              color={selected ? colors.primary : colors.border}
+                            />
+                          </TouchableOpacity>
+                        );
+                      }}
+                      ItemSeparatorComponent={() => (
+                        <View style={{ height: 1, backgroundColor: colors.border, opacity: 0.3 }} />
+                      )}
+                      contentContainerStyle={{
+                        paddingBottom: 50,
+                      }}
+                      ListEmptyComponent={
+                        <Text style={[styles.emptyText, { color: colors.secondary }]}>
+                          {t('collection.noCollections')}
+                        </Text>
+                      }
+                    />
+                  )}
+                </View>
               </View>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal
-        isVisible={createVisible}
-        onBackdropPress={() => setCreateVisible(false)}
-        onBackButtonPress={() => setCreateVisible(false)}
-        useNativeDriver
-        hideModalContentWhileAnimating
-        animationIn="fadeIn"
-        animationOut="fadeOut"
-        backdropTransitionOutTiming={0}
-        style={styles.centeredModal}
+        visible={createVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCreateVisible(false)}
       >
-        <View style={styles.backdropCenter}>
-          <View
+        <Pressable style={styles.backdropCenter} onPress={() => setCreateVisible(false)}>
+          <Pressable
             style={[styles.createBox, { backgroundColor: colors.card }]}
+            onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.title, { color: colors.text }]}>{t('collection.newCollection')}</Text>
             <TextInput
@@ -241,31 +238,24 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
                 <Text style={[styles.actionText, { color: colors.primary }]}>{t('collection.createAndAdd')}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomSheetModal: {
-    margin: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
-  sheetWrapper: {
-    width: "100%",
-    alignItems: "center",
-  },
-  centeredModal: {
-    margin: 0,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   backdropCenter: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    width: "100%",
   },
   modalContent: {
     borderTopLeftRadius: 20,
