@@ -78,7 +78,7 @@
     <key>UIBackgroundModes</key>
     <array>
       <string>audio</string>
-      <string>carplay</string>
+      <!-- <string>carplay</string> -->
     </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>

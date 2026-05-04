@@ -703,6 +703,7 @@ export default function AlbumDetailScreen() {
         visible={sortModalVisible}
         transparent
         animationType="slide"
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
         onRequestClose={() => setSortModalVisible(false)}
       >
         <Pressable
