@@ -350,6 +350,13 @@ export default function PersonalScreen() {
     setSelectedDownloadAlbumName(null);
   }, [activeTab, mode]);
 
+  // AUDIOBOOK 模式下强制使用专辑子标签
+  useEffect(() => {
+    if (mode === "AUDIOBOOK" && activeSubTab !== "album") {
+      setActiveSubTab("album");
+    }
+  }, [mode]);
+
   React.useEffect(() => {
     if (user) {
       getRunningImportTask().then((res) => {
@@ -394,17 +401,18 @@ export default function PersonalScreen() {
         const res = await getPlaylists(mode as any, user.id);
         if (res.code === 200) setPlaylists(res.data);
       } else if (activeTab === "favorites") {
-        if (mode === "MUSIC" && activeSubTab === "track") {
+        if (activeSubTab === "track") {
           const res = await getFavoriteTracks(user.id, 0, 10000, mode as any);
           if (res.code === 200)
             setFavorites(res.data.list.map((item: any) => item.track));
         } else {
-          const res = await getFavoriteAlbums(user.id, 0, 10000, mode as any);
+          const res = await getFavoriteAlbums(user.id, 0, 10000);
+          console.log("Favorite albums response:", res);
           if (res.code === 200)
             setFavorites(res.data.list.map((item: any) => item.album));
         }
       } else if (activeTab === "history") {
-        if (mode === "MUSIC" && activeSubTab === "track") {
+        if (activeSubTab === "track") {
           const res = await getTrackHistory(user.id, 0, 10000, mode as any);
           if (res.code === 200)
             setHistory(res.data.list.map((item: any) => item.track));
@@ -644,7 +652,7 @@ export default function PersonalScreen() {
       const isAlbum =
         activeTab !== "playlists" &&
         activeTab !== "downloads" &&
-        (mode === "AUDIOBOOK" || activeSubTab === "album");
+        activeSubTab === "album";
       const isDownloadAlbum =
         activeTab === "downloads" &&
         mode === "AUDIOBOOK" &&
@@ -1009,13 +1017,12 @@ export default function PersonalScreen() {
         ))}
       </View>
 
-      {/* Sub-tabs for MUSIC mode */}
-      {mode === "MUSIC" &&
-        (activeTab === "favorites" || activeTab === "history") && (
+      {/* Sub-tabs for favorites and history */}
+      {(activeTab === "favorites" || activeTab === "history") && (
           <View style={styles.subTabContainer}>
             {[
               { id: "album", label: t("personal.album") },
-              { id: "track", label: t("personal.track") },
+              ...(mode !== "AUDIOBOOK" ? [{ id: "track", label: t("personal.track") }] : []),
             ].map((sub) => (
               <TouchableOpacity
                 key={sub.id}

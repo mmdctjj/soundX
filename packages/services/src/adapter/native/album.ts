@@ -122,7 +122,7 @@ export class NativeAlbumAdapter implements IAlbumAdapter {
   }
 
   getFavoriteAlbums(userId: number | string, loadCount: number, pageSize: number, type?: string): Promise<ISuccessResponse<ILoadMoreData<{ album: Album, createdAt: string | Date }>>> {
-    return request.get<any, ISuccessResponse<ILoadMoreData<{ album: Album, createdAt: string | Date }>>>("/user-album-likes/list", {
+    return request.get<any, ISuccessResponse<ILoadMoreData<{ album: Album, createdAt: string | Date }>>>("/user-album-likes/load-more", {
       params: { userId, loadCount, pageSize, type }
     });
   }

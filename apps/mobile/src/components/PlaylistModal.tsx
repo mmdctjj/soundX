@@ -46,6 +46,13 @@ export const PlaylistModal = () => {
 
   const [activeTab, setActiveTab] = useState<TabType>("current");
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>("track");
+
+  // AUDIOBOOK 模式下强制使用专辑子标签
+  useEffect(() => {
+    if (mode === "AUDIOBOOK" && activeSubTab !== "album") {
+      setActiveSubTab("album");
+    }
+  }, [mode]);
   const [listData, setListData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const flatListRef = React.useRef<FlatList>(null);
@@ -96,12 +103,11 @@ export const PlaylistModal = () => {
     setLoading(true);
     try {
       let res: any;
-      const isAudiobook = mode === "AUDIOBOOK";
-      const currentSubTab = isAudiobook ? "album" : activeSubTab;
+      const currentSubTab = activeSubTab;
 
       if (activeTab === "history") {
         if (currentSubTab === "track") {
-          res = await getTrackHistory(user.id, 0, 50, "MUSIC");
+          res = await getTrackHistory(user.id, 0, 50, mode);
           if (res.code === 200) {
             setListData(res.data.list.map((item: any) => item.track));
           }
@@ -113,7 +119,7 @@ export const PlaylistModal = () => {
         }
       } else if (activeTab === "favorites") {
         if (currentSubTab === "track") {
-          res = await getFavoriteTracks(user.id, 0, 50, "MUSIC");
+          res = await getFavoriteTracks(user.id, 0, 50, mode);
           if (res.code === 200) {
             setListData(res.data.list.map((item: any) => item.track));
           }
@@ -133,7 +139,7 @@ export const PlaylistModal = () => {
 
   const renderItem = ({ item, index }: { item: any; index: number }) => {
     const isCurrent = activeTab === "current";
-    const isAlbum = !isCurrent && (activeSubTab === "album" || mode === "AUDIOBOOK");
+    const isAlbum = !isCurrent && activeSubTab === "album";
     const isHistoryOrFav = activeTab !== "current";
 
     // Item could be Track or Album
@@ -272,11 +278,11 @@ export const PlaylistModal = () => {
               </View>
             </View>
 
-            {mode === "MUSIC" && activeTab !== "current" && (
+            {activeTab !== "current" && (
               <View style={styles.subTabContainer}>
                 {[
                   { id: "album", label: t('playlist.album') },
-                  { id: "track", label: t('playlist.single') },
+                  ...(mode !== "AUDIOBOOK" ? [{ id: "track", label: t('playlist.single') }] : []),
                 ].map((sub) => (
                   <TouchableOpacity
                     key={sub.id}

@@ -1051,14 +1051,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const loadPlaybackState = async (targetMode: string) => {
+  const loadPlaybackState = async (targetMode: string, restorePlayMode = false) => {
     if (!isSetup) return;
     try {
       const saved = await AsyncStorage.getItem(`playbackState_${targetMode}`);
       if (saved) {
         const state = JSON.parse(saved);
         setTrackList(state.trackList);
-        setPlayMode(state.playMode);
+        if (restorePlayMode && state.playMode) {
+          setPlayMode(state.playMode);
+        }
         if (state.playbackRate) {
           setPlaybackRateState(state.playbackRate);
         }
@@ -1150,7 +1152,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!isSetup || isAuthLoading) return;
     const handleModeChange = async () => {
       if (isInitialLoadRef.current) {
-        await loadPlaybackState(mode);
+        await loadPlaybackState(mode, true); // 初始加载时恢复播放模式
         isInitialLoadRef.current = false;
         prevModeRef.current = mode;
       } else if (prevModeRef.current !== mode) {
@@ -1160,7 +1162,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
         await savePlaybackState(prevModeRef.current);
-        await loadPlaybackState(mode);
+        await loadPlaybackState(mode); // 内容模式切换时不恢复播放模式，保留用户选择
         prevModeRef.current = mode;
       }
     };
