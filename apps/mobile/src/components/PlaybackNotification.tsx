@@ -61,6 +61,8 @@ const PlaybackNotification: React.FC = () => {
   return (
     <Modal
       visible={!!notification}
+      transparent animationType="slide"
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
         <View style={[styles.content, { backgroundColor: colors.card, shadowColor: colors.text }]}>

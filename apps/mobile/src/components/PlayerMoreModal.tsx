@@ -133,6 +133,16 @@ export const PlayerMoreModal: React.FC<PlayerMoreModalProps> = ({
     checkCacheStatus();
   }, [visible, currentTrack]);
 
+  // 监听主 modal 关闭，打开待处理的二级弹窗
+  useEffect(() => {
+    if (!visible && pendingModal) {
+      const timer = setTimeout(() => {
+        openPendingModal();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, pendingModal]);
+
   const handleArtistDetails = () => {
     setVisible(false);
     if (currentTrack?.artistId && currentTrack?.artist && currentTrack.artist !== "未知") {

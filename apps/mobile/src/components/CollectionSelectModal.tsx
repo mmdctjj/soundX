@@ -115,6 +115,7 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
         transparent
         animationType="slide"
         onRequestClose={onClose}
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
       >
         <Pressable style={styles.backdrop} onPress={onClose}>
           <Pressable
@@ -216,6 +217,7 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
         transparent
         animationType="fade"
         onRequestClose={() => setCreateVisible(false)}
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
       >
         <Pressable style={styles.backdropCenter} onPress={() => setCreateVisible(false)}>
           <Pressable

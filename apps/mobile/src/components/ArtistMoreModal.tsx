@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -22,8 +22,20 @@ export const ArtistMoreModal: React.FC<ArtistMoreModalProps> = ({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const [pendingUpdateCover, setPendingUpdateCover] = useState(false);
 
   if (!artist) return null;
+
+  const handleEditCover = () => {
+    if (pendingUpdateCover) return;
+    setPendingUpdateCover(true);
+    onClose();
+    // Delay to allow modal animation to complete
+    setTimeout(() => {
+      onUpdateCover();
+      setPendingUpdateCover(false);
+    }, 100);
+  };
 
   return (
     <Modal
@@ -31,6 +43,7 @@ export const ArtistMoreModal: React.FC<ArtistMoreModalProps> = ({
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable
@@ -49,10 +62,7 @@ export const ArtistMoreModal: React.FC<ArtistMoreModalProps> = ({
 
             <TouchableOpacity
               style={styles.option}
-              onPress={() => {
-                onClose();
-                onUpdateCover();
-              }}
+              onPress={handleEditCover}
             >
               <Ionicons name="image-outline" size={24} color={colors.text} />
               <Text style={[styles.optionText, { color: colors.text }]}>{t('artistMore.editCover')}</Text>

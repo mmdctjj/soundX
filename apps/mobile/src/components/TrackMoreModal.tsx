@@ -97,6 +97,7 @@ export const TrackMoreModal: React.FC<TrackMoreModalProps> = ({
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <View

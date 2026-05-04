@@ -74,6 +74,7 @@ const InviteNotification: React.FC = () => {
     <Modal
       visible={!!currentInvite}
       transparent animationType="slide"
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <View style={{ flex: 1 }} pointerEvents="box-none">
         <Animated.View

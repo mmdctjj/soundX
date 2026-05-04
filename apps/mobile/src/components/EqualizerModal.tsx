@@ -170,6 +170,7 @@ export const EqualizerModal: React.FC<EqualizerModalProps> = ({
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <View style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}>

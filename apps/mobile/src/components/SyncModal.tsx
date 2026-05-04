@@ -117,7 +117,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
   );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}>
       <View style={styles.backdrop}>
         <View
             style={[

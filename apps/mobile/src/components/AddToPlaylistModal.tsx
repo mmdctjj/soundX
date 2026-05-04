@@ -117,6 +117,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
       transparent={true}
       animationType="slide"
       onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <TouchableOpacity
         style={styles.overlay}

@@ -221,7 +221,7 @@ export const PlaylistModal = () => {
   };
 
   return (
-    <Modal visible={showPlaylist} transparent animationType="slide" onRequestClose={() => setShowPlaylist(false)}>
+    <Modal visible={showPlaylist} transparent animationType="slide" onRequestClose={() => setShowPlaylist(false)} supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}>
       <Pressable style={styles.backdrop} onPress={() => setShowPlaylist(false)}>
         <View style={styles.modalWrapper}>
           <View

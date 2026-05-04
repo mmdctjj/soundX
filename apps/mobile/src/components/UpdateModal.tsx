@@ -39,6 +39,7 @@ export const UpdateModal = ({
       transparent
       animationType="fade"
       onRequestClose={isDownloading ? onBackground : onCancel}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <View style={styles.backdropCenter}>
         <View style={[styles.card, { backgroundColor: colors.background }]}>

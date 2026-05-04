@@ -50,7 +50,7 @@ export const LyricsFontSizeModal: React.FC<LyricsFontSizeModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <View
           style={[
