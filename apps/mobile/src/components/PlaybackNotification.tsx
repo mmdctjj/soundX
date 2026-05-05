@@ -61,7 +61,7 @@ const PlaybackNotification: React.FC = () => {
   return (
     <Modal
       visible={!!notification}
-      transparent animationType="slide"
+      transparent animationType="fade"
       supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>

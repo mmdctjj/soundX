@@ -80,28 +80,32 @@ const Favorites: React.FC = () => {
           const newItems: TimelineItem[] = Array.from(
             timelineMap.entries()
           ).map(([date, albums]) => ({
-            id: date,
+            id: formatTimeLabel(new Date(date).getTime()),
             time: new Date(date).getTime(),
             items: albums?.filter((album) => album.type === type),
           }));
 
-          // Merge with existing items if date matches
+          // Merge with existing items if label matches
           let mergedList = d ? [...d.list] : [];
           newItems.forEach((newItem) => {
             const existingItemIndex = mergedList.findIndex(
               (item) => item.id === newItem.id
             );
             if (existingItemIndex > -1) {
-              mergedList[existingItemIndex].items = [
-                ...mergedList[existingItemIndex].items,
-                ...newItem.items,
-              ];
+              const existing = mergedList[existingItemIndex];
+              const mergedItems = [...existing.items, ...newItem.items];
+              // Remove duplicates by id
+              const uniqueMap = new Map(mergedItems.map((i: any) => [i.id, i]));
+              mergedList[existingItemIndex].items = Array.from(uniqueMap.values());
             } else {
               mergedList.push(newItem);
             }
           });
 
           if (!d) mergedList = newItems;
+
+          // Filter out items with empty content
+          mergedList = mergedList.filter((item) => item.items.length > 0);
 
           return {
             list: mergedList,
@@ -133,28 +137,32 @@ const Favorites: React.FC = () => {
           const newItems: TimelineItem[] = Array.from(
             timelineMap.entries()
           ).map(([date, tracks]) => ({
-            id: date,
+            id: formatTimeLabel(new Date(date).getTime()),
             time: new Date(date).getTime(),
             items: tracks?.filter((track) => track.type === type),
           }));
 
-          // Merge with existing items if date matches
+          // Merge with existing items if label matches
           let mergedList = d ? [...d.list] : [];
           newItems.forEach((newItem) => {
             const existingItemIndex = mergedList.findIndex(
               (item) => item.id === newItem.id
             );
             if (existingItemIndex > -1) {
-              mergedList[existingItemIndex].items = [
-                ...mergedList[existingItemIndex].items,
-                ...newItem.items,
-              ];
+              const existing = mergedList[existingItemIndex];
+              const mergedItems = [...existing.items, ...newItem.items];
+              // Remove duplicates by id
+              const uniqueMap = new Map(mergedItems.map((i: any) => [i.id, i]));
+              mergedList[existingItemIndex].items = Array.from(uniqueMap.values());
             } else {
               mergedList.push(newItem);
             }
           });
 
           if (!d) mergedList = newItems;
+
+          // Filter out items with empty content
+          mergedList = mergedList.filter((item) => item.items.length > 0);
 
           return {
             list: mergedList,
