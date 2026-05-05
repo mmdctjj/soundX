@@ -3,12 +3,13 @@ import { deleteFolder, Folder } from "@soundx/services";
 import React from "react";
 import {
   Alert,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
@@ -63,18 +64,8 @@ export const FolderMoreModal: React.FC<FolderMoreModalProps> = ({
   };
 
   return (
-    <Modal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      useNativeDriver
-      hideModalContentWhileAnimating
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropTransitionOutTiming={0}
-      style={styles.bottomSheetModal}
-    >
-      <View style={styles.sheetWrapper}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
         <View
           style={[
             styles.content,
@@ -128,19 +119,16 @@ export const FolderMoreModal: React.FC<FolderMoreModalProps> = ({
             <Text style={[styles.menuText, { color: colors.secondary }]}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Pressable>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomSheetModal: {
-    margin: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
-  },
-  sheetWrapper: {
-    width: "100%",
-    alignItems: 'center',
   },
   content: {
     borderTopLeftRadius: 20,

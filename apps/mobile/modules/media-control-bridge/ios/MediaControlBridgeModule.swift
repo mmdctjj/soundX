@@ -38,12 +38,14 @@ public class MediaControlBridgeModule: Module {
       return true
     }
 
-    Function("updateMetadata") { (title: String?, artist: String?, album: String?, duration: Double?) in
+    Function("updateMetadata") { (title: String?, artist: String?, album: String?, duration: Double?, lyrics: String?) in
       var updates: [String: Any] = [:]
-      if let title = title { updates[MPMediaItemPropertyTitle] = title }
-      if let artist = artist { updates[MPMediaItemPropertyArtist] = artist }
-      if let album = album { updates[MPMediaItemPropertyAlbumTitle] = album }
-      if let duration = duration { updates[MPMediaItemPropertyPlaybackDuration] = duration }
+      if let title = title, !title.isEmpty { updates[MPMediaItemPropertyTitle] = title }
+      if let artist = artist, !artist.isEmpty { updates[MPMediaItemPropertyArtist] = artist }
+      if let album = album, !album.isEmpty { updates[MPMediaItemPropertyAlbumTitle] = album }
+      if let duration = duration, duration > 0 { updates[MPMediaItemPropertyPlaybackDuration] = duration }
+      // CarPlay: 通过 Lyrics 属性推送当前歌词行，CarPlay NowPlaying 界面可展示
+      if let lyrics = lyrics { updates[MPMediaItemPropertyLyrics] = lyrics }
       applyNowPlayingUpdates(updates)
       return true
     }

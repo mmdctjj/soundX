@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Modal from "react-native-modal";
+import React, { useState } from "react";
+import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../context/ThemeContext";
@@ -23,23 +22,34 @@ export const ArtistMoreModal: React.FC<ArtistMoreModalProps> = ({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const [pendingUpdateCover, setPendingUpdateCover] = useState(false);
 
   if (!artist) return null;
 
+  const handleEditCover = () => {
+    if (pendingUpdateCover) return;
+    setPendingUpdateCover(true);
+    onClose();
+    // Delay to allow modal animation to complete
+    setTimeout(() => {
+      onUpdateCover();
+      setPendingUpdateCover(false);
+    }, 100);
+  };
+
   return (
     <Modal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      useNativeDriver
-      hideModalContentWhileAnimating
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropTransitionOutTiming={0}
-      style={styles.bottomSheetModal}
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
-      <View style={styles.sheetWrapper}>
-        <View style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable
+          style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View
             style={[
               styles.modalContent,
@@ -52,29 +62,23 @@ export const ArtistMoreModal: React.FC<ArtistMoreModalProps> = ({
 
             <TouchableOpacity
               style={styles.option}
-              onPress={() => {
-                onClose();
-                onUpdateCover();
-              }}
+              onPress={handleEditCover}
             >
               <Ionicons name="image-outline" size={24} color={colors.text} />
               <Text style={[styles.optionText, { color: colors.text }]}>{t('artistMore.editCover')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomSheetModal: {
-    margin: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
-  },
-  sheetWrapper: {
-    width: "100%",
-    alignItems: "center",
   },
   modalContent: {
     borderTopLeftRadius: 20,

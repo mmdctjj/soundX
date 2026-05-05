@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useSegments } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Modal from 'react-native-modal';
+import { Animated, Image, StyleSheet, Text, Modal, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
@@ -61,12 +60,9 @@ const PlaybackNotification: React.FC = () => {
 
   return (
     <Modal
-      isVisible={!!notification}
-      backdropOpacity={0}
-      animationIn="fadeIn"
-      animationOut="fadeOut"
-      backdropTransitionOutTiming={0}
-      style={styles.notificationModal}
+      visible={!!notification}
+      transparent animationType="slide"
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
         <View style={[styles.content, { backgroundColor: colors.card, shadowColor: colors.text }]}>

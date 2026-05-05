@@ -1,24 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
-    createAdminUser,
-    deleteAdminUser,
-    getAdminUsers,
-    getRegistrationSetting,
-    setAdminUserExpiration,
-    toggleRegistrationSetting,
+  createAdminUser,
+  deleteAdminUser,
+  getAdminUsers,
+  getRegistrationSetting,
+  setAdminUserExpiration,
+  toggleRegistrationSetting,
 } from "@soundx/services"; // Assuming these are exported
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Modal from "react-native-modal";
 import { useTranslation } from "react-i18next";
@@ -286,11 +286,12 @@ export default function AdminScreen() {
         isVisible={modalVisible}
         onBackdropPress={() => setModalVisible(false)}
         onBackButtonPress={() => setModalVisible(false)}
-        useNativeDriver
+        useNativeDriverForBackdrop
+        animationInTiming={200}
+        animationOutTiming={200}
+        backdropTransitionInTiming={200}
+        backdropTransitionOutTiming={200}
         hideModalContentWhileAnimating
-        animationIn="fadeIn"
-        animationOut="fadeOut"
-        backdropTransitionOutTiming={0}
         style={styles.centeredModal}
       >
         <View style={styles.centeredView}>
@@ -317,7 +318,7 @@ export default function AdminScreen() {
             />
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.button, styles.buttonClose, {backgroundColor: colors.background}]}
+                style={[styles.button, styles.buttonClose, { backgroundColor: colors.background }]}
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={[styles.textStyle, { color: colors.primary }]}>
@@ -325,7 +326,7 @@ export default function AdminScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.buttonClose, {backgroundColor: colors.primary}]}
+                style={[styles.button, styles.buttonClose, { backgroundColor: colors.primary }]}
                 onPress={handleSetExpiration}
               >
                 <Text style={[styles.textStyle, { color: colors.background }]}>
@@ -342,11 +343,12 @@ export default function AdminScreen() {
         isVisible={createModalVisible}
         onBackdropPress={() => setCreateModalVisible(false)}
         onBackButtonPress={() => setCreateModalVisible(false)}
-        useNativeDriver
+        useNativeDriverForBackdrop
+        animationInTiming={200}
+        animationOutTiming={200}
+        backdropTransitionInTiming={200}
+        backdropTransitionOutTiming={200}
         hideModalContentWhileAnimating
-        animationIn="fadeIn"
-        animationOut="fadeOut"
-        backdropTransitionOutTiming={0}
         style={styles.centeredModal}
       >
         <View style={styles.centeredView}>
@@ -381,17 +383,17 @@ export default function AdminScreen() {
             />
 
             <View style={[styles.settingRow, { width: '100%', marginVertical: 10, borderBottomWidth: 0 }]}>
-                 <Text style={{color: colors.text, marginRight: 10}}>{t("admin.setAsAdmin")}</Text>
-                 <Switch
-                    value={isNewAdmin}
-                    onValueChange={setIsNewAdmin}
-                    trackColor={{ false: "#767577", true: colors.primary }}
-                  />
+              <Text style={{ color: colors.text, marginRight: 10 }}>{t("admin.setAsAdmin")}</Text>
+              <Switch
+                value={isNewAdmin}
+                onValueChange={setIsNewAdmin}
+                trackColor={{ false: "#767577", true: colors.primary }}
+              />
             </View>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.button, styles.buttonClose, {backgroundColor: colors.background}]}
+                style={[styles.button, styles.buttonClose, { backgroundColor: colors.background }]}
                 onPress={() => setCreateModalVisible(false)}
               >
                 <Text style={[styles.textStyle, { color: colors.primary }]}>
@@ -399,7 +401,7 @@ export default function AdminScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.buttonClose, {backgroundColor: colors.primary}]}
+                style={[styles.button, styles.buttonClose, { backgroundColor: colors.primary }]}
                 onPress={handleCreateUser}
               >
                 <Text style={[styles.textStyle, { color: colors.background }]}>

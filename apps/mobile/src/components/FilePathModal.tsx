@@ -1,8 +1,8 @@
 import { useTheme } from "@/src/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Modal from "react-native-modal";
+import { StyleSheet, Text, TouchableOpacity, View, Pressable } from "react-native";
+import { Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
@@ -25,18 +25,8 @@ export const FilePathModal: React.FC<FilePathModalProps> = ({
   const displayPath = path?.trim() || t('filePath.noFilePath');
 
   return (
-    <Modal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      useNativeDriver
-      hideModalContentWhileAnimating
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropTransitionOutTiming={0}
-      style={styles.bottomSheetModal}
-    >
-      <View style={styles.sheetWrapper}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
         <View style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}>
           <View
             style={[
@@ -62,19 +52,16 @@ export const FilePathModal: React.FC<FilePathModalProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </Pressable>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomSheetModal: {
-    margin: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
-  },
-  sheetWrapper: {
-    width: "100%",
-    alignItems: "center",
   },
   content: {
     width: "100%",

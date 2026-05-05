@@ -391,9 +391,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         nextIndex = Math.floor(Math.random() * playlist.length);
       } else if (playMode === "loop") {
         nextIndex = nextIndex % playlist.length;
-      } else if (playMode === "single") {
-        nextIndex = currentIndex;
       }
+      // 注意：single 模式下手动点击"下一首"不跳回当前歌曲开头，
+      // 单曲循环仅在自动播放结束时生效（见 onEnded 回调）。
 
       if (nextIndex < playlist.length) {
         const nextTrack = playlist[nextIndex];

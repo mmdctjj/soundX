@@ -9,8 +9,9 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Pressable,
 } from "react-native";
-import Modal from "react-native-modal";
+import { Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
@@ -49,27 +50,10 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
   };
 
   return (
-    <Modal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      useNativeDriver
-      hideModalContentWhileAnimating
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropTransitionOutTiming={0}
-      style={styles.bottomSheetModal}
-    >
-      <View style={styles.sheetWrapper}>
-        <View
-          style={{ width: "100%", maxWidth: 450, alignSelf: 'center' }}
-        >
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: colors.card, paddingBottom: insets.bottom },
-            ]}
-          >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <View style={{ width: "100%", maxWidth: 450, alignSelf: 'center' }}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, paddingBottom: insets.bottom }]}>
             <View style={styles.handle} />
             <Text style={[styles.title, { color: colors.text }]}>{t('sleepTimer.title')}</Text>
 
@@ -100,7 +84,7 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
             ))}
           </View>
         </View>
-      </View>
+      </Pressable>
     </Modal>
   );
 };
@@ -108,13 +92,10 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
 export default SleepTimerModal;
 
 const styles = StyleSheet.create({
-  bottomSheetModal: {
-    margin: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
-  },
-  sheetWrapper: {
-    width: "100%",
-    alignItems: 'center',
   },
   modalContent: {
     borderTopLeftRadius: 20,

@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Modal from 'react-native-modal';
+import { Animated, StyleSheet, Text, Modal, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../context/SettingsContext';
 import { useSync } from '../context/SyncContext';
@@ -73,13 +72,9 @@ const InviteNotification: React.FC = () => {
 
   return (
     <Modal
-      isVisible={!!currentInvite}
-      backdropOpacity={0}
-      animationIn="fadeIn"
-      animationOut="fadeOut"
-      backdropTransitionOutTiming={0}
-      onBackButtonPress={() => setCurrentInvite(null)}
-      style={styles.notificationModal}
+      visible={!!currentInvite}
+      transparent animationType="slide"
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
     >
       <View style={{ flex: 1 }} pointerEvents="box-none">
         <Animated.View
@@ -123,9 +118,6 @@ const InviteNotification: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  notificationModal: {
-    margin: 0,
-  },
   container: {
     position: 'absolute',
     top: 0,

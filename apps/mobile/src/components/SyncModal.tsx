@@ -5,12 +5,12 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
-import Modal from 'react-native-modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -117,18 +117,8 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
   );
 
   return (
-    <Modal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      useNativeDriver
-      hideModalContentWhileAnimating
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropTransitionOutTiming={0}
-      style={styles.bottomSheetModal}
-    >
-      <View style={styles.overlay}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}>
+      <View style={styles.backdrop}>
         <View
             style={[
               styles.content,
@@ -137,7 +127,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
                 backgroundColor: colors.card,
                 paddingBottom: insets.bottom + 15,
               },
-            ]} 
+            ]}
         >
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>{t('sync.selectSyncFriends')}</Text>
@@ -178,8 +168,9 @@ const SyncModal: React.FC<SyncModalProps> = ({ visible, onClose }) => {
 };
 
 const styles = StyleSheet.create({
-  bottomSheetModal: {
-    margin: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   overlay: {
