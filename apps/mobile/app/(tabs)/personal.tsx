@@ -406,7 +406,7 @@ export default function PersonalScreen() {
           if (res.code === 200)
             setFavorites(res.data.list.map((item: any) => item.track));
         } else {
-          const res = await getFavoriteAlbums(user.id, 0, 10000);
+          const res = await getFavoriteAlbums(user.id, 0, 10000, mode as any);
           console.log("Favorite albums response:", res);
           if (res.code === 200)
             setFavorites(res.data.list.map((item: any) => item.album));
