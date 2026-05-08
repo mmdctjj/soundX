@@ -255,6 +255,7 @@ export default function PersonalScreen() {
         type: asset.mimeType || "image/jpeg",
       } as any;
       const res = await uploadUserAvatar(user.id, file);
+      console.log("Upload avatar response:", res);
       if (res.code === 200) {
         const nextAvatar = res.data?.avatar || (res.data?.user as any)?.avatar || fileName;
         setAvatarOverride(nextAvatar);

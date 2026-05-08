@@ -51,6 +51,10 @@ export class NativeUserAdapter implements IUserAdapter {
   uploadUserAvatar(id: number | string, file: any) {
     const formData = new FormData();
     formData.append("file", file as any);
-    return request.post<any, ISuccessResponse<any>>(`/user/${id}/avatar`, formData);
+    return request.post<any, ISuccessResponse<any>>(`/user/${id}/avatar`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
   }
 }
