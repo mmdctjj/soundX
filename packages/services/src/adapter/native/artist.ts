@@ -86,6 +86,10 @@ export class NativeArtistAdapter implements IArtistAdapter {
   uploadArtistAvatar(id: number | string, file: any) {
     const formData = new FormData();
     formData.append("file", file as any);
-    return request.post<any, ISuccessResponse<Artist>>(`/artist/${id}/avatar`, formData);
+    return request.post<any, ISuccessResponse<Artist>>(`/artist/${id}/avatar`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
   }
 }
