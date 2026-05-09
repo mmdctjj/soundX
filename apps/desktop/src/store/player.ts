@@ -376,29 +376,32 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       if (playlist.length === 0 || !currentTrack) return;
 
       const currentIndex = playlist.findIndex((t) => t.id === currentTrack.id);
-      let nextIndex = currentIndex + 1;
+      if (currentIndex === -1) return;
 
-      // Lazy Loading Trigger: if we are at the end, attempt to load more
-      if (
-        nextIndex >= playlist.length - 2 &&
+      const shouldLoadMore =
+        currentIndex + 1 >= playlist.length - 2 &&
         playlistSource?.hasMore &&
-        !isLoadingMore
-      ) {
+        !isLoadingMore;
+
+      if (shouldLoadMore) {
         await get().loadMoreSourceTracks();
       }
 
+      const latestPlaylist = get().playlist;
+      let nextIndex = currentIndex + 1;
+
       if (playMode === "shuffle") {
-        nextIndex = Math.floor(Math.random() * playlist.length);
+        nextIndex = Math.floor(Math.random() * latestPlaylist.length);
       } else if (playMode === "loop") {
-        nextIndex = nextIndex % playlist.length;
+        nextIndex = nextIndex % latestPlaylist.length;
       }
       // 注意：single 模式下手动点击"下一首"不跳回当前歌曲开头，
       // 单曲循环仅在自动播放结束时生效（见 onEnded 回调）。
 
-      if (nextIndex < playlist.length) {
-        const nextTrack = playlist[nextIndex];
-        set({ currentTrack: nextTrack, currentTime: 0, isPlaying: true });
+      if (nextIndex < latestPlaylist.length) {
+        const nextTrack = latestPlaylist[nextIndex];
         reportProgress(get(), true);
+        set({ currentTrack: nextTrack, currentTime: 0, isPlaying: true });
 
         const userId = useAuthStore.getState().user?.id;
         if (userId) {

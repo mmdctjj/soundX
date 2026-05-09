@@ -953,11 +953,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
     
-    // 非随机模式下，优先使用原生队列切歌，减少重建队列开销
+    // 非随机模式下，优先使用原生队列切歌，减少重建队列开销。
+    // 队列结束事件触发时，原生队列仍可能保留多首歌但 active index 已经在最后一首，
+    // 这时直接 skipToNext 会失败并中断业务列表兜底续播。
     const queue = await TrackPlayer.getQueue();
-    if (playModeRef.current !== PlayMode.SHUFFLE && queue.length > 1) {
-        await TrackPlayer.skipToNext();
-        return;
+    const activeIndex = await TrackPlayer.getActiveTrackIndex();
+    if (
+      playModeRef.current !== PlayMode.SHUFFLE &&
+      activeIndex !== undefined &&
+      activeIndex < queue.length - 1
+    ) {
+      await TrackPlayer.skipToNext();
+      return;
     }
 
     const current = currentTrackRef.current;
