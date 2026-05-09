@@ -2,6 +2,8 @@ import { Album, Artist, Playlist, TrackType, UserAudiobookHistory, UserAudiobook
 import Taro from '@tarojs/taro';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getBaseURL } from '../utils/request';
+import { useSettings } from './SettingsContext';
+import { getCurrentPlaybackQualityPreference } from '../utils/playbackQuality';
 import {
   AudioQuality,
   AudioQualityOption,
@@ -119,6 +121,7 @@ export const usePlayer = () => useContext(PlayerContext);
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { externalPlaybackQuality } = useSettings();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [trackList, setTrackListState] = useState<Track[]>([]);
@@ -232,6 +235,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [preferredAudioQuality]);
 
   useEffect(() => {
+    const nextQuality = getCurrentPlaybackQualityPreference({ externalPlaybackQuality });
+    setPreferredAudioQuality(nextQuality);
+    preferredAudioQualityRef.current = nextQuality;
+  }, [externalPlaybackQuality]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const syncCurrentTrackQuality = async () => {
@@ -247,7 +256,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       if (cancelled) return;
       setAvailableAudioQualities(profile.options);
       setCurrentAudioQuality(
-        resolveTrackAudioQuality(profile, preferredAudioQualityRef.current),
+        resolveTrackAudioQuality(
+          profile,
+          getCurrentPlaybackQualityPreference({ externalPlaybackQuality }),
+        ),
       );
     };
 
@@ -256,7 +268,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       cancelled = true;
     };
-  }, [currentTrack?.id, currentTrack?.type]);
+  }, [currentTrack?.id, currentTrack?.type, externalPlaybackQuality]);
 
   useEffect(() => {
     try {
@@ -366,7 +378,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     setAvailableAudioQualities(profile.options);
     const nextQuality = resolveTrackAudioQuality(
       profile,
-      preferredQuality ?? preferredAudioQualityRef.current,
+      preferredQuality ??
+        getCurrentPlaybackQualityPreference({ externalPlaybackQuality }),
     );
 
     setCurrentAudioQuality(nextQuality);

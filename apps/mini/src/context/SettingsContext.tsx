@@ -1,5 +1,6 @@
 import Taro from '@tarojs/taro';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import type { AudioQuality } from '../services/trackQuality';
 
 interface SettingsState {
   acceptRelay: boolean;
@@ -13,6 +14,7 @@ interface SettingsState {
   recommendationLikeRatio: number;
   screenBottomInset: number;
   experienceProgramEnabled: boolean;
+  externalPlaybackQuality: AudioQuality;
 }
 
 interface SettingsContextType extends SettingsState {
@@ -35,6 +37,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     recommendationLikeRatio: 50,
     screenBottomInset: 0,
     experienceProgramEnabled: true,
+    externalPlaybackQuality: 'standard',
   });
   const [isLoading, setIsLoading] = useState(true);
 

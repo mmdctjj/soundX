@@ -145,7 +145,17 @@
     "loginMemberFirst": "请先登录会员账号后再参与内测。",
     "cancelLogout": "取消",
     "confirmLogout": "确认",
-    "version": "AudioDock Mobile v{{version}}"
+    "version": "AudioDock Mobile v{{version}}",
+    "internalPlaybackQuality": "内网播放品质",
+    "externalPlaybackQuality": "外网播放品质",
+    "internalPlaybackQualityDescription": "内网连接时默认高品质",
+    "externalPlaybackQualityDescription": "外网连接时默认低品质",
+    "playbackQualityLossless": "无损品质",
+    "playbackQualityHigh": "高品质",
+    "playbackQualityLow": "低品质",
+    "playbackQualityLosslessDescription": "优先播放原始无损音频，流量占用最高",
+    "playbackQualityHighDescription": "优先播放高码率音频，兼顾音质和流量",
+    "playbackQualityLowDescription": "优先播放低码率音频，节省外网流量"
   },
   "player": {
     "notPlaying": "未在播放",

@@ -29,6 +29,12 @@ import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
 
+const PLAYBACK_QUALITY_OPTIONS = [
+  { labelKey: "settings.playbackQualityLossless", value: "lossless" },
+  { labelKey: "settings.playbackQualityHigh", value: "high" },
+  { labelKey: "settings.playbackQualityLow", value: "standard" },
+] as const;
+
 const PRESERVED_KEYS = new Set([
   "serverAddress",
   "selectedSourceType",
@@ -261,6 +267,34 @@ const Settings: React.FC = () => {
                 })),
               ]}
               style={{ width: 140 }}
+            />
+          </div>
+        </div>
+        <div className={styles.settingItem}>
+          <div className={styles.label}>{t("settings.internalPlaybackQuality")}</div>
+          <div className={styles.control}>
+            <Select
+              value={general.internalPlaybackQuality}
+              onChange={(val) => updateGeneral("internalPlaybackQuality", val)}
+              options={PLAYBACK_QUALITY_OPTIONS.map((option) => ({
+                label: t(option.labelKey),
+                value: option.value,
+              }))}
+              className={styles.selectMedium}
+            />
+          </div>
+        </div>
+        <div className={styles.settingItem}>
+          <div className={styles.label}>{t("settings.externalPlaybackQuality")}</div>
+          <div className={styles.control}>
+            <Select
+              value={general.externalPlaybackQuality}
+              onChange={(val) => updateGeneral("externalPlaybackQuality", val)}
+              options={PLAYBACK_QUALITY_OPTIONS.map((option) => ({
+                label: t(option.labelKey),
+                value: option.value,
+              }))}
+              className={styles.selectMedium}
             />
           </div>
         </div>

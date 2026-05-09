@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { AudioQuality } from '../services/trackQuality';
 
 export interface SettingsState {
   general: {
@@ -11,6 +12,8 @@ export interface SettingsState {
     acceptSync: boolean;
     recommendationLikeRatio: number;
     experienceProgramEnabled: boolean;
+    internalPlaybackQuality: AudioQuality;
+    externalPlaybackQuality: AudioQuality;
   };
   desktopLyric: {
     enable: boolean;
@@ -49,6 +52,8 @@ export const useSettingsStore = create<SettingsState>()(
         acceptSync: true,
         recommendationLikeRatio: 50,
         experienceProgramEnabled: true,
+        internalPlaybackQuality: 'high',
+        externalPlaybackQuality: 'standard',
       },
       desktopLyric: {
         enable: false,
@@ -140,6 +145,14 @@ export const useSettingsStore = create<SettingsState>()(
         if (version <= 3) {
           if (persistedState.general && persistedState.general.experienceProgramEnabled === undefined) {
             persistedState.general.experienceProgramEnabled = true;
+          }
+        }
+        if (persistedState.general) {
+          if (persistedState.general.internalPlaybackQuality === undefined) {
+            persistedState.general.internalPlaybackQuality = 'high';
+          }
+          if (persistedState.general.externalPlaybackQuality === undefined) {
+            persistedState.general.externalPlaybackQuality = 'standard';
           }
         }
         return persistedState;

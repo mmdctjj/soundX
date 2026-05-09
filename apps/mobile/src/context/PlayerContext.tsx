@@ -64,6 +64,7 @@ import { useNotification } from "./NotificationContext";
 import { useSettings } from "./SettingsContext";
 import { useSync } from "./SyncContext";
 import { trackEvent } from "../services/tracking";
+import { getCurrentPlaybackQualityPreference } from "../utils/playbackQuality";
 
 export enum PlayMode {
   SEQUENCE = "SEQUENCE",
@@ -173,7 +174,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const { t } = useTranslation();
   const { mode, setMode } = usePlayMode();
   const { showNotification } = useNotification();
-  const { acceptRelay, cacheEnabled, recommendationLikeRatio } = useSettings();
+  const {
+    acceptRelay,
+    cacheEnabled,
+    recommendationLikeRatio,
+    internalPlaybackQuality,
+    externalPlaybackQuality,
+  } = useSettings();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [trackList, setTrackList] = useState<Track[]>([]);
@@ -247,6 +254,23 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [preferredAudioQuality]);
 
   useEffect(() => {
+    let cancelled = false;
+    const syncPreferredQuality = async () => {
+      const nextQuality = await getCurrentPlaybackQualityPreference({
+        internalPlaybackQuality,
+        externalPlaybackQuality,
+      });
+      if (cancelled) return;
+      setPreferredAudioQuality(nextQuality);
+      preferredAudioQualityRef.current = nextQuality;
+    };
+    void syncPreferredQuality();
+    return () => {
+      cancelled = true;
+    };
+  }, [internalPlaybackQuality, externalPlaybackQuality]);
+
+  useEffect(() => {
     playModeRef.current = playMode;
   }, [playMode]);
 
@@ -274,7 +298,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       if (cancelled) return;
       setAvailableAudioQualities(profile.options);
       setCurrentAudioQuality(
-        resolveTrackAudioQuality(profile, preferredAudioQualityRef.current),
+        resolveTrackAudioQuality(
+          profile,
+          await getCurrentPlaybackQualityPreference({
+            internalPlaybackQuality,
+            externalPlaybackQuality,
+          }),
+        ),
       );
     };
 
@@ -283,7 +313,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       cancelled = true;
     };
-  }, [currentTrack?.id, currentTrack?.type]);
+  }, [currentTrack?.id, currentTrack?.type, internalPlaybackQuality, externalPlaybackQuality]);
 
   useEffect(() => {
     let cancelled = false;
@@ -825,7 +855,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     setAvailableAudioQualities(profile.options);
     const nextQuality = resolveTrackAudioQuality(
       profile,
-      preferredQuality ?? preferredAudioQualityRef.current,
+      preferredQuality ??
+        (await getCurrentPlaybackQualityPreference({
+          internalPlaybackQuality,
+          externalPlaybackQuality,
+        })),
     );
 
     setCurrentAudioQuality(nextQuality);
