@@ -232,6 +232,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const isRadioModeRef = React.useRef(isRadioMode);
   const skipIntroDurationRef = React.useRef(skipIntroDuration);
   const skipOutroDurationRef = React.useRef(skipOutroDuration);
+  const radioNextTrackRef = React.useRef<Track | null>(null);
 
   useEffect(() => {
     skipIntroDurationRef.current = skipIntroDuration;
@@ -712,6 +713,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           event
         );
         if (isRadioModeRef.current) {
+          // 播放出错时清空预加载缓存，避免可能的问题
+          radioNextTrackRef.current = null;
           playNext();
         }
       }
@@ -928,21 +931,57 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     } as any);
   };
 
+  const fetchRadioTrackWithRetry = async (retries = 3): Promise<Track | null> => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        let res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
+        if (res.code === 200 && res.data && res.data.length > 0) {
+          if (res.data[0].id !== currentTrackRef.current?.id) {
+            return res.data[0];
+          }
+          // 如果和当前相同，再请求一次
+          res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
+          if (res.code === 200 && res.data && res.data.length > 0) {
+            return res.data[0];
+          }
+        }
+      } catch (e) {
+        console.error(`Radio track fetch attempt ${i + 1} failed`, e);
+      }
+      if (i < retries - 1) {
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+      }
+    }
+    return null;
+  };
+
+  const preloadNextRadioTrack = async () => {
+    if (!isRadioModeRef.current) return;
+    const track = await fetchRadioTrackWithRetry();
+    if (track) {
+      radioNextTrackRef.current = track;
+    }
+  };
+
   const playNext = async () => {
     if (isRadioModeRef.current) {
       try {
-        let res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
-        
-        // If random track is the same as current, try one more time
-        if (res.code === 200 && res.data && res.data[0]?.id === currentTrackRef.current?.id) {
-            res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
+        let nextTrack = radioNextTrackRef.current;
+        if (!nextTrack || nextTrack.id === currentTrackRef.current?.id) {
+          nextTrack = await fetchRadioTrackWithRetry();
         }
+        radioNextTrackRef.current = null;
 
-        if (res.code === 200 && res.data && res.data.length > 0) {
-          await playTrack(res.data[0], undefined, true);
+        if (nextTrack) {
+          await playTrack(nextTrack, undefined, true);
+          preloadNextRadioTrack();
+        } else {
+          console.error("Radio playNext failed: no track available after retries");
+          await TrackPlayer.pause();
         }
       } catch (e) {
         console.error("Radio playNext failed", e);
+        await TrackPlayer.pause();
       }
       return;
     }
@@ -1384,11 +1423,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const startRadioMode = async () => {
     setIsRadioMode(true);
-    // Fetch a random track and start playing
+    radioNextTrackRef.current = null;
     try {
-      const res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
-      if (res.code === 200 && res.data && res.data.length > 0) {
-        await playTrack(res.data[0], undefined, true);
+      const track = await fetchRadioTrackWithRetry();
+      if (track) {
+        await playTrack(track, undefined, true);
+        preloadNextRadioTrack();
       }
     } catch (e) {
       console.error("Failed to start radio mode", e);

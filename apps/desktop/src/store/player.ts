@@ -172,19 +172,46 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     [TrackType.AUDIOBOOK]: initialAudiobookState,
   };
 
-  const pickNextRadioTrack = async (activeMode: TrackType, currentTrackId?: number | string) => {
-    const likeRatio =
-      useSettingsStore.getState().general.recommendationLikeRatio ?? 50;
-    const res = await getRecommendedTracks(activeMode, 20, likeRatio);
-    if (res.code !== 200 || !res.data?.length) return null;
+  // 📻 电台模式预加载缓存
+  let radioPreloadCache: { track: Track; playlist: Track[] } | null = null;
 
-    const candidates = res.data.filter((track) => track.id !== currentTrackId);
-    const trackPool = candidates.length > 0 ? candidates : res.data;
-    const randomIndex = Math.floor(Math.random() * trackPool.length);
-    return {
-      track: trackPool[randomIndex],
-      playlist: res.data,
-    };
+  const pickNextRadioTrackWithRetry = async (
+    activeMode: TrackType,
+    currentTrackId?: number | string,
+    retries = 3
+  ) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const likeRatio =
+          useSettingsStore.getState().general.recommendationLikeRatio ?? 50;
+        const res = await getRecommendedTracks(activeMode, 20, likeRatio);
+        if (res.code === 200 && res.data?.length) {
+          const candidates = res.data.filter(
+            (track) => track.id !== currentTrackId
+          );
+          const trackPool = candidates.length > 0 ? candidates : res.data;
+          const randomIndex = Math.floor(Math.random() * trackPool.length);
+          return {
+            track: trackPool[randomIndex],
+            playlist: res.data,
+          };
+        }
+      } catch (e) {
+        console.error(`Radio track fetch attempt ${i + 1} failed`, e);
+      }
+      if (i < retries - 1) {
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+      }
+    }
+    return null;
+  };
+
+  const preloadNextRadioTrack = async () => {
+    const { activeMode, currentTrack } = get();
+    const data = await pickNextRadioTrackWithRetry(activeMode, currentTrack?.id);
+    if (data) {
+      radioPreloadCache = data;
+    }
   };
 
   return {
@@ -351,10 +378,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
       if (isRadioMode) {
         try {
-          const radioData = await pickNextRadioTrack(
-            get().activeMode,
-            currentTrack?.id
-          );
+          let radioData = radioPreloadCache;
+          if (!radioData?.track) {
+            radioData = await pickNextRadioTrackWithRetry(
+              get().activeMode,
+              currentTrack?.id
+            );
+          }
+          radioPreloadCache = null;
+
           if (radioData?.track) {
             set({
               playlist: radioData.playlist,
@@ -365,11 +397,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
               isRadioMode: true,
               playlistSource: null,
             });
+            get()._saveCurrentStateToMode();
+            preloadNextRadioTrack();
+          } else {
+            console.error("Radio next failed after retries");
+            set({ isPlaying: false });
           }
         } catch (e) {
           console.error("Radio next error", e);
+          set({ isPlaying: false });
         }
-        get()._saveCurrentStateToMode();
         return;
       }
 
@@ -534,9 +571,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       const { activeMode } = get();
       const radioStartMode = activeMode;
       set({ isRadioMode: true, currentTime: 0 });
+      radioPreloadCache = null;
 
       try {
-        const radioData = await pickNextRadioTrack(radioStartMode);
+        const radioData = await pickNextRadioTrackWithRetry(radioStartMode);
         if (get().activeMode !== radioStartMode) {
           return;
         }
@@ -551,6 +589,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
             playlistSource: null,
           });
           get()._saveCurrentStateToMode();
+          preloadNextRadioTrack();
         }
       } catch (e) {
         console.error("Failed to start radio mode", e);
