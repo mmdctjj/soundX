@@ -137,7 +137,17 @@
     "loginMemberFirst": "Please log in with your member account first.",
     "cancelLogout": "Cancel",
     "confirmLogout": "Confirm",
-    "version": "AudioDock Mobile v{{version}}"
+    "version": "AudioDock Mobile v{{version}}",
+    "internalPlaybackQuality": "Internal playback quality",
+    "externalPlaybackQuality": "External playback quality",
+    "internalPlaybackQualityDescription": "High quality by default for internal connections",
+    "externalPlaybackQualityDescription": "Low quality by default for external connections",
+    "playbackQualityLossless": "Lossless",
+    "playbackQualityHigh": "High quality",
+    "playbackQualityLow": "Low quality",
+    "playbackQualityLosslessDescription": "Prefer original lossless audio and use the most bandwidth",
+    "playbackQualityHighDescription": "Prefer high-bitrate audio for a balance of quality and bandwidth",
+    "playbackQualityLowDescription": "Prefer low-bitrate audio to save external network data"
   },
   "player": {
     "notPlaying": "Not playing",

@@ -90,6 +90,7 @@ function RootLayoutNav() {
       segmentName === "scan" ||
       segmentName === "scan-confirm" ||
       segmentName === "language" ||
+      segmentName === "playback-quality" ||
       segmentName === "mv";
 
     if (!plusToken && inAuthGroup) {
@@ -407,6 +408,7 @@ function RootLayoutNav() {
       <Stack.Screen name="scan" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
       <Stack.Screen name="scan-confirm" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
       <Stack.Screen name="language" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="playback-quality" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="mv/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
     </Stack>
   );

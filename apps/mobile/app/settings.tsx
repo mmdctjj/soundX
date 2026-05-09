@@ -49,6 +49,8 @@ export default function SettingsScreen() {
     carModeEnabled,
     screenBottomInset,
     experienceProgramEnabled,
+    internalPlaybackQuality,
+    externalPlaybackQuality,
     updateSetting,
   } = useSettings();
   const [isVip, setIsVip] = React.useState(false);
@@ -237,6 +239,18 @@ export default function SettingsScreen() {
       userId: user?.id ? String(user.id) : undefined,
       deviceId: device?.id ? String(device.id) : undefined,
     });
+  };
+
+
+  const getPlaybackQualityLabel = (quality: string) => {
+    switch (quality) {
+      case "lossless":
+        return t("settings.playbackQualityLossless");
+      case "high":
+        return t("settings.playbackQualityHigh");
+      default:
+        return t("settings.playbackQualityLow");
+    }
   };
 
   const carModeActive = carLayoutMode || carModeEnabled;
@@ -438,6 +452,20 @@ export default function SettingsScreen() {
               color={colors.secondary}
             />
           </TouchableOpacity>
+
+          {renderActionRow(
+            t("settings.internalPlaybackQuality"),
+            t("settings.internalPlaybackQualityDescription"),
+            () => router.push({ pathname: "/playback-quality", params: { network: "internal" } } as any),
+            getPlaybackQualityLabel(internalPlaybackQuality),
+          )}
+
+          {renderActionRow(
+            t("settings.externalPlaybackQuality"),
+            t("settings.externalPlaybackQualityDescription"),
+            () => router.push({ pathname: "/playback-quality", params: { network: "external" } } as any),
+            getPlaybackQualityLabel(externalPlaybackQuality),
+          )}
 
           {renderSettingRow(
             t("settings.carMode"),

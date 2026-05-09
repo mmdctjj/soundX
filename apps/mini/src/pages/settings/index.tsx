@@ -26,6 +26,7 @@ export default function Settings() {
     carModeEnabled,
     screenBottomInset,
     experienceProgramEnabled,
+    externalPlaybackQuality,
     updateSetting,
   } = useSettings();
   const { theme, toggleTheme } = useTheme();
@@ -90,6 +91,18 @@ export default function Settings() {
       return;
     }
     updateSetting('voiceAssistantEnabled', val);
+  };
+
+
+  const getPlaybackQualityLabel = (quality: string) => {
+    switch (quality) {
+      case 'lossless':
+        return t('settings.playbackQualityLossless');
+      case 'high':
+        return t('settings.playbackQualityHigh');
+      default:
+        return t('settings.playbackQualityLow');
+    }
   };
 
   const carModeActive = carLayoutMode || carModeEnabled;
@@ -236,6 +249,12 @@ export default function Settings() {
             t('settings.language', '语言'),
             t('settings.languageDescription', '选择应用显示语言'),
             () => Taro.navigateTo({ url: '/pages/settings/language/index' })
+          )}
+          {renderActionRow(
+            t('settings.externalPlaybackQuality'),
+            t('settings.externalPlaybackQualityDescription'),
+            () => Taro.navigateTo({ url: '/pages/settings/playback-quality/index' }),
+            getPlaybackQualityLabel(externalPlaybackQuality)
           )}
           {renderSettingRow(t('settings.autoTheme'), t('settings.autoThemeDescription'), autoTheme, (val) => updateSetting('autoTheme', val))}
           <View style={{ opacity: autoTheme ? 0.5 : 1, pointerEvents: autoTheme ? 'none' : 'auto' }}>
