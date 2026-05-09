@@ -233,6 +233,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const skipIntroDurationRef = React.useRef(skipIntroDuration);
   const skipOutroDurationRef = React.useRef(skipOutroDuration);
 
+  const setCurrentTrackState = useCallback((track: Track | null) => {
+    currentTrackRef.current = track;
+    setCurrentTrack(track);
+  }, []);
+
+  const setTrackListState = useCallback((tracks: Track[]) => {
+    trackListRef.current = tracks;
+    setTrackList(tracks);
+  }, []);
+
   useEffect(() => {
     skipIntroDurationRef.current = skipIntroDuration;
   }, [skipIntroDuration]);
@@ -734,7 +744,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
           console.log(`[Player] Active track changed to index ${event.index}: ${nextTrack.name}`);
           
-          setCurrentTrack(nextTrack);
+          setCurrentTrackState(nextTrack);
           isSkippingOutroRef.current = false;
 
           // ✨ 智能预缓存：当当前歌曲开始播放时，自动触发下一首的后台下载
@@ -1091,7 +1101,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       const saved = await AsyncStorage.getItem(`playbackState_${targetMode}`);
       if (saved) {
         const state = JSON.parse(saved);
-        setTrackList(state.trackList);
+        const savedList = Array.isArray(state.trackList) ? state.trackList : [];
+        setTrackListState(savedList);
         if (restorePlayMode && state.playMode) {
           setPlayMode(state.playMode);
         }
@@ -1099,16 +1110,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           setPlaybackRateState(state.playbackRate);
         }
         if (state.currentTrack) {
-          const savedList = Array.isArray(state.trackList) ? state.trackList : [];
           const list = savedList.length > 0 ? savedList : [state.currentTrack];
           const activeIndex = Math.max(
             0,
             list.findIndex((t: Track) => t.id === state.currentTrack.id)
           );
 
+          const activeTrack = list[activeIndex];
+          setTrackListState(list);
+          setCurrentTrackState(activeTrack);
+
           const shouldUseSingleTrackQueue = state.playMode === PlayMode.SHUFFLE;
           if (shouldUseSingleTrackQueue) {
-            const activeTrack = list[activeIndex];
             const uri =
               activeTrack.type === TrackType.AUDIOBOOK
                 ? await resolveTrackUri(activeTrack, {
@@ -1169,16 +1182,26 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
             await TrackPlayer.seekTo(state.position);
           }
 
-          await updatePlayerCapabilities(list[activeIndex]);
-          setCurrentTrack(list[activeIndex]);
+          await updatePlayerCapabilities(activeTrack);
+        } else {
+          setCurrentTrackState(null);
+          setTrackListState([]);
+          await TrackPlayer.reset();
         }
       } else {
-        setCurrentTrack(null);
-        setTrackList([]);
+        setCurrentTrackState(null);
+        setTrackListState([]);
         await TrackPlayer.reset();
       }
     } catch (e) {
       console.error("Failed to load playback state", e);
+      setCurrentTrackState(null);
+      setTrackListState([]);
+      try {
+        await TrackPlayer.reset();
+      } catch {
+        // Ignore reset errors after a failed restore; the UI state has already been cleared.
+      }
     }
   };
 
@@ -1293,7 +1316,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       await TrackPlayer.play();
-      setCurrentTrack(track);
+      setCurrentTrackState(track);
       savePlaybackState(mode);
     } catch (error) {
       console.error("Failed to play track:", error);
@@ -1302,7 +1325,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const playTrackList = async (tracks: Track[], index: number, initialPosition?: number) => {
     setIsRadioMode(false);
-    setTrackList(tracks);
+    setTrackListState(tracks);
     const shouldUseSingleTrackQueue = playModeRef.current === PlayMode.SHUFFLE;
     if (shouldUseSingleTrackQueue) {
       const track = tracks[index];
@@ -1371,7 +1394,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     await TrackPlayer.play();
-    setCurrentTrack(tracks[index]);
+    setCurrentTrackState(tracks[index]);
     savePlaybackState(mode);
   };
 
@@ -1544,7 +1567,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
               }
               break;
             case "playlist":
-              setTrackList(payload.data);
+              setTrackListState(payload.data);
               break;
             case "leave":
               console.log("Participant left the session");
@@ -1599,7 +1622,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           await switchContentModeForIncomingTrack(lastAcceptedInvite.currentTrack);
         }
         if (lastAcceptedInvite.playlist) {
-          setTrackList(lastAcceptedInvite.playlist);
+          setTrackListState(lastAcceptedInvite.playlist);
         }
         if (lastAcceptedInvite.currentTrack && isSetup) {
           await playTrack(
