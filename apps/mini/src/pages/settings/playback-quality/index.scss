@@ -1,0 +1,55 @@
+.playback-quality-settings {
+  min-height: 100vh;
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20rpx 30rpx 30rpx;
+  }
+
+  .back-btn {
+    width: 80rpx;
+    padding: 10rpx 0;
+  }
+
+  .header-title {
+    font-size: 36rpx;
+    font-weight: 600;
+  }
+
+  .list {
+    padding: 20rpx 40rpx 0;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 30rpx 0;
+    border-bottom: 1rpx solid;
+  }
+
+  .item-info {
+    flex: 1;
+    margin-right: 24rpx;
+  }
+
+  .item-text {
+    display: block;
+    font-size: 32rpx;
+    font-weight: 500;
+  }
+
+  .item-description {
+    display: block;
+    margin-top: 8rpx;
+    font-size: 24rpx;
+    line-height: 34rpx;
+  }
+
+  .checkmark {
+    font-size: 36rpx;
+    font-weight: 600;
+  }
+}

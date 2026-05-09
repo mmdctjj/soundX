@@ -73,6 +73,7 @@ import { usePlayerStore } from "../../store/player";
 import { useSettingsStore } from "../../store/settings";
 import { useSyncStore } from "../../store/sync";
 import { formatDuration } from "../../utils/formatDuration";
+import { getCurrentPlaybackQualityPreference } from "../../utils/playbackQuality";
 import { usePlayMode } from "../../utils/playMode";
 import PlayingIndicator from "../PlayingIndicator";
 import UserSelectModal from "../UserSelectModal";
@@ -119,7 +120,7 @@ const Player: React.FC = () => {
     AudioQualityOption[]
   >([]);
   const { user, device } = useAuthStore();
-  const { updateDesktopLyric } = useSettingsStore();
+  const { general, updateDesktopLyric } = useSettingsStore();
   const desktopLyricEnable = useSettingsStore(
     (state) => state.desktopLyric.enable,
   );
@@ -173,7 +174,10 @@ const Player: React.FC = () => {
       if (!cancelled) {
         setAvailableAudioQualities(profile.options);
         setCurrentAudioQuality(
-          resolveTrackAudioQuality(profile, preferredAudioQualityRef.current),
+          resolveTrackAudioQuality(
+            profile,
+            getCurrentPlaybackQualityPreference(general),
+          ),
         );
       }
     };
@@ -183,7 +187,7 @@ const Player: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [currentTrack?.id, currentTrack?.type]);
+  }, [currentTrack?.id, currentTrack?.type, general.internalPlaybackQuality, general.externalPlaybackQuality]);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const ignoreTimeUpdate = useRef(false);
@@ -220,11 +224,19 @@ const Player: React.FC = () => {
 
   const queueListRef = useRef<QueueListRef>(null);
   const fullQueueListRef = useRef<QueueListRef>(null);
-  const preferredAudioQualityRef = useRef<AudioQuality>("lossless");
+  const preferredAudioQualityRef = useRef<AudioQuality>(
+    getCurrentPlaybackQualityPreference(general),
+  );
 
   useEffect(() => {
     preferredAudioQualityRef.current = preferredAudioQuality;
   }, [preferredAudioQuality]);
+
+  useEffect(() => {
+    const nextQuality = getCurrentPlaybackQualityPreference(general);
+    setPreferredAudioQuality(nextQuality);
+    preferredAudioQualityRef.current = nextQuality;
+  }, [general.internalPlaybackQuality, general.externalPlaybackQuality]);
 
   const handleLocateTrack = () => {
     queueListRef.current?.scrollToActive();

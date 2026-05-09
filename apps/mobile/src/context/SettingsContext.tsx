@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import type { AudioQuality } from '../services/trackQuality';
 import { setTrackingEnabled } from '../services/tracking';
 
 interface SettingsState {
@@ -16,6 +17,8 @@ interface SettingsState {
   recommendationLikeRatio: number;
   eqGains: number[];
   experienceProgramEnabled: boolean;
+  internalPlaybackQuality: AudioQuality;
+  externalPlaybackQuality: AudioQuality;
 }
 
 interface SettingsContextType extends SettingsState {
@@ -40,6 +43,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     recommendationLikeRatio: 50,
     eqGains: [0, 0, 0, 0, 0],
     experienceProgramEnabled: true,
+    internalPlaybackQuality: 'high',
+    externalPlaybackQuality: 'standard',
   };
   const [settings, setSettings] = useState<SettingsState>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);

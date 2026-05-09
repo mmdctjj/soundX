@@ -17,6 +17,7 @@ export default defineAppConfig({
     'pages/folder/index',
     'pages/settings/index',
     'pages/settings/language/index',
+    'pages/settings/playback-quality/index',
     'pages/admin/index',
     'pages/source-manage/index',
     'pages/tts/tasks/index',

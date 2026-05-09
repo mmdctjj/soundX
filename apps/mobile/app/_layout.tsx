@@ -90,6 +90,7 @@ function RootLayoutNav() {
       segmentName === "scan" ||
       segmentName === "scan-confirm" ||
       segmentName === "language" ||
+      segmentName === "playback-quality" ||
       segmentName === "mv";
 
     if (!plusToken && inAuthGroup) {
