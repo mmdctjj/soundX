@@ -38,6 +38,8 @@ interface PlayerModeState {
   playlistSource: PlaylistSource | null;
 }
 
+type PlaybackOrderMode = "sequence" | "loop" | "shuffle" | "single";
+
 interface PlayerState {
   // Mode-specific state (preserved per MUSIC/AUDIOBOOK)
   currentTrack: Track | null;
@@ -50,7 +52,9 @@ interface PlayerState {
   // Global State
   isPlaying: boolean;
   isLoadingMore: boolean;
-  playMode: "sequence" | "loop" | "shuffle" | "single";
+  playMode: PlaybackOrderMode;
+  normalPlayMode: PlaybackOrderMode;
+  radioPlayMode: PlaybackOrderMode;
   volume: number;
   activeMode: TrackType;
   isRadioMode: boolean;
@@ -70,7 +74,7 @@ interface PlayerState {
   appendTracks: (tracks: Track[], hasMore: boolean) => void;
   next: () => void;
   prev: () => void;
-  setMode: (mode: "sequence" | "loop" | "shuffle" | "single") => void;
+  setMode: (mode: PlaybackOrderMode) => void;
   setVolume: (volume: number) => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
@@ -130,7 +134,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
   const activeState = initialMode === TrackType.AUDIOBOOK ? initialAudiobookState : initialMusicState;
   
   // Load global settings
-  const storedPlayMode = localStorage.getItem("playOrder") as "sequence" | "loop" | "shuffle" | "single" || "sequence";
+  const storedPlayMode = localStorage.getItem("playOrder") as PlaybackOrderMode || "sequence";
+  const storedRadioPlayMode = localStorage.getItem("radioPlayOrder") as PlaybackOrderMode || "sequence";
   const storedVolume = Number(localStorage.getItem("playerVolume")) || 70;
 
   // Progress Reporting Helper
@@ -172,19 +177,46 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     [TrackType.AUDIOBOOK]: initialAudiobookState,
   };
 
-  const pickNextRadioTrack = async (activeMode: TrackType, currentTrackId?: number | string) => {
-    const likeRatio =
-      useSettingsStore.getState().general.recommendationLikeRatio ?? 50;
-    const res = await getRecommendedTracks(activeMode, 20, likeRatio);
-    if (res.code !== 200 || !res.data?.length) return null;
+  // 📻 电台模式预加载缓存
+  let radioPreloadCache: { track: Track; playlist: Track[] } | null = null;
 
-    const candidates = res.data.filter((track) => track.id !== currentTrackId);
-    const trackPool = candidates.length > 0 ? candidates : res.data;
-    const randomIndex = Math.floor(Math.random() * trackPool.length);
-    return {
-      track: trackPool[randomIndex],
-      playlist: res.data,
-    };
+  const pickNextRadioTrackWithRetry = async (
+    activeMode: TrackType,
+    currentTrackId?: number | string,
+    retries = 3
+  ) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const likeRatio =
+          useSettingsStore.getState().general.recommendationLikeRatio ?? 50;
+        const res = await getRecommendedTracks(activeMode, 20, likeRatio);
+        if (res.code === 200 && res.data?.length) {
+          const candidates = res.data.filter(
+            (track) => track.id !== currentTrackId
+          );
+          const trackPool = candidates.length > 0 ? candidates : res.data;
+          const randomIndex = Math.floor(Math.random() * trackPool.length);
+          return {
+            track: trackPool[randomIndex],
+            playlist: res.data,
+          };
+        }
+      } catch (e) {
+        console.error(`Radio track fetch attempt ${i + 1} failed`, e);
+      }
+      if (i < retries - 1) {
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+      }
+    }
+    return null;
+  };
+
+  const preloadNextRadioTrack = async () => {
+    const { activeMode, currentTrack } = get();
+    const data = await pickNextRadioTrackWithRetry(activeMode, currentTrack?.id);
+    if (data) {
+      radioPreloadCache = data;
+    }
   };
 
   return {
@@ -194,6 +226,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     isPlaying: false,
     isLoadingMore: false,
     playMode: storedPlayMode,
+    normalPlayMode: storedPlayMode,
+    radioPlayMode: storedRadioPlayMode,
     volume: storedVolume,
     activeMode: initialMode,
     isRadioMode: false,
@@ -235,6 +269,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         playlistSource: nextModeState.playlistSource,
         isPlaying: false, // Pause on switch
         isRadioMode: false, // Radio mode is music-only and should not leak to audiobook mode
+        playMode: state.normalPlayMode,
       });
     },
 
@@ -243,7 +278,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
       if (track) {
         if (!fromRadio) {
-          set({ isRadioMode: false });
+          const { normalPlayMode } = get();
+          set({ isRadioMode: false, playMode: normalPlayMode });
         }
         if (current?.id !== track.id) {
           // Report progress of previous track before switching
@@ -309,7 +345,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     setPlaylist: (tracks, source = null) => {
-      set({ playlist: tracks, playlistSource: source, isRadioMode: false });
+      const { normalPlayMode } = get();
+      set({ playlist: tracks, playlistSource: source, isRadioMode: false, playMode: normalPlayMode });
       get()._saveCurrentStateToMode();
     },
 
@@ -351,10 +388,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
       if (isRadioMode) {
         try {
-          const radioData = await pickNextRadioTrack(
-            get().activeMode,
-            currentTrack?.id
-          );
+          let radioData = radioPreloadCache;
+          if (!radioData?.track) {
+            radioData = await pickNextRadioTrackWithRetry(
+              get().activeMode,
+              currentTrack?.id
+            );
+          }
+          radioPreloadCache = null;
+
           if (radioData?.track) {
             set({
               playlist: radioData.playlist,
@@ -365,40 +407,48 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
               isRadioMode: true,
               playlistSource: null,
             });
+            get()._saveCurrentStateToMode();
+            preloadNextRadioTrack();
+          } else {
+            console.error("Radio next failed after retries");
+            set({ isPlaying: false });
           }
         } catch (e) {
           console.error("Radio next error", e);
+          set({ isPlaying: false });
         }
-        get()._saveCurrentStateToMode();
         return;
       }
 
       if (playlist.length === 0 || !currentTrack) return;
 
       const currentIndex = playlist.findIndex((t) => t.id === currentTrack.id);
-      let nextIndex = currentIndex + 1;
+      if (currentIndex === -1) return;
 
-      // Lazy Loading Trigger: if we are at the end, attempt to load more
-      if (
-        nextIndex >= playlist.length - 2 &&
+      const shouldLoadMore =
+        currentIndex + 1 >= playlist.length - 2 &&
         playlistSource?.hasMore &&
-        !isLoadingMore
-      ) {
+        !isLoadingMore;
+
+      if (shouldLoadMore) {
         await get().loadMoreSourceTracks();
       }
 
+      const latestPlaylist = get().playlist;
+      let nextIndex = currentIndex + 1;
+
       if (playMode === "shuffle") {
-        nextIndex = Math.floor(Math.random() * playlist.length);
+        nextIndex = Math.floor(Math.random() * latestPlaylist.length);
       } else if (playMode === "loop") {
-        nextIndex = nextIndex % playlist.length;
+        nextIndex = nextIndex % latestPlaylist.length;
       }
       // 注意：single 模式下手动点击"下一首"不跳回当前歌曲开头，
       // 单曲循环仅在自动播放结束时生效（见 onEnded 回调）。
 
-      if (nextIndex < playlist.length) {
-        const nextTrack = playlist[nextIndex];
-        set({ currentTrack: nextTrack, currentTime: 0, isPlaying: true });
+      if (nextIndex < latestPlaylist.length) {
+        const nextTrack = latestPlaylist[nextIndex];
         reportProgress(get(), true);
+        set({ currentTrack: nextTrack, currentTime: 0, isPlaying: true });
 
         const userId = useAuthStore.getState().user?.id;
         if (userId) {
@@ -438,7 +488,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     setMode: (mode) => {
-      set({ playMode: mode });
+      if (get().isRadioMode) {
+        set({ playMode: mode, radioPlayMode: mode });
+        localStorage.setItem("radioPlayOrder", mode);
+        return;
+      }
+
+      set({ playMode: mode, normalPlayMode: mode });
       localStorage.setItem("playOrder", mode);
     },
     setVolume: (volume) => {
@@ -528,12 +584,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     startRadioMode: async () => {
-      const { activeMode } = get();
+      const { activeMode, playMode, radioPlayMode, isRadioMode } = get();
       const radioStartMode = activeMode;
-      set({ isRadioMode: true, currentTime: 0 });
+      set({
+        isRadioMode: true,
+        currentTime: 0,
+        normalPlayMode: isRadioMode ? get().normalPlayMode : playMode,
+        playMode: radioPlayMode,
+      });
 
       try {
-        const radioData = await pickNextRadioTrack(radioStartMode);
+        const radioData = await pickNextRadioTrackWithRetry(radioStartMode);
         if (get().activeMode !== radioStartMode) {
           return;
         }
@@ -548,6 +609,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
             playlistSource: null,
           });
           get()._saveCurrentStateToMode();
+          preloadNextRadioTrack();
         }
       } catch (e) {
         console.error("Failed to start radio mode", e);

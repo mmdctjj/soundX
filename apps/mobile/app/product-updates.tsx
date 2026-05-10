@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Markdown from "react-native-markdown-display";
+import MarkdownContent from "../src/components/MarkdownContent";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../src/context/ThemeContext";
 import { getLocalVersion } from "../src/utils/updateUtils";
@@ -168,9 +168,9 @@ export default function ProductUpdatesScreen() {
                         : ""}
                     </Text>
                   </View>
-                  <Markdown style={markdownStyles}>
+                  <MarkdownContent style={markdownStyles}>
                     {release.body}
-                  </Markdown>
+                  </MarkdownContent>
                 </View>
               ))}
             </View>

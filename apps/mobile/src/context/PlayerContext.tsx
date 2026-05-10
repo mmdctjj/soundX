@@ -73,6 +73,7 @@ export enum PlayMode {
   LOOP_SINGLE = "LOOP_SINGLE",
 }
 const PLAYBACK_MODE_KEY = "playerPlaybackMode";
+const RADIO_PLAYBACK_MODE_KEY = "playerRadioPlaybackMode";
 const LEGACY_PLAY_MODE_KEY = "playMode";
 
 interface PlayerContextType {
@@ -210,6 +211,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Refs for accessing latest state in callbacks
   const playModeRef = React.useRef(playMode);
+  const normalPlayModeRef = React.useRef(playMode);
+  const radioPlayModeRef = React.useRef<PlayMode>(PlayMode.SEQUENCE);
   const trackListRef = React.useRef(trackList);
   const currentTrackRef = React.useRef(currentTrack);
   const lastWidgetStateRef = React.useRef({
@@ -232,6 +235,49 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const isRadioModeRef = React.useRef(isRadioMode);
   const skipIntroDurationRef = React.useRef(skipIntroDuration);
   const skipOutroDurationRef = React.useRef(skipOutroDuration);
+  const radioNextTrackRef = React.useRef<Track | null>(null);
+
+  const setCurrentTrackState = useCallback((track: Track | null) => {
+    currentTrackRef.current = track;
+    setCurrentTrack(track);
+  }, []);
+
+  const setTrackListState = useCallback((tracks: Track[]) => {
+    trackListRef.current = tracks;
+    setTrackList(tracks);
+  }, []);
+
+
+  const normalizeStoredPlayMode = (storedPlayMode: string | null): PlayMode | null => {
+    if (!storedPlayMode) return null;
+    if (storedPlayMode === "SINGLE_ONCE") return PlayMode.SEQUENCE;
+    if (Object.values(PlayMode).includes(storedPlayMode as PlayMode)) {
+      return storedPlayMode as PlayMode;
+    }
+    return null;
+  };
+
+  const setActivePlayMode = (nextMode: PlayMode) => {
+    playModeRef.current = nextMode;
+    setPlayMode(nextMode);
+  };
+
+  const enterRadioPlaybackContext = () => {
+    if (!isRadioModeRef.current) {
+      normalPlayModeRef.current = playModeRef.current;
+    }
+    isRadioModeRef.current = true;
+    setIsRadioMode(true);
+    setActivePlayMode(radioPlayModeRef.current);
+  };
+
+  const exitRadioPlaybackContext = () => {
+    if (!isRadioModeRef.current) return;
+    radioPlayModeRef.current = playModeRef.current;
+    isRadioModeRef.current = false;
+    setIsRadioMode(false);
+    setActivePlayMode(normalPlayModeRef.current);
+  };
 
   useEffect(() => {
     skipIntroDurationRef.current = skipIntroDuration;
@@ -643,15 +689,22 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         const outro = await AsyncStorage.getItem("skipOutroDuration");
         if (intro) setSkipIntroDurationState(parseInt(intro, 10));
         if (outro) setSkipOutroDurationState(parseInt(outro, 10));
-        const storedPlayMode =
+        const storedPlayMode = normalizeStoredPlayMode(
           (await AsyncStorage.getItem(PLAYBACK_MODE_KEY)) ??
-          (await AsyncStorage.getItem(LEGACY_PLAY_MODE_KEY));
+          (await AsyncStorage.getItem(LEGACY_PLAY_MODE_KEY))
+        );
+        const storedRadioPlayMode = normalizeStoredPlayMode(
+          await AsyncStorage.getItem(RADIO_PLAYBACK_MODE_KEY)
+        );
+
         if (storedPlayMode) {
-          if (storedPlayMode === "SINGLE_ONCE") {
-            setPlayMode(PlayMode.SEQUENCE);
-          } else if (Object.values(PlayMode).includes(storedPlayMode as PlayMode)) {
-            setPlayMode(storedPlayMode as PlayMode);
+          normalPlayModeRef.current = storedPlayMode;
+          if (!isRadioModeRef.current) {
+            setActivePlayMode(storedPlayMode);
           }
+        }
+        if (storedRadioPlayMode) {
+          radioPlayModeRef.current = storedRadioPlayMode;
         }
       } catch (e) {
         console.error("Failed to load skip settings", e);
@@ -712,6 +765,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           event
         );
         if (isRadioModeRef.current) {
+          // 播放出错时清空预加载缓存，避免可能的问题
+          radioNextTrackRef.current = null;
           playNext();
         }
       }
@@ -734,7 +789,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
           console.log(`[Player] Active track changed to index ${event.index}: ${nextTrack.name}`);
           
-          setCurrentTrack(nextTrack);
+          setCurrentTrackState(nextTrack);
           isSkippingOutroRef.current = false;
 
           // ✨ 智能预缓存：当当前歌曲开始播放时，自动触发下一首的后台下载
@@ -928,21 +983,57 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     } as any);
   };
 
+  const fetchRadioTrackWithRetry = async (retries = 3): Promise<Track | null> => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        let res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
+        if (res.code === 200 && res.data && res.data.length > 0) {
+          if (res.data[0].id !== currentTrackRef.current?.id) {
+            return res.data[0];
+          }
+          // 如果和当前相同，再请求一次
+          res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
+          if (res.code === 200 && res.data && res.data.length > 0) {
+            return res.data[0];
+          }
+        }
+      } catch (e) {
+        console.error(`Radio track fetch attempt ${i + 1} failed`, e);
+      }
+      if (i < retries - 1) {
+        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+      }
+    }
+    return null;
+  };
+
+  const preloadNextRadioTrack = async () => {
+    if (!isRadioModeRef.current) return;
+    const track = await fetchRadioTrackWithRetry();
+    if (track) {
+      radioNextTrackRef.current = track;
+    }
+  };
+
   const playNext = async () => {
     if (isRadioModeRef.current) {
       try {
-        let res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
-        
-        // If random track is the same as current, try one more time
-        if (res.code === 200 && res.data && res.data[0]?.id === currentTrackRef.current?.id) {
-            res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
+        let nextTrack = radioNextTrackRef.current;
+        if (!nextTrack || nextTrack.id === currentTrackRef.current?.id) {
+          nextTrack = await fetchRadioTrackWithRetry();
         }
+        radioNextTrackRef.current = null;
 
-        if (res.code === 200 && res.data && res.data.length > 0) {
-          await playTrack(res.data[0], undefined, true);
+        if (nextTrack) {
+          await playTrack(nextTrack, undefined, true);
+          preloadNextRadioTrack();
+        } else {
+          console.error("Radio playNext failed: no track available after retries");
+          await TrackPlayer.pause();
         }
       } catch (e) {
         console.error("Radio playNext failed", e);
+        await TrackPlayer.pause();
       }
       return;
     }
@@ -953,11 +1044,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
     
-    // 非随机模式下，优先使用原生队列切歌，减少重建队列开销
+    // 非随机模式下，优先使用原生队列切歌，减少重建队列开销。
+    // 队列结束事件触发时，原生队列仍可能保留多首歌但 active index 已经在最后一首，
+    // 这时直接 skipToNext 会失败并中断业务列表兜底续播。
     const queue = await TrackPlayer.getQueue();
-    if (playModeRef.current !== PlayMode.SHUFFLE && queue.length > 1) {
-        await TrackPlayer.skipToNext();
-        return;
+    const activeIndex = await TrackPlayer.getActiveTrackIndex();
+    if (
+      playModeRef.current !== PlayMode.SHUFFLE &&
+      activeIndex !== undefined &&
+      activeIndex < queue.length - 1
+    ) {
+      await TrackPlayer.skipToNext();
+      return;
     }
 
     const current = currentTrackRef.current;
@@ -1042,9 +1140,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const applyPlayMode = async (nextMode: PlayMode) => {
     // Update ref immediately to avoid widget refresh reverting during state lag.
-    playModeRef.current = nextMode;
-    setPlayMode(nextMode);
-    await AsyncStorage.setItem(PLAYBACK_MODE_KEY, nextMode);
+    setActivePlayMode(nextMode);
+    if (isRadioModeRef.current) {
+      radioPlayModeRef.current = nextMode;
+      await AsyncStorage.setItem(RADIO_PLAYBACK_MODE_KEY, nextMode);
+    } else {
+      normalPlayModeRef.current = nextMode;
+      await AsyncStorage.setItem(PLAYBACK_MODE_KEY, nextMode);
+    }
     savePlaybackState(mode);
   };
 
@@ -1057,6 +1160,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     track?.type === TrackType.AUDIOBOOK ? "AUDIOBOOK" : "MUSIC";
 
   const switchContentModeForIncomingTrack = async (track?: Track | null) => {
+    exitRadioPlaybackContext();
     const nextMode = getContentModeForTrack(track);
     if (mode === nextMode) return;
 
@@ -1072,7 +1176,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       currentTrack: currentTrackRef.current,
       trackList: trackListRef.current,
       position: positionRef.current,
-      playMode: playModeRef.current,
+      playMode: isRadioModeRef.current ? normalPlayModeRef.current : playModeRef.current,
       playbackRate: playbackRateRef.current,
     };
     try {
@@ -1091,24 +1195,33 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       const saved = await AsyncStorage.getItem(`playbackState_${targetMode}`);
       if (saved) {
         const state = JSON.parse(saved);
-        setTrackList(state.trackList);
+        const savedList = Array.isArray(state.trackList) ? state.trackList : [];
+        setTrackListState(savedList);
         if (restorePlayMode && state.playMode) {
-          setPlayMode(state.playMode);
+          const restoredPlayMode = normalizeStoredPlayMode(state.playMode);
+          if (restoredPlayMode) {
+            normalPlayModeRef.current = restoredPlayMode;
+            if (!isRadioModeRef.current) {
+              setActivePlayMode(restoredPlayMode);
+            }
+          }
         }
         if (state.playbackRate) {
           setPlaybackRateState(state.playbackRate);
         }
         if (state.currentTrack) {
-          const savedList = Array.isArray(state.trackList) ? state.trackList : [];
           const list = savedList.length > 0 ? savedList : [state.currentTrack];
           const activeIndex = Math.max(
             0,
             list.findIndex((t: Track) => t.id === state.currentTrack.id)
           );
 
+          const activeTrack = list[activeIndex];
+          setTrackListState(list);
+          setCurrentTrackState(activeTrack);
+
           const shouldUseSingleTrackQueue = state.playMode === PlayMode.SHUFFLE;
           if (shouldUseSingleTrackQueue) {
-            const activeTrack = list[activeIndex];
             const uri =
               activeTrack.type === TrackType.AUDIOBOOK
                 ? await resolveTrackUri(activeTrack, {
@@ -1169,16 +1282,26 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
             await TrackPlayer.seekTo(state.position);
           }
 
-          await updatePlayerCapabilities(list[activeIndex]);
-          setCurrentTrack(list[activeIndex]);
+          await updatePlayerCapabilities(activeTrack);
+        } else {
+          setCurrentTrackState(null);
+          setTrackListState([]);
+          await TrackPlayer.reset();
         }
       } else {
-        setCurrentTrack(null);
-        setTrackList([]);
+        setCurrentTrackState(null);
+        setTrackListState([]);
         await TrackPlayer.reset();
       }
     } catch (e) {
       console.error("Failed to load playback state", e);
+      setCurrentTrackState(null);
+      setTrackListState([]);
+      try {
+        await TrackPlayer.reset();
+      } catch {
+        // Ignore reset errors after a failed restore; the UI state has already been cleared.
+      }
     }
   };
 
@@ -1190,6 +1313,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         isInitialLoadRef.current = false;
         prevModeRef.current = mode;
       } else if (prevModeRef.current !== mode) {
+        exitRadioPlaybackContext();
         if (skipNextModeRestoreRef.current) {
           skipNextModeRestoreRef.current = false;
           prevModeRef.current = mode;
@@ -1221,7 +1345,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   ) => {
     if (!isSetup) return;
     if (!fromRadio) {
-      setIsRadioMode(false);
+      exitRadioPlaybackContext();
     }
     if (preferredQuality) {
       setPreferredAudioQuality(preferredQuality);
@@ -1293,7 +1417,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       await TrackPlayer.play();
-      setCurrentTrack(track);
+      setCurrentTrackState(track);
       savePlaybackState(mode);
     } catch (error) {
       console.error("Failed to play track:", error);
@@ -1301,7 +1425,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const playTrackList = async (tracks: Track[], index: number, initialPosition?: number) => {
-    setIsRadioMode(false);
+    exitRadioPlaybackContext();
     setTrackList(tracks);
     const shouldUseSingleTrackQueue = playModeRef.current === PlayMode.SHUFFLE;
     if (shouldUseSingleTrackQueue) {
@@ -1371,17 +1495,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     await TrackPlayer.play();
-    setCurrentTrack(tracks[index]);
+    setCurrentTrackState(tracks[index]);
     savePlaybackState(mode);
   };
 
   const startRadioMode = async () => {
-    setIsRadioMode(true);
+    enterRadioPlaybackContext();
     // Fetch a random track and start playing
     try {
-      const res = await getRecommendedTracks(TrackType.MUSIC, 1, recommendationLikeRatio);
-      if (res.code === 200 && res.data && res.data.length > 0) {
-        await playTrack(res.data[0], undefined, true);
+      const track = await fetchRadioTrackWithRetry();
+      if (track) {
+        await playTrack(track, undefined, true);
+        preloadNextRadioTrack();
       }
     } catch (e) {
       console.error("Failed to start radio mode", e);
@@ -1544,7 +1669,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
               }
               break;
             case "playlist":
-              setTrackList(payload.data);
+              setTrackListState(payload.data);
               break;
             case "leave":
               console.log("Participant left the session");
@@ -1599,7 +1724,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           await switchContentModeForIncomingTrack(lastAcceptedInvite.currentTrack);
         }
         if (lastAcceptedInvite.playlist) {
-          setTrackList(lastAcceptedInvite.playlist);
+          setTrackListState(lastAcceptedInvite.playlist);
         }
         if (lastAcceptedInvite.currentTrack && isSetup) {
           await playTrack(
