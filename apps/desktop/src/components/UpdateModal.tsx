@@ -4,11 +4,14 @@ import { Button, Modal, Typography } from 'antd';
 import React from 'react';
 import type { UpdateInfo } from '../hooks/useCheckUpdate';
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownContent from './MarkdownContent';
 import { isWeb } from '../utils/platform';
 
 const { Paragraph, Text } = Typography;
+
+type IpcRendererBridge = {
+  openExternal: (url: string) => void;
+};
 
 interface UpdateModalProps {
   visible: boolean;
@@ -23,8 +26,9 @@ const UpdateModal: React.FC<UpdateModalProps> = ({ visible, updateInfo, onCancel
 
   const handleDownload = () => {
     if (updateInfo.downloadUrl) {
-        if ((window as any).ipcRenderer) {
-            (window as any).ipcRenderer.openExternal(updateInfo.downloadUrl);
+        const ipcRenderer = (window as Window & { ipcRenderer?: IpcRendererBridge }).ipcRenderer;
+        if (ipcRenderer) {
+            ipcRenderer.openExternal(updateInfo.downloadUrl);
         } else {
             window.open(updateInfo.downloadUrl, '_blank');
         }
@@ -66,9 +70,9 @@ const UpdateModal: React.FC<UpdateModalProps> = ({ visible, updateInfo, onCancel
           <Text strong>{t('updateModal.updateContent')}</Text>
         </Paragraph>
         <div style={{ lineHeight: '1.6' }}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <MarkdownContent>
               {updateInfo.body}
-            </ReactMarkdown>
+            </MarkdownContent>
         </div>
       </div>
     </Modal>

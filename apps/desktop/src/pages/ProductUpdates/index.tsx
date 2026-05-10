@@ -1,8 +1,7 @@
 import { Spin, Typography, theme } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownContent from "../../components/MarkdownContent";
 import pkg from "../../../package.json";
 import qrImg from "../../assets/wechat_qr.jpg";
 import styles from "./index.module.less";
@@ -25,7 +24,7 @@ const ProductUpdates: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [releases, setReleases] = useState<ReleaseItem[]>([]);
 
-  const fetchReleases = async () => {
+  const fetchReleases = useCallback(async () => {
     try {
       const response = await fetch(
         `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases`
@@ -53,11 +52,11 @@ const ProductUpdates: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchReleases();
-  }, []);
+  }, [fetchReleases]);
 
   return (
     <div className={styles.productUpdatesPage} style={{ color: token.colorText }}>
@@ -98,9 +97,9 @@ const ProductUpdates: React.FC = () => {
                   </Text>
                 </div>
                 <div className={styles.markdown}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <MarkdownContent>
                     {release.body}
-                  </ReactMarkdown>
+                  </MarkdownContent>
                 </div>
               </section>
             ))}

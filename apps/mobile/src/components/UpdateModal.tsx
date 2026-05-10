@@ -1,7 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Modal } from "react-native";
-import Markdown from 'react-native-markdown-display';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import MarkdownContent from './MarkdownContent';
 import { useTranslation } from 'react-i18next';
 import { UpdateInfo } from '../../hooks/useCheckUpdate';
 import { useTheme } from '../context/ThemeContext';
@@ -72,7 +71,7 @@ export const UpdateModal = ({
             <>
                <Text style={[styles.title, { color: colors.text }]}>{t('update.foundNewVersion')} {updateInfo.version}</Text>
                 <ScrollView style={styles.scrollView}>
-                  <Markdown
+                  <MarkdownContent
                     style={{
                       body: { color: colors.text, fontSize: 14, lineHeight: 20 },
                       heading1: { color: colors.text, fontSize: 20, fontWeight: 'bold' },
@@ -82,7 +81,7 @@ export const UpdateModal = ({
                     }}
                   >
                     {updateInfo.body}
-                  </Markdown>
+                  </MarkdownContent>
                 </ScrollView>
                
                <View style={styles.buttonContainer}>
