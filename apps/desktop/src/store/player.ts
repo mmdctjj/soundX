@@ -38,6 +38,8 @@ interface PlayerModeState {
   playlistSource: PlaylistSource | null;
 }
 
+type PlaybackOrderMode = "sequence" | "loop" | "shuffle" | "single";
+
 interface PlayerState {
   // Mode-specific state (preserved per MUSIC/AUDIOBOOK)
   currentTrack: Track | null;
@@ -50,7 +52,9 @@ interface PlayerState {
   // Global State
   isPlaying: boolean;
   isLoadingMore: boolean;
-  playMode: "sequence" | "loop" | "shuffle" | "single";
+  playMode: PlaybackOrderMode;
+  normalPlayMode: PlaybackOrderMode;
+  radioPlayMode: PlaybackOrderMode;
   volume: number;
   activeMode: TrackType;
   isRadioMode: boolean;
@@ -70,7 +74,7 @@ interface PlayerState {
   appendTracks: (tracks: Track[], hasMore: boolean) => void;
   next: () => void;
   prev: () => void;
-  setMode: (mode: "sequence" | "loop" | "shuffle" | "single") => void;
+  setMode: (mode: PlaybackOrderMode) => void;
   setVolume: (volume: number) => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
@@ -130,7 +134,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
   const activeState = initialMode === TrackType.AUDIOBOOK ? initialAudiobookState : initialMusicState;
   
   // Load global settings
-  const storedPlayMode = localStorage.getItem("playOrder") as "sequence" | "loop" | "shuffle" | "single" || "sequence";
+  const storedPlayMode = localStorage.getItem("playOrder") as PlaybackOrderMode || "sequence";
+  const storedRadioPlayMode = localStorage.getItem("radioPlayOrder") as PlaybackOrderMode || "sequence";
   const storedVolume = Number(localStorage.getItem("playerVolume")) || 70;
 
   // Progress Reporting Helper
@@ -221,6 +226,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     isPlaying: false,
     isLoadingMore: false,
     playMode: storedPlayMode,
+    normalPlayMode: storedPlayMode,
+    radioPlayMode: storedRadioPlayMode,
     volume: storedVolume,
     activeMode: initialMode,
     isRadioMode: false,
@@ -262,6 +269,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         playlistSource: nextModeState.playlistSource,
         isPlaying: false, // Pause on switch
         isRadioMode: false, // Radio mode is music-only and should not leak to audiobook mode
+        playMode: state.normalPlayMode,
       });
     },
 
@@ -270,7 +278,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
       if (track) {
         if (!fromRadio) {
-          set({ isRadioMode: false });
+          const { normalPlayMode } = get();
+          set({ isRadioMode: false, playMode: normalPlayMode });
         }
         if (current?.id !== track.id) {
           // Report progress of previous track before switching
@@ -336,7 +345,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     setPlaylist: (tracks, source = null) => {
-      set({ playlist: tracks, playlistSource: source, isRadioMode: false });
+      const { normalPlayMode } = get();
+      set({ playlist: tracks, playlistSource: source, isRadioMode: false, playMode: normalPlayMode });
       get()._saveCurrentStateToMode();
     },
 
@@ -478,7 +488,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     setMode: (mode) => {
-      set({ playMode: mode });
+      if (get().isRadioMode) {
+        set({ playMode: mode, radioPlayMode: mode });
+        localStorage.setItem("radioPlayOrder", mode);
+        return;
+      }
+
+      set({ playMode: mode, normalPlayMode: mode });
       localStorage.setItem("playOrder", mode);
     },
     setVolume: (volume) => {
@@ -568,10 +584,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     startRadioMode: async () => {
-      const { activeMode } = get();
+      const { activeMode, playMode, radioPlayMode, isRadioMode } = get();
       const radioStartMode = activeMode;
-      set({ isRadioMode: true, currentTime: 0 });
-      radioPreloadCache = null;
+      set({
+        isRadioMode: true,
+        currentTime: 0,
+        normalPlayMode: isRadioMode ? get().normalPlayMode : playMode,
+        playMode: radioPlayMode,
+      });
 
       try {
         const radioData = await pickNextRadioTrackWithRetry(radioStartMode);

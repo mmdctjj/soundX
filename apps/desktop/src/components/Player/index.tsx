@@ -726,8 +726,8 @@ const Player: React.FC = () => {
   }, [volume]);
 
   useEffect(() => {
-    localStorage.setItem("playOrder", playMode);
-  }, [playMode]);
+    localStorage.setItem(isRadioMode ? "radioPlayOrder" : "playOrder", playMode);
+  }, [isRadioMode, playMode]);
 
   useEffect(() => {
     localStorage.setItem("skipStart", String(skipStart));
