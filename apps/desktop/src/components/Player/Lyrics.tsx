@@ -15,6 +15,13 @@ interface LyricLine {
   text: string;
 }
 
+
+const isLikelyGarbledLyrics = (text: string): boolean => {
+  if (!text) return false;
+  const replacementCount = (text.match(/�/g) || []).length;
+  return replacementCount >= 3 || replacementCount / Math.max(text.length, 1) > 0.02;
+};
+
 const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -34,6 +41,11 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
   // Parse lyrics
   useEffect(() => {
     if (!lyrics) {
+      setParsedLyrics([]);
+      return;
+    }
+
+    if (isLikelyGarbledLyrics(lyrics)) {
       setParsedLyrics([]);
       return;
     }

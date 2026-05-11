@@ -18,9 +18,18 @@ interface LyricLine {
   text: string;
 }
 
+
+const isLikelyGarbledLyrics = (text: string): boolean => {
+  if (!text) return false;
+  const replacementCount = (text.match(/�/g) || []).length;
+  return replacementCount >= 3 || replacementCount / Math.max(text.length, 1) > 0.02;
+};
+
 // Match mobile parseLyrics logic
 const parseLyrics = (lyrics: string): LyricLine[] => {
   if (!lyrics) return [];
+
+  if (isLikelyGarbledLyrics(lyrics)) return [];
 
   const lines = lyrics.split('\n');
   const parsed: LyricLine[] = [];
