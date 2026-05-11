@@ -781,24 +781,45 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         // ✨ 当切歌发生（无论是手动还是自动播放下一首）
         if (event.index !== undefined) {
           const queueTrack = await TrackPlayer.getTrack(event.index);
-          const nextTrack =
-            trackListRef.current.find(
-              (track) => String(track.id) === String((queueTrack as any)?.id)
-            ) || trackListRef.current[event.index];
+          const queueTrackId = String((queueTrack as any)?.id ?? "");
+          const listMatchedTrack = trackListRef.current.find(
+            (track) => String(track.id) === queueTrackId
+          );
+          const currentMatchedTrack =
+            currentTrackRef.current && String(currentTrackRef.current.id) === queueTrackId
+              ? currentTrackRef.current
+              : null;
+          const fallbackQueueTrack =
+            queueTrack && (queueTrack as any).title
+              ? ({
+                  id: Number((queueTrack as any).id),
+                  name: (queueTrack as any).title,
+                  artist: (queueTrack as any).artist || "",
+                  album: (queueTrack as any).album || "",
+                  cover: typeof (queueTrack as any).artwork === "string" ? (queueTrack as any).artwork : "",
+                  duration: (queueTrack as any).duration || 0,
+                  path: "",
+                  type: ((queueTrack as any).type as TrackType) || TrackType.MUSIC,
+                } as Track)
+              : null;
+
+          const nextTrack = listMatchedTrack || currentMatchedTrack || fallbackQueueTrack;
           if (!nextTrack) return;
 
           console.log(`[Player] Active track changed to index ${event.index}: ${nextTrack.name}`);
-          
+
           setCurrentTrackState(nextTrack);
           isSkippingOutroRef.current = false;
 
-          // ✨ 智能预缓存：当当前歌曲开始播放时，自动触发下一首的后台下载
-          const currentListIndex = trackListRef.current.findIndex((t) => t.id === nextTrack.id);
-          const nextIndexForCache = currentListIndex + 1;
-          if (nextIndexForCache < trackListRef.current.length) {
-              const preCacheTrack = trackListRef.current[nextIndexForCache];
-              console.log(`[Player] Pre-caching next song: ${preCacheTrack.name}`);
-              resolveTrackUri(preCacheTrack, { cacheEnabled, shouldDownload: true }).catch(() => {});
+          if (!isRadioModeRef.current) {
+            // ✨ 智能预缓存：当当前歌曲开始播放时，自动触发下一首的后台下载
+            const currentListIndex = trackListRef.current.findIndex((t) => t.id === nextTrack.id);
+            const nextIndexForCache = currentListIndex + 1;
+            if (nextIndexForCache < trackListRef.current.length) {
+                const preCacheTrack = trackListRef.current[nextIndexForCache];
+                console.log(`[Player] Pre-caching next song: ${preCacheTrack.name}`);
+                resolveTrackUri(preCacheTrack, { cacheEnabled, shouldDownload: true }).catch(() => {});
+            }
           }
 
           // ✨ 处理有声书自动跳过片头

@@ -426,6 +426,34 @@ export class LocalMusicScanner {
     }
   }
 
+
+  private decodeTextBufferWithFallback(buffer: Buffer): string {
+    if (!buffer || buffer.length === 0) return '';
+
+    const utf8 = iconv.decode(buffer, 'utf8');
+    const score = (text: string): number => {
+      if (!text) return 0;
+      const replacement = (text.match(/�/g) || []).length;
+      const mojibake = (text.match(/[ÃÂÐÑÊÕÎÒÙÆË]/g) || []).length;
+      const nulls = (text.match(/ /g) || []).length;
+      return replacement * 10 + mojibake * 3 + nulls * 20;
+    };
+
+    const candidates = [
+      { encoding: 'utf8', text: utf8 },
+      { encoding: 'utf16le', text: iconv.decode(buffer, 'utf16le') },
+      { encoding: 'gb18030', text: iconv.decode(buffer, 'gb18030') },
+      { encoding: 'big5', text: iconv.decode(buffer, 'big5') },
+    ];
+
+    candidates.sort((a, b) => score(a.text) - score(b.text));
+    return candidates[0].text.replace(/^﻿/, '');
+  }
+
+  public readTextFileWithFallback(filePath: string): string {
+    const fileBuffer = fs.readFileSync(filePath);
+    return this.decodeTextBufferWithFallback(fileBuffer);
+  }
   public async findLyricsFile(audioFilePath: string): Promise<string | null> {
     const dir = path.dirname(audioFilePath);
     const baseName = path.basename(audioFilePath, path.extname(audioFilePath));
@@ -435,11 +463,11 @@ export class LocalMusicScanner {
     const txtPath = path.join(dir, `${baseName}.txt`);
 
     if (fs.existsSync(lrcPath)) {
-      return fs.readFileSync(lrcPath, 'utf-8');
+      return this.readTextFileWithFallback(lrcPath);
     }
 
     if (fs.existsSync(txtPath)) {
-      return fs.readFileSync(txtPath, 'utf-8');
+      return this.readTextFileWithFallback(txtPath);
     }
 
     return null;

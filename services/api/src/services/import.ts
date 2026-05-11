@@ -877,7 +877,8 @@ export class ImportService implements OnModuleInit {
 
       const trackBaseName = path.basename(absolutePath, path.extname(absolutePath));
       if (trackBaseName === baseName) {
-        const lyrics = fs.readFileSync(filePath, 'utf-8');
+        if (!this.scanner) this.scanner = new LocalMusicScanner(process.env.CACHE_PATH || './cache');
+        const lyrics = this.scanner.readTextFileWithFallback(filePath);
         await this.prisma.track.update({
           where: { id: track.id },
           data: { lyrics }
