@@ -7,6 +7,44 @@ import * as path from 'path';
 import { spawn } from 'child_process';
 import { createClient, FileStat, WebDAVClient } from 'webdav';
 
+function isGarbled(str: string): boolean {
+  if (!str) return false;
+  // Check for control characters (except tab, newline, carriage return)
+  const controlChars = /[\u0000-\u0008\u000b-\u000c\u000e-\u001f\u007f]/;
+  if (controlChars.test(str)) return true;
+
+  // Check for "REPLACEMENT CHARACTER" (U+FFFD)
+  if (str.includes('\uFFFD')) return true;
+
+  return false;
+}
+
+export function readLyricsFile(filePath: string): string | null {
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const buffer = fs.readFileSync(filePath);
+
+  // Try UTF-8 first
+  let content = iconv.decode(buffer, 'utf-8');
+  if (!isGarbled(content)) {
+    return content;
+  }
+
+  // Fallback to GBK
+  try {
+    const decoded = iconv.decode(buffer, 'gbk');
+    if (!isGarbled(decoded)) {
+      return decoded;
+    }
+  } catch {
+    // Ignore
+  }
+
+  return content;
+}
+
 export interface ScanResult {
   path: string;
   size: number;
@@ -434,15 +472,7 @@ export class LocalMusicScanner {
     const lrcPath = path.join(dir, `${baseName}.lrc`);
     const txtPath = path.join(dir, `${baseName}.txt`);
 
-    if (fs.existsSync(lrcPath)) {
-      return fs.readFileSync(lrcPath, 'utf-8');
-    }
-
-    if (fs.existsSync(txtPath)) {
-      return fs.readFileSync(txtPath, 'utf-8');
-    }
-
-    return null;
+    return readLyricsFile(lrcPath) || readLyricsFile(txtPath);
   }
 
   public async findCoverInDirectory(dir: string): Promise<string | null> {
