@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Album, FileStatus, PrismaClient, TrackType } from '@soundx/db';
-import { LocalMusicScanner, ScanResult, WebDAVScanner } from '@soundx/utils';
+import { LocalMusicScanner, readLyricsFile, ScanResult, WebDAVScanner } from '@soundx/utils';
 import { spawn } from 'child_process';
 import * as chokidar from 'chokidar';
 import * as crypto from 'crypto';
@@ -877,12 +877,14 @@ export class ImportService implements OnModuleInit {
 
       const trackBaseName = path.basename(absolutePath, path.extname(absolutePath));
       if (trackBaseName === baseName) {
-        const lyrics = fs.readFileSync(filePath, 'utf-8');
-        await this.prisma.track.update({
-          where: { id: track.id },
-          data: { lyrics }
-        });
-        this.logger.log(`[Watcher] Updated lyrics for track ${track.id} (${track.name})`);
+        const lyrics = readLyricsFile(filePath);
+        if (lyrics !== null) {
+          await this.prisma.track.update({
+            where: { id: track.id },
+            data: { lyrics }
+          });
+          this.logger.log(`[Watcher] Updated lyrics for track ${track.id} (${track.name})`);
+        }
         break;
       }
     }
