@@ -254,68 +254,72 @@ export default function MvScreen() {
       <View style={styles.content}>
         {videoSource && (
           <View style={[styles.videoFrame, { width, height: width * (9 / 16) }]}>
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={showControlsTemporarily}
-              style={styles.videoTouchArea}
-            >
-              <VideoView
-                ref={videoViewRef}
-                style={styles.video}
-                player={player}
-                allowsPictureInPicture
-                nativeControls={false}
-                showsTimecodes={false}
-                fullscreenOptions={{
-                  enable: true,
-                  orientation: "landscape",
-                  autoExitOnRotate: true,
-                }}
-                onFullscreenEnter={() => setIsFullscreen(true)}
-                onFullscreenExit={() => setIsFullscreen(false)}
+            <VideoView
+              ref={videoViewRef}
+              style={styles.video}
+              player={player}
+              allowsPictureInPicture
+              nativeControls={false}
+              showsTimecodes={false}
+              fullscreenOptions={{
+                enable: true,
+                orientation: "landscape",
+                autoExitOnRotate: true,
+              }}
+              onFullscreenEnter={() => setIsFullscreen(true)}
+              onFullscreenExit={() => setIsFullscreen(false)}
+            />
+
+            {!controlsVisible && (
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={showControlsTemporarily}
+                style={styles.videoTouchArea}
               />
+            )}
 
-              {controlsVisible && (
-                <View style={styles.controlsOverlay} pointerEvents="box-none">
-                  <TouchableOpacity
-                    style={styles.centerPlayBtn}
-                    onPress={() => {
-                      togglePlayback();
-                      showControlsTemporarily();
-                    }}
-                  >
-                    <Ionicons
-                      name={isPlaying ? "pause" : "play"}
-                      size={48}
-                      color="rgba(255,255,255,0.9)"
+            {controlsVisible && (
+              <View style={styles.controlsOverlay} pointerEvents="box-none">
+                <TouchableOpacity
+                  style={styles.centerPlayBtn}
+                  onPress={() => {
+                    togglePlayback();
+                    showControlsTemporarily();
+                  }}
+                >
+                  <Ionicons
+                    name={isPlaying ? "pause" : "play"}
+                    size={48}
+                    color="#fff"
+                  />
+                </TouchableOpacity>
+
+                <View style={styles.bottomControls} pointerEvents="box-none">
+                  <View style={styles.progressRow}>
+                    <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+                    <Slider
+                      containerStyle={{ flex: 1, height: 30, marginHorizontal: 8 }}
+                      minimumValue={0}
+                      maximumValue={duration || 1}
+                      value={Math.min(currentTime, duration || 1)}
+                      onValueChange={(value) => {
+                        const val = Array.isArray(value) ? value[0] : value;
+                        setCurrentTime(val);
+                      }}
+                      onSlidingComplete={(value) => {
+                        const val = Array.isArray(value) ? value[0] : value;
+                        player.currentTime = val;
+                        showControlsTemporarily();
+                      }}
+                      minimumTrackTintColor={colors.primary}
+                      maximumTrackTintColor="rgba(255,255,255,0.3)"
+                      thumbTintColor={colors.primary}
                     />
-                  </TouchableOpacity>
+                    <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                  </View>
 
-                  <View style={styles.bottomControls} pointerEvents="box-none">
-                    <View style={styles.progressRow}>
-                      <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-                      <Slider
-                        containerStyle={{ flex: 1, height: 30, marginHorizontal: 8 }}
-                        minimumValue={0}
-                        maximumValue={duration || 1}
-                        value={Math.min(currentTime, duration || 1)}
-                        onValueChange={(value) => {
-                          const val = Array.isArray(value) ? value[0] : value;
-                          setCurrentTime(val);
-                        }}
-                        onSlidingComplete={(value) => {
-                          const val = Array.isArray(value) ? value[0] : value;
-                          player.currentTime = val;
-                          showControlsTemporarily();
-                        }}
-                        minimumTrackTintColor={colors.primary}
-                        maximumTrackTintColor="rgba(255,255,255,0.3)"
-                        thumbTintColor={colors.primary}
-                      />
-                      <Text style={styles.timeText}>{formatTime(duration)}</Text>
-                    </View>
-
-                    <View style={styles.controlButtonsRow}>
+                  <View style={styles.controlButtonsRow} pointerEvents="box-none">
+                    <View style={styles.leftControls} pointerEvents="box-none">
                       <TouchableOpacity
                         style={[styles.controlBtn, !hasPrev && styles.controlBtnDisabled]}
                         onPress={() => {
@@ -327,7 +331,7 @@ export default function MvScreen() {
                         <Ionicons
                           name="play-skip-back"
                           size={22}
-                          color={hasPrev ? colors.text : "rgba(255,255,255,0.35)"}
+                          color={hasPrev ? "#fff" : "rgba(255,255,255,0.35)"}
                         />
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -340,7 +344,7 @@ export default function MvScreen() {
                         <Ionicons
                           name={isPlaying ? "pause" : "play"}
                           size={30}
-                          color={colors.text}
+                          color="#fff"
                         />
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -354,27 +358,27 @@ export default function MvScreen() {
                         <Ionicons
                           name="play-skip-forward"
                           size={22}
-                          color={hasNext ? colors.text : "rgba(255,255,255,0.35)"}
-                        />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.controlBtn}
-                        onPress={() => {
-                          toggleFullscreen();
-                          showControlsTemporarily();
-                        }}
-                      >
-                        <Ionicons
-                          name={isFullscreen ? "contract" : "expand"}
-                          size={22}
-                          color={colors.text}
+                          color={hasNext ? "#fff" : "rgba(255,255,255,0.35)"}
                         />
                       </TouchableOpacity>
                     </View>
+                    <TouchableOpacity
+                      style={styles.controlBtn}
+                      onPress={() => {
+                        toggleFullscreen();
+                        showControlsTemporarily();
+                      }}
+                    >
+                      <Ionicons
+                        name={isFullscreen ? "contract" : "expand"}
+                        size={22}
+                        color="#fff"
+                      />
+                    </TouchableOpacity>
                   </View>
                 </View>
-              )}
-            </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
         {displayPlaylist.length > 0 && (
@@ -486,9 +490,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
   videoTouchArea: {
-    width: "100%",
-    height: "100%",
-    position: "relative",
+    ...StyleSheet.absoluteFillObject,
   },
   video: {
     width: "100%",
@@ -497,14 +499,17 @@ const styles = StyleSheet.create({
   controlsOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
   },
   centerPlayBtn: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginTop: -36,
+    marginLeft: -36,
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -516,15 +521,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 12,
     paddingTop: 20,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   progressRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   timeText: {
-    color: "rgba(255,255,255,0.9)",
+    color: "#fff",
     fontSize: 12,
     fontVariant: ["tabular-nums"],
     minWidth: 36,
@@ -533,8 +538,12 @@ const styles = StyleSheet.create({
   controlButtonsRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
+    justifyContent: "space-between",
+  },
+  leftControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   controlsSection: {
     flexDirection: "row",
@@ -548,6 +557,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -558,6 +568,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
