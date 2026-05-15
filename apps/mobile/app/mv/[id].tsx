@@ -1,15 +1,32 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState, useSyncExternalStore } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, useWindowDimensions, Alert, Image, FlatList } from "react-native";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  Alert,
+  Image,
+  FlatList,
+} from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { Slider } from "@miblanchard/react-native-slider";
 import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { useTheme } from "../../src/context/ThemeContext";
 import { getMvById, getMvByTrackId, type Mv } from "@soundx/services";
 import { getImageUrl } from "../../src/utils/image";
 import { usePlayer } from "../../src/context/PlayerContext";
 import { mvPlaylistStore } from "../../src/store/mvPlaylist";
+
+const formatTime = (seconds: number) => {
+  if (!seconds || isNaN(seconds)) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+};
 
 export default function MvScreen() {
   const { id, trackId } = useLocalSearchParams<{ id?: string; trackId?: string }>();
@@ -25,6 +42,15 @@ export default function MvScreen() {
   const [mv, setMv] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [currentMvId, setCurrentMvId] = useState<string | null>(targetId ?? null);
+
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const videoViewRef = useRef<VideoView>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playlistState = useSyncExternalStore(
     mvPlaylistStore.subscribe,
@@ -38,29 +64,25 @@ export default function MvScreen() {
       : [];
   const displayCurrentIndex = playlistState.list.length > 0 ? playlistState.currentIndex : 0;
 
-  const syncPlaylistIndex = (targetMv: Mv) => {
+  const handlePlayMv = (targetMv: Mv) => {
     const targetIndex = playlistState.list.findIndex((item) => item.id === targetMv.id);
-    if (targetIndex >= 0 && targetIndex !== playlistState.currentIndex) {
+    if (targetIndex >= 0) {
       mvPlaylistStore.setPlaylist(playlistState.list, targetIndex);
     }
-  };
-
-  const handlePlayMv = (targetMv: Mv) => {
-    syncPlaylistIndex(targetMv);
-    router.replace(`/mv/${targetMv.id}`);
+    setCurrentMvId(String(targetMv.id));
   };
 
   const handlePrevMv = () => {
     const prevMv = mvPlaylistStore.prev();
     if (prevMv) {
-      handlePlayMv(prevMv);
+      setCurrentMvId(String(prevMv.id));
     }
   };
 
   const handleNextMv = () => {
     const nextMv = mvPlaylistStore.next();
     if (nextMv) {
-      handlePlayMv(nextMv);
+      setCurrentMvId(String(nextMv.id));
     }
   };
 
@@ -72,28 +94,51 @@ export default function MvScreen() {
     }
   };
 
+  const showControlsTemporarily = () => {
+    setControlsVisible(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setControlsVisible(false);
+      }
+    }, 3000);
+  };
+
+  const toggleFullscreen = () => {
+    if (isFullscreen) {
+      videoViewRef.current?.exitFullscreen();
+    } else {
+      videoViewRef.current?.enterFullscreen();
+    }
+  };
+
   const videoSource = mv?.path ? getImageUrl(mv.path) : null;
-  const player = useVideoPlayer(videoSource, player => {
+  const player = useVideoPlayer(videoSource, (player) => {
     player.loop = !inPlaylist;
+    player.timeUpdateEventInterval = 1;
     player.play();
   });
 
   useEffect(() => {
     pause();
-    if (!targetId) {
+    if (!currentMvId) {
       return;
     }
 
     const fetchMv = async () => {
       try {
         setLoading(true);
-        const playlistItem = playlistState.list[playlistState.currentIndex];
-        if (playlistItem && String(playlistItem.id) === String(targetId)) {
+        const playlistItem = playlistState.list.find(
+          (item) => String(item.id) === currentMvId,
+        );
+        if (playlistItem) {
           setMv(playlistItem);
         } else {
           const res = isTrackMode
-            ? await getMvByTrackId(Number(targetId))
-            : await getMvById(Number(targetId));
+            ? await getMvByTrackId(Number(currentMvId))
+            : await getMvById(Number(currentMvId));
           if (res && res.path) {
             setMv(res);
           } else {
@@ -108,34 +153,62 @@ export default function MvScreen() {
     };
 
     fetchMv();
-  }, [pause, targetId, isTrackMode, playlistState.currentIndex, playlistState.list]);
+  }, [pause, currentMvId, isTrackMode, playlistState.list]);
 
   // Listen for playback end in playlist mode
   useEffect(() => {
     if (!inPlaylist || !player) return;
-    const subscription = player.addListener('statusChange' as any, ({ status }: { status: string }) => {
-      if (status === 'idle' && player.currentTime > 0) {
-        const nextMv = mvPlaylistStore.next();
-        if (nextMv) {
-          const targetIndex = playlistState.list.findIndex((item) => item.id === nextMv.id);
-          if (targetIndex >= 0 && targetIndex !== playlistState.currentIndex) {
-            mvPlaylistStore.setPlaylist(playlistState.list, targetIndex);
+    const subscription = player.addListener(
+      "statusChange" as any,
+      ({ status }: { status: string }) => {
+        if (status === "idle" && player.currentTime > 0) {
+          const nextMv = mvPlaylistStore.next();
+          if (nextMv) {
+            setCurrentMvId(String(nextMv.id));
           }
-          router.replace(`/mv/${nextMv.id}`);
         }
-      }
-    });
+      },
+    );
     return () => subscription?.remove();
-  }, [inPlaylist, player, playlistState.currentIndex, playlistState.list, router]);
+  }, [inPlaylist, player]);
 
   useEffect(() => {
     if (!player) return;
     setIsPlaying(player.playing);
-    const subscription = player.addListener('playingChange' as any, ({ isPlaying: nextIsPlaying }: { isPlaying: boolean }) => {
-      setIsPlaying(nextIsPlaying);
-    });
-    return () => subscription?.remove();
+    const sub1 = player.addListener(
+      "playingChange" as any,
+      ({ isPlaying: nextIsPlaying }: { isPlaying: boolean }) => {
+        setIsPlaying(nextIsPlaying);
+      },
+    );
+    const sub2 = player.addListener(
+      "timeUpdate" as any,
+      ({ currentTime }: { currentTime: number }) => {
+        setCurrentTime(currentTime);
+      },
+    );
+    const sub3 = player.addListener(
+      "sourceLoad" as any,
+      ({ duration }: { duration: number }) => {
+        setDuration(duration);
+      },
+    );
+    return () => {
+      sub1?.remove();
+      sub2?.remove();
+      sub3?.remove();
+    };
   }, [player, mv?.id]);
+
+  useEffect(() => {
+    showControlsTemporarily();
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mv?.id]);
 
   const hasPrev = mvPlaylistStore.hasPrev();
   const hasNext = mvPlaylistStore.hasNext();
@@ -146,7 +219,12 @@ export default function MvScreen() {
 
   if (!mv) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" },
+        ]}
+      >
         <Text style={{ color: colors.text }}>MV not found</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
           <Text style={{ color: colors.primary }}>Go Back</Text>
@@ -156,14 +234,20 @@ export default function MvScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+    <View
+      style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={28} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{mv.name}</Text>
-          <Text style={[styles.artist, { color: colors.secondary }]} numberOfLines={1}>{mv.artist}</Text>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+            {mv.name}
+          </Text>
+          <Text style={[styles.artist, { color: colors.secondary }]} numberOfLines={1}>
+            {mv.artist}
+          </Text>
         </View>
       </View>
 
@@ -171,46 +255,139 @@ export default function MvScreen() {
         {videoSource && (
           <View style={[styles.videoFrame, { width, height: width * (9 / 16) }]}>
             <VideoView
+              ref={videoViewRef}
               style={styles.video}
               player={player}
               allowsPictureInPicture
-              nativeControls={true}
+              nativeControls={false}
               showsTimecodes={false}
               fullscreenOptions={{
                 enable: true,
-                orientation: 'landscape',
+                orientation: "landscape",
                 autoExitOnRotate: true,
               }}
+              onFullscreenEnter={() => setIsFullscreen(true)}
+              onFullscreenExit={() => setIsFullscreen(false)}
             />
+
+            {!controlsVisible && (
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={showControlsTemporarily}
+                style={styles.videoTouchArea}
+              />
+            )}
+
+            {controlsVisible && (
+              <View style={styles.controlsOverlay} pointerEvents="box-none">
+                <TouchableOpacity
+                  style={styles.centerPlayBtn}
+                  onPress={() => {
+                    togglePlayback();
+                    showControlsTemporarily();
+                  }}
+                >
+                  <Ionicons
+                    name={isPlaying ? "pause" : "play"}
+                    size={48}
+                    color="#fff"
+                  />
+                </TouchableOpacity>
+
+                <View style={styles.bottomControls} pointerEvents="box-none">
+                  <View style={styles.progressRow}>
+                    <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+                    <Slider
+                      containerStyle={{ flex: 1, height: 30, marginHorizontal: 8 }}
+                      minimumValue={0}
+                      maximumValue={duration || 1}
+                      value={Math.min(currentTime, duration || 1)}
+                      onValueChange={(value) => {
+                        const val = Array.isArray(value) ? value[0] : value;
+                        setCurrentTime(val);
+                      }}
+                      onSlidingComplete={(value) => {
+                        const val = Array.isArray(value) ? value[0] : value;
+                        player.currentTime = val;
+                        showControlsTemporarily();
+                      }}
+                      minimumTrackTintColor={colors.primary}
+                      maximumTrackTintColor="rgba(255,255,255,0.3)"
+                      thumbTintColor={colors.primary}
+                    />
+                    <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                  </View>
+
+                  <View style={styles.controlButtonsRow} pointerEvents="box-none">
+                    <View style={styles.leftControls} pointerEvents="box-none">
+                      <TouchableOpacity
+                        style={[styles.controlBtn, !hasPrev && styles.controlBtnDisabled]}
+                        onPress={() => {
+                          handlePrevMv();
+                          showControlsTemporarily();
+                        }}
+                        disabled={!hasPrev}
+                      >
+                        <Ionicons
+                          name="play-skip-back"
+                          size={22}
+                          color={hasPrev ? "#fff" : "rgba(255,255,255,0.35)"}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.playBtn}
+                        onPress={() => {
+                          togglePlayback();
+                          showControlsTemporarily();
+                        }}
+                      >
+                        <Ionicons
+                          name={isPlaying ? "pause" : "play"}
+                          size={30}
+                          color="#fff"
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.controlBtn, !hasNext && styles.controlBtnDisabled]}
+                        onPress={() => {
+                          handleNextMv();
+                          showControlsTemporarily();
+                        }}
+                        disabled={!hasNext}
+                      >
+                        <Ionicons
+                          name="play-skip-forward"
+                          size={22}
+                          color={hasNext ? "#fff" : "rgba(255,255,255,0.35)"}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.controlBtn}
+                      onPress={() => {
+                        toggleFullscreen();
+                        showControlsTemporarily();
+                      }}
+                    >
+                      <Ionicons
+                        name={isFullscreen ? "contract" : "expand"}
+                        size={22}
+                        color="#fff"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         )}
         {displayPlaylist.length > 0 && (
           <View style={styles.playlistSection}>
             <View style={styles.playlistHeader}>
               <Text style={[styles.playlistCount, { color: colors.secondary }]}>
-                <Text style={[styles.playlistTitle, { color: colors.text }]}>待播放 MV</Text>
-                ({displayCurrentIndex + 1} / {displayPlaylist.length})
+                <Text style={[styles.playlistTitle, { color: colors.text }]}>待播放 MV</Text> (
+                {displayCurrentIndex + 1} / {displayPlaylist.length})
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'flex-start' }}>
-                <TouchableOpacity
-                  style={[styles.controlBtn, !hasPrev && styles.controlBtnDisabled]}
-                  onPress={handlePrevMv}
-                  disabled={!hasPrev}
-                >
-                  <Ionicons name="play-skip-back" size={22} color={hasPrev ? colors.text : "rgba(255,255,255,0.35)"} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.playBtn} onPress={togglePlayback}>
-                  <Ionicons name={isPlaying ? "pause" : "play"} size={30} color={colors.text} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.controlBtn, !hasNext && styles.controlBtnDisabled]}
-                  onPress={handleNextMv}
-                  disabled={!hasNext}
-                >
-                  <Ionicons name="play-skip-forward" size={22} color={hasNext ? colors.text : "rgba(255,255,255,0.35)"} />
-                </TouchableOpacity>
-              </View>
-              
             </View>
             <FlatList
               data={displayPlaylist}
@@ -224,7 +401,7 @@ export default function MvScreen() {
                     style={[
                       styles.playlistItem,
                       { borderBottomColor: colors.border },
-                      isActive && { backgroundColor: colors.primary + '18' },
+                      isActive && { backgroundColor: colors.primary + "18" },
                     ]}
                     onPress={() => {
                       if (!isActive) handlePlayMv(item);
@@ -239,18 +416,29 @@ export default function MvScreen() {
                       {index + 1}
                     </Text>
                     <Image
-                      source={{ uri: getImageUrl(item.cover, `https://picsum.photos/seed/mv-${item.id}/80/45`) }}
+                      source={{
+                        uri: getImageUrl(
+                          item.cover,
+                          `https://picsum.photos/seed/mv-${item.id}/80/45`,
+                        ),
+                      }}
                       style={styles.playlistItemCover}
                     />
                     <View style={styles.playlistItemInfo}>
                       <Text
-                        style={[styles.playlistItemName, { color: isActive ? colors.primary : colors.text }]}
+                        style={[
+                          styles.playlistItemName,
+                          { color: isActive ? colors.primary : colors.text },
+                        ]}
                         numberOfLines={1}
                       >
                         {item.name}
                       </Text>
                       {item.artist && (
-                        <Text style={[styles.playlistItemArtist, { color: colors.secondary }]} numberOfLines={1}>
+                        <Text
+                          style={[styles.playlistItemArtist, { color: colors.secondary }]}
+                          numberOfLines={1}
+                        >
                           {item.artist}
                         </Text>
                       )}
@@ -272,8 +460,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 15,
     paddingBottom: 10,
   },
@@ -285,30 +473,82 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   title: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   artist: {
-    color: 'rgba(255,255,255,0.7)',
+    color: "rgba(255,255,255,0.7)",
     fontSize: 12,
   },
   content: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 6,
   },
   videoFrame: {
-    backgroundColor: '#000',
+    backgroundColor: "#000",
+  },
+  videoTouchArea: {
+    ...StyleSheet.absoluteFillObject,
   },
   video: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
+  },
+  controlsOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  centerPlayBtn: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginTop: -36,
+    marginLeft: -36,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomControls: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  progressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  timeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontVariant: ["tabular-nums"],
+    minWidth: 36,
+    textAlign: "center",
+  },
+  controlButtonsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  leftControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   controlsSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 16,
     marginTop: 18,
     marginBottom: 22,
@@ -317,34 +557,36 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   controlBtnDisabled: {
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: "rgba(0,0,0,0.2)",
   },
   playBtn: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   playlistSection: {
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 16,
     flex: 1,
     minHeight: 0,
   },
   playlistHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 10,
   },
   playlistTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   playlistCount: {
     fontSize: 12,
@@ -363,8 +605,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   playlistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 0.5,
@@ -372,9 +614,9 @@ const styles = StyleSheet.create({
   },
   playlistItemIndex: {
     width: 24,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   playlistItemCover: {
     width: 64,
@@ -386,7 +628,7 @@ const styles = StyleSheet.create({
   },
   playlistItemName: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   playlistItemArtist: {
     fontSize: 11,
