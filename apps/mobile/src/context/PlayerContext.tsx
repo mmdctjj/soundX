@@ -201,6 +201,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [skipOutroDuration, setSkipOutroDurationState] = useState(0);
   const isSkippingOutroRef = useRef(false); // 防止重复触发切歌
   const lastAutoNextAtRef = useRef(0);
+  const playbackRequestIdRef = useRef(0);
+  const isPlaybackRequestPendingRef = useRef(false);
+  const pendingPlaybackTrackIdRef = useRef<string | null>(null);
 
   const prevModeRef = useRef(mode);
   const isInitialLoadRef = useRef(true);
@@ -236,16 +239,42 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const skipIntroDurationRef = React.useRef(skipIntroDuration);
   const skipOutroDurationRef = React.useRef(skipOutroDuration);
   const radioNextTrackRef = React.useRef<Track | null>(null);
+  const knownTrackByIdRef = React.useRef<Map<string, Track>>(new Map());
 
   const setCurrentTrackState = useCallback((track: Track | null) => {
+    if (track) {
+      knownTrackByIdRef.current.set(String(track.id), track);
+    }
     currentTrackRef.current = track;
     setCurrentTrack(track);
   }, []);
 
   const setTrackListState = useCallback((tracks: Track[]) => {
+    tracks.forEach((track) => {
+      knownTrackByIdRef.current.set(String(track.id), track);
+    });
     trackListRef.current = tracks;
     setTrackList(tracks);
   }, []);
+
+  const getActiveTrackFromQueue = async (
+    index: number,
+    eventTrack?: unknown,
+  ): Promise<Track | null> => {
+    const queueTrack = eventTrack || await TrackPlayer.getTrack(index);
+    const queueTrackId = (queueTrack as any)?.id;
+
+    if (queueTrackId !== undefined && queueTrackId !== null) {
+      const id = String(queueTrackId);
+      return (
+        trackListRef.current.find((track) => String(track.id) === id) ||
+        knownTrackByIdRef.current.get(id) ||
+        null
+      );
+    }
+
+    return trackListRef.current[index] || null;
+  };
 
 
   const normalizeStoredPlayMode = (storedPlayMode: string | null): PlayMode | null => {
@@ -780,12 +809,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       if (event.type === Event.PlaybackActiveTrackChanged) {
         // ✨ 当切歌发生（无论是手动还是自动播放下一首）
         if (event.index !== undefined) {
-          const queueTrack = await TrackPlayer.getTrack(event.index);
-          const nextTrack =
-            trackListRef.current.find(
-              (track) => String(track.id) === String((queueTrack as any)?.id)
-            ) || trackListRef.current[event.index];
+          const nextTrack = await getActiveTrackFromQueue(
+            event.index,
+            (event as any).track,
+          );
           if (!nextTrack) return;
+          if (
+            isPlaybackRequestPendingRef.current &&
+            pendingPlaybackTrackIdRef.current &&
+            String(nextTrack.id) !== pendingPlaybackTrackIdRef.current
+          ) {
+            return;
+          }
 
           console.log(`[Player] Active track changed to index ${event.index}: ${nextTrack.name}`);
           
@@ -821,6 +856,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
       if (event.type === Event.PlaybackQueueEnded) {
+        if (isPlaybackRequestPendingRef.current) return;
+
         const now = Date.now();
         if (now - lastAutoNextAtRef.current < 800) {
           return;
@@ -899,16 +936,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const prepareAudioQuality = async (
     track: Track,
     preferredQuality?: AudioQuality,
-  ): Promise<AudioQuality> => {
+  ): Promise<{ selectedQuality: AudioQuality; options: AudioQualityOption[] }> => {
     if (track.type === TrackType.AUDIOBOOK) {
-      setAvailableAudioQualities([]);
-      setCurrentAudioQuality("lossless");
-      return "lossless";
+      return { selectedQuality: "lossless", options: [] };
     }
 
     const profile = await getTrackAudioQualityProfile(track);
-    setAvailableAudioQualities(profile.options);
-    const nextQuality = resolveTrackAudioQuality(
+    const selectedQuality = resolveTrackAudioQuality(
       profile,
       preferredQuality ??
         (await getCurrentPlaybackQualityPreference({
@@ -917,8 +951,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         })),
     );
 
-    setCurrentAudioQuality(nextQuality);
-    return nextQuality;
+    return { selectedQuality, options: profile.options };
   };
 
   const getPreviousIndex = (
@@ -1344,6 +1377,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     preferredQuality?: AudioQuality,
   ) => {
     if (!isSetup) return;
+
+    const requestId = playbackRequestIdRef.current + 1;
+    playbackRequestIdRef.current = requestId;
+    isPlaybackRequestPendingRef.current = true;
+    pendingPlaybackTrackIdRef.current = String(track.id);
+
+    const isLatestRequest = () => requestId === playbackRequestIdRef.current;
+
     if (!fromRadio) {
       exitRadioPlaybackContext();
     }
@@ -1363,14 +1404,19 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       // ✨ 重置片尾跳过锁
       isSkippingOutroRef.current = false;
 
-      const selectedQuality = await prepareAudioQuality(track, preferredQuality);
+      const { selectedQuality, options } = await prepareAudioQuality(track, preferredQuality);
+      if (!isLatestRequest()) return;
+
       const playUri =
         track.type === TrackType.AUDIOBOOK
           ? await resolveTrackUri(track, { cacheEnabled })
           : buildTrackPlaybackUrl(track, selectedQuality);
+      if (!isLatestRequest()) return;
+
       const artwork = await resolveArtworkUriForPlayer(track, {
         shouldDownload: true,
       });
+      if (!isLatestRequest()) return;
 
       console.log("Playing track:", track.id, "URI:", playUri);
 
@@ -1384,19 +1430,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         duration: track.duration || 0,
         type: track.type, // ✨ 传递类型
       };
+      knownTrackByIdRef.current.set(String(track.id), track);
 
       // ✨ 优化：使用“先加后跳再删”逻辑，防止 reset 导致音频焦点丢失和通知栏闪烁
       const queue = await TrackPlayer.getQueue();
+      if (!isLatestRequest()) return;
+
       if (queue.length > 0) {
         await TrackPlayer.add(trackData);
+        if (!isLatestRequest()) return;
         await TrackPlayer.skip(queue.length);
         // 延迟移除旧歌曲（不使用 await 以免阻塞后续播放逻辑）
         TrackPlayer.remove(Array.from({ length: queue.length }, (_, i) => i)).catch(() => {});
       } else {
         await TrackPlayer.add(trackData);
       }
+      if (!isLatestRequest()) return;
 
       await updatePlayerCapabilities(track);
+      if (!isLatestRequest()) return;
 
       // ✨ 处理初始位置 & 自动跳过片头
       let startPos = 0;
@@ -1405,98 +1457,145 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       if (initialPosition !== undefined) {
         startPos = initialPosition;
       } else if (
-        skipIntroDuration > 0 &&
+        skipIntroDurationRef.current > 0 &&
         track.type === TrackType.AUDIOBOOK // 仅有声书生效
       ) {
-        console.log(`[AutoSkip] Skipping intro: ${skipIntroDuration}s`);
-        startPos = skipIntroDuration;
+        console.log(`[AutoSkip] Skipping intro: ${skipIntroDurationRef.current}s`);
+        startPos = skipIntroDurationRef.current;
       }
 
       if (startPos > 0) {
         await TrackPlayer.seekTo(startPos);
+        if (!isLatestRequest()) return;
       }
 
       await TrackPlayer.play();
+      if (!isLatestRequest()) return;
+
       setCurrentTrackState(track);
+      setAvailableAudioQualities(options);
+      setCurrentAudioQuality(selectedQuality);
       savePlaybackState(mode);
     } catch (error) {
-      console.error("Failed to play track:", error);
+      if (isLatestRequest()) {
+        console.error("Failed to play track:", error);
+      }
+    } finally {
+      if (isLatestRequest()) {
+        isPlaybackRequestPendingRef.current = false;
+        pendingPlaybackTrackIdRef.current = null;
+      }
     }
   };
 
   const playTrackList = async (tracks: Track[], index: number, initialPosition?: number) => {
-    exitRadioPlaybackContext();
-    setTrackList(tracks);
-    const shouldUseSingleTrackQueue = playModeRef.current === PlayMode.SHUFFLE;
-    if (shouldUseSingleTrackQueue) {
-      const track = tracks[index];
-      const uri =
-        track.type === TrackType.AUDIOBOOK
-          ? await resolveTrackUri(track, {
-              cacheEnabled,
-              shouldDownload: true,
-            })
-          : buildTrackPlaybackUrl(track);
-      const artwork = await resolveArtworkUriForPlayer(track, {
-        shouldDownload: true,
-      });
-      await TrackPlayer.setQueue([
-        {
-          id: String(track.id),
-          url: uri,
-          title: track.name,
-          artist: track.artist,
-          album: track.album || "Unknown Album",
-          artwork,
-          duration: track.duration || 0,
-          type: track.type,
-        } as any,
-      ]);
-      await TrackPlayer.skip(0);
-    } else {
-      // ✨ 核心改进：预加载整个列表进入原生队列，但仅触发当前和下一首的下载
-      const playerTracks = await Promise.all(tracks.map(async (t, i) => {
-          // 核心优化：仅当前曲目 (index) 和下一首 (index + 1) 会触发耗时的缓存检查和预下载
-          // 其他歌曲使用 fast 模式直接返回远程 URL，稍后真正切到它们时再由 resolveTrackUri 处理缓存
-          const isNearCurrent = (i === index || i === index + 1);
-          const uri =
-            t.type === TrackType.AUDIOBOOK
-              ? await resolveTrackUri(t, { 
-                  cacheEnabled, 
-                  shouldDownload: isNearCurrent,
-                  fast: !isNearCurrent 
-                })
-              : buildTrackPlaybackUrl(t);
-          const artwork = await resolveArtworkUriForPlayer(t, {
-            shouldDownload: isNearCurrent,
-            fast: !isNearCurrent,
-          });
-          return {
-            id: String(t.id),
+    if (!isSetup) return;
+
+    const requestId = playbackRequestIdRef.current + 1;
+    playbackRequestIdRef.current = requestId;
+    isPlaybackRequestPendingRef.current = true;
+    pendingPlaybackTrackIdRef.current = tracks[index] ? String(tracks[index].id) : null;
+
+    const isLatestRequest = () => requestId === playbackRequestIdRef.current;
+
+    try {
+      exitRadioPlaybackContext();
+      setTrackListState(tracks);
+      isSkippingOutroRef.current = false;
+
+      const shouldUseSingleTrackQueue = playModeRef.current === PlayMode.SHUFFLE;
+      if (shouldUseSingleTrackQueue) {
+        const track = tracks[index];
+        const uri =
+          track.type === TrackType.AUDIOBOOK
+            ? await resolveTrackUri(track, {
+                cacheEnabled,
+                shouldDownload: true,
+              })
+            : buildTrackPlaybackUrl(track);
+        if (!isLatestRequest()) return;
+
+        const artwork = await resolveArtworkUriForPlayer(track, {
+          shouldDownload: true,
+        });
+        if (!isLatestRequest()) return;
+
+        await TrackPlayer.setQueue([
+          {
+            id: String(track.id),
             url: uri,
-            title: t.name,
-            artist: t.artist,
-            album: t.album || "Unknown Album",
-            artwork: artwork,
-            duration: t.duration || 0,
-            // ✨ 附加自定义字段，方便背景服务识别
-            type: t.type 
-          } as any;
-      }));
+            title: track.name,
+            artist: track.artist,
+            album: track.album || "Unknown Album",
+            artwork,
+            duration: track.duration || 0,
+            type: track.type,
+          } as any,
+        ]);
+        if (!isLatestRequest()) return;
 
-      await TrackPlayer.setQueue(playerTracks);
-      await TrackPlayer.skip(index);
-    }
-    
-    if (initialPosition !== undefined) {
-      await TrackPlayer.seekTo(initialPosition);
-    } else if (tracks[index].type === TrackType.AUDIOBOOK && skipIntroDuration > 0) {
-      await TrackPlayer.seekTo(skipIntroDuration);
-    }
+        await TrackPlayer.skip(0);
+      } else {
+        // ✨ 核心改进：预加载整个列表进入原生队列，但仅触发当前和下一首的下载
+        const playerTracks = await Promise.all(tracks.map(async (t, i) => {
+            // 核心优化：仅当前曲目 (index) 和下一首 (index + 1) 会触发耗时的缓存检查和预下载
+            // 其他歌曲使用 fast 模式直接返回远程 URL，稍后真正切到它们时再由 resolveTrackUri 处理缓存
+            const isNearCurrent = (i === index || i === index + 1);
+            const uri =
+              t.type === TrackType.AUDIOBOOK
+                ? await resolveTrackUri(t, {
+                    cacheEnabled,
+                    shouldDownload: isNearCurrent,
+                    fast: !isNearCurrent
+                  })
+                : buildTrackPlaybackUrl(t);
+            const artwork = await resolveArtworkUriForPlayer(t, {
+              shouldDownload: isNearCurrent,
+              fast: !isNearCurrent,
+            });
+            return {
+              id: String(t.id),
+              url: uri,
+              title: t.name,
+              artist: t.artist,
+              album: t.album || "Unknown Album",
+              artwork: artwork,
+              duration: t.duration || 0,
+              // ✨ 附加自定义字段，方便背景服务识别
+              type: t.type
+            } as any;
+        }));
+        if (!isLatestRequest()) return;
 
-    await TrackPlayer.play();
-    setCurrentTrackState(tracks[index]);
-    savePlaybackState(mode);
+        await TrackPlayer.setQueue(playerTracks);
+        if (!isLatestRequest()) return;
+
+        await TrackPlayer.skip(index);
+      }
+      if (!isLatestRequest()) return;
+
+      if (initialPosition !== undefined) {
+        await TrackPlayer.seekTo(initialPosition);
+      } else if (tracks[index].type === TrackType.AUDIOBOOK && skipIntroDurationRef.current > 0) {
+        await TrackPlayer.seekTo(skipIntroDurationRef.current);
+      }
+      if (!isLatestRequest()) return;
+
+      await TrackPlayer.play();
+      if (!isLatestRequest()) return;
+
+      setCurrentTrackState(tracks[index]);
+      savePlaybackState(mode);
+    } catch (error) {
+      if (isLatestRequest()) {
+        console.error("Failed to play track list:", error);
+      }
+    } finally {
+      if (isLatestRequest()) {
+        isPlaybackRequestPendingRef.current = false;
+        pendingPlaybackTrackIdRef.current = null;
+      }
+    }
   };
 
   const startRadioMode = async () => {
