@@ -13,7 +13,9 @@ import {
     useSubsonicAdapter
 } from "@soundx/services";
 import * as Device from 'expo-device';
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { addNetworkStateListener } from 'expo-network';
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { AppState } from "react-native";
 import { getBaseURL, initBaseURL, setBaseURL } from "../https";
 import { User } from "../models";
 import { selectBestServer } from "../utils/networkUtils";
@@ -100,8 +102,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const autoSwitchServer = async () => {
+    try {
+      const savedAddress = getBaseURL();
+      const savedType = await AsyncStorage.getItem("selectedSourceType") || "AudioDock";
+      const configKey = `sourceConfig_${savedType}`;
+      const configStr = await AsyncStorage.getItem(configKey);
+      if (!configStr) return;
+
+      const parsed = JSON.parse(configStr);
+      const configList = Array.isArray(parsed) ? parsed : [parsed];
+      const matchedConfig = configList.find(
+        (c: any) => c.internal === savedAddress || c.external === savedAddress
+      ) || configList[0];
+
+      if (!matchedConfig || (!matchedConfig.internal && !matchedConfig.external)) return;
+
+      const bestAddress = await selectBestServer(
+        matchedConfig.internal || "",
+        matchedConfig.external || "",
+        savedType
+      );
+      if (!bestAddress || bestAddress === savedAddress) return;
+
+      console.log(`[AutoSwitch] Switching from ${savedAddress} to ${bestAddress}`);
+
+      const oldToken = await AsyncStorage.getItem(`token_${savedAddress}`);
+      const oldUser = await AsyncStorage.getItem(`user_${savedAddress}`);
+      const oldDevice = await AsyncStorage.getItem(`device_${savedAddress}`);
+      const oldCreds = await AsyncStorage.getItem(`creds_${savedType}_${savedAddress}`);
+
+      const newToken = await AsyncStorage.getItem(`token_${bestAddress}`);
+      if (!newToken && oldToken) {
+        await AsyncStorage.setItem(`token_${bestAddress}`, oldToken);
+        if (oldUser) await AsyncStorage.setItem(`user_${bestAddress}`, oldUser);
+        if (oldDevice) await AsyncStorage.setItem(`device_${bestAddress}`, oldDevice);
+        if (oldCreds) await AsyncStorage.setItem(`creds_${savedType}_${bestAddress}`, oldCreds);
+      }
+
+      setBaseURL(bestAddress);
+      await AsyncStorage.setItem("serverAddress", bestAddress);
+      await AsyncStorage.setItem(`serverAddress_${savedType}`, bestAddress);
+    } catch (e) {
+      console.warn("[AutoSwitch] Failed:", e);
+    }
+  };
+
   useEffect(() => {
     loadAuthData();
+  }, []);
+
+  // 监听 App 从后台切回前台，自动切换内网/外网
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        console.log("[AutoSwitch] App became active, checking network...");
+        autoSwitchServer();
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
+  // 监听 WiFi/流量 切换，自动切换内网/外网
+  useEffect(() => {
+    const networkSubscription = addNetworkStateListener((state) => {
+      console.log("[AutoSwitch] Network changed:", state.type, state.isConnected);
+      autoSwitchServer();
+    });
+    return () => networkSubscription.remove();
   }, []);
 
   useEffect(() => {
@@ -122,45 +190,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setSourceTypeDirectly(savedType);
 
       // --- Auto Switch Data Source (Internal/External) on Startup ---
-      try {
-        const configKey = `sourceConfig_${savedType}`;
-        const configStr = await AsyncStorage.getItem(configKey);
-        if (configStr) {
-          const parsed = JSON.parse(configStr);
-          const configList = Array.isArray(parsed) ? parsed : [parsed];
-          // Find the config block that corresponds to the currently saved address, 
-          // or fallback to the first config block.
-          const matchedConfig = configList.find(c => c.internal === savedAddress || c.external === savedAddress) || configList[0];
-          
-          if (matchedConfig && (matchedConfig.internal || matchedConfig.external)) {
-            const bestAddress = await selectBestServer(matchedConfig.internal || "", matchedConfig.external || "", savedType);
-            if (bestAddress && bestAddress !== savedAddress) {
-              console.log(`[AutoSwitch] Switching from ${savedAddress} to ${bestAddress}`);
-              
-              // Migrate token and user to the new address if they don't exist yet
-              const oldToken = await AsyncStorage.getItem(`token_${savedAddress}`);
-              const oldUser = await AsyncStorage.getItem(`user_${savedAddress}`);
-              const oldDevice = await AsyncStorage.getItem(`device_${savedAddress}`);
-              const oldCreds = await AsyncStorage.getItem(`creds_${savedType}_${savedAddress}`);
-              
-              const newToken = await AsyncStorage.getItem(`token_${bestAddress}`);
-              if (!newToken && oldToken) {
-                await AsyncStorage.setItem(`token_${bestAddress}`, oldToken);
-                if (oldUser) await AsyncStorage.setItem(`user_${bestAddress}`, oldUser);
-                if (oldDevice) await AsyncStorage.setItem(`device_${bestAddress}`, oldDevice);
-                if (oldCreds) await AsyncStorage.setItem(`creds_${savedType}_${bestAddress}`, oldCreds);
-              }
-
-              savedAddress = bestAddress;
-              setBaseURL(bestAddress);
-              await AsyncStorage.setItem("serverAddress", bestAddress);
-              await AsyncStorage.setItem(`serverAddress_${savedType}`, bestAddress);
-            }
-          }
-        }
-      } catch (e) {
-        console.warn("Failed to auto-switch data source on startup:", e);
-      }
+      await autoSwitchServer();
+      savedAddress = getBaseURL();
       // --------------------------------------------------------------
 
       const savedToken = await AsyncStorage.getItem(`token_${savedAddress}`);
