@@ -138,6 +138,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [skipIntroDuration, setSkipIntroDurationState] = useState(0);
   const [skipOutroDuration, setSkipOutroDurationState] = useState(0);
   const isSkippingOutroRef = useRef(false);
+  const playRequestIdRef = useRef(0);
+  const isPlayRequestPendingRef = useRef(false);
 
   const setTrackList = (list: Track[]) => {
       setTrackListState(list);
@@ -165,6 +167,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     manager.onEnded(() => {
+      if (isPlayRequestPendingRef.current) return;
       playNext();
     });
 
@@ -201,6 +204,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const trackListRef = useRef(trackList);
   const currentTrackRef = useRef(currentTrack);
   const playModeRef = useRef(playMode);
+  const skipIntroDurationRef = useRef(skipIntroDuration);
   const skipOutroDurationRef = useRef(skipOutroDuration);
   const playbackRateRef = useRef(playbackRate);
   const currentAudioQualityRef = useRef<AudioQuality>('lossless');
@@ -217,6 +221,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     playModeRef.current = playMode;
   }, [playMode]);
+
+  useEffect(() => {
+    skipIntroDurationRef.current = skipIntroDuration;
+  }, [skipIntroDuration]);
 
   useEffect(() => {
     skipOutroDurationRef.current = skipOutroDuration;
@@ -353,9 +361,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     return modes[(currentIndex + 1) % modes.length];
   };
 
-  const applyStartPosition = (position: number) => {
+  const applyStartPosition = (position: number, requestId: number) => {
     if (position <= 0) return;
     setTimeout(() => {
+      if (requestId !== playRequestIdRef.current) return;
+
       try {
         bgAudioManager.current?.seek(position);
       } catch (error) {
@@ -367,46 +377,47 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const prepareAudioQuality = async (
     track: Track,
     preferredQuality?: AudioQuality,
-  ): Promise<AudioQuality> => {
+  ): Promise<{ selectedQuality: AudioQuality; options: AudioQualityOption[] }> => {
     if (track.type === 'AUDIOBOOK') {
-      setAvailableAudioQualities([]);
-      setCurrentAudioQuality('lossless');
-      return 'lossless';
+      return { selectedQuality: 'lossless', options: [] };
     }
 
     const profile = await getTrackAudioQualityProfile(track);
-    setAvailableAudioQualities(profile.options);
-    const nextQuality = resolveTrackAudioQuality(
+    const selectedQuality = resolveTrackAudioQuality(
       profile,
       preferredQuality ??
         getCurrentPlaybackQualityPreference({ externalPlaybackQuality }),
     );
 
-    setCurrentAudioQuality(nextQuality);
-    return nextQuality;
+    return { selectedQuality, options: profile.options };
   };
 
 
   const playTrack = async (track: Track, initialPosition?: number, preferredQuality?: AudioQuality) => {
+    const requestId = playRequestIdRef.current + 1;
+    playRequestIdRef.current = requestId;
+    isPlayRequestPendingRef.current = true;
     setIsLoading(true);
-    setCurrentTrack(track);
     isSkippingOutroRef.current = false;
     if (preferredQuality) {
       setPreferredAudioQuality(preferredQuality);
     }
-    
-    const baseUrl = getBaseURL();
-    const selectedQuality = await prepareAudioQuality(track, preferredQuality);
-    const uri =
-      track.type === 'AUDIOBOOK'
-        ? (track.path.startsWith('http') ? track.path : `${baseUrl}${track.path}`)
-        : buildTrackPlaybackUrl(track, selectedQuality);
-    const cover = track.cover 
-      ? (track.cover.startsWith('http') ? track.cover : `${baseUrl}${track.cover}`) 
-      : undefined;
 
-    const manager = bgAudioManager.current;
-    if (manager) {
+    try {
+      const baseUrl = getBaseURL();
+      const { selectedQuality, options } = await prepareAudioQuality(track, preferredQuality);
+      if (requestId !== playRequestIdRef.current) return;
+
+      const uri =
+        track.type === 'AUDIOBOOK'
+          ? (track.path.startsWith('http') ? track.path : `${baseUrl}${track.path}`)
+          : buildTrackPlaybackUrl(track, selectedQuality);
+      const cover = track.cover
+        ? (track.cover.startsWith('http') ? track.cover : `${baseUrl}${track.cover}`)
+        : undefined;
+
+      const manager = bgAudioManager.current;
+      if (manager) {
         manager.title = track.name;
         manager.epname = track.album || track.name;
         manager.singer = track.artist;
@@ -417,11 +428,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           console.error('Failed to apply playback rate:', error);
         }
         // Setting src starts playback automatically
-        manager.src = uri; 
+        manager.src = uri;
+        currentTrackRef.current = track;
+        setCurrentTrack(track);
+        setCurrentTime(0);
+        setDuration(track.duration ?? 0);
+        setAvailableAudioQualities(options);
+        setCurrentAudioQuality(selectedQuality);
         const startPosition = initialPosition !== undefined
           ? initialPosition
-          : (track.type === 'AUDIOBOOK' ? skipIntroDuration : 0);
-        applyStartPosition(startPosition);
+          : (track.type === 'AUDIOBOOK' ? skipIntroDurationRef.current : 0);
+        applyStartPosition(startPosition, requestId);
+      }
+    } catch (error) {
+      if (requestId === playRequestIdRef.current) {
+        console.error('Failed to play track:', error);
+        setIsLoading(false);
+      }
+    } finally {
+      if (requestId === playRequestIdRef.current) {
+        isPlayRequestPendingRef.current = false;
+      }
     }
   };
 

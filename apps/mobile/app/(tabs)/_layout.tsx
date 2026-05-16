@@ -3,6 +3,7 @@ import { initBaseURL } from "@/src/https";
 import { check } from "@soundx/services";
 import { Stack, useSegments } from "expo-router";
 import React, { useEffect } from "react";
+import { BackHandler } from "react-native";
 
 export default function TabLayout() {
   const { logout } = useAuth();
@@ -32,6 +33,20 @@ export default function TabLayout() {
       });
     });
   }, []);
+
+  // 在 tab 根页面（首页/声仓/个人）拦截返回键，直接退出应用
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      const currentKey = (segments[1] as string) || "index";
+      const isTabRoot = ["index", "library", "personal"].includes(currentKey);
+      if (isTabRoot) {
+        BackHandler.exitApp();
+        return true;
+      }
+      return false;
+    });
+    return () => backHandler.remove();
+  }, [segments]);
 
   return (
     <Stack screenOptions={{ headerShown: false, animation }}>
