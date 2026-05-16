@@ -1870,6 +1870,26 @@ const Player: React.FC = () => {
             </Flex>
 
             <Flex justify="center" style={{ fontSize: 50 }} gap={30}>
+              {/* MV Icon */}
+              {!isRadioMode &&
+                appMode === TrackType.MUSIC && (
+                  <Tooltip title={hasMv ? t("player.mv") : t("player.noMv")}>
+                    <VideoCameraOutlined
+                      className={styles.controlIcon}
+                      style={{
+                        opacity: hasMv ? 0.8 : 0.3,
+                        cursor: hasMv ? "pointer" : "not-allowed",
+                      }}
+                      onClick={() => {
+                        if (hasMv && currentTrack) {
+                          if (isPlaying) pause();
+                          window.location.href = `#/mv?trackId=${currentTrack.id}`;
+                        }
+                      }}
+                    />
+                  </Tooltip>
+                )}
+
               {!isRadioMode &&
                 appMode === TrackType.MUSIC &&
                 renderPlayOrderButton()}
@@ -1909,6 +1929,27 @@ const Player: React.FC = () => {
               {!isRadioMode &&
                 appMode === TrackType.MUSIC &&
                 renderPlaylistButton(styles.controlIcon)}
+
+              {/* Volume Icon */}
+              <Popover
+                content={
+                  <Flex vertical justify="center">
+                    <Text style={{ fontSize: "12px" }}>{t("player.volume")}: {volume}%</Text>
+                    <Slider
+                      style={{ width: "100px" }}
+                      value={volume}
+                      max={100}
+                      onChange={setVolume}
+                    />
+                  </Flex>
+                }
+                trigger="click"
+                placement="top"
+              >
+                <Tooltip title={t("player.volume")}>
+                  <SoundOutlined className={styles.controlIcon} />
+                </Tooltip>
+              </Popover>
             </Flex>
           </Flex>
         </div>
