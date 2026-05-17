@@ -94,57 +94,58 @@ version: "3.8"
 services:
   app:
     platform: linux/amd64
-    image: mmdctjj/audiodock:latest
+    image: mmdctjj/audiodock
     container_name: audiodock-app
     ports:
-      - "8858:3000"
-      - "9958:9958"
-
+      - "8860:3000" # Node API
+      - "9961:9958" # Web UI
     environment:
       - NODE_ENV=production
-      - TXT_BASE_DIR=/txt # 小说目录
+      - TXT_BASE_DIR=/txt # 电子书目录
       - AUDIO_BOOK_DIR=/audio # 有声书目录
       - MUSIC_BASE_DIR=/music # 音乐目录
       - MV_BASE_DIR=/mv # mv视频目录
       - CACHE_DIR=/covers # 封面目录
-      - DATABASE_URL=file:/app/packages/db/prisma/dev.db # 数据库路径
-      - JWT_SECRET=/.jwt_secret # JWT 密钥
-      - PORT=3000 # 端口，这里修改上面的 ports 中的端口也需要同步修改
-      - STRM_ADDRESS=http://192.168.1.12:5244 # strm 服务地址，没有可不填
-      - WEBDAV_MUSIC_URL=http://192.168.1.12:5005/音乐 # 音乐目录地址，没有可不填
-      - WEBDAV_AUDIOBOOK_URL=http://192.168.1.12:5005/有声书 # 有声书目录地址，没有可不填
-      - WEBDAV_MV_URL=http://192.168.1.12:5005/视频 # mv视频目录地址，没有可不填
-      - WEBDAV_USER=admin # 用户名，没有可不填
-      - WEBDAV_PASSWORD=123456 # 密码，没有可不填
-      - DISABLE_TTS=${DISABLE_TTS:-false} # 是否禁用 TTS 功能
-      - DISABLE_ASR=${DISABLE_ASR:-false} # 是否禁用 ASR 功能
-      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek} # LLM 提供商
-      - LLM_MODEL=${LLM_MODEL:-deepseek-chat} # LLM 模型
-      - LLM_BASE_URL=${LLM_BASE_URL:-} # LLM 服务地址
-      - LLM_TIMEOUT=${LLM_TIMEOUT:-60000} # LLM 超时时间
-      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7} # LLM 温度
-      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2048} # LLM 最大 token数
-      - LLM_API_KEY=${LLM_API_KEY:-} # LLM API 密钥
+      - DATABASE_URL=file:/data/dev.db # 数据库
+      - JWT_SECRET=/.jwt_secret # 这个是文件，不是目录
+      - PORT=3000
+      - STRM_ADDRESS=http://192.168.1.12:5244 # 没有可注释
+      - WEBDAV_MUSIC_URL=http://192.168.1.12:5005/音乐 # 没有可注释
+      - WEBDAV_AUDIOBOOK_URL=http://192.168.1.12:5005/有声书 # 没有可注释
+      - WEBDAV_USER=admin # 没有可注释
+      - WEBDAV_PASSWORD=123456 # 没有可注释
+      - DISABLE_TTS=${DISABLE_TTS:-false} # 是否禁用 tts 服务，不用tts功能可注释
+      - DISABLE_ASR=${DISABLE_ASR:-false} # 是否禁用 tts 服务，不用语音助手可注释
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek} # 大模型提供商
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat} # 对应大模型
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_TIMEOUT=${LLM_TIMEOUT:-60000}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2048}
+      - LLM_API_KEY=${LLM_API_KEY:-sk-xxxx} # 大模型 key
 
+    # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:
-      - /volume1/txt:/txt
-      - /volume1/audio:/audio
-      - /volume1/music:/music/
-      - /volume1/mv:/mv
+      # 这里可以根据需要调整物理机的挂载路径
+      - /volume1/迅雷下载/TXT:/txt
+      - /volume1/迅雷下载/有声书:/audio
+      - /volume1/迅雷下载/音乐:/music
+      - /volume1/迅雷下载/MV:/mv
       - ./covers:/covers
-      - app-db:/app/packages/db/prisma
+      - app-db:/data
       - ./.jwt_secret:/.jwt_secret
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-
     restart: unless-stopped
     networks:
       - audiodock-network
 
 volumes:
-  app-db:
+  app-db: # 命名卷用于持久化数据库，下面的两行是保留旧数据的关键，没有旧数据
+    external: true # 如果新部署，请注释，
+    name: audiodock2_api-db # audiodock2 是我的旧 compose 名称，请相应的替换下
 
 networks:
   audiodock-network:
+    driver: bridge
 ```
 
 ## 本地运行
