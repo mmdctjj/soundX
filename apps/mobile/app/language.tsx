@@ -9,6 +9,9 @@ import {
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  BackHandler,
+  NativeModules,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -17,7 +20,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../src/context/ThemeContext";
-import { Platform, NativeModules } from "react-native";
+import { goBackOrReplace } from "../src/utils/navigation";
 
 export default function LanguageScreen() {
   const router = useRouter();
@@ -25,6 +28,15 @@ export default function LanguageScreen() {
   const { colors } = useTheme();
   const { i18n, t } = useTranslation();
   const [selectedLang, setSelectedLang] = useState<string>("system");
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      goBackOrReplace(router, "/settings");
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [router]);
 
   const languages = [
     { code: SYSTEM_LANGUAGE_VALUE, label: t("settings.themeSystem", "跟随系统") },
@@ -67,7 +79,7 @@ export default function LanguageScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => goBackOrReplace(router, "/settings")}
           style={styles.backButton}
         >
           <Ionicons name="chevron-back" size={28} color={colors.text} />

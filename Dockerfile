@@ -3,13 +3,15 @@
 # ==========================================
 FROM node:22-bullseye AS builder
 
+ARG PNPM_VERSION=10.28.1
+
 RUN apt-get update \
   && apt-get install -y openssl \
   && rm -rf /var/lib/apt/lists/*
 
 # Use China registry mirror for faster/more reliable installs in builder stage too.
 RUN npm config set registry https://registry.npmmirror.com \
-  && npm install -g pnpm \
+  && npm install -g pnpm@${PNPM_VERSION} \
   && pnpm config set registry https://registry.npmmirror.com
 WORKDIR /app
 
@@ -24,6 +26,10 @@ COPY packages/ws/package.json ./packages/ws/
 COPY packages/services/package.json ./packages/services/
 COPY services/api/package.json ./services/api/
 COPY apps/desktop/package.json ./apps/desktop/
+COPY apps/mini/package.json ./apps/mini/
+COPY apps/mobile/package.json ./apps/mobile/
+COPY packages/test/package.json ./packages/test/
+COPY packages/ui/package.json ./packages/ui/
 
 # 3. 安装依赖
 RUN pnpm install --frozen-lockfile
@@ -51,6 +57,8 @@ RUN cd apps/desktop && pnpm run build:web
 # Stage 2: Unified Runner (All-in-one image)
 # ==========================================
 FROM node:22-bullseye-slim AS runner
+
+ARG PNPM_VERSION=10.28.1
 
 WORKDIR /app
 
@@ -101,7 +109,7 @@ RUN python3 -m pip install --no-cache-dir -r /app/services/asr/requirements.txt
 # Use China registry mirror for faster/more reliable installs.
 # pnpm will also use this registry once configured.
 RUN npm config set registry https://registry.npmmirror.com \
-    && npm install -g pnpm \
+    && npm install -g pnpm@${PNPM_VERSION} \
     && pnpm config set registry https://registry.npmmirror.com \
     && pnpm install --prod --frozen-lockfile --ignore-scripts
 

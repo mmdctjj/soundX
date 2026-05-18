@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import MarkdownContent from "../src/components/MarkdownContent";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../src/context/ThemeContext";
 import { getLocalVersion } from "../src/utils/updateUtils";
+import { goBackOrReplace } from "../src/utils/navigation";
 const qcr = require("../assets/images/wechat_qr.jpg");
 
 const GITHUB_USER = 'mmdctjj';
@@ -32,6 +34,15 @@ export default function ProductUpdatesScreen() {
   const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [releases, setReleases] = useState<ReleaseItem[]>([]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      goBackOrReplace(router, "/settings");
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [router]);
 
   const fetchReleases = async () => {
     try {
@@ -120,7 +131,7 @@ export default function ProductUpdatesScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => goBackOrReplace(router, "/settings")}
           style={styles.backButton}
         >
           <Ionicons name="chevron-back" size={28} color={colors.text} />
