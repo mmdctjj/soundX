@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BackHandler, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useSettings } from "../src/context/SettingsContext";
 import { useTheme } from "../src/context/ThemeContext";
 import type { AudioQuality } from "../src/services/trackQuality";
+import { goBackOrReplace } from "../src/utils/navigation";
 
 const QUALITY_OPTIONS: Array<{
   value: AudioQuality;
@@ -43,19 +44,28 @@ export default function PlaybackQualityScreen() {
     ? internalPlaybackQuality
     : externalPlaybackQuality;
 
+  React.useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      goBackOrReplace(router, "/settings");
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [router]);
+
   const handleSelect = async (quality: AudioQuality) => {
     await updateSetting(
       isInternal ? "internalPlaybackQuality" : "externalPlaybackQuality",
       quality,
     );
-    router.back();
+    goBackOrReplace(router, "/settings");
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => goBackOrReplace(router, "/settings")}
           style={styles.backButton}
         >
           <Ionicons name="chevron-back" size={28} color={colors.text} />

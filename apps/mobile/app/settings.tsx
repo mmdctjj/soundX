@@ -7,6 +7,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
+  BackHandler,
   ScrollView,
   StyleSheet,
   Switch,
@@ -25,6 +26,7 @@ import {
   getDetailedCacheSize,
 } from "../src/services/cache";
 import { trackEvent } from "../src/services/tracking";
+import { goBackOrReplace } from "../src/utils/navigation";
 import { usePlayMode } from "../src/utils/playMode";
 import { getLocalVersion } from "../src/utils/updateUtils";
 import { getCachedVipStatus } from "../src/utils/vipStatus";
@@ -33,6 +35,15 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+
+  React.useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      goBackOrReplace(router, "/(tabs)/personal");
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [router]);
   const { colors, theme, toggleTheme, setTheme } = useTheme();
   const { mode, setMode } = usePlayMode();
   const { logout, user, sourceType, device, plusToken, setPlusToken } =
@@ -380,7 +391,7 @@ export default function SettingsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => goBackOrReplace(router, "/(tabs)/personal")}
           style={styles.backButton}
         >
           <Ionicons name="chevron-back" size={28} color={colors.text} />

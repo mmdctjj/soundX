@@ -12,6 +12,7 @@ import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   StyleSheet,
   Switch,
@@ -24,6 +25,7 @@ import Modal from "react-native-modal";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../src/context/ThemeContext";
+import { goBackOrReplace } from "../src/utils/navigation";
 import { User } from "../src/models";
 
 export default function AdminScreen() {
@@ -35,6 +37,15 @@ export default function AdminScreen() {
   const [loading, setLoading] = useState(false);
   const [registrationAllowed, setRegistrationAllowed] = useState(true);
   const [settingLoading, setSettingLoading] = useState(false);
+
+  React.useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      goBackOrReplace(router, "/settings");
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [router]);
 
   // modal states
   const [modalVisible, setModalVisible] = useState(false);
@@ -232,7 +243,7 @@ export default function AdminScreen() {
         ]}
       >
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => goBackOrReplace(router, "/settings")}
           style={styles.backButton}
         >
           <Ionicons name="chevron-back" size={28} color={colors.text} />
