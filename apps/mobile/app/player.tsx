@@ -11,11 +11,12 @@ import { Slider } from "@miblanchard/react-native-slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getMvByTrackId, plusGetMe, toggleTrackLike, toggleTrackUnLike } from "@soundx/services";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Animated,
   Alert,
+  BackHandler,
   Dimensions,
   FlatList,
   Image,
@@ -209,6 +210,25 @@ export function PlayerDetailView({
   const [lyricFontSize, setLyricFontSize] = useState(16);
   const [controlsBottomOffset, setControlsBottomOffset] = useState(0);
   const lineLayouts = useRef<{ [key: number]: any }>({});
+
+  const closePlayer = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)");
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (embedded) return;
+
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      closePlayer();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [embedded, closePlayer]);
 
   useEffect(() => {
     const loadVipStatus = async () => {
@@ -609,13 +629,7 @@ export function PlayerDetailView({
         <Text style={{ color: colors.text }}>No track playing</Text>
         {!embedded && (
           <TouchableOpacity
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/(tabs)");
-              }
-            }}
+            onPress={closePlayer}
           >
             <Text style={{ color: colors.primary, marginTop: 20 }}>Go Back</Text>
           </TouchableOpacity>
@@ -949,13 +963,7 @@ export function PlayerDetailView({
             <View style={styles.landscapeBackBtn}>
               {!embedded && (
                 <TouchableOpacity
-                  onPress={() => {
-                    if (router.canGoBack()) {
-                      router.back();
-                    } else {
-                      router.replace("/(tabs)");
-                    }
-                  }}
+                  onPress={closePlayer}
                   style={styles.landscapeBackBtn}
                 >
                   <Ionicons name="chevron-down" size={30} color={colors.text} />
@@ -1076,13 +1084,7 @@ export function PlayerDetailView({
       {!embedded && (
         <View style={[styles.header, { top }]}>
           <TouchableOpacity
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/(tabs)");
-              }
-            }}
+            onPress={closePlayer}
             style={styles.headerButton}
           >
             <Ionicons name="chevron-down" size={30} color={colors.text} />
