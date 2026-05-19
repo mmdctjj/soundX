@@ -69,6 +69,21 @@ ipcMain.handle("select-directory", async () => {
   return result.filePaths[0];
 });
 
+
+ipcMain.handle("select-plugin-file", async () => {
+  if (!win) return null;
+  const result = await dialog.showOpenDialog(win, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'AudioDock Theme Plugin', extensions: ['audiodock-theme', 'json'] },
+      { name: 'JSON', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled) return null;
+  return result.filePaths[0];
+});
+
 ipcMain.handle("open-url", (event, url: string) => {
   console.log('Opening URL:', url);
   return shell.openExternal(url);

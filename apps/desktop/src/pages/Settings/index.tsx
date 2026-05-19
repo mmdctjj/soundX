@@ -1,9 +1,10 @@
-import { FolderOpenOutlined } from "@ant-design/icons";
+import { FolderOpenOutlined, UploadOutlined } from "@ant-design/icons";
 import {
   LANGUAGE_STORAGE_KEY,
   SYSTEM_LANGUAGE_VALUE,
   resolveLanguageSelection,
 } from "@soundx/i18e";
+import { compileForDesktop, parseManifest, validateSchema, type VisualPluginTokens } from "@soundx/plugin-runtime";
 import {
   Button,
   ColorPicker,
@@ -56,9 +57,11 @@ const Settings: React.FC = () => {
     general,
     desktopLyric,
     download,
+    visualPlugin,
     updateGeneral,
     updateDesktopLyric,
     updateDownload,
+    updateVisualPlugin,
   } = useSettingsStore();
 
   const [cacheSize, setCacheSize] = React.useState<string>(t("common.loading"));
@@ -125,6 +128,38 @@ const Settings: React.FC = () => {
     if ((window as any).ipcRenderer) {
       const path = await (window as any).ipcRenderer.invoke("download:get-path");
       setDownloadPath(path || "");
+    }
+  };
+
+
+  const pluginInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImportPluginDesktop = async (file?: File) => {
+    if (!file) return;
+    try {
+      const raw = await file.text();
+      const parsed = JSON.parse(raw);
+      let tokens: VisualPluginTokens | null = null;
+      let pluginId = file.name;
+
+      if (parsed?.engine) {
+        const manifest = parseManifest(parsed);
+        const errors = validateSchema(manifest);
+        if (errors.length) {
+          message.error(errors[0]);
+          return;
+        }
+        message.warning(t("settings.pluginManifestOnly", "当前仅支持导入 tokens.json，manifest+zip 将在后续版本支持"));
+        return;
+      }
+
+      tokens = parsed as VisualPluginTokens;
+      compileForDesktop(tokens);
+      updateVisualPlugin({ enabled: true, id: pluginId, tokens });
+      message.success(t("settings.pluginImportSuccess", "插件导入成功"));
+    } catch (error) {
+      console.error("Failed to import plugin", error);
+      message.error(t("settings.pluginImportFailed", "插件导入失败，请检查文件格式"));
     }
   };
 
@@ -448,6 +483,44 @@ const Settings: React.FC = () => {
       <Divider className={styles.divider} />
 
       {/* Download Settings */}
+
+      <Divider className={styles.divider} />
+
+      <section className={styles.section}>
+        <Title level={4} className={styles.sectionTitle}>
+          {t("settings.visualPlugin", "视觉插件")}
+        </Title>
+        <div className={styles.settingItem}>
+          <div className={styles.label}>{t("settings.importPlugin", "导入插件")}</div>
+          <div className={styles.control}>
+            <Space>
+              <Button icon={<UploadOutlined />} onClick={() => pluginInputRef.current?.click()}>
+                {t("settings.selectPluginFile", "选择插件文件")}
+              </Button>
+              <Button danger onClick={() => updateVisualPlugin({ enabled: false })}>
+                {t("settings.disablePlugin", "禁用插件")}
+              </Button>
+            </Space>
+            <Text className={styles.description}>
+              {visualPlugin.enabled
+                ? t("settings.pluginEnabledAs", "当前已启用插件：") + (visualPlugin.id || "unknown")
+                : t("settings.pluginNotEnabled", "当前未启用插件")}
+            </Text>
+            <input
+              ref={pluginInputRef}
+              type="file"
+              accept=".json,.audiodock-theme"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                void handleImportPluginDesktop(file);
+                e.currentTarget.value = "";
+              }}
+            />
+          </div>
+        </div>
+      </section>
+
       <section className={styles.section}>
         <Title level={4} className={styles.sectionTitle}>
           {t("settings.downloadSettings")}

@@ -3,6 +3,9 @@ import { Slider } from "@miblanchard/react-native-slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { plusDeleteMe, plusParticipateInternalTest } from "@soundx/services";
 import { useRouter } from "expo-router";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
+import { compileForMobile, type VisualPluginTokens } from "@soundx/plugin-runtime";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -103,7 +106,45 @@ export default function SettingsScreen() {
   React.useEffect(() => {
     fetchCacheSize();
     checkVipStatus();
+    loadPluginName();
   }, []);
+
+
+  const [activeVisualPluginName, setActiveVisualPluginName] = React.useState<string>("");
+
+  const loadPluginName = async () => {
+    const name = await AsyncStorage.getItem("visual_plugin_name");
+    setActiveVisualPluginName(name || "");
+  };
+
+  const handleImportPluginMobile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        type: ["application/json", "text/plain", "*/*"],
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      const content = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+      const parsed = JSON.parse(content) as VisualPluginTokens;
+      compileForMobile(parsed);
+      await AsyncStorage.setItem("visual_plugin_tokens", JSON.stringify(parsed));
+      await AsyncStorage.setItem("visual_plugin_name", asset.name || "custom-plugin");
+      setActiveVisualPluginName(asset.name || "custom-plugin");
+      Alert.alert(t("common.success", "成功"), t("settings.pluginImportSuccess", "插件导入成功，重进页面后生效"));
+    } catch (error) {
+      console.error("Failed to import plugin on mobile", error);
+      Alert.alert(t("common.error", "错误"), t("settings.pluginImportFailed", "插件导入失败，请检查 JSON 格式"));
+    }
+  };
+
+  const handleDisablePluginMobile = async () => {
+    await AsyncStorage.removeItem("visual_plugin_tokens");
+    await AsyncStorage.removeItem("visual_plugin_name");
+    setActiveVisualPluginName("");
+    Alert.alert(t("common.success", "成功"), t("settings.pluginDisabled", "已禁用插件"));
+  };
 
   const checkVipStatus = async () => {
     const cached = await getCachedVipStatus();
@@ -593,6 +634,48 @@ export default function SettingsScreen() {
             acceptSync,
             (val) => updateSetting("acceptSync", val),
           )}
+
+          
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: colors.primary, marginTop: 20 },
+            ]}
+          >
+            {t("settings.visualPlugin", "视觉插件")}
+          </Text>
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            onPress={() => void handleImportPluginMobile()}
+          >
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                {t("settings.importPlugin", "导入插件")}
+              </Text>
+              <Text style={[styles.settingDescription, { color: colors.secondary }]}>
+                {activeVisualPluginName
+                  ? `${t("settings.pluginEnabledAs", "当前已启用插件：")}${activeVisualPluginName}`
+                  : t("settings.pluginNotEnabled", "当前未启用插件")}
+              </Text>
+            </View>
+            <Ionicons name="cloud-upload-outline" size={20} color={colors.secondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            onPress={() => void handleDisablePluginMobile()}
+          >
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                {t("settings.disablePlugin", "禁用插件")}
+              </Text>
+              <Text style={[styles.settingDescription, { color: colors.secondary }]}>
+                {t("settings.disablePluginDescription", "恢复内置主题和默认歌词样式")}
+              </Text>
+            </View>
+            <Ionicons name="close-circle-outline" size={20} color={colors.secondary} />
+          </TouchableOpacity>
+
 
           {renderSettingRow(
             t("settings.cacheWhilePlaying"),
