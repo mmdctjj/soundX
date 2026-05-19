@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useColorScheme } from "react-native";
 import { useSettings } from "./SettingsContext";
+import { compileForMobile, mergeWithBaseTheme, type VisualPluginTokens } from "@soundx/plugin-runtime";
 
 type ThemeType = "light" | "dark" | "festive";
 
@@ -54,11 +55,32 @@ const festiveColors: ThemeColors = {
   tabIconInactive: "#EF9A9A", // Light Red
 };
 
+export interface MobilePluginVisualState {
+  lyricStyle: {
+    activeColor: string;
+    inactiveColor: string;
+    activeScale: number;
+    inactiveOpacity: number;
+    fontWeightActive: string;
+    fontWeightInactive: string;
+    springFriction: number;
+    springTension: number;
+  };
+  coverStyle: {
+    radius: number;
+    borderWidth: number;
+    borderColor: string;
+    shadowOpacity: number;
+    shadowRadius: number;
+  };
+}
+
 interface ThemeContextType {
   theme: ThemeType;
   colors: ThemeColors;
   toggleTheme: () => void;
   setTheme: (theme: ThemeType) => void;
+  pluginVisual: MobilePluginVisualState;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -66,6 +88,12 @@ const ThemeContext = createContext<ThemeContextType>({
   colors: lightColors,
   toggleTheme: () => {},
   setTheme: () => {},
+  pluginVisual: {
+    lyricStyle: {
+      activeColor: "#FFFFFF", inactiveColor: "#AAAAAA", activeScale: 1.1, inactiveOpacity: 0.4, fontWeightActive: "800", fontWeightInactive: "500", springFriction: 8, springTension: 40
+    },
+    coverStyle: { radius: 24, borderWidth: 0, borderColor: "transparent", shadowOpacity: 0.25, shadowRadius: 12 }
+  },
 });
 
 export const useTheme = () => useContext(ThemeContext);
@@ -100,6 +128,52 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+
+  const [pluginThemeColors, setPluginThemeColors] = useState<Partial<ThemeColors>>({});
+  const [pluginVisual, setPluginVisual] = useState<MobilePluginVisualState>({
+    lyricStyle: {
+      activeColor: "#FFFFFF",
+      inactiveColor: "#AAAAAA",
+      activeScale: 1.1,
+      inactiveOpacity: 0.4,
+      fontWeightActive: "800",
+      fontWeightInactive: "500",
+      springFriction: 8,
+      springTension: 40,
+    },
+    coverStyle: {
+      radius: 24,
+      borderWidth: 0,
+      borderColor: "transparent",
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
+    },
+  });
+
+  useEffect(() => {
+    const loadPlugin = async () => {
+      try {
+        const raw = await AsyncStorage.getItem("visual_plugin_tokens");
+        if (!raw) return;
+        const tokens = JSON.parse(raw) as VisualPluginTokens;
+        const compiled = compileForMobile(tokens);
+        setPluginThemeColors(compiled.themeColors as Partial<ThemeColors>);
+        setPluginVisual({
+          lyricStyle: {
+            ...compiled.lyrics,
+            springFriction: compiled.motion.spring.friction,
+            springTension: compiled.motion.spring.tension,
+          },
+          coverStyle: compiled.cover,
+        });
+      } catch (error) {
+        console.error("Failed to load visual plugin:", error);
+      }
+    };
+
+    loadPlugin();
+  }, []);
+
   const setTheme = async (newTheme: ThemeType) => {
     if (autoTheme) return;
     setThemeState(newTheme);
@@ -116,10 +190,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     setTheme(newTheme);
   };
 
-  const colors = theme === "light" ? lightColors : (theme === "dark" ? darkColors : festiveColors);
+  const baseColors = theme === "light" ? lightColors : (theme === "dark" ? darkColors : festiveColors);
+  const colors = useMemo(() => mergeWithBaseTheme(baseColors, pluginThemeColors), [baseColors, pluginThemeColors]);
 
   return (
-    <ThemeContext.Provider value={{ theme, colors, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, colors, toggleTheme, setTheme, pluginVisual }}>
       <StatusBar style={theme === "light" ? "dark" : "light"} />
       {children}
     </ThemeContext.Provider>

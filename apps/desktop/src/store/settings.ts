@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AudioQuality } from '../services/trackQuality';
+import type { VisualPluginTokens } from '@soundx/plugin-runtime';
 
 export interface SettingsState {
   general: {
@@ -28,6 +29,11 @@ export interface SettingsState {
     x?: number;
     y?: number;
   };
+  visualPlugin: {
+    enabled: boolean;
+    id?: string;
+    tokens?: VisualPluginTokens;
+  };
   download: {
     downloadPath: string;
     quality: '128k' | '320k' | 'flac';
@@ -37,6 +43,7 @@ export interface SettingsState {
 
   updateGeneral: (key: keyof SettingsState['general'], value: any) => void;
   updateDesktopLyric: (key: keyof SettingsState['desktopLyric'], value: any) => void;
+  updateVisualPlugin: (payload: SettingsState['visualPlugin']) => void;
   updateDownload: (key: keyof SettingsState['download'], value: any) => void;
 }
 
@@ -65,6 +72,9 @@ export const useSettingsStore = create<SettingsState>()(
         shadow: true,
         alwaysOnTop: true,
         fontWeight: 500,
+      },
+      visualPlugin: {
+        enabled: false,
       },
       download: {
         downloadPath: '~/Music/Downloads',
@@ -106,6 +116,9 @@ export const useSettingsStore = create<SettingsState>()(
           (window as any).ipcRenderer.send("lyric:settings-update", { [key]: value });
         }
       },
+      updateVisualPlugin: (payload) => {
+        set(() => ({ visualPlugin: payload }));
+      },
       updateDownload: (key, value) => {
         set((state) => ({
           download: { ...state.download, [key]: value },
@@ -121,7 +134,6 @@ export const useSettingsStore = create<SettingsState>()(
       version: 4,
       migrate: (persistedState: any, version: number) => {
         if (version === 0) {
-          // Migration from version 0 to 1
           if (persistedState.general) {
             if (persistedState.general.acceptRelay === undefined) {
               persistedState.general.acceptRelay = true;
@@ -132,7 +144,6 @@ export const useSettingsStore = create<SettingsState>()(
           }
         }
         if (version <= 1) {
-          // Migration to version 2
           if (persistedState.download && persistedState.download.cacheEnabled === undefined) {
             persistedState.download.cacheEnabled = true;
           }

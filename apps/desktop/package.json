@@ -43,7 +43,8 @@
     "sass": "^1.94.2",
     "socket.io-client": "^4.8.1",
     "vite-plugin-svgr": "^4.5.0",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "@soundx/plugin-runtime": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

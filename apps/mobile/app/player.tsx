@@ -93,12 +93,14 @@ const AnimatedLyricLine = ({
   colors,
   lyricFontSize,
   onLayout,
+  pluginVisual,
 }: {
   text: string;
   isActive: boolean;
   colors: any;
   lyricFontSize: number;
   onLayout?: (e: any) => void;
+  pluginVisual: any;
 }) => {
   const animatedValue = useRef(new Animated.Value(isActive ? 1 : 0)).current;
 
@@ -106,24 +108,24 @@ const AnimatedLyricLine = ({
     Animated.spring(animatedValue, {
       toValue: isActive ? 1 : 0,
       useNativeDriver: false,
-      friction: 8,
-      tension: 40,
+      friction: pluginVisual.lyricStyle.springFriction,
+      tension: pluginVisual.lyricStyle.springTension,
     }).start();
   }, [isActive]);
 
   const color = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.text, colors.primary],
+    outputRange: [pluginVisual.lyricStyle.inactiveColor, pluginVisual.lyricStyle.activeColor],
   });
 
   const scale = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.1],
+    outputRange: [1, pluginVisual.lyricStyle.activeScale],
   });
 
   const opacity = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.4, 1],
+    outputRange: [pluginVisual.lyricStyle.inactiveOpacity, 1],
   });
 
   return (
@@ -145,7 +147,7 @@ const AnimatedLyricLine = ({
             color,
             fontSize: lyricFontSize,
             lineHeight: lyricFontSize * 2,
-            fontWeight: isActive ? "800" : "500",
+            fontWeight: isActive ? pluginVisual.lyricStyle.fontWeightActive : pluginVisual.lyricStyle.fontWeightInactive,
             marginVertical: 0, // Remove margin to avoid extra spacing
           },
         ]}
@@ -160,7 +162,7 @@ export function PlayerDetailView({
   embedded = false,
   renderPlaylistModal = true,
 }: PlayerDetailViewProps) {
-  const { colors } = useTheme();
+  const { colors, pluginVisual } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { carModeEnabled } = useSettings();
@@ -991,7 +993,7 @@ export function PlayerDetailView({
                   uri: getImageUrl(currentTrack.cover, "https://picsum.photos/400"),
                 }}
                 onLayout={(e) => setArtworkHeight(e.nativeEvent.layout.height)}
-                style={[styles.artwork, { marginBottom: 0 }]}
+                style={[styles.artwork, { marginBottom: 0, borderRadius: pluginVisual.coverStyle.radius, borderWidth: pluginVisual.coverStyle.borderWidth, borderColor: pluginVisual.coverStyle.borderColor, shadowOpacity: pluginVisual.coverStyle.shadowOpacity, shadowRadius: pluginVisual.coverStyle.shadowRadius }]}
               />
             </TouchableOpacity>
             <Animated.View
@@ -1051,6 +1053,7 @@ export function PlayerDetailView({
                           isActive={isActive}
                           colors={colors}
                           lyricFontSize={lyricFontSize}
+                          pluginVisual={pluginVisual}
                           onLayout={(e) => {
                             lineLayouts.current[index] = e.nativeEvent.layout;
                           }}
@@ -1150,6 +1153,7 @@ export function PlayerDetailView({
                               isActive={isActive}
                               colors={colors}
                               lyricFontSize={lyricFontSize}
+                              pluginVisual={pluginVisual}
                               onLayout={(e) => {
                                 lineLayouts.current[index] =
                                   e.nativeEvent.layout;
@@ -1183,7 +1187,7 @@ export function PlayerDetailView({
                   source={{
                     uri: getImageUrl(currentTrack.cover, "https://picsum.photos/400"),
                   }}
-                  style={styles.artwork}
+                  style={[styles.artwork, { borderRadius: pluginVisual.coverStyle.radius, borderWidth: pluginVisual.coverStyle.borderWidth, borderColor: pluginVisual.coverStyle.borderColor, shadowOpacity: pluginVisual.coverStyle.shadowOpacity, shadowRadius: pluginVisual.coverStyle.shadowRadius }]}
                 />
               </TouchableOpacity>
             )}

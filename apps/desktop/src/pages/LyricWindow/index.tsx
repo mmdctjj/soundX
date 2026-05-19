@@ -7,7 +7,8 @@ import {
     StepForwardOutlined
 } from "@ant-design/icons";
 import { Button, Space } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { compileForDesktop } from "@soundx/plugin-runtime";
 import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "../../store/settings";
 import styles from "./index.module.less";
@@ -18,9 +19,15 @@ const LyricWindow: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   
   const settings = useSettingsStore((state) => state.desktopLyric);
+  const visualPlugin = useSettingsStore((state) => state.visualPlugin);
   const [config, setConfig] = useState(settings);
 
   const [trackInfo, setTrackInfo] = useState<{ name: string; artist: string } | null>(null);
+
+  const pluginConfig = useMemo(() => {
+    if (!visualPlugin.enabled || !visualPlugin.tokens) return null;
+    return compileForDesktop(visualPlugin.tokens);
+  }, [visualPlugin]);
 
   useEffect(() => {
     if (!window.ipcRenderer) return;
@@ -75,9 +82,10 @@ const LyricWindow: React.FC = () => {
     <div 
       className={styles.container} 
       style={{ 
-        "--font-color": config.fontColor,
+        "--font-color": pluginConfig?.desktopLyricOverride.fontColor || config.fontColor,
         "--stroke-color": config.strokeColor,
-        "--stroke-width": `${config.strokeWidth}px`
+        "--stroke-width": `${config.strokeWidth}px`,
+        ...(pluginConfig?.cssVariables || {})
       } as any}
     >
       <div className={styles.header}>
@@ -91,7 +99,7 @@ const LyricWindow: React.FC = () => {
           className={styles.lyricText} 
           style={{
             fontSize: `${config.fontSize}px`,
-            fontWeight: config.fontWeight,
+            fontWeight: pluginConfig?.desktopLyricOverride.fontWeight ?? config.fontWeight,
             textShadow: config.shadow ? "0 2px 4px rgba(0,0,0,0.5)" : "none"
           }}
         >
