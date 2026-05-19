@@ -76,11 +76,13 @@ export interface MobilePluginVisualState {
 }
 
 interface ThemeContextType {
+  reloadVisualPlugin: () => Promise<void>;
   theme: ThemeType;
   colors: ThemeColors;
   toggleTheme: () => void;
   setTheme: (theme: ThemeType) => void;
   pluginVisual: MobilePluginVisualState;
+  reloadVisualPlugin: () => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -94,6 +96,7 @@ const ThemeContext = createContext<ThemeContextType>({
     },
     coverStyle: { radius: 24, borderWidth: 0, borderColor: "transparent", shadowOpacity: 0.25, shadowRadius: 12 }
   },
+  reloadVisualPlugin: async () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
@@ -150,28 +153,50 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     },
   });
 
-  useEffect(() => {
-    const loadPlugin = async () => {
-      try {
-        const raw = await AsyncStorage.getItem("visual_plugin_tokens");
-        if (!raw) return;
-        const tokens = JSON.parse(raw) as VisualPluginTokens;
-        const compiled = compileForMobile(tokens);
-        setPluginThemeColors(compiled.themeColors as Partial<ThemeColors>);
+  const reloadVisualPlugin = async () => {
+    try {
+      const raw = await AsyncStorage.getItem("visual_plugin_tokens");
+      if (!raw) {
+        setPluginThemeColors({});
         setPluginVisual({
           lyricStyle: {
-            ...compiled.lyrics,
-            springFriction: compiled.motion.spring.friction,
-            springTension: compiled.motion.spring.tension,
+            activeColor: "#FFFFFF",
+            inactiveColor: "#AAAAAA",
+            activeScale: 1.1,
+            inactiveOpacity: 0.4,
+            fontWeightActive: "800",
+            fontWeightInactive: "500",
+            springFriction: 8,
+            springTension: 40,
           },
-          coverStyle: compiled.cover,
+          coverStyle: {
+            radius: 24,
+            borderWidth: 0,
+            borderColor: "transparent",
+            shadowOpacity: 0.25,
+            shadowRadius: 12,
+          },
         });
-      } catch (error) {
-        console.error("Failed to load visual plugin:", error);
+        return;
       }
-    };
+      const tokens = JSON.parse(raw) as VisualPluginTokens;
+      const compiled = compileForMobile(tokens);
+      setPluginThemeColors(compiled.themeColors as Partial<ThemeColors>);
+      setPluginVisual({
+        lyricStyle: {
+          ...compiled.lyrics,
+          springFriction: compiled.motion.spring.friction,
+          springTension: compiled.motion.spring.tension,
+        },
+        coverStyle: compiled.cover,
+      });
+    } catch (error) {
+      console.error("Failed to load visual plugin:", error);
+    }
+  };
 
-    loadPlugin();
+  useEffect(() => {
+    void reloadVisualPlugin();
   }, []);
 
   const setTheme = async (newTheme: ThemeType) => {
@@ -194,7 +219,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const colors = useMemo(() => mergeWithBaseTheme(baseColors, pluginThemeColors), [baseColors, pluginThemeColors]);
 
   return (
-    <ThemeContext.Provider value={{ theme, colors, toggleTheme, setTheme, pluginVisual }}>
+    <ThemeContext.Provider value={{ theme, colors, toggleTheme, setTheme, pluginVisual, reloadVisualPlugin }}>
       <StatusBar style={theme === "light" ? "dark" : "light"} />
       {children}
     </ThemeContext.Provider>

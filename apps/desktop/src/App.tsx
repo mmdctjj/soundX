@@ -6,6 +6,7 @@ import Header from "./components/Header/index";
 import Player from "./components/Player/index";
 import Sidebar from "./components/Sidebar/index";
 import { getThemeConfig } from "./config/themeConfig";
+import { compileForDesktop } from "@soundx/plugin-runtime";
 import { MessageProvider } from "./context/MessageContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import LyricWindow from "./pages/LyricWindow";
@@ -66,7 +67,6 @@ const RootWrapper = ({ children, mode }: { children: React.ReactNode; mode: stri
 
 const AppContent = () => {
   const { mode } = useTheme();
-  const themeConfig = getThemeConfig(mode);
   const [messageApi, contextHolder] = message.useMessage();
   const { token, user, plusToken } = useAuthStore();
 
@@ -91,6 +91,13 @@ const AppContent = () => {
   // Sync settings on startup
   const settings = useSettingsStore((state: SettingsState) => state);
   const { autoLaunch, minimizeToTray, language } = settings.general;
+  const pluginColors = settings.visualPlugin.enabled && settings.visualPlugin.tokens
+    ? compileForDesktop(settings.visualPlugin.tokens).cssVariables
+    : null;
+  const pluginColorToken = settings.visualPlugin.enabled && settings.visualPlugin.tokens
+    ? settings.visualPlugin.tokens.color
+    : undefined;
+  const themeConfig = getThemeConfig(mode, pluginColorToken);
 
   useEffect(() => {
     if (language === 'system') {
@@ -100,6 +107,19 @@ const AppContent = () => {
       }
     }
   }, [language, i18n.language]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!pluginColors) return;
+    Object.entries(pluginColors).forEach(([k, v]) => {
+      root.style.setProperty(k, v);
+    });
+    return () => {
+      Object.keys(pluginColors).forEach((k) => {
+        root.style.removeProperty(k);
+      });
+    };
+  }, [pluginColors]);
 
   useEffect(() => {
     if ((window as any).ipcRenderer) {

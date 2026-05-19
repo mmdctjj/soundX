@@ -47,7 +47,7 @@ export default function SettingsScreen() {
 
     return () => backHandler.remove();
   }, [router]);
-  const { colors, theme, toggleTheme, setTheme } = useTheme();
+  const { colors, theme, toggleTheme, setTheme, reloadVisualPlugin } = useTheme();
   const { mode, setMode } = usePlayMode();
   const { logout, user, sourceType, device, plusToken, setPlusToken } =
     useAuth();
@@ -132,6 +132,7 @@ export default function SettingsScreen() {
       await AsyncStorage.setItem("visual_plugin_tokens", JSON.stringify(parsed));
       await AsyncStorage.setItem("visual_plugin_name", asset.name || "custom-plugin");
       setActiveVisualPluginName(asset.name || "custom-plugin");
+      await reloadVisualPlugin();
       Alert.alert(t("common.success", "成功"), t("settings.pluginImportSuccess", "插件导入成功，重进页面后生效"));
     } catch (error) {
       console.error("Failed to import plugin on mobile", error);
@@ -143,6 +144,7 @@ export default function SettingsScreen() {
     await AsyncStorage.removeItem("visual_plugin_tokens");
     await AsyncStorage.removeItem("visual_plugin_name");
     setActiveVisualPluginName("");
+    await reloadVisualPlugin();
     Alert.alert(t("common.success", "成功"), t("settings.pluginDisabled", "已禁用插件"));
   };
 

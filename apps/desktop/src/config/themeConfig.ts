@@ -1,15 +1,16 @@
 import { theme } from 'antd';
 import type { ThemeConfig } from 'antd/es/config-provider';
 
-export const getThemeConfig = (mode: 'light' | 'dark'): ThemeConfig => {
+export const getThemeConfig = (mode: 'light' | 'dark', pluginColors?: Record<string, string>): ThemeConfig => {
   const isDark = mode === 'dark';
   return {
     algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
     token: {
-      colorPrimary: isDark ? '#ffffff' : '#000000',
+      colorPrimary: pluginColors?.primary || (isDark ? '#ffffff' : '#000000'),
       colorTextLightSolid: isDark ? '#000000' : '#ffffff', 
-      colorBgContainer: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
-      colorBorder: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+      colorBgContainer: pluginColors?.background || (isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)'),
+      colorBorder: pluginColors?.secondary || (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'),
+      colorText: pluginColors?.text || undefined,
     },
     components: {
       Layout: {
