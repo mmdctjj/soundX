@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { app, BrowserWindow, dialog, screen as electronScreen, ipcMain, Menu, nativeImage, net, protocol, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, screen as electronScreen, ipcMain, Menu, nativeImage, nativeTheme, net, protocol, shell, Tray } from 'electron';
 import fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import os from "os";
@@ -11,6 +11,20 @@ app.name = 'AudioDock';
 if (process.platform === 'darwin') {
   process.title = 'AudioDock';
 }
+
+
+const getTitleBarSymbolColor = () => {
+  return nativeTheme.shouldUseDarkColors ? "#ffffff" : "#1f1f1f";
+};
+
+const syncWindowTitleBarOverlay = () => {
+  if (!win || process.platform !== "win32") return;
+  win.setTitleBarOverlay({
+    color: "rgba(0,0,0,0)",
+    symbolColor: getTitleBarSymbolColor(),
+    height: 30,
+  });
+};
 
 function getDeviceName() {
   const hostname = os.hostname().replace(/\.local$/, "");
@@ -710,7 +724,7 @@ function createWindow() {
     titleBarStyle: "hidden",
     titleBarOverlay: {
       color: "rgba(0,0,0,0)",
-      symbolColor: "#ffffff",
+      symbolColor: getTitleBarSymbolColor(),
       height: 30,
     },
     width: 1020, // 初始宽度
@@ -1021,6 +1035,7 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+  syncWindowTitleBarOverlay();
   createTray();
   setupApplicationMenu();
 });
@@ -1036,3 +1051,4 @@ app.on("activate", () => {
     win?.show();
   }
 });
+nativeTheme.on("updated", syncWindowTitleBarOverlay);
