@@ -68,7 +68,7 @@ const AppContent = () => {
   const { mode } = useTheme();
   const themeConfig = getThemeConfig(mode);
   const [messageApi, contextHolder] = message.useMessage();
-  const { token, user, plusToken } = useAuthStore();
+  const { token, user } = useAuthStore();
 
   const { checkUpdate, updateInfo, cancelUpdate } = useCheckUpdate();
 
@@ -163,7 +163,6 @@ const AppContent = () => {
   // We can handle this via Routes structure.
 
   const isAuthenticated = !!token;
-  const isMemberAuthenticated = !!plusToken;
 
   return (
     <ConfigProvider theme={themeConfig} locale={zhCN}>
@@ -174,13 +173,7 @@ const AppContent = () => {
             <Routes>
               <Route path="/member-login" element={<MemberLogin />} />
 
-              {!isMemberAuthenticated ? (
-                <Route
-                  path="*"
-                  element={<Navigate to="/member-login" replace />}
-                />
-              ) : (
-                <>
+              <>
                   <Route path="/source-manage" element={<SourceManage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -15,6 +15,7 @@ import {
   getTtsVoices,
   identifyTtsBatch,
   uploadTtsFile,
+  plusGetMe,
 } from "@soundx/services";
 import {
   Button,
@@ -55,6 +56,26 @@ const CreateTask: React.FC = () => {
   const [view, setView] = useState<"select" | "review">("select");
   const [reviewData, setReviewData] = useState<ReviewItem[]>([]);
 
+  const ensureVipAccess = async () => {
+    const plusToken = localStorage.getItem("plus_token");
+    const plusUserId = localStorage.getItem("plus_user_id");
+    if (!plusToken || !plusUserId) {
+      message.info("请先登录会员账号");
+      navigate("/member-login", { replace: true });
+      return false;
+    }
+    let id:any = plusUserId;
+    try { id = JSON.parse(plusUserId); } catch {}
+    const res = await plusGetMe(id);
+    const tier = res?.data?.data?.vipTier;
+    if (!tier || tier === "NONE") {
+      message.info("该功能需要开通会员");
+      navigate("/member-benefits", { replace: true });
+      return false;
+    }
+    return true;
+  };
+
   const fetchVoices = async () => {
     try {
       const data = await getTtsVoices();
@@ -81,8 +102,7 @@ const CreateTask: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchVoices();
-    fetchLocalFiles();
+    ensureVipAccess().then((ok)=>{ if (ok) { fetchVoices(); fetchLocalFiles(); } });
   }, []);
 
   const handlePreview = async (voice: string) => {

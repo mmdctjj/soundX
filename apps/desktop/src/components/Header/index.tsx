@@ -900,6 +900,19 @@ const Header: React.FC = () => {
               className={styles.actionIcon}
               style={actionIconStyle}
               onClick={() => {
+                const plusToken = localStorage.getItem("plus_token");
+                if (!plusToken) {
+                  messageApi.info(t("common.loginFirst"));
+                  navigate("/member-login");
+                  return;
+                }
+
+                if (!isPlusVip) {
+                  messageApi.info(t("common.vipOnly"));
+                  navigate("/member-benefits");
+                  return;
+                }
+
                 trackEvent({
                   feature: "tts",
                   eventName: "tts_task_list_open",

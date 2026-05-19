@@ -203,6 +203,15 @@ export default function PersonalScreen() {
       return;
     }
 
+    const plusToken = await AsyncStorage.getItem("plus_token");
+    if (!plusToken) {
+      Alert.alert(t("common.memberFeature"), t("common.loginFirst"), [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("personalPage.memberLogin"), onPress: () => router.push("/member-login" as any) },
+      ]);
+      return;
+    }
+
     if (isPlusVip) {
       trackEvent({
         feature: "scan_login",
@@ -468,6 +477,15 @@ export default function PersonalScreen() {
       userId: user?.id ? String(user.id) : undefined,
       deviceId: device?.id ? String(device.id) : undefined,
     });
+
+    const plusToken = await AsyncStorage.getItem("plus_token");
+    if (!plusToken) {
+      Alert.alert(t("common.memberFeature"), t("common.loginFirst"), [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("personalPage.memberLogin"), onPress: () => router.push("/member-login" as any) },
+      ]);
+      return;
+    }
 
     if (isPlusVip) {
       trackEvent({
@@ -964,7 +982,16 @@ export default function PersonalScreen() {
                     }
                     const plusToken = await AsyncStorage.getItem("plus_token");
                     if (plusToken) {
-                        if (isPlusVip) {
+                        const plusToken = await AsyncStorage.getItem("plus_token");
+    if (!plusToken) {
+      Alert.alert(t("common.memberFeature"), t("common.loginFirst"), [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("personalPage.memberLogin"), onPress: () => router.push("/member-login" as any) },
+      ]);
+      return;
+    }
+
+    if (isPlusVip) {
                             router.push("/member-detail");
                         } else {
                             router.push("/member-benefits" as any);
