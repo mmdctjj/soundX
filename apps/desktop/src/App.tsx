@@ -41,13 +41,19 @@ import InviteListener from "./components/InviteListener";
 import MiniPlayer from "./components/MiniPlayer";
 import UpdateModal from "./components/UpdateModal";
 import { useCheckUpdate } from "./hooks/useCheckUpdate";
+import i18n from "./i18n";
 import { socketService } from "./services/socket";
 import { useAuthStore } from "./store/auth";
 import { useSettingsStore, type SettingsState } from "./store/settings";
-import i18n from "./i18n";
 
 // Wrapper to provide consistent background and color based on theme tokens
-const RootWrapper = ({ children, mode }: { children: React.ReactNode; mode: string }) => {
+const RootWrapper = ({
+  children,
+  mode,
+}: {
+  children: React.ReactNode;
+  mode: string;
+}) => {
   const { token } = theme.useToken();
   return (
     <div
@@ -68,7 +74,7 @@ const AppContent = () => {
   const { mode } = useTheme();
   const themeConfig = getThemeConfig(mode);
   const [messageApi, contextHolder] = message.useMessage();
-  const { token, user, plusToken } = useAuthStore();
+  const { token, user } = useAuthStore();
 
   const { checkUpdate, updateInfo, cancelUpdate } = useCheckUpdate();
 
@@ -93,8 +99,8 @@ const AppContent = () => {
   const { autoLaunch, minimizeToTray, language } = settings.general;
 
   useEffect(() => {
-    if (language === 'system') {
-      const systemLang = navigator.language.startsWith('zh') ? 'zh-CN' : 'en';
+    if (language === "system") {
+      const systemLang = navigator.language.startsWith("zh") ? "zh-CN" : "en";
       if (i18n.language !== systemLang) {
         i18n.changeLanguage(systemLang);
       }
@@ -163,7 +169,6 @@ const AppContent = () => {
   // We can handle this via Routes structure.
 
   const isAuthenticated = !!token;
-  const isMemberAuthenticated = !!plusToken;
 
   return (
     <ConfigProvider theme={themeConfig} locale={zhCN}>
@@ -174,159 +179,143 @@ const AppContent = () => {
             <Routes>
               <Route path="/member-login" element={<MemberLogin />} />
 
-              {!isMemberAuthenticated ? (
-                <Route
-                  path="*"
-                  element={<Navigate to="/member-login" replace />}
-                />
-              ) : (
-                <>
-                  <Route path="/source-manage" element={<SourceManage />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/member-benefits" element={<MemberBenefits />} />
-                  <Route path="/member-detail" element={<MemberDetail />} />
+              <>
+                <Route path="/source-manage" element={<SourceManage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/member-benefits" element={<MemberBenefits />} />
+                <Route path="/member-detail" element={<MemberDetail />} />
 
-                  {isAuthenticated ? (
-                    <Route
-                      path="/*"
-                      element={
+                {isAuthenticated ? (
+                  <Route
+                    path="/*"
+                    element={
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          height: "100vh",
+                          width: "100vw",
+                          backgroundColor: "transparent",
+                        }}
+                      >
                         <div
                           style={{
                             display: "flex",
-                            flexDirection: "column",
-                            height: "100vh",
-                            width: "100vw",
-                            backgroundColor: "transparent",
+                            flex: 1,
+                            overflow: "hidden",
                           }}
                         >
+                          <Sidebar />
                           <div
                             style={{
-                              display: "flex",
                               flex: 1,
+                              display: "flex",
+                              flexDirection: "column",
                               overflow: "hidden",
                             }}
                           >
-                            <Sidebar />
-                            <div
-                              style={{
-                                flex: 1,
-                                display: "flex",
-                                flexDirection: "column",
-                                overflow: "hidden",
-                              }}
-                            >
-                              <Header />
-                              <Suspense fallback={<Skeleton active />}>
-                                <Routes>
-                                  <Route
-                                    path="/"
-                                    element={
-                                      <Navigate to="/recommended" replace />
-                                    }
-                                  />
-                                  <Route
-                                    path="/recommended"
-                                    element={<Recommended />}
-                                  />
-                                  <Route path="/detail" element={<Detail />} />
-                                  <Route
-                                    path="/artist/:id"
-                                    element={<ArtistDetail />}
-                                  />
-                                  <Route
-                                    path="/category"
-                                    element={<Category />}
-                                  />
-                                  <Route
-                                    path="/mvs"
-                                    element={<Mvs />}
-                                  />
-                                  <Route
-                                    path="/mv"
-                                    element={<MvDetail />}
-                                  />
-                                  <Route
-                                    path="/mv/:id"
-                                    element={<MvDetail />}
-                                  />
-                                  <Route
-                                    path="/collections"
-                                    element={<Collections />}
-                                  />
-                                  <Route
-                                    path="/collection/:id"
-                                    element={<CollectionDetail />}
-                                  />
-                                  <Route path="/songs" element={<Songs />} />
-                                  <Route
-                                    path="/favorites"
-                                    element={<Favorites />}
-                                  />
-                                  <Route
-                                    path="/listened"
-                                    element={<Listened />}
-                                  />
-                                  <Route
-                                    path="/artists"
-                                    element={<ArtistList />}
-                                  />
-                                  <Route
-                                    path="/playlist/:id"
-                                    element={<PlaylistDetail />}
-                                  />
-                                  <Route
-                                    path="/settings"
-                                    element={<Settings />}
-                                  />
-                                  <Route path="/folders" element={<Folder />} />
-                                  <Route
-                                    path="/folder/:id"
-                                    element={<Folder />}
-                                  />
-                                  <Route
-                                    path="/downloads"
-                                    element={<Downloads />}
-                                  />
-                                  <Route
-                                    path="/admin/users"
-                                    element={<UserManagement />}
-                                  />
-                                  <Route
-                                    path="/tts/tasks"
-                                    element={<TaskList />}
-                                  />
-                                  <Route
-                                    path="/tts/create"
-                                    element={<CreateTask />}
-                                  />
-                                  <Route
-                                    path="/product-updates"
-                                    element={<ProductUpdates />}
-                                  />
-                                </Routes>
-                              </Suspense>
-                            </div>
+                            <Header />
+                            <Suspense fallback={<Skeleton active />}>
+                              <Routes>
+                                <Route
+                                  path="/"
+                                  element={
+                                    <Navigate to="/recommended" replace />
+                                  }
+                                />
+                                <Route
+                                  path="/recommended"
+                                  element={<Recommended />}
+                                />
+                                <Route path="/detail" element={<Detail />} />
+                                <Route
+                                  path="/artist/:id"
+                                  element={<ArtistDetail />}
+                                />
+                                <Route
+                                  path="/category"
+                                  element={<Category />}
+                                />
+                                <Route path="/mvs" element={<Mvs />} />
+                                <Route path="/mv" element={<MvDetail />} />
+                                <Route path="/mv/:id" element={<MvDetail />} />
+                                <Route
+                                  path="/collections"
+                                  element={<Collections />}
+                                />
+                                <Route
+                                  path="/collection/:id"
+                                  element={<CollectionDetail />}
+                                />
+                                <Route path="/songs" element={<Songs />} />
+                                <Route
+                                  path="/favorites"
+                                  element={<Favorites />}
+                                />
+                                <Route
+                                  path="/listened"
+                                  element={<Listened />}
+                                />
+                                <Route
+                                  path="/artists"
+                                  element={<ArtistList />}
+                                />
+                                <Route
+                                  path="/playlist/:id"
+                                  element={<PlaylistDetail />}
+                                />
+                                <Route
+                                  path="/settings"
+                                  element={<Settings />}
+                                />
+                                <Route path="/folders" element={<Folder />} />
+                                <Route
+                                  path="/folder/:id"
+                                  element={<Folder />}
+                                />
+                                <Route
+                                  path="/downloads"
+                                  element={<Downloads />}
+                                />
+                                <Route
+                                  path="/admin/users"
+                                  element={<UserManagement />}
+                                />
+                                <Route
+                                  path="/tts/tasks"
+                                  element={<TaskList />}
+                                />
+                                <Route
+                                  path="/tts/create"
+                                  element={<CreateTask />}
+                                />
+                                <Route
+                                  path="/product-updates"
+                                  element={<ProductUpdates />}
+                                />
+                              </Routes>
+                            </Suspense>
                           </div>
-
-                          <Player />
-                          <UpdateModal
-                            visible={!!updateInfo}
-                            updateInfo={updateInfo}
-                            onCancel={cancelUpdate}
-                          />
-                          <InviteListener />
                         </div>
-                      }
-                    />
-                  ) : (
-                    <Route
-                      path="*"
-                      element={<Navigate to="/source-manage" replace />}
-                    />
-                  )}
-                </>
-              )}
+
+                        <Player />
+                        <UpdateModal
+                          visible={!!updateInfo}
+                          updateInfo={updateInfo}
+                          onCancel={cancelUpdate}
+                        />
+                        <InviteListener />
+                      </div>
+                    }
+                  />
+                ) : (
+                  <Route
+                    path="*"
+                    element={<Navigate to="/source-manage" replace />}
+                  />
+                )}
+              </>
             </Routes>
           </Suspense>
         </MessageProvider>

@@ -5,6 +5,7 @@ import {
     getTtsTasks,
     pauseTtsTask,
     resumeTtsTask,
+    plusGetMe,
 } from "@soundx/services";
 import {
     Button,
@@ -14,7 +15,7 @@ import {
     Space,
     Table,
     Tag,
-    Typography,
+    Typography
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +30,26 @@ const TaskList: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const navigate = useNavigate();
+
+  const ensureVipAccess = async () => {
+    const plusToken = localStorage.getItem("plus_token");
+    const plusUserId = localStorage.getItem("plus_user_id");
+    if (!plusToken || !plusUserId) {
+      alert("请先登录会员账号");
+      navigate("/member-login", { replace: true });
+      return false;
+    }
+    let id:any = plusUserId;
+    try { id = JSON.parse(plusUserId); } catch {}
+    const res = await plusGetMe(id);
+    const tier = res?.data?.data?.vipTier;
+    if (!tier || tier === "NONE") {
+      alert("该功能需要开通会员");
+      navigate("/member-benefits", { replace: true });
+      return false;
+    }
+    return true;
+  };
 
   const fetchTasks = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -73,7 +94,7 @@ const TaskList: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTasks();
+    ensureVipAccess().then((ok)=>{ if (ok) fetchTasks(); });
     const timer = setInterval(() => fetchTasks(false), 5000); // 后台静默刷新
     return () => clearInterval(timer);
   }, []);

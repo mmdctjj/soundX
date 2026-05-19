@@ -29,11 +29,11 @@ import {
   clearSearchHistory,
   createCompactTask,
   createImportTask,
+  getCurrentUser,
   getHotSearches,
   getImportTask,
   getRunningImportTask,
   getSearchHistory,
-  getCurrentUser,
   plusDeleteMe,
   plusGetMe,
   plusParticipateInternalTest,
@@ -41,13 +41,13 @@ import {
   setPlusToken as setPlusServiceToken,
   setServiceConfig,
   SOURCEMAP,
+  speechToText,
   TaskStatus,
   uploadUserAvatar,
   useNativeAdapter,
   useSubsonicAdapter,
   type ImportTask,
   type SearchResults as SearchResultsType,
-  speechToText,
 } from "@soundx/services";
 import {
   Button,
@@ -143,7 +143,7 @@ const ServerSwitcherModal: React.FC<{
             id: `migrated_${Date.now()}_${index}`,
             internal: h.value,
             external: "",
-            name: `${t('header.historyRecord')} ${index + 1}`,
+            name: `${t("header.historyRecord")} ${index + 1}`,
           }));
           localStorage.setItem(configKey, JSON.stringify(migrated));
           allConfigs.push({ type, list: migrated });
@@ -211,7 +211,7 @@ const ServerSwitcherModal: React.FC<{
             const isSourceMatch = currentSource === type;
             const sourceLogo =
               type === "Emby" ? emby : type === "Subsonic" ? subsonic : logo;
-            const displayName = `${type}${t('header.dataSource')}[${index + 1}]`;
+            const displayName = `${type}${t("header.dataSource")}[${index + 1}]`;
 
             const renderAddressRow = (label: string, address: string) => {
               if (!address) return null;
@@ -251,7 +251,7 @@ const ServerSwitcherModal: React.FC<{
                   <Flex align="center" gap={8}>
                     {isActive ? (
                       <Text type="success" style={{ fontSize: 10 }}>
-                        ● {t('header.connected')}
+                        ● {t("header.connected")}
                       </Text>
                     ) : (
                       <Button
@@ -261,7 +261,7 @@ const ServerSwitcherModal: React.FC<{
                         }}
                         style={{ fontSize: 10 }}
                       >
-                        {t('header.connect')}
+                        {t("header.connect")}
                       </Button>
                     )}
                     {isConnecting && <Spin size="small" />}
@@ -305,8 +305,14 @@ const ServerSwitcherModal: React.FC<{
                     />
                   </Flex>
                   <Flex vertical gap={4}>
-                    {renderAddressRow(t('header.internalAddress'), item.internal)}
-                    {renderAddressRow(t('header.externalAddress'), item.external)}
+                    {renderAddressRow(
+                      t("header.internalAddress"),
+                      item.internal,
+                    )}
+                    {renderAddressRow(
+                      t("header.externalAddress"),
+                      item.external,
+                    )}
                   </Flex>
                 </Flex>
               </Card>
@@ -316,7 +322,7 @@ const ServerSwitcherModal: React.FC<{
 
         {configs.every((item) => item.list.length === 0) && (
           <Empty
-            description={t('header.noHistoryData')}
+            description={t("header.noHistoryData")}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         )}
@@ -331,7 +337,7 @@ const ServerSwitcherModal: React.FC<{
             navigate("/source-manage");
           }}
         >
-          {t('header.addDataSource')}
+          {t("header.addDataSource")}
         </Button>
       </Flex>
     </div>
@@ -433,7 +439,7 @@ const Header: React.FC = () => {
       await clearSearchHistory();
       setSearchHistory([]);
     } catch (e) {
-      message.error(t('header.clearHistoryFailed'));
+      message.error(t("header.clearHistoryFailed"));
     }
   };
 
@@ -457,7 +463,7 @@ const Header: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    message.success(t('header.logoutSuccess'));
+    message.success(t("header.logoutSuccess"));
     // Optionally reload to reset app state
     window.location.reload();
   };
@@ -465,31 +471,35 @@ const Header: React.FC = () => {
   const handleDeleteMemberAccount = () => {
     const plusToken = localStorage.getItem("plus_token");
     if (!plusToken) {
-      message.warning(t('header.pleaseLoginMemberFirst'));
+      message.warning(t("header.pleaseLoginMemberFirst"));
       navigate("/member-login");
       return;
     }
 
     modal.confirm({
-      title: t('header.cancelMembership'),
-      content: t('header.confirmCancelMembership'),
-      okText: t('common.confirm'),
-      cancelText: t('common.cancel'),
+      title: t("header.cancelMembership"),
+      content: t("header.confirmCancelMembership"),
+      okText: t("common.confirm"),
+      cancelText: t("common.cancel"),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
           const res = await plusDeleteMe();
           if (res.data?.code !== 200 || !res.data?.data?.ok) {
-            throw new Error(res.data?.message || t('header.cancelMembershipFailed'));
+            throw new Error(
+              res.data?.message || t("header.cancelMembershipFailed"),
+            );
           }
 
           setMemberToken(null);
-          message.success(t('header.membershipCancelled'));
+          message.success(t("header.membershipCancelled"));
           navigate("/member-login", { replace: true });
         } catch (error) {
           console.error("Failed to delete plus member account:", error);
           message.error(
-            error instanceof Error ? error.message : t('header.cancelMembershipFailedRetry'),
+            error instanceof Error
+              ? error.message
+              : t("header.cancelMembershipFailedRetry"),
           );
         }
       },
@@ -532,10 +542,10 @@ const Header: React.FC = () => {
   ) => {
     message.loading(
       mode === "incremental"
-        ? t('header.incremental') + t('header.taskCreating')
+        ? t("header.incremental") + t("header.taskCreating")
         : mode === "full"
-          ? t('header.full') + t('header.taskCreating')
-          : t('header.compact') + t('header.taskCreating'),
+          ? t("header.full") + t("header.taskCreating")
+          : t("header.compact") + t("header.taskCreating"),
     );
 
     try {
@@ -550,7 +560,10 @@ const Header: React.FC = () => {
           id: taskId,
           status: TaskStatus.INITIALIZING,
           mode,
-          message: mode === "compact" ? t('header.initializingCompact') : t('header.initializing'),
+          message:
+            mode === "compact"
+              ? t("header.initializingCompact")
+              : t("header.initializing"),
         });
 
         // Clear previous timer if any
@@ -560,11 +573,11 @@ const Header: React.FC = () => {
           pollTaskStatus(taskId);
         }, 1000);
       } else {
-        message.error(res.message || t('header.taskCreateFailed'));
+        message.error(res.message || t("header.taskCreateFailed"));
       }
     } catch (error) {
       console.error("Task creation error:", error);
-      message.error(t('header.createTaskFailed'));
+      message.error(t("header.createTaskFailed"));
     }
   };
 
@@ -576,9 +589,9 @@ const Header: React.FC = () => {
         const { status, total } = res.data;
         if (status === TaskStatus.SUCCESS) {
           if (res.data.mode === "compact") {
-            message.success(t('header.compactComplete'));
+            message.success(t("header.compactComplete"));
           } else {
-            message.success(t('header.importSuccess', { count: total }));
+            message.success(t("header.importSuccess", { count: total }));
           }
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           // Auto close modal after a short delay
@@ -601,7 +614,9 @@ const Header: React.FC = () => {
       setIsRecording(false);
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
         const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
         audioChunksRef.current = [];
@@ -613,33 +628,49 @@ const Header: React.FC = () => {
         };
 
         mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          stream.getTracks().forEach(track => track.stop());
-          
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: "audio/webm",
+          });
+          stream.getTracks().forEach((track) => track.stop());
+
           try {
-            message.loading({ content: t('header.recognizing', '正在识别...'), key: 'asr' });
-            
-            const file = new File([audioBlob], 'record.webm', { type: 'audio/webm' });
+            message.loading({
+              content: t("header.recognizing", "正在识别..."),
+              key: "asr",
+            });
+
+            const file = new File([audioBlob], "record.webm", {
+              type: "audio/webm",
+            });
             const text = await speechToText(file);
-            
+
             if (text) {
-              message.success({ content: t('header.recognizeSuccess', '识别成功'), key: 'asr' });
+              message.success({
+                content: t("header.recognizeSuccess", "识别成功"),
+                key: "asr",
+              });
               setSearchKeyword(text);
               performSearch(text);
             } else {
-              message.error({ content: t('header.recognizeFailed', '识别失败'), key: 'asr' });
+              message.error({
+                content: t("header.recognizeFailed", "识别失败"),
+                key: "asr",
+              });
             }
           } catch (error) {
-            console.error('ASR error:', error);
-            message.error({ content: t('header.recognizeError', '识别发生错误'), key: 'asr' });
+            console.error("ASR error:", error);
+            message.error({
+              content: t("header.recognizeError", "识别发生错误"),
+              key: "asr",
+            });
           }
         };
 
         mediaRecorder.start();
         setIsRecording(true);
       } catch (error) {
-        console.error('Microphone access denied:', error);
-        message.error(t('header.micAccessDenied', '无法访问麦克风'));
+        console.error("Microphone access denied:", error);
+        message.error(t("header.micAccessDenied", "无法访问麦克风"));
       }
     }
   };
@@ -662,7 +693,7 @@ const Header: React.FC = () => {
     check().then((res) => {
       if (res.code == 200) {
       } else if (res.code === 401) {
-        message.error(t('header.loginExpired'));
+        message.error(t("header.loginExpired"));
         logout();
       }
     });
@@ -738,13 +769,13 @@ const Header: React.FC = () => {
 
   const handleRedeemInternalTestCode = async () => {
     if (isPlusVip) {
-      message.info(t('header.alreadyHasBetaAccess'));
+      message.info(t("header.alreadyHasBetaAccess"));
       return;
     }
 
     const plusUserId = localStorage.getItem("plus_user_id");
     if (!plusUserId) {
-      message.error(t('header.pleaseLoginMemberFirstBeta'));
+      message.error(t("header.pleaseLoginMemberFirstBeta"));
       return;
     }
 
@@ -766,7 +797,9 @@ const Header: React.FC = () => {
       const payload = res.data?.data;
 
       if (res.data?.code !== 200 || !payload?.ok) {
-        throw new Error(res.data?.message || t('header.participateInternalTestFailed'));
+        throw new Error(
+          res.data?.message || t("header.participateInternalTestFailed"),
+        );
       }
 
       localStorage.setItem("plus_vip_status", "true");
@@ -786,7 +819,7 @@ const Header: React.FC = () => {
         userId: user?.id ? String(user.id) : undefined,
         deviceId: device?.id ? String(device.id) : undefined,
       });
-      message.success(t('header.betaAccessGranted'));
+      message.success(t("header.betaAccessGranted"));
     } catch (error) {
       console.error("Failed to redeem internal test code:", error);
       trackEvent({
@@ -798,7 +831,9 @@ const Header: React.FC = () => {
           message: error instanceof Error ? error.message : "unknown_error",
         },
       });
-      message.error(error instanceof Error ? error.message : t('common.operationFailed'));
+      message.error(
+        error instanceof Error ? error.message : t("common.operationFailed"),
+      );
     } finally {
       setRedeemingInternalTestCode(false);
     }
@@ -809,21 +844,21 @@ const Header: React.FC = () => {
       {/* Navigation Controls */}
       <div className={styles.navControls}>
         <div className={styles.navGroup}>
-          <Tooltip title={t('header.back')}>
+          <Tooltip title={t("header.back")}>
             <LeftOutlined
               onClick={() => navigate(-1)}
               className={styles.navIcon}
               style={iconStyle}
             />
           </Tooltip>
-          <Tooltip title={t('header.forward')}>
+          <Tooltip title={t("header.forward")}>
             <RightOutlined
               onClick={() => navigate(1)}
               className={styles.navIcon}
               style={iconStyle}
             />
           </Tooltip>
-          <Tooltip title={t('header.refresh')}>
+          <Tooltip title={t("header.refresh")}>
             <ReloadOutlined
               onClick={() => window.location.reload()}
               className={styles.navIcon}
@@ -834,13 +869,23 @@ const Header: React.FC = () => {
       </div>
 
       {/* Search Bar */}
-      <div className={styles.searchBar} ref={searchContainerRef} style={{ display: 'flex', alignItems: 'center' }}>
-        <Tooltip title={isRecording ? t('header.stopRecord', '停止录音') : t('header.startRecord', '语音搜索')}>
+      <div
+        className={styles.searchBar}
+        ref={searchContainerRef}
+        style={{ display: "flex", alignItems: "center" }}
+      >
+        <Tooltip
+          title={
+            isRecording
+              ? t("header.stopRecord", "停止录音")
+              : t("header.startRecord", "语音搜索")
+          }
+        >
           <div
             onClick={handleToggleRecord}
             style={{
-              padding: '0 8px',
-              cursor: 'pointer',
+              padding: "0 8px",
+              cursor: "pointer",
               color: isRecording ? token.colorError : token.colorTextSecondary,
             }}
           >
@@ -851,7 +896,7 @@ const Header: React.FC = () => {
           prefix={
             <SearchOutlined style={{ color: token.colorTextSecondary }} />
           }
-          placeholder={t('header.searchPlaceholder')}
+          placeholder={t("header.searchPlaceholder")}
           bordered={false}
           className={styles.searchInput}
           style={{ color: token.colorText }}
@@ -884,7 +929,7 @@ const Header: React.FC = () => {
         {playMode === TrackType.MUSIC &&
           !isSubsonicSource() &&
           !isEmbySource() && (
-            <Tooltip title={t('header.scenarioRadio')}>
+            <Tooltip title={t("header.scenarioRadio")}>
               <div
                 className={`${styles.actionIcon} ${isRadioMode ? styles.radioActive : ""}`}
                 style={actionIconStyle}
@@ -900,6 +945,19 @@ const Header: React.FC = () => {
               className={styles.actionIcon}
               style={actionIconStyle}
               onClick={() => {
+                const plusToken = localStorage.getItem("plus_token");
+                if (!plusToken) {
+                  message.info(t("common.loginFirst"));
+                  navigate("/member-login");
+                  return;
+                }
+
+                if (!isPlusVip) {
+                  message.info(t("common.vipOnly"));
+                  navigate("/member-benefits");
+                  return;
+                }
+
                 trackEvent({
                   feature: "tts",
                   eventName: "tts_task_list_open",
@@ -917,8 +975,8 @@ const Header: React.FC = () => {
           <Tooltip
             title={
               playMode === TrackType.MUSIC
-                ? t('header.switchToAudiobookMode')
-                : t('header.switchToMusicMode')
+                ? t("header.switchToAudiobookMode")
+                : t("header.switchToMusicMode")
             }
           >
             <div
@@ -936,7 +994,7 @@ const Header: React.FC = () => {
         )}
 
         {!isWeb() && (
-          <Tooltip title={t('header.miniPlayer')}>
+          <Tooltip title={t("header.miniPlayer")}>
             <ImportOutlined
               className={styles.actionIcon}
               style={actionIconStyle}
@@ -950,7 +1008,7 @@ const Header: React.FC = () => {
         )}
 
         {!isSubsonicSource() && (
-          <Tooltip title={t('header.folder')}>
+          <Tooltip title={t("header.folder")}>
             <div
               className={styles.actionIcon}
               style={actionIconStyle}
@@ -969,7 +1027,7 @@ const Header: React.FC = () => {
           </Tooltip>
         )}
 
-        <Tooltip title={t('header.switchServer')}>
+        <Tooltip title={t("header.switchServer")}>
           <div
             className={styles.actionIcon}
             style={actionIconStyle}
@@ -1012,12 +1070,12 @@ const Header: React.FC = () => {
 
                 // 5. Cleanup and reload
                 Modal.destroyAll();
-                message.success(t('header.switchedTo', { type, url }));
+                message.success(t("header.switchedTo", { type, url }));
                 window.location.reload();
               };
 
               modal.confirm({
-                title: t('header.switchServer'),
+                title: t("header.switchServer"),
                 content: <ServerSwitcherModal onSelect={handleSwitchServer} />,
                 footer: null,
                 closable: true,
@@ -1031,10 +1089,10 @@ const Header: React.FC = () => {
         <Tooltip
           title={
             themeSetting === "dark"
-              ? t('header.switchToLightMode')
+              ? t("header.switchToLightMode")
               : themeSetting === "light"
-                ? t('header.switchToSystem')
-                : t('header.switchToDarkMode')
+                ? t("header.switchToSystem")
+                : t("header.switchToDarkMode")
           }
         >
           <div
@@ -1051,7 +1109,7 @@ const Header: React.FC = () => {
             )}
           </div>
         </Tooltip>
-        <Tooltip title={t('header.memberService')}>
+        <Tooltip title={t("header.memberService")}>
           <div
             className={styles.actionIcon}
             style={{ ...actionIconStyle }}
@@ -1080,7 +1138,8 @@ const Header: React.FC = () => {
           content={
             <div className={styles.userMenu}>
               <div className={styles.userMenuItem}>
-                {t('header.hi')}{user?.username || t('common.unknown')}
+                {t("header.hi")}
+                {user?.username || t("common.unknown")}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -1092,10 +1151,10 @@ const Header: React.FC = () => {
               >
                 <CrownOutlined />
                 {isPlusVip
-                  ? t('header.internalTestEnabled')
+                  ? t("header.internalTestEnabled")
                   : redeemingInternalTestCode
-                    ? t('header.internalTestApplying')
-                    : t('header.internalTest')}
+                    ? t("header.internalTestApplying")
+                    : t("header.internalTest")}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -1109,7 +1168,7 @@ const Header: React.FC = () => {
                       try {
                         const res = await uploadUserAvatar(user.id, file);
                         if (res.code === 200) {
-                          message.success(t('header.avatarChangeSuccess'));
+                          message.success(t("header.avatarChangeSuccess"));
                           // Updating user state is handled manually or via re-fetch
                           const url =
                             localStorage.getItem("serverAddress") ||
@@ -1128,10 +1187,12 @@ const Header: React.FC = () => {
                           );
                           useAuthStore.setState({ user: updatedUser as any });
                         } else {
-                          message.error(res.message || t('header.avatarChangeFailed'));
+                          message.error(
+                            res.message || t("header.avatarChangeFailed"),
+                          );
                         }
                       } catch (err) {
-                        message.error(t('header.uploadError'));
+                        message.error(t("header.uploadError"));
                       }
                     }
                   };
@@ -1139,7 +1200,7 @@ const Header: React.FC = () => {
                 }}
               >
                 <PlusOutlined />
-                {t('header.changeAvatar')}
+                {t("header.changeAvatar")}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -1156,68 +1217,69 @@ const Header: React.FC = () => {
                   }
                 }}
               >
-                <GithubOutlined />{t('header.giveStar')}
+                <GithubOutlined />
+                {t("header.giveStar")}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: t('header.confirmIncrementalUpdate'),
-                    content: t('header.incrementalUpdateContent'),
-                    okText: t('header.confirmUpdate'),
-                    cancelText: t('common.cancel'),
+                    title: t("header.confirmIncrementalUpdate"),
+                    content: t("header.incrementalUpdateContent"),
+                    okText: t("header.confirmUpdate"),
+                    cancelText: t("common.cancel"),
                     onOk: () => handleUpdateLibrary("incremental"),
                   });
                 }}
               >
                 <RollbackOutlined />
-                {t('header.incrementalUpdate')}
+                {t("header.incrementalUpdate")}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: t('header.confirmFullUpdate'),
-                    content:
-                      t('header.fullUpdateContent'),
-                    okText: t('header.confirmUpdate'),
-                    cancelText: t('common.cancel'),
+                    title: t("header.confirmFullUpdate"),
+                    content: t("header.fullUpdateContent"),
+                    okText: t("header.confirmUpdate"),
+                    cancelText: t("common.cancel"),
                     onOk: () => handleUpdateLibrary("full"),
                   });
                 }}
               >
                 <RetweetOutlined />
-                {t('header.fullUpdate')}
+                {t("header.fullUpdate")}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: t('header.confirmCompactData'),
-                    content:
-                      t('header.compactDataContent'),
-                    okText: t('header.confirmCompact'),
-                    cancelText: t('common.cancel'),
+                    title: t("header.confirmCompactData"),
+                    content: t("header.compactDataContent"),
+                    okText: t("header.confirmCompact"),
+                    cancelText: t("common.cancel"),
                     onOk: () => handleUpdateLibrary("compact"),
                   });
                 }}
               >
                 <DeleteOutlined />
-                {t('header.compactData')}
+                {t("header.compactData")}
               </div>
 
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
                   modal.confirm({
-                    title: t('header.clearCache'),
-                    content: t('settings.confirmClearCache', { label: '' }),
-                    okText: t('common.confirm'),
-                    cancelText: t('common.cancel'),
+                    title: t("header.clearCache"),
+                    content: t("settings.confirmClearCache", { label: "" }),
+                    okText: t("common.confirm"),
+                    cancelText: t("common.cancel"),
                     onOk: async () => {
                       try {
                         if ((window as any).ipcRenderer) {
-                          await (window as any).ipcRenderer.invoke("cache:clear");
+                          await (window as any).ipcRenderer.invoke(
+                            "cache:clear",
+                          );
                         }
                         const PRESERVED_KEYS = new Set([
                           "serverAddress",
@@ -1234,11 +1296,14 @@ const Header: React.FC = () => {
                         for (let i = 0; i < localStorage.length; i++) {
                           const key = localStorage.key(i);
                           if (key && PRESERVED_KEYS.has(key)) {
-                            keysToPreserve[key] = localStorage.getItem(key) || "";
+                            keysToPreserve[key] =
+                              localStorage.getItem(key) || "";
                           }
                         }
                         localStorage.clear();
-                        for (const [key, value] of Object.entries(keysToPreserve)) {
+                        for (const [key, value] of Object.entries(
+                          keysToPreserve,
+                        )) {
                           localStorage.setItem(key, value);
                         }
                         message.success(t("settings.cacheCleared"));
@@ -1251,7 +1316,7 @@ const Header: React.FC = () => {
                 }}
               >
                 <DeleteOutlined />
-                {t('header.clearCache')}
+                {t("header.clearCache")}
               </div>
 
               <div
@@ -1259,18 +1324,18 @@ const Header: React.FC = () => {
                 onClick={() => navigate("/product-updates")}
               >
                 <ReadOutlined className={styles.actionIcon} />
-                {t('header.productUpdates')}
+                {t("header.productUpdates")}
               </div>
               <div
                 className={styles.userMenuItem}
                 onClick={() => navigate("/settings")}
               >
                 <SettingOutlined className={styles.actionIcon} />
-                {t('common.settings')}
+                {t("common.settings")}
               </div>
               <div className={styles.userMenuItem} onClick={handleLogout}>
                 <LogoutOutlined />
-                {t('header.logout')}
+                {t("header.logout")}
               </div>
               <div
                 className={styles.userMenuItem}
@@ -1278,7 +1343,7 @@ const Header: React.FC = () => {
                 style={{ color: "#ff4d4f" }}
               >
                 <DeleteOutlined />
-                {t('header.cancelMembership')}
+                {t("header.cancelMembership")}
               </div>
             </div>
           }
@@ -1299,7 +1364,11 @@ const Header: React.FC = () => {
       </div>
       {contextHolder}
       <Modal
-        title={importTask?.mode === "compact" ? t('header.compactDataProgress') : t('header.importProgress')}
+        title={
+          importTask?.mode === "compact"
+            ? t("header.compactDataProgress")
+            : t("header.importProgress")
+        }
         open={isImportModalOpen}
         onCancel={() => {
           if (
@@ -1308,7 +1377,7 @@ const Header: React.FC = () => {
           ) {
             setIsImportModalOpen(false);
           } else {
-            message.info(t('header.taskRunningBackground'));
+            message.info(t("header.taskRunningBackground"));
             setIsImportModalOpen(false);
           }
         }}
@@ -1317,34 +1386,34 @@ const Header: React.FC = () => {
       >
         <div style={{ padding: "20px 0" }}>
           <div style={{ marginBottom: 16 }}>
-            {t('header.status')} 
+            {t("header.status")}
             {importTask?.message &&
             importTask.status !== TaskStatus.FAILED &&
             importTask.status !== TaskStatus.SUCCESS
               ? importTask.message
               : importTask?.status === TaskStatus.INITIALIZING
                 ? importTask?.mode === "compact"
-                  ? t('header.initializingCompact')
-                  : t('header.initializing')
+                  ? t("header.initializingCompact")
+                  : t("header.initializing")
                 : importTask?.status === TaskStatus.PREPARING
                   ? importTask?.mode === "compact"
-                    ? t('header.compactingDb')
-                    : t('header.preparingEnv')
+                    ? t("header.compactingDb")
+                    : t("header.preparingEnv")
                   : importTask?.status === TaskStatus.PARSING
-                    ? t('header.parsing')
+                    ? t("header.parsing")
                     : importTask?.status === TaskStatus.SUCCESS
                       ? importTask?.mode === "compact"
-                        ? t('header.compactComplete')
-                        : t('header.importComplete')
+                        ? t("header.compactComplete")
+                        : t("header.importComplete")
                       : importTask?.status === TaskStatus.FAILED
                         ? importTask?.mode === "compact"
-                          ? t('header.compactFailed')
-                          : t('header.importFailed')
-                        : t('header.preparingOrDefault') }
+                          ? t("header.compactFailed")
+                          : t("header.importFailed")
+                        : t("header.preparingOrDefault")}
           </div>
           {importTask?.status === TaskStatus.FAILED && (
             <div style={{ color: token.colorError, marginBottom: 16 }}>
-              {t('common.error')}: {importTask.message}
+              {t("common.error")}: {importTask.message}
             </div>
           )}
           <Progress
@@ -1367,7 +1436,7 @@ const Header: React.FC = () => {
             <Flex vertical gap={4} style={{ marginTop: 12 }}>
               <Flex justify="space-between" align="center">
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {t('header.localFileProgress')}
+                  {t("header.localFileProgress")}
                 </Text>
                 <Text style={{ fontSize: 13 }}>
                   {importTask?.localCurrent || 0} /{" "}
@@ -1376,7 +1445,7 @@ const Header: React.FC = () => {
               </Flex>
               <Flex justify="space-between" align="center">
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {t('header.webdavFileProgress')}
+                  {t("header.webdavFileProgress")}
                 </Text>
                 <Text style={{ fontSize: 13 }}>
                   {importTask?.webdavCurrent || 0} /{" "}
@@ -1385,11 +1454,10 @@ const Header: React.FC = () => {
               </Flex>
               <Flex justify="space-between" align="center">
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {t('header.mvFileProgress')}
+                  {t("header.mvFileProgress")}
                 </Text>
                 <Text style={{ fontSize: 13 }}>
-                  {importTask?.mvCurrent || 0} /{" "}
-                  {importTask?.mvTotal || 0}
+                  {importTask?.mvCurrent || 0} / {importTask?.mvTotal || 0}
                 </Text>
               </Flex>
               <Flex
@@ -1402,7 +1470,7 @@ const Header: React.FC = () => {
                 }}
               >
                 <Text strong style={{ fontSize: 12 }}>
-                  {t('header.totalProgress')}
+                  {t("header.totalProgress")}
                 </Text>
                 <Text strong style={{ fontSize: 13 }}>
                   {importTask?.current || 0} / {importTask?.total || 0}
@@ -1425,7 +1493,7 @@ const Header: React.FC = () => {
                 borderRadius: 4,
               }}
             >
-              {t('header.processing')} {importTask.currentFileName}
+              {t("header.processing")} {importTask.currentFileName}
             </div>
           )}
         </div>

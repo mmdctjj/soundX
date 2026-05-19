@@ -209,15 +209,25 @@ export default function SettingsScreen() {
   );
 
   const handleToggleCarMode = async (val: boolean) => {
-    if (val && !isVip) {
-      Alert.alert(t("settings.vipOnly"), t("settings.carModeVipOnly"), [
-        { text: t("common.ok") },
-        {
-          text: t("settings.goToMemberPage"),
-          onPress: () => router.push("/member-benefits" as any),
-        },
-      ]);
-      return;
+    if (val) {
+      const currentPlusToken = await AsyncStorage.getItem("plus_token");
+      if (!currentPlusToken) {
+        Alert.alert(t("common.memberFeature"), t("common.loginFirst"), [
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("settings.goToMemberPage"), onPress: () => router.push("/member-login" as any) },
+        ]);
+        return;
+      }
+      if (!isVip) {
+        Alert.alert(t("settings.vipOnly"), t("settings.carModeVipOnly"), [
+          { text: t("common.ok") },
+          {
+            text: t("settings.goToMemberPage"),
+            onPress: () => router.push("/member-benefits" as any),
+          },
+        ]);
+        return;
+      }
     }
     await updateSetting("carModeEnabled", val);
     await updateSetting("carLayoutMode", val);
@@ -233,15 +243,25 @@ export default function SettingsScreen() {
   };
 
   const handleToggleVoiceAssistant = async (val: boolean) => {
-    if (val && !isVip) {
-      Alert.alert(t("settings.vipOnly"), t("settings.voiceAssistantVipOnly"), [
-        { text: t("common.ok") },
-        {
-          text: t("settings.goToMemberPage"),
-          onPress: () => router.push("/member-benefits" as any),
-        },
-      ]);
-      return;
+    if (val) {
+      const currentPlusToken = await AsyncStorage.getItem("plus_token");
+      if (!currentPlusToken) {
+        Alert.alert(t("common.memberFeature"), t("common.loginFirst"), [
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("settings.goToMemberPage"), onPress: () => router.push("/member-login" as any) },
+        ]);
+        return;
+      }
+      if (!isVip) {
+        Alert.alert(t("settings.vipOnly"), t("settings.voiceAssistantVipOnly"), [
+          { text: t("common.ok") },
+          {
+            text: t("settings.goToMemberPage"),
+            onPress: () => router.push("/member-benefits" as any),
+          },
+        ]);
+        return;
+      }
     }
     await updateSetting("voiceAssistantEnabled", val);
     trackEvent({
