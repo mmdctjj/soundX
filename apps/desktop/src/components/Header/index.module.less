@@ -10,7 +10,7 @@
   z-index: 100;
   -webkit-app-region: drag; // Enable window dragging
 }
- 
+
 .winHeader {
   padding-left: 8px !important;
   padding-right: 8px !important;
@@ -66,7 +66,9 @@
 .navIcon {
   cursor: pointer;
   opacity: 0.7;
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
   color: inherit;
 
   &:hover {
@@ -118,7 +120,9 @@
   color: inherit;
   cursor: pointer;
   opacity: 0.8;
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 
   &:hover {
     opacity: 1;
@@ -127,7 +131,8 @@
 }
 
 @keyframes radioPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
