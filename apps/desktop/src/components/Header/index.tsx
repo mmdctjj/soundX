@@ -1,6 +1,8 @@
 import {
   AppstoreOutlined,
   AudioOutlined,
+  BorderOutlined,
+  CloseOutlined,
   CrownFilled,
   CrownOutlined,
   CustomerServiceOutlined,
@@ -11,6 +13,7 @@ import {
   ImportOutlined,
   LeftOutlined,
   LogoutOutlined,
+  MinusOutlined,
   MoonOutlined,
   PlusOutlined,
   ReadOutlined,
@@ -840,7 +843,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <div className={`${styles.header} ${isWindows() ? styles.winHeader : ""}`}>
+    <div className={`${styles.header}`}>
       {/* Navigation Controls */}
       <div className={styles.navControls}>
         <div className={styles.navGroup}>
@@ -1348,11 +1351,7 @@ const Header: React.FC = () => {
             </div>
           }
         >
-          <Flex
-            gap={12}
-            align="center"
-            style={{ paddingRight: isWindows() ? "140px" : "0" }}
-          >
+          <Flex gap={12} align="center">
             <div className={styles.avatar}>
               <img
                 src={getAvatarUrl(user?.avatar, user?.username || "Felix")}
@@ -1361,6 +1360,28 @@ const Header: React.FC = () => {
             </div>
           </Flex>
         </Popover>
+        {isWindows() && (
+          <Flex className={styles.winControls}>
+            <div
+              className={styles.winControlBtn}
+              onClick={() => window.ipcRenderer?.minimizeWindow?.()}
+            >
+              <MinusOutlined />
+            </div>
+            <div
+              className={styles.winControlBtn}
+              onClick={() => window.ipcRenderer?.maximizeWindow?.()}
+            >
+              <BorderOutlined />
+            </div>
+            <div
+              className={`${styles.winControlBtn} ${styles.winCloseBtn}`}
+              onClick={() => window.ipcRenderer?.closeWindow?.()}
+            >
+              <CloseOutlined />
+            </div>
+          </Flex>
+        )}
       </div>
       {contextHolder}
       <Modal

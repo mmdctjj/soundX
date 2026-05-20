@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Store wrapped listeners so we can properly remove them
 const listenerMap = new WeakMap<Function, Function>();
 
+contextBridge.exposeInMainWorld('platform', process.platform);
+
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args
@@ -38,4 +40,7 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   },
   openExternal: (url: string) => ipcRenderer.invoke("open-url", url),
   selectDirectory: () => ipcRenderer.invoke("select-directory"),
+  minimizeWindow: () => ipcRenderer.send("window:minimize"),
+  maximizeWindow: () => ipcRenderer.send("window:maximize"),
+  closeWindow: () => ipcRenderer.send("window:close"),
 })

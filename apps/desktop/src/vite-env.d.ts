@@ -18,5 +18,8 @@ interface Window {
     getName: () => Promise<string>;
     openExternal: (url: string) => Promise<void>;
     selectDirectory: () => Promise<string>;
+    minimizeWindow: () => void;
+    maximizeWindow: () => void;
+    closeWindow: () => void;
   };
 }
