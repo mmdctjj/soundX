@@ -13,7 +13,36 @@
  
 .winHeader {
   padding-left: 8px !important;
-  padding-right: 150px !important;
+  padding-right: 8px !important;
+}
+
+.winControls {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.winControlBtn {
+  padding: 4px 14px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: all 0.2s;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.winCloseBtn {
+  &:hover {
+    background-color: #e81123;
+    color: #fff;
+  }
 }
 
 .navControls {

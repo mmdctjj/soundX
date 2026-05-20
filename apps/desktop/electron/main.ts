@@ -19,11 +19,15 @@ const getTitleBarSymbolColor = () => {
 
 const syncWindowTitleBarOverlay = () => {
   if (!win || process.platform !== "win32") return;
-  win.setTitleBarOverlay({
-    color: "rgba(0,0,0,0)",
-    symbolColor: getTitleBarSymbolColor(),
-    height: 30,
-  });
+  try {
+    win.setTitleBarOverlay({
+      color: "rgba(0,0,0,0)",
+      symbolColor: getTitleBarSymbolColor(),
+      height: 30,
+    });
+  } catch {
+    // Window doesn't have titleBarOverlay, ignore
+  }
 };
 
 function getDeviceName() {
@@ -644,6 +648,22 @@ ipcMain.on("window:set-mini", () => {
   }
 });
 
+ipcMain.on("window:minimize", () => {
+  win?.minimize();
+});
+
+ipcMain.on("window:maximize", () => {
+  if (win?.isMaximized()) {
+    win?.unmaximize();
+  } else {
+    win?.maximize();
+  }
+});
+
+ipcMain.on("window:close", () => {
+  win?.close();
+});
+
 ipcMain.on("window:restore-main", () => {
   if (miniWin) {
      miniWin.close();
@@ -722,11 +742,13 @@ function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC!, 'logo.png'),
     titleBarStyle: "hidden",
-    titleBarOverlay: {
-      color: "rgba(0,0,0,0)",
-      symbolColor: getTitleBarSymbolColor(),
-      height: 30,
-    },
+    ...(process.platform !== 'win32' ? {
+      titleBarOverlay: {
+        color: "rgba(0,0,0,0)",
+        symbolColor: getTitleBarSymbolColor(),
+        height: 30,
+      },
+    } : {}),
     width: 1020, // 初始宽度
     height: 700, // 初始高度
     minWidth: 1025, // 🔧 设置窗口最小宽度
