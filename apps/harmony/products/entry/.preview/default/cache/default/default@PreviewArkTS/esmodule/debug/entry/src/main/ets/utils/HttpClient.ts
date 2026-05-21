@@ -30,6 +30,12 @@ class HttpClient {
         if (data) {
             extraData = JSON.stringify(data);
         }
+        // 打印请求信息
+        console.info(`[HTTP Request] ${method} ${fullURL}`);
+        console.info(`[HTTP Headers] ${JSON.stringify(requestHeaders)}`);
+        if (extraData) {
+            console.info(`[HTTP Body] ${extraData}`);
+        }
         let response: http.HttpResponse;
         try {
             response = await new Promise<http.HttpResponse>((resolve, reject) => {
@@ -51,9 +57,13 @@ class HttpClient {
         }
         catch (error) {
             httpRequest.destroy();
+            console.error(`[HTTP Error] ${method} ${fullURL}: ${error}`);
             throw new Error(String(error));
         }
         httpRequest.destroy();
+        // 打印响应信息
+        console.info(`[HTTP Response] ${method} ${fullURL} - Status: ${response.responseCode}`);
+        console.info(`[HTTP Response Body] ${response.result}`);
         if (response.responseCode >= 200 && response.responseCode < 300) {
             const result = response.result as string;
             if (result) {

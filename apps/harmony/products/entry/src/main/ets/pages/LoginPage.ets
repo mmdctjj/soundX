@@ -134,7 +134,9 @@ struct LoginPage {
         loginBody['username'] = this.username;
         loginBody['password'] = this.password;
         loginBody['deviceName'] = 'HarmonyOS';
+        console.log("[Login] Request params:", JSON.stringify(loginBody));
         response = await loginApi(loginBody);
+        console.log("[Login] Response:", JSON.stringify(response));
       } else {
         if (mappedType === 'subsonic') {
           this.errorMessage = 'Subsonic 数据源不支持注册';
@@ -145,7 +147,9 @@ struct LoginPage {
         registerBody['username'] = this.username;
         registerBody['password'] = this.password;
         registerBody['deviceName'] = 'HarmonyOS';
+        console.log("[Register] Request params:", JSON.stringify(registerBody));
         response = await registerApi(registerBody);
+        console.log("[Register] Response:", JSON.stringify(response));
       }
 
       const res = response as Record<string, Object>;
