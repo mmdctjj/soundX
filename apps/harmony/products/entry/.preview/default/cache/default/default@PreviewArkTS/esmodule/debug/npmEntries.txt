@@ -1,0 +1,7 @@
+@system.app:@native.system.app
+@ohos.app:@native.ohos.app
+@system.router:@native.system.router
+@system.curves:@native.system.curves
+@ohos.curves:@native.ohos.curves
+@system.matrix4:@native.system.matrix4
+@ohos.matrix4:@native.ohos.matrix4

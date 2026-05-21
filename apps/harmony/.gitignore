@@ -1,9 +1,21 @@
-**/.hvigor
-**/.idea
-**/.appanalyzer
-**/oh_modules
-**/build
-**/.cxx
-**/intermediates
-**/outputs
-**/sync
+# HarmonyOS build outputs
+build/
+*.har
+.hvigor/
+.idea/
+
+# Preview cache
+.preview/
+
+# OH modules
+oh_modules/
+
+# Local properties
+local.properties
+
+# Logs
+*.log
+.scheduler.log
+
+# macOS
+.DS_Store

@@ -1,6 +1,7 @@
 {
   "src": [
     "pages/Index",
+    "pages/MainPage",
     "pages/SourceSelectPage",
     "pages/LoginPage",
     "pages/HomePage"

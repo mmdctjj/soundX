@@ -1,52 +1,59 @@
 import router from '@ohos.router';
+import { storage } from '../utils/StorageManager';
+import { httpClient } from '../utils/HttpClient';
 
 @Entry
 @Component
 struct Index {
-  @State message: string = 'Hello World'
+  @State isLoading: boolean = true;
+  @State hasAuth: boolean = false;
 
-  navigateToSourceSelect() {
-    router.pushUrl({ url: 'pages/SourceSelectPage' });
+  aboutToAppear() {
+    this.checkAuthStatus();
+  }
+
+  async checkAuthStatus() {
+    try {
+      const savedAddress = await storage.getItem('serverAddress');
+      const savedToken = savedAddress ? await storage.getItem('token_' + savedAddress) : null;
+
+      if (savedAddress && savedToken) {
+        httpClient.setBaseURL(savedAddress);
+        httpClient.setToken(savedToken);
+        this.hasAuth = true;
+        // 已登录，跳转到主页面
+        router.replaceUrl({ url: 'pages/MainPage' });
+      } else {
+        // 未登录，跳转到数据源选择页
+        router.replaceUrl({ url: 'pages/SourceSelectPage' });
+      }
+    } catch (e) {
+      console.error('Failed to check auth:', e);
+      router.replaceUrl({ url: 'pages/SourceSelectPage' });
+    }
   }
 
   build() {
     Column() {
-      Text(this.message)
-        .fontSize(50)
+      Text('AudioDock')
+        .fontSize(32)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#2c3e50')
+        .fontColor('#007DFF')
+        .margin({ bottom: 16 })
 
-      Text('AudioDock on HarmonyOS')
-        .fontSize(16)
+      Text('正在加载...')
+        .fontSize(14)
         .fontColor('#95a5a6')
-        .margin({ top: 12 })
 
-      Button('进入首页')
-        .width('60%')
-        .height(48)
-        .backgroundColor('#52B54B')
-        .borderRadius(12)
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF')
-        .margin({ top: 16 })
-        .onClick(() => {
-          router.pushUrl({ url: 'pages/HomePage' });
-        })
-
-      Button('选择数据源')
-        .width('60%')
-        .height(48)
-        .backgroundColor('#007DFF')
-        .borderRadius(12)
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF')
-        .margin({ top: 12 })
-        .onClick(() => this.navigateToSourceSelect())
+      LoadingProgress()
+        .width(40)
+        .height(40)
+        .color('#007DFF')
+        .margin({ top: 24 })
     }
     .width('100%')
     .height('100%')
     .justifyContent(FlexAlign.Center)
+    .backgroundColor('#ffffff')
   }
 }
