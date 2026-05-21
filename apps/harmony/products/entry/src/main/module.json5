@@ -5,7 +5,8 @@
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": [
-      "default"
+      "phone",
+      "tablet"
     ],
     "deliveryWithInstall": true,
     "installationFree": false,
@@ -37,6 +38,11 @@
         "name": "ohos.permission.INTERNET"
       }
     ],
-    "metadata": []
+    "metadata": [
+      {
+        "name": "ohos.network.config",
+        "resource": "$profile:network_config"
+      }
+    ]
   }
 }

@@ -10,3 +10,4 @@ media foreground 0x01000004
 media layered_image 0x01000005
 media startIcon 0x0100000b
 profile main_pages 0x01000009
+profile network_config 0x0100000c

@@ -1,5 +1,5 @@
-import UIAbility from "@ohos:app.ability.UIAbility";
 import type AbilityConstant from "@ohos:app.ability.AbilityConstant";
+import UIAbility from "@ohos:app.ability.UIAbility";
 import type Want from "@ohos:app.ability.Want";
 import hilog from "@ohos:hilog";
 import type window from "@ohos:window";
