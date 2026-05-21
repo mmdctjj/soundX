@@ -1,57 +1,25 @@
 import router from '@ohos.router';
-
-// 数据模型
-class Artist {
-  id: number = 0;
-  name: string = '';
-  avatar: string = '';
-
-  constructor(id: number, name: string, avatar: string) {
-    this.id = id;
-    this.name = name;
-    this.avatar = avatar;
-  }
-}
-
-class Album {
-  id: number = 0;
-  name: string = '';
-  artist: string = '';
-  cover: string = '';
-  progress?: number;
-
-  constructor(id: number, name: string, artist: string, cover: string, progress?: number) {
-    this.id = id;
-    this.name = name;
-    this.artist = artist;
-    this.cover = cover;
-    if (progress !== undefined) {
-      this.progress = progress;
-    }
-  }
-}
-
-class Track {
-  id: number = 0;
-  name: string = '';
-  artist: string = '';
-  cover: string = '';
-  liked: boolean = false;
-
-  constructor(id: number, name: string, artist: string, cover: string, liked: boolean) {
-    this.id = id;
-    this.name = name;
-    this.artist = artist;
-    this.cover = cover;
-    this.liked = liked;
-  }
-}
+import { httpClient } from '../utils/HttpClient';
+import { storage } from '../utils/StorageManager';
+import {
+  getLatestArtists,
+  getRecentAlbums,
+  getRecommendedAlbums,
+  getLatestTracks,
+  getAlbumHistory,
+  toggleTrackLike,
+  toggleTrackUnLike,
+  Artist,
+  Album,
+  Track,
+  LikeUser,
+  TrackImpl
+} from '../utils/ApiService';
 
 class Section {
   id: string = '';
   title: string = '';
   type: string = '';
-  // 使用联合类型替代 any
   data: Artist[] | Album[] | Track[] = [];
 
   constructor(id: string, title: string, type: string, data: Artist[] | Album[] | Track[]) {
@@ -70,59 +38,108 @@ struct HomePage {
   @State refreshing: boolean = false;
   @State mode: string = 'MUSIC';
   @State isRadioMode: boolean = false;
-
-  // 模拟数据
-  private mockArtists: Artist[] = [
-    new Artist(1, '周杰伦', ''),
-    new Artist(2, '林俊杰', ''),
-    new Artist(3, '陈奕迅', ''),
-    new Artist(4, '邓紫棋', '')
-  ];
-
-  private mockAlbums: Album[] = [
-    new Album(1, '范特西', '周杰伦', ''),
-    new Album(2, '伟大的渺小', '林俊杰', ''),
-    new Album(3, 'U-87', '陈奕迅', ''),
-    new Album(4, '新的心跳', '邓紫棋', '')
-  ];
-
-  private mockTracks: Track[] = [
-    new Track(1, '晴天', '周杰伦', '', true),
-    new Track(2, '江南', '林俊杰', '', false),
-    new Track(3, '富士山下', '陈奕迅', '', true),
-    new Track(4, '光年之外', '邓紫棋', '', false)
-  ];
+  @State userId: string = '';
 
   aboutToAppear() {
+    this.initData();
+  }
+
+  async initData() {
+    try {
+      const savedAddress = await storage.getItem('serverAddress');
+      const savedToken = savedAddress ? await storage.getItem('token_' + savedAddress) : null;
+      const savedUser = await storage.getItem('currentUser');
+
+      if (savedAddress) {
+        httpClient.setBaseURL(savedAddress);
+      }
+      if (savedToken) {
+        httpClient.setToken(savedToken);
+      }
+      if (savedUser) {
+        const user = JSON.parse(savedUser) as Record<string, Object>;
+        this.userId = String(user['id'] || '');
+      }
+
+      const savedMode = await storage.getItem('playMode');
+      if (savedMode) {
+        this.mode = savedMode;
+      }
+    } catch (e) {
+      console.error('Failed to init data:', e);
+    }
+
     this.loadData();
   }
 
-  loadData() {
-    setTimeout(() => {
-      const sections: Section[] = [];
-      sections.push(new Section('artists', '最新艺人', 'artist', this.mockArtists));
-      sections.push(new Section('recent', '最新专辑', 'album', this.mockAlbums));
-      sections.push(new Section('recommended', '推荐专辑', 'album', [
-        new Album(5, '依然范特西', '周杰伦', ''),
-        new Album(6, '因你而在', '林俊杰', ''),
-        new Album(7, 'Black. White. Gray', '陈奕迅', ''),
-        new Album(8, 'Xposed', '邓紫棋', '')
-      ]));
+  async loadData() {
+    if (!this.refreshing) {
+      this.loading = true;
+    }
+
+    try {
+      const pageSize = 8;
+      const promises: Promise<Object>[] = [
+        getLatestArtists(this.mode, true, pageSize),
+        getRecentAlbums(this.mode, true, pageSize),
+        getRecommendedAlbums(this.mode, true, pageSize)
+      ];
 
       if (this.mode === 'MUSIC') {
-        sections.push(new Section('tracks', '最新曲目', 'track', this.mockTracks));
-      } else {
-        const historyAlbums: Album[] = [
-          new Album(1, '范特西', '周杰伦', '', 35),
-          new Album(2, '伟大的渺小', '林俊杰', '', 60)
-        ];
-        sections.push(new Section('history', '继续听', 'album', historyAlbums));
+        promises.push(getLatestTracks('MUSIC', true, pageSize));
+      }
+
+      if (this.mode === 'AUDIOBOOK' && this.userId.length > 0) {
+        promises.push(getAlbumHistory(this.userId, 0, pageSize, 'AUDIOBOOK'));
+      }
+
+      const results = await Promise.all(promises);
+
+      const artistsRes = results[0] as Record<string, Object>;
+      const recentRes = results[1] as Record<string, Object>;
+      const recommendedRes = results[2] as Record<string, Object>;
+      const tracksRes = this.mode === 'MUSIC' ? results[3] as Record<string, Object> : null;
+      const historyRes = this.mode === 'AUDIOBOOK' && this.userId.length > 0 ? results[3] as Record<string, Object> : null;
+
+      const sections: Section[] = [];
+
+      if (artistsRes['code'] === 200 && artistsRes['data']) {
+        sections.push(new Section('artists', '最新艺人', 'artist', artistsRes['data'] as Artist[]));
+      }
+
+      if (recentRes['code'] === 200 && recentRes['data']) {
+        sections.push(new Section('recent', '最新专辑', 'album', recentRes['data'] as Album[]));
+      }
+
+      if (recommendedRes['code'] === 200 && recommendedRes['data']) {
+        sections.push(new Section('recommended', '推荐专辑', 'album', recommendedRes['data'] as Album[]));
+      }
+
+      if (this.mode === 'MUSIC' && tracksRes && tracksRes['code'] === 200 && tracksRes['data']) {
+        sections.push(new Section('tracks', '最新曲目', 'track', tracksRes['data'] as Track[]));
+      }
+
+      if (this.mode === 'AUDIOBOOK' && historyRes && historyRes['code'] === 200) {
+        const historyDataObj = historyRes['data'] as Record<string, Object>;
+        const list = historyDataObj['list'] as Array<Record<string, Object>>;
+        if (list && list.length > 0) {
+          const historyAlbums: Album[] = [];
+          for (let i = 0; i < list.length; i++) {
+            const item = list[i];
+            const album = item['album'] as Album;
+            historyAlbums.push(album);
+          }
+          sections.push(new Section('history', '继续听', 'album', historyAlbums));
+        }
       }
 
       this.sections = sections;
+    } catch (error) {
+      console.error('Failed to load home data:', error);
+    } finally {
       this.loading = false;
       this.refreshing = false;
-    }, 800);
+    }
   }
 
   onRefresh() {
@@ -132,6 +149,7 @@ struct HomePage {
 
   toggleMode() {
     this.mode = this.mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC';
+    storage.setItem('playMode', this.mode);
     this.loading = true;
     this.loadData();
   }
@@ -140,7 +158,45 @@ struct HomePage {
     this.isRadioMode = !this.isRadioMode;
   }
 
-  toggleLike(trackId: number) {
+  async toggleLike(trackId: number | string) {
+    if (!this.userId || this.userId.length === 0) {
+      return;
+    }
+
+    for (let i = 0; i < this.sections.length; i++) {
+      const section = this.sections[i];
+      if (section.type === 'track') {
+        const tracks = section.data as Track[];
+        for (let j = 0; j < tracks.length; j++) {
+          const track = tracks[j];
+          if (track.id === trackId) {
+            let isLiked = false;
+            if (track.likedByUsers && track.likedByUsers.length > 0) {
+              for (let k = 0; k < track.likedByUsers.length; k++) {
+                if (String(track.likedByUsers[k].userId) === this.userId) {
+                  isLiked = true;
+                  break;
+                }
+              }
+            }
+            try {
+              if (isLiked) {
+                await toggleTrackUnLike(trackId, this.userId);
+              } else {
+                await toggleTrackLike(trackId, this.userId);
+              }
+              this.updateTrackLikeStatus(trackId, !isLiked);
+            } catch (e) {
+              console.error('Failed to toggle like:', e);
+            }
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  updateTrackLikeStatus(trackId: number | string, liked: boolean) {
     const newSections: Section[] = [];
     for (let i = 0; i < this.sections.length; i++) {
       const section = this.sections[i];
@@ -149,9 +205,30 @@ struct HomePage {
         for (let j = 0; j < section.data.length; j++) {
           const t = section.data[j] as Track;
           if (t.id === trackId) {
-            newData.push(new Track(t.id, t.name, t.artist, t.cover, !t.liked));
+            let newLikedByUsers: Array<LikeUser>;
+            const likedUser: LikeUser = { userId: this.userId };
+            if (liked) {
+              newLikedByUsers = [...(t.likedByUsers || []), likedUser];
+            } else {
+              newLikedByUsers = [];
+              const users = t.likedByUsers || [];
+              for (let k = 0; k < users.length; k++) {
+                if (String(users[k].userId) !== this.userId) {
+                  newLikedByUsers.push(users[k]);
+                }
+              }
+            }
+            const newTrack = new TrackImpl();
+            newTrack.id = t.id;
+            newTrack.name = t.name;
+            newTrack.artist = t.artist;
+            newTrack.cover = t.cover;
+            newTrack.album = t.album;
+            newTrack.liked = liked;
+            newTrack.likedByUsers = newLikedByUsers;
+            newData.push(newTrack);
           } else {
-            newData.push(new Track(t.id, t.name, t.artist, t.cover, t.liked));
+            newData.push(t);
           }
         }
         newSections.push(new Section(section.id, section.title, section.type, newData));
@@ -162,20 +239,89 @@ struct HomePage {
     this.sections = newSections;
   }
 
+  isTrackLiked(track: Track): boolean {
+    if (!track.likedByUsers || track.likedByUsers.length === 0) {
+      return false;
+    }
+    for (let i = 0; i < track.likedByUsers.length; i++) {
+      if (String(track.likedByUsers[i].userId) === this.userId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   navigateToSearch() {
-    // TODO: 实现搜索页面
+    // TODO: Implement search page
   }
 
-  navigateToArtist(artistId: number) {
-    // TODO: 实现艺人详情页
+  navigateToArtist(artistId: number | string) {
+    // TODO: Implement artist detail page
   }
 
-  navigateToAlbum(albumId: number) {
-    // TODO: 实现专辑详情页
+  navigateToAlbum(albumId: number | string) {
+    // TODO: Implement album detail page
   }
 
   playTrack(track: Track) {
-    // TODO: 实现播放逻辑
+    // TODO: Implement player
+  }
+
+  async refreshSection(sectionId: string) {
+    try {
+      const pageSize = 8;
+      let newData: Object[] = [];
+
+      if (sectionId === 'artists') {
+        const res = await getLatestArtists(this.mode, true, pageSize) as Record<string, Object>;
+        if (res['code'] === 200) {
+          newData = res['data'] as Object[];
+        }
+      } else if (sectionId === 'recent') {
+        const res = await getRecentAlbums(this.mode, true, pageSize) as Record<string, Object>;
+        if (res['code'] === 200) {
+          newData = res['data'] as Object[];
+        }
+      } else if (sectionId === 'recommended') {
+        const res = await getRecommendedAlbums(this.mode, true, pageSize) as Record<string, Object>;
+        if (res['code'] === 200) {
+          newData = res['data'] as Object[];
+        }
+      } else if (sectionId === 'tracks') {
+        const res = await getLatestTracks('MUSIC', true, pageSize) as Record<string, Object>;
+        if (res['code'] === 200) {
+          newData = res['data'] as Object[];
+        }
+      } else if (sectionId === 'history' && this.userId.length > 0) {
+        const res = await getAlbumHistory(this.userId, 0, pageSize, 'AUDIOBOOK') as Record<string, Object>;
+        if (res['code'] === 200) {
+          const data = res['data'] as Record<string, Object>;
+          const list = data['list'] as Array<Record<string, Object>>;
+          if (list) {
+            for (let i = 0; i < list.length; i++) {
+              const album = list[i]['album'] as Object;
+              newData.push(album);
+            }
+          }
+        }
+      }
+
+      if (newData.length > 0) {
+        const newSections: Section[] = [];
+        for (let i = 0; i < this.sections.length; i++) {
+          const section = this.sections[i];
+          if (section.id === sectionId) {
+            const typedData = newData as Artist[] | Album[] | Track[];
+            newSections.push(new Section(section.id, section.title, section.type, typedData));
+          } else {
+            newSections.push(new Section(section.id, section.title, section.type, section.data));
+          }
+        }
+        this.sections = newSections;
+      }
+    } catch (error) {
+      console.error('Failed to refresh section:', error);
+    }
   }
 
   @Builder
@@ -298,7 +444,7 @@ struct HomePage {
 
       Row() {
         Button() {
-          Text(track.liked ? '❤' : '🤍')
+          Text(this.isTrackLiked(track) ? '❤' : '🤍')
             .fontSize(16)
         }
         .backgroundColor(Color.Transparent)
@@ -354,7 +500,7 @@ struct HomePage {
         .width(32)
         .height(32)
         .onClick(() => {
-          this.loadData();
+          this.refreshSection(sectionId);
         })
       }
     }
@@ -368,7 +514,6 @@ struct HomePage {
       this.LoadingSkeleton();
     } else {
       Column() {
-        // Header
         Row() {
           Text('AudioDock')
             .fontSize(24)
@@ -406,7 +551,6 @@ struct HomePage {
         .padding({ left: 16, right: 16, top: 16, bottom: 8 })
         .justifyContent(FlexAlign.SpaceBetween)
 
-        // 搜索栏
         Row() {
           Text('🔍 搜索音乐、专辑、艺人...')
             .fontSize(14)
@@ -420,7 +564,6 @@ struct HomePage {
         .borderRadius(10)
         .onClick(() => this.navigateToSearch())
 
-        // 内容列表
         List() {
           ForEach(this.sections, (section: Section) => {
             ListItem() {
@@ -459,7 +602,6 @@ struct HomePage {
             }
           })
 
-          // 底部调整顺序按钮
           ListItem() {
             Row() {
               Text('⚙️')
@@ -489,18 +631,13 @@ struct HomePage {
     }
   }
 
-  // 分块曲目
   chunkTracks(tracks: Track[]): Track[][] {
     const result: Track[][] = [];
-    const trackList: Track[] = [];
-    for (let i = 0; i < tracks.length; i++) {
-      trackList.push(tracks[i] as Track);
-    }
-    for (let i = 0; i < trackList.length; i += 2) {
+    for (let i = 0; i < tracks.length; i += 2) {
       const chunk: Track[] = [];
-      chunk.push(trackList[i]);
-      if (i + 1 < trackList.length) {
-        chunk.push(trackList[i + 1]);
+      chunk.push(tracks[i]);
+      if (i + 1 < tracks.length) {
+        chunk.push(tracks[i + 1]);
       }
       result.push(chunk);
     }
