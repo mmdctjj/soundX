@@ -21,6 +21,19 @@ struct Index {
         .fontColor('#95a5a6')
         .margin({ top: 12 })
 
+      Button('进入首页')
+        .width('60%')
+        .height(48)
+        .backgroundColor('#52B54B')
+        .borderRadius(12)
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#FFFFFF')
+        .margin({ top: 16 })
+        .onClick(() => {
+          router.pushUrl({ url: 'pages/HomePage' });
+        })
+
       Button('选择数据源')
         .width('60%')
         .height(48)
@@ -29,7 +42,7 @@ struct Index {
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
         .fontColor('#FFFFFF')
-        .margin({ top: 32 })
+        .margin({ top: 12 })
         .onClick(() => this.navigateToSourceSelect())
     }
     .width('100%')

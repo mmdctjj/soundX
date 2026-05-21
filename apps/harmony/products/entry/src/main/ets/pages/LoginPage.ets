@@ -57,8 +57,8 @@ struct LoginPage {
     // TODO: Implement actual login logic
     setTimeout(() => {
       this.loading = false;
-      // Navigate back or to main page
-      router.back();
+      // Navigate to home page after login
+      router.replaceUrl({ url: 'pages/HomePage' });
     }, 1500);
   }
 
