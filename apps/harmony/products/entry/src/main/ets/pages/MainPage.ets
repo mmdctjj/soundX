@@ -1,3 +1,4 @@
+import router from '@ohos.router';
 import { httpClient } from '../utils/HttpClient';
 import { storage } from '../utils/StorageManager';
 import {
@@ -644,6 +645,10 @@ struct HomeTab {
 
 @Component
 struct LibraryTab {
+  navigateToLibrary() {
+    router.pushUrl({ url: 'pages/LibraryPage' });
+  }
+
   build() {
     Column() {
       Text('🎵 音乐库')
@@ -652,9 +657,16 @@ struct LibraryTab {
         .fontColor('#2c3e50')
         .margin({ top: 40, bottom: 20 })
 
-      Text('功能开发中...')
+      Button('进入音乐库')
+        .width('60%')
+        .height(48)
+        .backgroundColor('#007DFF')
+        .borderRadius(12)
         .fontSize(16)
-        .fontColor('#95a5a6')
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#FFFFFF')
+        .margin({ top: 16 })
+        .onClick(() => this.navigateToLibrary())
     }
     .width('100%')
     .height('100%')

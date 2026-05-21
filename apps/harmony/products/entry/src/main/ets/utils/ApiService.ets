@@ -193,6 +193,53 @@ export async function toggleTrackUnLike(id: number | string, userId: number | st
   return httpClient.post('/api/tracks/' + id + '/unlike', body);
 }
 
+export async function getArtistList(pageSize: number, loadCount: number, type?: string, sortBy?: string): Promise<Object> {
+  const params: Record<string, string> = {};
+  params['pageSize'] = String(pageSize);
+  params['loadCount'] = String(loadCount);
+  if (type) {
+    params['type'] = type;
+  }
+  if (sortBy) {
+    params['sortBy'] = sortBy;
+  }
+  return httpClient.get('/api/artists' + buildQueryString(params));
+}
+
+export async function loadMoreAlbum(params: Record<string, string>): Promise<Object> {
+  const queryParams: Record<string, string> = {};
+  queryParams['pageSize'] = params['pageSize'] || '20';
+  queryParams['loadCount'] = params['loadCount'] || '0';
+  if (params['type']) {
+    queryParams['type'] = params['type'];
+  }
+  if (params['sortBy']) {
+    queryParams['sortBy'] = params['sortBy'];
+  }
+  return httpClient.get('/api/albums' + buildQueryString(queryParams));
+}
+
+export async function loadMoreTrack(params: Record<string, string>): Promise<Object> {
+  const queryParams: Record<string, string> = {};
+  queryParams['pageSize'] = params['pageSize'] || '20';
+  queryParams['loadCount'] = params['loadCount'] || '0';
+  if (params['type']) {
+    queryParams['type'] = params['type'];
+  }
+  if (params['sortBy']) {
+    queryParams['sortBy'] = params['sortBy'];
+  }
+  return httpClient.get('/api/tracks' + buildQueryString(queryParams));
+}
+
+export async function getCollections(userId: number | string): Promise<Object> {
+  return httpClient.get('/api/users/' + userId + '/collections');
+}
+
+export async function getMvList(pageSize: number, skip: number): Promise<Object> {
+  return httpClient.get('/api/mvs?pageSize=' + pageSize + '&skip=' + skip);
+}
+
 // ============ 网络工具 ============
 export async function checkServerConnectivity(address: string, sourceType: string): Promise<boolean> {
   if (!address) {
