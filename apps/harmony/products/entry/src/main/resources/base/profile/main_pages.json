@@ -3,6 +3,7 @@
     "pages/Index",
     "pages/MainPage",
     "pages/LibraryPage",
+    "pages/PersonalPage",
     "pages/SourceSelectPage",
     "pages/LoginPage",
     "pages/HomePage"

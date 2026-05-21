@@ -236,6 +236,22 @@ export async function getCollections(userId: number | string): Promise<Object> {
   return httpClient.get('/api/users/' + userId + '/collections');
 }
 
+export async function getPlaylists(type: string, userId: number | string): Promise<Object> {
+  return httpClient.get('/api/playlists?type=' + type + '&userId=' + userId);
+}
+
+export async function getFavoriteTracks(userId: number | string, skip: number, pageSize: number, type: string): Promise<Object> {
+  return httpClient.get('/api/users/' + userId + '/favorites/tracks?skip=' + skip + '&pageSize=' + pageSize + '&type=' + type);
+}
+
+export async function getFavoriteAlbums(userId: number | string, skip: number, pageSize: number, type: string): Promise<Object> {
+  return httpClient.get('/api/users/' + userId + '/favorites/albums?skip=' + skip + '&pageSize=' + pageSize + '&type=' + type);
+}
+
+export async function getTrackHistory(userId: number | string, skip: number, pageSize: number, type: string): Promise<Object> {
+  return httpClient.get('/api/users/' + userId + '/history/tracks?skip=' + skip + '&pageSize=' + pageSize + '&type=' + type);
+}
+
 export async function getMvList(pageSize: number, skip: number): Promise<Object> {
   return httpClient.get('/api/mvs?pageSize=' + pageSize + '&skip=' + skip);
 }

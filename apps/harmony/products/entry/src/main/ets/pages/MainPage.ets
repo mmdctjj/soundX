@@ -677,6 +677,10 @@ struct LibraryTab {
 
 @Component
 struct PersonalTab {
+  navigateToPersonal() {
+    router.pushUrl({ url: 'pages/PersonalPage' });
+  }
+
   build() {
     Column() {
       Text('👤 我的')
@@ -685,9 +689,16 @@ struct PersonalTab {
         .fontColor('#2c3e50')
         .margin({ top: 40, bottom: 20 })
 
-      Text('功能开发中...')
+      Button('进入个人中心')
+        .width('60%')
+        .height(48)
+        .backgroundColor('#007DFF')
+        .borderRadius(12)
         .fontSize(16)
-        .fontColor('#95a5a6')
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#FFFFFF')
+        .margin({ top: 16 })
+        .onClick(() => this.navigateToPersonal())
     }
     .width('100%')
     .height('100%')
