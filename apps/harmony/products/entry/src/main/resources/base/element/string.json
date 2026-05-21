@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "AudioDock HarmonyOS Entry Module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "AudioDock Entry Ability"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "AudioDock"
+    }
+  ]
+}

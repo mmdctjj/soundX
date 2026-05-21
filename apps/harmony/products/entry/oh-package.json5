@@ -1,0 +1,9 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "AudioDock HarmonyOS Entry Module",
+  "main": "",
+  "author": "AudioDock",
+  "license": "ISC",
+  "dependencies": {}
+}

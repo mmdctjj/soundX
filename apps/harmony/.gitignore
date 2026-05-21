@@ -1,0 +1,9 @@
+**/.hvigor
+**/.idea
+**/.appanalyzer
+**/oh_modules
+**/build
+**/.cxx
+**/intermediates
+**/outputs
+**/sync
