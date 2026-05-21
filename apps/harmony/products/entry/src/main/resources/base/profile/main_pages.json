@@ -4,6 +4,11 @@
     "pages/MainPage",
     "pages/LibraryPage",
     "pages/PersonalPage",
+    "pages/AlbumDetailPage",
+    "pages/ArtistDetailPage",
+    "pages/SearchPage",
+    "pages/SettingsPage",
+    "pages/SourceManagePage",
     "pages/SourceSelectPage",
     "pages/LoginPage",
     "pages/HomePage"
