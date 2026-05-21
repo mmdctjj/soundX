@@ -9,6 +9,7 @@
     "pages/SearchPage",
     "pages/SettingsPage",
     "pages/SourceManagePage",
+    "pages/PlayerPage",
     "pages/SourceSelectPage",
     "pages/LoginPage",
     "pages/HomePage"
