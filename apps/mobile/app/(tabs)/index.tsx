@@ -202,6 +202,32 @@ export default function HomeScreen() {
   const isTablet = Device.deviceType === Device.DeviceType.TABLET;
   const pageSize = !isTablet ? 8 : 16;
   const recommendCacheKey = `home_sections_${mode}_${recommendationLikeRatio}`;
+  const getLatestResumePoint = useCallback(
+    async (
+      albumId: number | string,
+      fallbackTrackId?: number | string,
+      fallbackProgress?: number,
+    ) => {
+      let resumeTrackId = fallbackTrackId;
+      let resumeProgress = fallbackProgress || 0;
+      if (user?.id) {
+        try {
+          const historyRes = await getAlbumHistory(user.id, 0, pageSize, "AUDIOBOOK");
+          const matched = historyRes?.data?.list?.find(
+            (entry: any) => String(entry?.album?.id) === String(albumId),
+          );
+          if (matched) {
+            resumeTrackId = matched.trackId ?? resumeTrackId;
+            resumeProgress = matched.progress ?? resumeProgress;
+          }
+        } catch (e) {
+          console.warn("Failed to refresh latest audiobook resume point:", e);
+        }
+      }
+      return { resumeTrackId, resumeProgress };
+    },
+    [user?.id, pageSize],
+  );
 
   const loadData = useCallback(
     async (forceRefresh = false) => {
@@ -789,8 +815,13 @@ export default function HomeScreen() {
                         onPress={async () => {
                           // Only 'history' section supports direct resume playback
                           if (section.id === "history") {
-                            const resumeTrackId = (item as any).resumeTrackId;
-                            const resumeProgress = (item as any).resumeProgress;
+                            const latest = await getLatestResumePoint(
+                              item.id,
+                              (item as any).resumeTrackId,
+                              (item as any).resumeProgress,
+                            );
+                            const resumeTrackId = latest.resumeTrackId;
+                            const resumeProgress = latest.resumeProgress;
 
                             if (resumeTrackId) {
                               try {
