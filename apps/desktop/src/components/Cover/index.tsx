@@ -9,6 +9,7 @@ import {
 import {
   addAlbumToCollection,
   createCollection,
+  getAlbumHistory,
   getAlbumById,
   getAlbumTracks,
   getCollectionMembership,
@@ -150,6 +151,23 @@ const Cover: CoverComponent = ({
       setPlaylist([item as Track]);
     } else {
       try {
+        let resumeTrackId = (item as any).resumeTrackId;
+        let resumeProgress = (item as any).resumeProgress || 0;
+        if (isHistory && user?.id) {
+          try {
+            const historyRes = await getAlbumHistory(user.id, 0, 50, "AUDIOBOOK");
+            const matched = historyRes?.data?.list?.find(
+              (entry: any) => String(entry?.album?.id) === String((item as Album).id),
+            );
+            if (matched) {
+              resumeTrackId = matched.trackId ?? resumeTrackId;
+              resumeProgress = matched.progress ?? resumeProgress;
+            }
+          } catch (e) {
+            console.warn("Failed to refresh latest audiobook resume point:", e);
+          }
+        }
+
         const pageSize = 50;
         const res = await getAlbumTracks((item as Album).id, pageSize, 0);
         if (res.code === 200 && res.data.list.length > 0) {
@@ -166,9 +184,6 @@ const Cover: CoverComponent = ({
           });
 
           // Check for resume info
-          const resumeTrackId = (item as any).resumeTrackId;
-          const resumeProgress = (item as any).resumeProgress;
-
           let targetTrack = tracks[0];
           let startTime = 0;
 
