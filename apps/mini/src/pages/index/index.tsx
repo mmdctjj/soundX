@@ -18,6 +18,30 @@ export default function Index() {
   const [sections, setSections] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  const getLatestResumePoint = async (
+    albumId: number | string,
+    fallbackTrackId?: number | string,
+    fallbackProgress?: number,
+  ) => {
+    let resumeTrackId = fallbackTrackId
+    let resumeProgress = fallbackProgress || 0
+    if (user?.id) {
+      try {
+        const historyRes = await getAlbumHistory(user.id, 0, 8, 'AUDIOBOOK')
+        const matched = historyRes?.data?.list?.find(
+          (entry: any) => String(entry?.album?.id) === String(albumId)
+        )
+        if (matched) {
+          resumeTrackId = matched.trackId ?? resumeTrackId
+          resumeProgress = matched.progress ?? resumeProgress
+        }
+      } catch (e) {
+        console.warn('Failed to refresh latest audiobook resume point:', e)
+      }
+    }
+    return { resumeTrackId, resumeProgress }
+  }
+
   const loadData = async () => {
     setLoading(true)
     try {
@@ -228,8 +252,13 @@ export default function Index() {
                                 }
 
                                 if (section.id === 'history') {
-                                  const resumeTrackId = item.resumeTrackId;
-                                  const resumeProgress = item.resumeProgress;
+                                  const latest = await getLatestResumePoint(
+                                    item.id,
+                                    item.resumeTrackId,
+                                    item.resumeProgress
+                                  );
+                                  const resumeTrackId = latest.resumeTrackId;
+                                  const resumeProgress = latest.resumeProgress;
 
                                   if (resumeTrackId) {
                                     try {

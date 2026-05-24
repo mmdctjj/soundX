@@ -7,6 +7,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { Logger } from 'nestjs-pino';
 import * as fs from 'fs';
 import * as path from 'path';
+import { DEFAULT_AUDIOBOOK_DIR, DEFAULT_CACHE_DIR, DEFAULT_MUSIC_DIR, DEFAULT_MV_DIR } from './common/media-paths';
 import { resolvePathList } from './common/path-list';
 import { DatabaseSchemaService } from './services/database-schema.service';
 import { ImportService } from './services/import';
@@ -20,11 +21,11 @@ async function bootstrap() {
   app.enableCors();
 
 
-  const cacheDir = path.resolve(process.env.CACHE_DIR || './');
+  const cacheDir = path.resolve(process.env.CACHE_DIR || DEFAULT_CACHE_DIR);
   const transcodedMvDir = path.join(cacheDir, 'transcoded-mv');
-  const musicBaseDirs = resolvePathList(process.env.MUSIC_BASE_DIR, './');
-  const audioBookDirs = resolvePathList(process.env.AUDIO_BOOK_DIR, './');
-  const mvDirs = resolvePathList(process.env.MV_BASE_DIR, './');
+  const musicBaseDirs = resolvePathList(process.env.MUSIC_BASE_DIR, DEFAULT_MUSIC_DIR);
+  const audioBookDirs = resolvePathList(process.env.AUDIO_BOOK_DIR, DEFAULT_AUDIOBOOK_DIR);
+  const mvDirs = resolvePathList(process.env.MV_BASE_DIR, DEFAULT_MV_DIR);
 
   fs.mkdirSync(transcodedMvDir, { recursive: true });
 

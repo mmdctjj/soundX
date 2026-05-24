@@ -572,6 +572,17 @@ export class ImportService implements OnModuleInit {
     return resolvePathList(input, './');
   }
 
+  private isPathInsideAnyBase(targetPath: string, basePaths: string[]): boolean {
+    if (!targetPath || targetPath.startsWith('http')) return false;
+
+    const resolvedTarget = path.resolve(targetPath);
+    return basePaths.some((basePath) => {
+      const resolvedBase = path.resolve(basePath);
+      const relative = path.relative(resolvedBase, resolvedTarget);
+      return relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+    });
+  }
+
   private getTrackSortFields(
     sourcePath: string,
     basePath: string,
@@ -1044,7 +1055,7 @@ export class ImportService implements OnModuleInit {
       task.localTotal = musicCount + audiobookCount;
       task.webdavTotal = webdavMusicCount + webdavAudiobookCount;
       task.mvTotal = mvCount + webdavMvCount;
-      task.total = task.localTotal + task.webdavTotal + task.mvTotal;
+      task.total = (task.localTotal || 0) + (task.webdavTotal || 0) + (task.mvTotal || 0);
 
       task.localCurrent = 0;
       task.webdavCurrent = 0;
@@ -1086,6 +1097,9 @@ export class ImportService implements OnModuleInit {
 
       for (const musicPath of musicPaths) {
         await this.scanner.scanMusic(musicPath, async (item) => {
+          if (this.isPathInsideAnyBase(item.originalPath || item.path, audiobookPaths)) {
+            return;
+          }
           task.currentFileName = item.title || path.basename(item.path);
           await processItem(item, TrackType.MUSIC, musicPath);
         });
@@ -1569,7 +1583,7 @@ export class ImportService implements OnModuleInit {
     const artistName = item.artist || '未知';
     const albumName = item.album || '未知';
     const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
-    const albumGroupArtist = item.albumArtist || artistName;
+    const albumGroupArtist = this.isUnknownMetadata(item.albumArtist) ? artistName : item.albumArtist!;
 
     // 1. Resolve Track Artist (Required for Track.artistId)
     // Support multi-artist parsing: "A & B", "A and B", "A、B"
@@ -1684,6 +1698,9 @@ export class ImportService implements OnModuleInit {
           name: item.title || path.basename(item.path),
           duration: Math.round(item.duration || 0),
           index: item.track?.no || 0,
+          type: type,
+          artist: artistName,
+          album: albumName,
           episodeNumber: extractEpisodeNumber(item.title || ""),
           lyrics: item.lyrics || null, // Ensure lyrics update too
           fileName: sortFields.fileName,

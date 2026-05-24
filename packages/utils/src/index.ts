@@ -16,7 +16,40 @@ function isGarbled(str: string): boolean {
   // Check for "REPLACEMENT CHARACTER" (U+FFFD)
   if (str.includes('\uFFFD')) return true;
 
+  // Common mojibake when GBK metadata bytes are interpreted as Latin-1/Windows-1252.
+  if (looksLikeLatin1Mojibake(str)) return true;
+
   return false;
+}
+
+function looksLikeLatin1Mojibake(str: string): boolean {
+  if (!str) return false;
+
+  const suspiciousChars = str.match(/[\u00A0-\u00FF]/g)?.length || 0;
+  if (suspiciousChars < 2) return false;
+
+  const decoded = decodeLatin1AsGbk(str);
+  return hasCjk(decoded) && scoreDecodedText(decoded) > scoreDecodedText(str);
+}
+
+function decodeLatin1AsGbk(str: string): string {
+  const buf = iconv.encode(str, 'latin1');
+  return iconv.decode(buf, 'gbk');
+}
+
+function hasCjk(str: string): boolean {
+  return /[\u3400-\u9fff]/.test(str);
+}
+
+function scoreDecodedText(str: string): number {
+  let score = 0;
+  for (const char of str) {
+    if (/[\u3400-\u9fff]/.test(char)) score += 3;
+    else if (/[\w\s()[\].,_-]/.test(char)) score += 1;
+    else if (/[\u00A0-\u00FF]/.test(char)) score -= 1;
+    else score -= 0.5;
+  }
+  return score;
 }
 
 export function readLyricsFile(filePath: string): string | null {
@@ -114,8 +147,11 @@ export class LocalMusicScanner {
         const parentDir = path.dirname(filePath);
         const folderName = path.basename(parentDir);
         metadata.album = folderName;
-        if (!metadata.artist) {
+        if (this.isMissingAudiobookContributor(metadata.artist)) {
           metadata.artist = folderName;
+        }
+        if (this.isMissingAudiobookContributor(metadata.albumArtist)) {
+          metadata.albumArtist = metadata.artist;
         }
 
         // If no cover, look for first image in directory
@@ -511,7 +547,14 @@ export class LocalMusicScanner {
     // Check for "REPLACEMENT CHARACTER" (U+FFFD)
     if (str.includes('\uFFFD')) return true;
 
+    if (looksLikeLatin1Mojibake(str)) return true;
+
     return false;
+  }
+
+  private isMissingAudiobookContributor(value?: string): boolean {
+    const normalized = (value || '').trim();
+    return !normalized || normalized === '未知' || this.isGarbled(normalized);
   }
 
   private fixEncoding(str: string): string {
@@ -521,8 +564,7 @@ export class LocalMusicScanner {
     try {
       // Try to convert back to buffer using ISO-8859-1 (raw bytes)
       // and then decode as GBK
-      const buf = iconv.encode(str, 'latin1');
-      const decoded = iconv.decode(buf, 'gbk');
+      const decoded = decodeLatin1AsGbk(str);
 
       // If the decoded string doesn't look garbled, use it
       if (decoded && !this.isGarbled(decoded)) {
