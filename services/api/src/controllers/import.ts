@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Logger, Param, Post } from '@nestjs/common';
 import * as path from 'path';
 import { LogMethod } from '../common/log-method.decorator';
+import { DEFAULT_AUDIOBOOK_DIR, DEFAULT_CACHE_DIR, DEFAULT_MUSIC_DIR, DEFAULT_MV_DIR } from '../common/media-paths';
 import { resolvePathListFromBody } from '../common/path-list';
 import { ImportService } from '../services/import';
 
@@ -17,17 +18,17 @@ export class ImportController {
     // Use server-side defaults from environment variables checks
     const musicPaths = resolvePathListFromBody(
       musicPath,
-      process.env.MUSIC_BASE_DIR || './'
+      process.env.MUSIC_BASE_DIR || DEFAULT_MUSIC_DIR
     );
     const audiobookPaths = resolvePathListFromBody(
       audiobookPath,
-      process.env.AUDIO_BOOK_DIR || './'
+      process.env.AUDIO_BOOK_DIR || DEFAULT_AUDIOBOOK_DIR
     );
     const mvPaths = resolvePathListFromBody(
       mvPath,
-      process.env.MV_BASE_DIR || './'
+      process.env.MV_BASE_DIR || DEFAULT_MV_DIR
     );
-    const resolvedCachePath = cachePath ? path.resolve(cachePath) : path.resolve(process.env.CACHE_DIR || './');
+    const resolvedCachePath = cachePath ? path.resolve(cachePath) : path.resolve(process.env.CACHE_DIR || DEFAULT_CACHE_DIR);
 
     console.log('Received import task with musicPaths:', musicPaths);
 

@@ -4,6 +4,7 @@ import { FileStatus, PrismaClient, Track, TrackType } from '@soundx/db';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { DEFAULT_AUDIOBOOK_DIR, DEFAULT_MUSIC_DIR } from '../common/media-paths';
 import { getTrackHeartbeatScoreMap } from './heartbeat-score';
 import { toSimplified } from '../common/zh-utils';
 import { resolvePathList } from '../common/path-list';
@@ -57,7 +58,7 @@ export class TrackService {
 
   public getFilePath(trackPath: string): string | null {
     if (trackPath.startsWith('/music/')) {
-      const musicBaseDirs = resolvePathList(this.configService.get<string>('MUSIC_BASE_DIR'), './');
+      const musicBaseDirs = resolvePathList(this.configService.get<string>('MUSIC_BASE_DIR'), DEFAULT_MUSIC_DIR);
       const relativePath = trackPath.replace('/music/', '');
       for (const musicBaseDir of musicBaseDirs) {
         const candidate = this.resolveCandidatePath(musicBaseDir, relativePath);
@@ -66,7 +67,7 @@ export class TrackService {
       return path.join(musicBaseDirs[0], relativePath);
     }
     if (trackPath.startsWith('/audio/')) {
-      const audioBookDirs = resolvePathList(this.configService.get<string>('AUDIO_BOOK_DIR'), './');
+      const audioBookDirs = resolvePathList(this.configService.get<string>('AUDIO_BOOK_DIR'), DEFAULT_AUDIOBOOK_DIR);
       const relativePath = trackPath.replace('/audio/', '');
       for (const audioBookDir of audioBookDirs) {
         const candidate = this.resolveCandidatePath(audioBookDir, relativePath);
