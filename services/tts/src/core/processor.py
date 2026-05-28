@@ -159,8 +159,8 @@ class TaskProcessor:
                         temp_path = os.path.join(temp_base, file_name)
                         final_path = os.path.join(final_output_dir, file_name)
 
-                        # 执行转换
-                        success = await engine_instance.synthesize(
+                        # 执行转换（长文本自动分段合成）
+                        success = await engine_instance.synthesize_long(
                             content,
                             temp_path,
                             voice,

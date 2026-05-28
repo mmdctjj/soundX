@@ -8,7 +8,7 @@ from .base import BaseTTS
 class MiniMaxTTS(BaseTTS):
     """MiniMax TTS 引擎适配器"""
 
-    API_URL = "https://api.minimaxi.chat/v1/t2a_v2"
+    API_URL = "https://api.minimaxi.com/v1/t2a_v2"
 
     @property
     def provider_name(self) -> str:
@@ -53,7 +53,7 @@ class MiniMaxTTS(BaseTTS):
         payload = {
             "model": kwargs.get("model", self.config.get("model", "speech-01-turbo")),
             "text": text,
-            "stream": True,
+            "stream": False,
             "voice_setting": {
                 "voice_id": voice,
                 "speed": kwargs.get("speed", 1.0),
@@ -66,11 +66,11 @@ class MiniMaxTTS(BaseTTS):
                 "format": kwargs.get("format", "mp3"),
                 "channel": 1,
             },
+            "subtitle_enable": False,
         }
 
         print(f"[MiniMax] Request: URL={self.API_URL}, model={payload['model']}, voice={voice}")
 
-        audio_hex_chunks = []
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -84,49 +84,30 @@ class MiniMaxTTS(BaseTTS):
                         print(f"[MiniMax] HTTP error {response.status}: {error_text[:500]}")
                         return False
 
-                    async for line in response.content:
-                        line = line.decode("utf-8").strip()
-                        print(f"[MiniMax] SSE line: {line[:500]}")
-                        if line.startswith("data:"):
-                            try:
-                                data = json.loads(line[5:])
-                            except json.JSONDecodeError as e:
-                                print(f"[MiniMax] JSON parse error: {e}, line={line[:200]}")
-                                continue
+                    data = await response.json()
+                    print(f"[MiniMax] Response data keys: {list(data.keys())}")
 
-                            print(f"[MiniMax] Parsed data keys: {list(data.keys())}")
+                    # 检查错误响应
+                    if "base_resp" in data:
+                        base_resp = data["base_resp"]
+                        print(f"[MiniMax] API base_resp: {base_resp}")
+                        if base_resp.get("status_code") != 0:
+                            return False
 
-                            # 检查错误响应
-                            if "base_resp" in data:
-                                base_resp = data["base_resp"]
-                                print(f"[MiniMax] API base_resp: {base_resp}")
-                                if base_resp.get("status_code") != 0:
-                                    return False
+                    # 同步接口直接返回完整音频 hex
+                    if "data" in data and "audio" in data["data"]:
+                        audio_hex = data["data"]["audio"]
+                        print(f"[MiniMax] Got audio hex, length: {len(audio_hex)}")
 
-                            if "data" in data:
-                                print(f"[MiniMax] data keys: {list(data['data'].keys())}")
-                                if "extra" in data["data"]:
-                                    print(f"[MiniMax] extra keys: {list(data['data']['extra'].keys())}")
-                                    audio_hex = data["data"]["extra"]["audio"]
-                                    audio_hex_chunks.append(audio_hex)
-                                    print(f"[MiniMax] Got audio hex chunk, len={len(audio_hex)}")
-                                if data["data"].get("status") == 2:
-                                    print("[MiniMax] Received status=2, breaking")
-                                    break
-
-            # 合并 hex 音频数据并写入
-            full_hex = "".join(audio_hex_chunks)
-            print(f"[MiniMax] Total hex chunks: {len(audio_hex_chunks)}, hex length: {len(full_hex)}")
-            if not full_hex:
-                print("[MiniMax] ERROR: No audio data received")
-                return False
-
-            audio_bytes = bytes.fromhex(full_hex)
-            print(f"[MiniMax] Decoded audio size: {len(audio_bytes)} bytes")
-            with open(output_path, "wb") as f:
-                f.write(audio_bytes)
-            print(f"[MiniMax] Saved to: {output_path}")
-            return True
+                        audio_bytes = bytes.fromhex(audio_hex)
+                        print(f"[MiniMax] Decoded audio size: {len(audio_bytes)} bytes")
+                        with open(output_path, "wb") as f:
+                            f.write(audio_bytes)
+                        print(f"[MiniMax] Saved to: {output_path}")
+                        return True
+                    else:
+                        print(f"[MiniMax] ERROR: No audio in response. data={data.get('data')}")
+                        return False
 
         except Exception as e:
             print(f"[MiniMax] Exception: {type(e).__name__}: {e}")
