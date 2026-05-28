@@ -21,8 +21,8 @@ else:
     # 兜底计算逻辑
     DB_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
     SQLITE_FILE = os.path.join(DB_ROOT, "packages/db/prisma/dev.db")
-    
-    if os.name == 'nt': # Windows
+
+    if os.name == 'nt':  # Windows
         normalized_path = SQLITE_FILE.replace('\\', '/')
         sqlite_url = f"sqlite:///{normalized_path}"
     else:
@@ -32,9 +32,11 @@ print(f"--- TTS Connecting to DB: {sqlite_url} ---")
 
 engine = create_engine(sqlite_url, echo=False)
 
+
 def get_session():
     with Session(engine) as session:
         yield session
+
 
 # ---------------------------------------------------------
 # 模型定义 (与 Prisma schema 保持一致)
@@ -46,9 +48,10 @@ class UserConfig(SQLModel, table=True):
     """
     __tablename__ = "tts_user_config"
     id: Optional[int] = Field(default=None, primary_key=True)
-    engine_name: str = Field(index=True) # edge, volc, ali, openai
-    config_json: str # 实际应用中应为加密后的配置
+    engine_name: str = Field(index=True)  # edge, volc, ali, openai, mimo, minimax
+    config_json: str  # 实际应用中应为加密后的配置
     updated_at: datetime = Field(default_factory=datetime.now)
+
 
 class Task(SQLModel, table=True):
     """
@@ -59,12 +62,23 @@ class Task(SQLModel, table=True):
     book_name: str = Field(index=True)
     author: str = Field(index=True)
     file_path: str = Field(default="")
+
+    # [NEW] 服务商标识：edge, volc, mimo, minimax
+    provider: str = Field(default="edge", index=True)
+
+    # [NEW] 音色ID（各服务商的音色标识）
+    voice: str = Field(default="zh-CN-XiaoxiaoNeural")
+
+    # [NEW] 语速（各引擎通用参数）
+    speed: float = Field(default=1.0)
+
     total_chapters: int
     completed_chapters: int = 0
-    status: str = Field(default="pending") # pending, processing, completed, failed
+    status: str = Field(default="pending")  # pending, processing, completed, failed
     created_at: datetime = Field(default_factory=datetime.now)
     # 额外选项，如语速、音色ID，Prisma 中存为 String
     options: Optional[str] = None
+
 
 class ChapterTask(SQLModel, table=True):
     """
@@ -75,6 +89,6 @@ class ChapterTask(SQLModel, table=True):
     task_id: str = Field(foreign_key="tts_task.id")
     index: int
     title: str
-    status: str = "pending" # pending, doing, done, error
+    status: str = "pending"  # pending, doing, done, error
     error_msg: Optional[str] = None
     output_path: Optional[str] = None

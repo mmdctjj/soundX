@@ -36,6 +36,13 @@ services:
       - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7}
       - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2048}
       - LLM_API_KEY=${LLM_API_KEY:-}
+      # TTS 服务商配置
+      - TTS_MIMO_API_TOKEN=${TTS_MIMO_API_TOKEN:-}
+      - TTS_MIMO_MODEL=${TTS_MIMO_MODEL:-speech-01-turbo}
+      - TTS_MINIMAX_API_KEY=${TTS_MINIMAX_API_KEY:-}
+      - TTS_MINIMAX_GROUP_ID=${TTS_MINIMAX_GROUP_ID:-}
+      - TTS_VOLC_API_KEY=${TTS_VOLC_API_KEY:-}
+      - TTS_VOLC_APP_ID=${TTS_VOLC_APP_ID:-}
 
     # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:
