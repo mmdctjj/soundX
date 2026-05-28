@@ -32,7 +32,9 @@ def resolve_txt_dirs():
             if os.path.isabs(item):
                 resolved.append(item)
             else:
-                resolved.append(os.path.abspath(os.path.join(BASE_DIR, item)))
+                # 相对路径以 .env 所在目录（即 services/tts）为基准解析
+                tts_dir = os.path.join(BASE_DIR, "services", "tts")
+                resolved.append(os.path.abspath(os.path.join(tts_dir, item)))
         if resolved:
             return list(dict.fromkeys(resolved))
     return [os.path.join(BASE_DIR, "services/tts/data/novels")]
@@ -67,6 +69,8 @@ async def list_local_files(db: Session = Depends(get_session)):
     """
     txt_dirs = resolve_txt_dirs()
     print(f"--- Scanning TXT Dir(s): {', '.join(txt_dirs)} ---")
+    print(f"--- TXT_BASE_DIR env: {os.getenv('TXT_BASE_DIR')} ---")
+    print(f"--- BASE_DIR: {BASE_DIR} ---")
 
     files = []
     # 获取数据库中已有的所有文件路径，用于对比
