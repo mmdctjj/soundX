@@ -4,12 +4,14 @@ import {
   getTtsLocalFiles,
   getTtsPreviewUrl,
   getTtsVoices,
+  getTtsProviders,
   identifyTtsBatch,
   TtsFileItem,
   TtsReviewItem,
   TtsVoice,
+  TtsProvider,
 } from '@soundx/services';
-import { Image, ScrollView, Text, View } from '@tarojs/components';
+import { ScrollView, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useRef, useState } from 'react';
 import MiniPlayer from '../../../components/MiniPlayer';
@@ -22,6 +24,11 @@ export default function TtsCreate() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<ViewMode>('select');
+
+  // [NEW] 服务商相关状态
+  const [providers, setProviders] = useState<TtsProvider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<string>('edge');
+
   const [voices, setVoices] = useState<TtsVoice[]>([]);
   const [localFiles, setLocalFiles] = useState<TtsFileItem[]>([]);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
@@ -31,7 +38,7 @@ export default function TtsCreate() {
   const audioContextRef = useRef<any>(null);
 
   useEffect(() => {
-    fetchVoices();
+    fetchProviders();
     fetchLocalFiles();
     return () => {
       if (audioContextRef.current) {
@@ -41,11 +48,37 @@ export default function TtsCreate() {
     };
   }, []);
 
-  const fetchVoices = async () => {
+  // [NEW] 服务商变更时重新加载音色
+  useEffect(() => {
+    if (selectedProvider) {
+      fetchVoices(selectedProvider);
+    }
+  }, [selectedProvider]);
+
+  // [NEW] 加载服务商列表
+  const fetchProviders = async () => {
     try {
-      const data = await getTtsVoices();
-      if (Array.isArray(data)) {
-        setVoices(data);
+      const data = await getTtsProviders();
+      if (data.providers && Array.isArray(data.providers)) {
+        setProviders(data.providers);
+        if (data.providers.length > 0) {
+          setSelectedProvider(data.providers[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch providers', err);
+    }
+  };
+
+  // [MODIFIED] 加载音色列表，带 provider 参数
+  const fetchVoices = async (provider: string = selectedProvider) => {
+    try {
+      const data = await getTtsVoices(provider);
+      if (data.voices && Array.isArray(data.voices)) {
+        setVoices(data.voices);
+        if (data.voices.length > 0) {
+          setSelectedVoice(data.voices[0].id);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch voices', err);
@@ -66,7 +99,8 @@ export default function TtsCreate() {
     }
   };
 
-  const handlePreview = async (voice: string) => {
+  // [MODIFIED] 预览传入 provider
+  const handlePreview = async (voice: string, provider: string = selectedProvider) => {
     if (previewLoading) return;
     setPreviewLoading(voice);
 
@@ -78,7 +112,7 @@ export default function TtsCreate() {
       const audioContext = Taro.createInnerAudioContext();
       audioContextRef.current = audioContext;
 
-      const previewUrl = await getTtsPreviewUrl(voice);
+      const previewUrl = await getTtsPreviewUrl(voice, provider);
       audioContext.src = previewUrl;
 
       audioContext.onPlay(() => {
@@ -127,6 +161,7 @@ export default function TtsCreate() {
           title: item.title || item.filename.replace(/\.[^/.]+$/, ''),
           author: item.author || '未知作者',
           voice: selectedVoice,
+          provider: selectedProvider,
         }));
         setReviewData(reviewed);
         setView('review');
@@ -141,7 +176,9 @@ export default function TtsCreate() {
     }
   };
 
-  const updateReviewItem = (key: string, field: 'title' | 'author', value: string) => {
+  // updateReviewItem is used in future editable review view
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _updateReviewItem = (key: string, field: 'title' | 'author' | 'voice' | 'provider', value: string) => {
     setReviewData((prev) =>
       prev.map((item) =>
         item.key === key ? { ...item, [field]: value } : item
@@ -162,6 +199,7 @@ export default function TtsCreate() {
         title: item.title,
         author: item.author,
         voice: item.voice,
+        provider: item.provider || selectedProvider,
       }));
 
       const res = await createTtsBatchTasks(files);
@@ -181,6 +219,26 @@ export default function TtsCreate() {
 
   const renderSelectView = () => (
     <>
+      {/* [NEW] 服务商选择 */}
+      <View className='section'>
+        <View className='section-header'>
+          <Text className='section-title'>选择服务商</Text>
+        </View>
+        <ScrollView scrollX className='provider-scroll'>
+          <View className='provider-list'>
+            {providers.map((p) => (
+              <View
+                key={p.id}
+                className={`provider-item ${selectedProvider === p.id ? 'active' : ''}`}
+                onClick={() => setSelectedProvider(p.id)}
+              >
+                <Text className='provider-name'>{p.name}</Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+
       <View className='section'>
         <View className='section-header'>
           <Text className='section-title'>{t("tts.selectVoice")}</Text>
@@ -189,20 +247,22 @@ export default function TtsCreate() {
           <View className='voice-list'>
             {voices.map((voice) => (
               <View
-                key={voice.value}
-                className={`voice-item ${selectedVoice === voice.value ? 'active' : ''}`}
-                onClick={() => setSelectedVoice(voice.value)}
+                key={voice.id}
+                className={`voice-item ${selectedVoice === voice.id ? 'active' : ''}`}
+                onClick={() => setSelectedVoice(voice.id)}
               >
-                <Text className='voice-label'>{voice.label}</Text>
+                <Text className='voice-label'>
+                  {voice.name} {voice.gender === 'male' ? '♂' : voice.gender === 'female' ? '♀' : ''}
+                </Text>
                 <View
                   className='voice-preview-btn'
                   onClick={(e) => {
                     e.stopPropagation();
-                    handlePreview(voice.value);
+                    handlePreview(voice.id, selectedProvider);
                   }}
                 >
                   <Text className='voice-preview-icon'>
-                    {previewLoading === voice.value ? '🔄' : '▶'}
+                    {previewLoading === voice.id ? '🔄' : '▶'}
                   </Text>
                 </View>
               </View>
@@ -281,6 +341,22 @@ export default function TtsCreate() {
               <View className='review-input-wrapper'>
                 <View className='review-input'>
                   <Text className='review-input-text'>{item.author}</Text>
+                </View>
+              </View>
+              <Text className='review-label' style={{ marginTop: '20rpx' }}>服务商</Text>
+              <View className='review-input-wrapper'>
+                <View className='review-input'>
+                  <Text className='review-input-text'>
+                    {providers.find(p => p.id === item.provider)?.name || item.provider}
+                  </Text>
+                </View>
+              </View>
+              <Text className='review-label' style={{ marginTop: '20rpx' }}>音色</Text>
+              <View className='review-input-wrapper'>
+                <View className='review-input'>
+                  <Text className='review-input-text'>
+                    {item.voice}
+                  </Text>
                 </View>
               </View>
             </View>
