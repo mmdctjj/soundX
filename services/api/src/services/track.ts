@@ -4,7 +4,7 @@ import { FileStatus, PrismaClient, Track, TrackType } from '@soundx/db';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DEFAULT_AUDIOBOOK_DIR, DEFAULT_MUSIC_DIR } from '../common/media-paths';
+import { DEFAULT_AUDIOBOOK_DIR, DEFAULT_CACHE_DIR, DEFAULT_MUSIC_DIR } from '../common/media-paths';
 import { getTrackHeartbeatScoreMap } from './heartbeat-score';
 import { toSimplified } from '../common/zh-utils';
 import { resolvePathList } from '../common/path-list';
@@ -74,6 +74,12 @@ export class TrackService {
         if (candidate) return candidate;
       }
       return path.join(audioBookDirs[0], relativePath);
+    }
+    if (trackPath.startsWith('/covers/')) {
+      const cacheDir = path.resolve(this.configService.get<string>('CACHE_DIR') || DEFAULT_CACHE_DIR);
+      const relativePath = trackPath.replace('/covers/', '');
+      const candidate = this.resolveCandidatePath(cacheDir, relativePath);
+      return candidate || path.join(cacheDir, relativePath);
     }
     return null;
   }
@@ -240,6 +246,15 @@ export class TrackService {
     if (track.path.startsWith('http')) {
       return {
         filePath: track.path,
+        contentType: 'audio/mpeg',
+      };
+    }
+
+    // If track has a pre-transcoded path (import-time transcode for incompatible formats),
+    // use it directly regardless of quality setting
+    if ((track as any).transcodedPath && fs.existsSync((track as any).transcodedPath)) {
+      return {
+        filePath: (track as any).transcodedPath,
         contentType: 'audio/mpeg',
       };
     }

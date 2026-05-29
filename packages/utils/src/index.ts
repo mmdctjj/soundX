@@ -204,9 +204,9 @@ export class LocalMusicScanner {
     return count;
   }
 
-  private readonly AUDIO_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|strm)$/i;
+  private readonly AUDIO_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|strm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i;
   private readonly VIDEO_EXTENSIONS = /\.(mp4|mkv|avi|webm)$/i;
-  private readonly ALL_MEDIA_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i;
+  private readonly ALL_MEDIA_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i;
 
   private async traverse(dir: string, callback: (path: string) => Promise<void>, options?: { audioOnly?: boolean }) {
     const extensionPattern = options?.audioOnly ? this.AUDIO_EXTENSIONS : this.ALL_MEDIA_EXTENSIONS;
@@ -415,7 +415,14 @@ export class LocalMusicScanner {
             duration: 0,
           };
         }
-        throw err;
+        // Fallback: if extension mismatch (e.g. .flac but actually MP3),
+        // read buffer and let music-metadata auto-detect format from content.
+        try {
+          const buffer = fs.readFileSync(filePath);
+          metadata = await music.parseBuffer(buffer);
+        } catch (bufferErr) {
+          throw err;
+        }
       }
 
       const common = metadata.common;
@@ -663,7 +670,7 @@ export class WebDAVScanner {
       for (const item of contents) {
         if (item.type === 'directory') {
           count += await this.count(item.filename);
-        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm)$/i.test(item.filename)) {
+        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(item.filename)) {
           count++;
         }
       }
@@ -680,7 +687,7 @@ export class WebDAVScanner {
       for (const item of contents) {
         if (item.type === 'directory') {
           await this.scan(item.filename, callback);
-        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm)$/i.test(item.filename)) {
+        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(item.filename)) {
           const result = await this.parseRemoteFile(item);
           if (result) {
             await callback(result);
