@@ -415,7 +415,14 @@ export class LocalMusicScanner {
             duration: 0,
           };
         }
-        throw err;
+        // Fallback: if extension mismatch (e.g. .flac but actually MP3),
+        // read buffer and let music-metadata auto-detect format from content.
+        try {
+          const buffer = fs.readFileSync(filePath);
+          metadata = await music.parseBuffer(buffer);
+        } catch (bufferErr) {
+          throw err;
+        }
       }
 
       const common = metadata.common;
