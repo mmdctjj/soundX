@@ -3231,6 +3231,7 @@ export namespace Prisma {
     fileHash: string | null
     status: $Enums.FileStatus | null
     trashedAt: Date | null
+    transcodedPath: string | null
     artistId: number | null
     albumId: number | null
     folderId: number | null
@@ -3257,6 +3258,7 @@ export namespace Prisma {
     fileHash: string | null
     status: $Enums.FileStatus | null
     trashedAt: Date | null
+    transcodedPath: string | null
     artistId: number | null
     albumId: number | null
     folderId: number | null
@@ -3283,6 +3285,7 @@ export namespace Prisma {
     fileHash: number
     status: number
     trashedAt: number
+    transcodedPath: number
     artistId: number
     albumId: number
     folderId: number
@@ -3333,6 +3336,7 @@ export namespace Prisma {
     fileHash?: true
     status?: true
     trashedAt?: true
+    transcodedPath?: true
     artistId?: true
     albumId?: true
     folderId?: true
@@ -3359,6 +3363,7 @@ export namespace Prisma {
     fileHash?: true
     status?: true
     trashedAt?: true
+    transcodedPath?: true
     artistId?: true
     albumId?: true
     folderId?: true
@@ -3385,6 +3390,7 @@ export namespace Prisma {
     fileHash?: true
     status?: true
     trashedAt?: true
+    transcodedPath?: true
     artistId?: true
     albumId?: true
     folderId?: true
@@ -3498,6 +3504,7 @@ export namespace Prisma {
     fileHash: string | null
     status: $Enums.FileStatus
     trashedAt: Date | null
+    transcodedPath: string | null
     artistId: number | null
     albumId: number | null
     folderId: number | null
@@ -3543,6 +3550,7 @@ export namespace Prisma {
     fileHash?: boolean
     status?: boolean
     trashedAt?: boolean
+    transcodedPath?: boolean
     artistId?: boolean
     albumId?: boolean
     folderId?: boolean
@@ -3579,6 +3587,7 @@ export namespace Prisma {
     fileHash?: boolean
     status?: boolean
     trashedAt?: boolean
+    transcodedPath?: boolean
     artistId?: boolean
     albumId?: boolean
     folderId?: boolean
@@ -3608,6 +3617,7 @@ export namespace Prisma {
     fileHash?: boolean
     status?: boolean
     trashedAt?: boolean
+    transcodedPath?: boolean
     artistId?: boolean
     albumId?: boolean
     folderId?: boolean
@@ -3637,12 +3647,13 @@ export namespace Prisma {
     fileHash?: boolean
     status?: boolean
     trashedAt?: boolean
+    transcodedPath?: boolean
     artistId?: boolean
     albumId?: boolean
     folderId?: boolean
   }
 
-  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "fileName" | "relativePath" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileCreatedAt" | "fileModifiedAt" | "scanOrder" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
+  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "fileName" | "relativePath" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileCreatedAt" | "fileModifiedAt" | "scanOrder" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "transcodedPath" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
   export type TrackInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     artistEntity?: boolean | Track$artistEntityArgs<ExtArgs>
     albumEntity?: boolean | Track$albumEntityArgs<ExtArgs>
@@ -3703,6 +3714,7 @@ export namespace Prisma {
       fileHash: string | null
       status: $Enums.FileStatus
       trashedAt: Date | null
+      transcodedPath: string | null
       artistId: number | null
       albumId: number | null
       folderId: number | null
@@ -4158,6 +4170,7 @@ export namespace Prisma {
     readonly fileHash: FieldRef<"Track", 'String'>
     readonly status: FieldRef<"Track", 'FileStatus'>
     readonly trashedAt: FieldRef<"Track", 'DateTime'>
+    readonly transcodedPath: FieldRef<"Track", 'String'>
     readonly artistId: FieldRef<"Track", 'Int'>
     readonly albumId: FieldRef<"Track", 'Int'>
     readonly folderId: FieldRef<"Track", 'Int'>
@@ -27715,6 +27728,7 @@ export namespace Prisma {
     fileHash: 'fileHash',
     status: 'status',
     trashedAt: 'trashedAt',
+    transcodedPath: 'transcodedPath',
     artistId: 'artistId',
     albumId: 'albumId',
     folderId: 'folderId'
@@ -28061,6 +28075,7 @@ export namespace Prisma {
     fileHash?: StringNullableFilter<"Track"> | string | null
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
+    transcodedPath?: StringNullableFilter<"Track"> | string | null
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
     folderId?: IntNullableFilter<"Track"> | number | null
@@ -28096,6 +28111,7 @@ export namespace Prisma {
     fileHash?: SortOrderInput | SortOrder
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
+    transcodedPath?: SortOrderInput | SortOrder
     artistId?: SortOrderInput | SortOrder
     albumId?: SortOrderInput | SortOrder
     folderId?: SortOrderInput | SortOrder
@@ -28134,6 +28150,7 @@ export namespace Prisma {
     fileHash?: StringNullableFilter<"Track"> | string | null
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
+    transcodedPath?: StringNullableFilter<"Track"> | string | null
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
     folderId?: IntNullableFilter<"Track"> | number | null
@@ -28169,6 +28186,7 @@ export namespace Prisma {
     fileHash?: SortOrderInput | SortOrder
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
+    transcodedPath?: SortOrderInput | SortOrder
     artistId?: SortOrderInput | SortOrder
     albumId?: SortOrderInput | SortOrder
     folderId?: SortOrderInput | SortOrder
@@ -28203,6 +28221,7 @@ export namespace Prisma {
     fileHash?: StringNullableWithAggregatesFilter<"Track"> | string | null
     status?: EnumFileStatusWithAggregatesFilter<"Track"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableWithAggregatesFilter<"Track"> | Date | string | null
+    transcodedPath?: StringNullableWithAggregatesFilter<"Track"> | string | null
     artistId?: IntNullableWithAggregatesFilter<"Track"> | number | null
     albumId?: IntNullableWithAggregatesFilter<"Track"> | number | null
     folderId?: IntNullableWithAggregatesFilter<"Track"> | number | null
@@ -29556,6 +29575,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -29588,6 +29608,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -29619,6 +29640,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -29651,6 +29673,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -29683,6 +29706,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -29708,6 +29732,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type TrackUncheckedUpdateManyInput = {
@@ -29731,6 +29756,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -31201,6 +31227,7 @@ export namespace Prisma {
     fileHash?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrder
+    transcodedPath?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
     folderId?: SortOrder
@@ -31238,6 +31265,7 @@ export namespace Prisma {
     fileHash?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrder
+    transcodedPath?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
     folderId?: SortOrder
@@ -31264,6 +31292,7 @@ export namespace Prisma {
     fileHash?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrder
+    transcodedPath?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
     folderId?: SortOrder
@@ -34710,6 +34739,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
     listenedByUsers?: UserTrackHistoryCreateNestedManyWithoutTrackInput
@@ -34741,6 +34771,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     folderId?: number | null
     likedByUsers?: UserTrackLikeUncheckedCreateNestedManyWithoutTrackInput
@@ -34904,6 +34935,7 @@ export namespace Prisma {
     fileHash?: StringNullableFilter<"Track"> | string | null
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
+    transcodedPath?: StringNullableFilter<"Track"> | string | null
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
     folderId?: IntNullableFilter<"Track"> | number | null
@@ -35024,6 +35056,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
     listenedByUsers?: UserTrackHistoryCreateNestedManyWithoutTrackInput
@@ -35055,6 +35088,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     albumId?: number | null
     folderId?: number | null
     likedByUsers?: UserTrackLikeUncheckedCreateNestedManyWithoutTrackInput
@@ -35466,6 +35500,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     listenedByUsers?: UserTrackHistoryCreateNestedManyWithoutTrackInput
@@ -35497,6 +35532,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -35591,6 +35627,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     listenedByUsers?: UserTrackHistoryUpdateManyWithoutTrackNestedInput
@@ -35622,6 +35659,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -35694,6 +35732,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -35725,6 +35764,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -35841,6 +35881,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -35872,6 +35913,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -36300,6 +36342,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -36331,6 +36374,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -36425,6 +36469,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -36456,6 +36501,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -36528,6 +36574,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -36559,6 +36606,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -36653,6 +36701,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -36684,6 +36733,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -37405,6 +37455,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -37436,6 +37487,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -37583,6 +37635,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -37614,6 +37667,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
     likedByUsers?: UserTrackLikeUncheckedCreateNestedManyWithoutTrackInput
@@ -37837,6 +37891,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -37868,6 +37923,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -37984,6 +38040,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -38015,6 +38072,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -38315,6 +38373,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     folderId?: number | null
   }
@@ -38375,6 +38434,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
     listenedByUsers?: UserTrackHistoryUpdateManyWithoutTrackNestedInput
@@ -38406,6 +38466,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
     likedByUsers?: UserTrackLikeUncheckedUpdateManyWithoutTrackNestedInput
@@ -38437,6 +38498,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
   }
@@ -38566,6 +38628,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     albumId?: number | null
     folderId?: number | null
   }
@@ -38607,6 +38670,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
     listenedByUsers?: UserTrackHistoryUpdateManyWithoutTrackNestedInput
@@ -38638,6 +38702,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
     likedByUsers?: UserTrackLikeUncheckedUpdateManyWithoutTrackNestedInput
@@ -38669,6 +38734,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
   }
@@ -39093,6 +39159,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -39124,6 +39191,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -39155,6 +39223,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -39188,6 +39257,7 @@ export namespace Prisma {
     fileHash?: string | null
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    transcodedPath?: string | null
     artistId?: number | null
     albumId?: number | null
   }
@@ -39236,6 +39306,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -39267,6 +39338,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     likedByUsers?: UserTrackLikeUncheckedUpdateManyWithoutTrackNestedInput
@@ -39298,6 +39370,7 @@ export namespace Prisma {
     fileHash?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
   }

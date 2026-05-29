@@ -244,6 +244,15 @@ export class TrackService {
       };
     }
 
+    // If track has a pre-transcoded path (import-time transcode for incompatible formats),
+    // use it directly regardless of quality setting
+    if ((track as any).transcodedPath && fs.existsSync((track as any).transcodedPath)) {
+      return {
+        filePath: (track as any).transcodedPath,
+        contentType: 'audio/mpeg',
+      };
+    }
+
     const sourcePath = this.getFilePath(track.path);
     if (!sourcePath || !fs.existsSync(sourcePath)) {
       throw new Error('File not found');

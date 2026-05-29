@@ -138,6 +138,7 @@ exports.Prisma.TrackScalarFieldEnum = {
   fileHash: 'fileHash',
   status: 'status',
   trashedAt: 'trashedAt',
+  transcodedPath: 'transcodedPath',
   artistId: 'artistId',
   albumId: 'albumId',
   folderId: 'folderId'

@@ -46,6 +46,9 @@ model Track {
   status    FileStatus @default(ACTIVE)
   trashedAt DateTime?
 
+  // Transcoding
+  transcodedPath String?
+
   // Relations to entity tables (Optional for compatibility with existing string fields)
   artistId  Int?
   artistEntity Artist? @relation(fields: [artistId], references: [id])
