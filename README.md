@@ -123,6 +123,12 @@ services:
       - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7}
       - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2048}
       - LLM_API_KEY=${LLM_API_KEY:-sk-xxxx} # 大模型 key
+      # ====== 小米 MiMo TTS 配置 ======
+      - TTS_MIMO_API_TOKEN=sk-xxxx
+      - TTS_MIMO_MODEL=mimo-v2.5-tts
+      # ====== MiniMax TTS 配置 ======
+      - TTS_MINIMAX_API_KEY=sk-xxxx
+      - TTS_MINIMAX_MODEL=speech-2.8-hd
 
     # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:
