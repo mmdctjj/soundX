@@ -46,6 +46,9 @@ model Track {
   status    FileStatus @default(ACTIVE)
   trashedAt DateTime?
 
+  // Transcoding
+  transcodedPath String?
+
   // Relations to entity tables (Optional for compatibility with existing string fields)
   artistId  Int?
   artistEntity Artist? @relation(fields: [artistId], references: [id])
@@ -312,6 +315,9 @@ model TtsTask {
   bookName          String           @map("book_name")
   author            String
   filePath          String           @default("") @map("file_path")
+  provider          String           @default("edge")
+  voice             String           @default("zh-CN-XiaoxiaoNeural")
+  speed             Float            @default(1.0)
   totalChapters     Int              @map("total_chapters")
   completedChapters Int              @default(0) @map("completed_chapters")
   status            String           @default("pending")

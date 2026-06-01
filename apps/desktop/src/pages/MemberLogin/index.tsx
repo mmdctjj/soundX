@@ -13,6 +13,7 @@ import {
   type ScanLoginSession,
   type ScanLoginSessionStatus,
 } from "@soundx/services";
+import { LeftOutlined } from "@ant-design/icons";
 import { Button, Form, Input, Layout, QRCode, Typography, message, theme } from "antd";
 import { useTranslation } from "react-i18next";
 import React, { useEffect, useState } from "react";
@@ -258,6 +259,14 @@ const MemberLogin: React.FC = () => {
           className={styles.card}
           style={{ background: mode === 'dark' ? 'transparent' : token.colorBgContainer, border: mode === 'dark' ? 'none' : undefined, boxShadow: mode === 'dark' ? 'none' : undefined }}
         >
+          <Button
+            type="text"
+            icon={<LeftOutlined />}
+            className={styles.header}
+            onClick={() => navigate(-1)}
+          >
+            返回
+          </Button>
           <div className={styles.contentGrid}>
             <div className={styles.scanSection}>
               {scanStatus?.status === "waiting_confirm" ? (

@@ -1,6 +1,7 @@
 "use strict";
 const electron = require("electron");
 const listenerMap = /* @__PURE__ */ new WeakMap();
+electron.contextBridge.exposeInMainWorld("platform", process.platform);
 electron.contextBridge.exposeInMainWorld("ipcRenderer", {
   on(...args) {
     const [channel, listener] = args;
@@ -31,5 +32,8 @@ electron.contextBridge.exposeInMainWorld("ipcRenderer", {
     return await electron.ipcRenderer.invoke("get-device-name");
   },
   openExternal: (url) => electron.ipcRenderer.invoke("open-url", url),
-  selectDirectory: () => electron.ipcRenderer.invoke("select-directory")
+  selectDirectory: () => electron.ipcRenderer.invoke("select-directory"),
+  minimizeWindow: () => electron.ipcRenderer.send("window:minimize"),
+  maximizeWindow: () => electron.ipcRenderer.send("window:maximize"),
+  closeWindow: () => electron.ipcRenderer.send("window:close")
 });

@@ -461,7 +461,9 @@ export class TrackController {
       }
 
       // Normal audio file: provide range support via express
-      return res.sendFile(filePath);
+      // Use root option for absolute paths to ensure Express handles it correctly
+      const rootPath = path.isAbsolute(filePath) ? '/' : undefined;
+      return res.sendFile(filePath, { root: rootPath });
       
     } catch (error) {
       console.error('Stream error:', error);

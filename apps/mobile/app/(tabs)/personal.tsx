@@ -9,10 +9,10 @@ import {
   getImportTask,
   getPlaylists,
   getRunningImportTask,
-  uploadUserAvatar,
   getTrackHistory,
   setPlusToken,
   TaskStatus,
+  uploadUserAvatar,
   type ImportTask,
 } from "@soundx/services";
 import { Image as ExpoImage } from "expo-image";
@@ -27,7 +27,6 @@ import {
   FlatList,
   Image,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -36,25 +35,32 @@ import {
 } from "react-native";
 import Modal from "react-native-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import SkeletonBlock from "../../src/components/SkeletonBlock";
 import { useAuth } from "../../src/context/AuthContext";
 import { usePlayer } from "../../src/context/PlayerContext";
 import { useTheme } from "../../src/context/ThemeContext";
+import { getBaseURL } from "../../src/https";
 import { Playlist, Track } from "../../src/models";
-import SkeletonBlock from "../../src/components/SkeletonBlock";
 import {
   getDownloadedTracks,
   removeDownloadedTrack,
 } from "../../src/services/cache";
-import { getBaseURL } from "../../src/https";
 import { trackEvent } from "../../src/services/tracking";
 import { getImageUrl } from "../../src/utils/image";
 import { usePlayMode } from "../../src/utils/playMode";
-import { getCachedVipStatus, refreshVipStatus } from "../../src/utils/vipStatus";
+import {
+  getCachedVipStatus,
+  refreshVipStatus,
+} from "../../src/utils/vipStatus";
 
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { CachedImage } from "@/src/components/CachedImage";
 import { UpdateModal } from "@/src/components/UpdateModal";
-import { AntDesign, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  AntDesign,
+  Ionicons,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 const logo = require("../../assets/images/logo.png");
 const subsonicLogo = require("../../assets/images/subsonic.png");
@@ -116,7 +122,9 @@ function PersonalListSkeleton({
   const { colors } = useTheme();
   const isPlaylist = activeTab === "playlists";
   const isDownloadAlbum =
-    activeTab === "downloads" && mode === "AUDIOBOOK" && !selectedDownloadAlbumName;
+    activeTab === "downloads" &&
+    mode === "AUDIOBOOK" &&
+    !selectedDownloadAlbumName;
 
   return (
     <View style={{ paddingBottom: 20 }}>
@@ -127,19 +135,44 @@ function PersonalListSkeleton({
         >
           {isPlaylist ? (
             <View style={styles.stackedCoverContainer}>
-              <SkeletonBlock width={50} height={50} borderRadius={8} style={{ position: "absolute", left: 12, top: 6, opacity: 0.7 }} />
-              <SkeletonBlock width={50} height={50} borderRadius={8} style={{ position: "absolute", left: 6, top: 3, opacity: 0.82 }} />
+              <SkeletonBlock
+                width={50}
+                height={50}
+                borderRadius={8}
+                style={{ position: "absolute", left: 12, top: 6, opacity: 0.7 }}
+              />
+              <SkeletonBlock
+                width={50}
+                height={50}
+                borderRadius={8}
+                style={{ position: "absolute", left: 6, top: 3, opacity: 0.82 }}
+              />
               <SkeletonBlock width={50} height={50} borderRadius={8} />
             </View>
           ) : (
-            <SkeletonBlock width={50} height={50} borderRadius={8} style={{ marginRight: 15 }} />
+            <SkeletonBlock
+              width={50}
+              height={50}
+              borderRadius={8}
+              style={{ marginRight: 15 }}
+            />
           )}
           <View style={styles.itemInfo}>
-            <SkeletonBlock width={150} height={16} borderRadius={8} style={{ marginBottom: 8 }} />
-            <SkeletonBlock width={92} height={13} borderRadius={6 } />
+            <SkeletonBlock
+              width={150}
+              height={16}
+              borderRadius={8}
+              style={{ marginBottom: 8 }}
+            />
+            <SkeletonBlock width={92} height={13} borderRadius={6} />
           </View>
           {activeTab === "downloads" && !isDownloadAlbum ? (
-            <SkeletonBlock width={20} height={20} borderRadius={10} style={{ marginLeft: 10 }} />
+            <SkeletonBlock
+              width={20}
+              height={20}
+              borderRadius={10}
+              style={{ marginLeft: 10 }}
+            />
           ) : null}
         </View>
       ))}
@@ -151,7 +184,8 @@ export default function PersonalScreen() {
   const { theme, toggleTheme, colors } = useTheme();
   const { t } = useTranslation();
   const { mode, setMode } = usePlayMode();
-  const { logout, user, switchServer, sourceType, setSourceType, device } = useAuth();
+  const { logout, user, switchServer, sourceType, setSourceType, device } =
+    useAuth();
   const { playTrackList } = usePlayer();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -185,21 +219,25 @@ export default function PersonalScreen() {
     const plusToken = await AsyncStorage.getItem("plus_token");
 
     if (!plusToken) {
-      Alert.alert(t("personalPage.memberOnlyTitle"), t("personalPage.scanLoginMemberOnly"), [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("personalPage.memberLogin"),
-          onPress: () => {
-            trackEvent({
-              feature: "scan_login",
-              eventName: "scan_login_member_login_redirect",
-              userId: user?.id ? String(user.id) : undefined,
-              deviceId: device?.id ? String(device.id) : undefined,
-            });
-            router.push("/member-login" as any);
+      Alert.alert(
+        t("personalPage.memberOnlyTitle"),
+        t("personalPage.scanLoginMemberOnly"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("personalPage.memberLogin"),
+            onPress: () => {
+              trackEvent({
+                feature: "scan_login",
+                eventName: "scan_login_member_login_redirect",
+                userId: user?.id ? String(user.id) : undefined,
+                deviceId: device?.id ? String(device.id) : undefined,
+              });
+              router.push("/member-login" as any);
+            },
           },
-        },
-      ]);
+        ],
+      );
       return;
     }
 
@@ -214,24 +252,26 @@ export default function PersonalScreen() {
       return;
     }
 
-    Alert.alert(t("personalPage.memberOnlyTitle"), t("personalPage.scanLoginVipRequired"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("personalPage.goActivate"),
-        onPress: () => {
-          trackEvent({
-            feature: "scan_login",
-            eventName: "scan_login_member_benefits_redirect",
-            userId: user?.id ? String(user.id) : undefined,
-            deviceId: device?.id ? String(device.id) : undefined,
-          });
-          router.push("/member-benefits" as any);
+    Alert.alert(
+      t("personalPage.memberOnlyTitle"),
+      t("personalPage.scanLoginVipRequired"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("personalPage.goActivate"),
+          onPress: () => {
+            trackEvent({
+              feature: "scan_login",
+              eventName: "scan_login_member_benefits_redirect",
+              userId: user?.id ? String(user.id) : undefined,
+              deviceId: device?.id ? String(device.id) : undefined,
+            });
+            router.push("/member-benefits" as any);
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
-
-
 
   const handleChangeAvatar = async () => {
     if (!user?.id || uploadingAvatar) return;
@@ -257,21 +297,31 @@ export default function PersonalScreen() {
       const res = await uploadUserAvatar(user.id, file);
       console.log("Upload avatar response:", res);
       if (res.code === 200) {
-        const nextAvatar = res.data?.avatar || (res.data?.user as any)?.avatar || fileName;
+        const nextAvatar =
+          res.data?.avatar || (res.data?.user as any)?.avatar || fileName;
         setAvatarOverride(nextAvatar);
         const baseUrl = getBaseURL();
         if (baseUrl) {
           const stored = await AsyncStorage.getItem(`user_${baseUrl}`);
           const parsed = stored ? JSON.parse(stored) : {};
           const updated = { ...parsed, avatar: nextAvatar };
-          await AsyncStorage.setItem(`user_${baseUrl}`, JSON.stringify(updated));
+          await AsyncStorage.setItem(
+            `user_${baseUrl}`,
+            JSON.stringify(updated),
+          );
         }
       } else {
-        Alert.alert(t("personalPage.updateFailed"), res.message || t("personalPage.uploadAvatarFailed"));
+        Alert.alert(
+          t("personalPage.updateFailed"),
+          res.message || t("personalPage.uploadAvatarFailed"),
+        );
       }
     } catch (error) {
       console.error("Failed to upload user avatar:", error);
-      Alert.alert(t("personalPage.updateFailed"), t("personalPage.uploadAvatarFailed"));
+      Alert.alert(
+        t("personalPage.updateFailed"),
+        t("personalPage.uploadAvatarFailed"),
+      );
     } finally {
       setUploadingAvatar(false);
     }
@@ -333,7 +383,8 @@ export default function PersonalScreen() {
 
   // Import task state
   const [menuVisible, setMenuVisible] = useState(false);
-  const [pendingMenuAction, setPendingMenuAction] = useState<PendingMenuAction>(null);
+  const [pendingMenuAction, setPendingMenuAction] =
+    useState<PendingMenuAction>(null);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importTask, setImportTask] = useState<ImportTask | null>(null);
   const pollTimerRef = React.useRef<any>(null);
@@ -460,7 +511,7 @@ export default function PersonalScreen() {
     loadData();
   }, [user, activeTab, activeSubTab, mode]);
 
-  const handleOpenTtsTasks = () => {
+  const handleOpenTtsTasks = async () => {
     setMenuVisible(false);
     trackEvent({
       feature: "tts",
@@ -468,6 +519,18 @@ export default function PersonalScreen() {
       userId: user?.id ? String(user.id) : undefined,
       deviceId: device?.id ? String(device.id) : undefined,
     });
+
+    const plusToken = await AsyncStorage.getItem("plus_token");
+    if (!plusToken) {
+      Alert.alert(t("common.memberFeature"), t("common.loginFirst"), [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("personalPage.memberLogin"),
+          onPress: () => router.push("/member-login" as any),
+        },
+      ]);
+      return;
+    }
 
     if (isPlusVip) {
       trackEvent({
@@ -498,28 +561,32 @@ export default function PersonalScreen() {
   };
 
   const handleDeleteDownload = (item: Track) => {
-    Alert.alert(t("personalPage.deleteDownloadTitle"), t("personalPage.deleteDownloadMessage"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("common.delete"),
-        style: "destructive",
-        onPress: async () => {
-          await removeDownloadedTrack(item.id, item.path); // Use path as URL
-          await loadData();
+    Alert.alert(
+      t("personalPage.deleteDownloadTitle"),
+      t("personalPage.deleteDownloadMessage"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            await removeDownloadedTrack(item.id, item.path); // Use path as URL
+            await loadData();
 
-          // If the last track in the expanded downloaded album is removed, return to the album list.
-          if (selectedDownloadAlbumName) {
-            const tracks = await getDownloadedTracks();
-            const stillHasAlbum = tracks.some(
-              (t) => t.album === selectedDownloadAlbumName && t.type === mode,
-            );
-            if (!stillHasAlbum) {
-              setSelectedDownloadAlbumName(null);
+            // If the last track in the expanded downloaded album is removed, return to the album list.
+            if (selectedDownloadAlbumName) {
+              const tracks = await getDownloadedTracks();
+              const stillHasAlbum = tracks.some(
+                (t) => t.album === selectedDownloadAlbumName && t.type === mode,
+              );
+              if (!stillHasAlbum) {
+                setSelectedDownloadAlbumName(null);
+              }
             }
-          }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const handleCreatePlaylist = async () => {
@@ -546,7 +613,9 @@ export default function PersonalScreen() {
     }
   };
 
-  const handleUpdateLibrary = async (updateMode: "incremental" | "full" | "compact") => {
+  const handleUpdateLibrary = async (
+    updateMode: "incremental" | "full" | "compact",
+  ) => {
     setMenuVisible(false);
 
     const startTask = async () => {
@@ -573,7 +642,10 @@ export default function PersonalScreen() {
             pollTaskStatus(taskId);
           }, 1000);
         } else {
-          Alert.alert(t("common.error"), res.message || t("personalPage.taskCreateFailed"));
+          Alert.alert(
+            t("common.error"),
+            res.message || t("personalPage.taskCreateFailed"),
+          );
         }
       } catch (error) {
         console.error("Task creation error:", error);
@@ -608,10 +680,14 @@ export default function PersonalScreen() {
         ],
       );
     } else {
-      Alert.alert(t("personalPage.confirmIncrementalTitle"), t("personalPage.confirmIncrementalContent"), [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t("personalPage.confirmUpdateAction"), onPress: startTask },
-      ]);
+      Alert.alert(
+        t("personalPage.confirmIncrementalTitle"),
+        t("personalPage.confirmIncrementalContent"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("personalPage.confirmUpdateAction"), onPress: startTask },
+        ],
+      );
     }
   };
 
@@ -829,7 +905,7 @@ export default function PersonalScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        {theme === 'festive' && (
+        {theme === "festive" && (
           <>
             <View
               pointerEvents="none"
@@ -940,46 +1016,63 @@ export default function PersonalScreen() {
         <TouchableOpacity onPress={handleChangeAvatar} activeOpacity={0.8}>
           <CachedImage
             source={{
-              uri: getImageUrl(
-                avatarOverride,
-                "https://picsum.photos/200",
-              ),
+              uri: getImageUrl(avatarOverride, "https://picsum.photos/200"),
             }} // Placeholder for avatar
             style={styles.avatar}
           />
           {user && (
-            <View style={[styles.avatarEditBadge, { backgroundColor: colors.card }]}>
+            <View
+              style={[styles.avatarEditBadge, { backgroundColor: colors.card }]}
+            >
               <Ionicons name="camera" size={14} color={colors.text} />
             </View>
           )}
         </TouchableOpacity>
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-            <Text style={[styles.nickname, { color: colors.text }]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text style={[styles.nickname, { color: colors.text }]}>
             {user?.username || t("common.notLoggedIn")}
-            </Text>
-            {user && (
-                <TouchableOpacity onPress={async () => {
-                    if (Platform.OS === "ios") {
-                        return;
-                    }
-                    const plusToken = await AsyncStorage.getItem("plus_token");
-                    if (plusToken) {
-                        if (isPlusVip) {
-                            router.push("/member-detail");
-                        } else {
-                            router.push("/member-benefits" as any);
-                        }
-                    } else {
-                        router.push("/member-login" as any);
-                    }
-                }}>
-                    <MaterialCommunityIcons 
-                        name="crown" 
-                        size={24} 
-                        color={isPlusVip ? "#FFD700" : colors.secondary} 
-                    />
-                </TouchableOpacity>
-            )}
+          </Text>
+          {user && (
+            <TouchableOpacity
+              onPress={async () => {
+                if (Platform.OS === "ios") {
+                  return;
+                }
+                const plusToken = await AsyncStorage.getItem("plus_token");
+                if (plusToken) {
+                  const plusToken = await AsyncStorage.getItem("plus_token");
+                  if (!plusToken) {
+                    Alert.alert(
+                      t("common.memberFeature"),
+                      t("common.loginFirst"),
+                      [
+                        { text: t("common.cancel"), style: "cancel" },
+                        {
+                          text: t("personalPage.memberLogin"),
+                          onPress: () => router.push("/member-login" as any),
+                        },
+                      ],
+                    );
+                    return;
+                  }
+
+                  if (isPlusVip) {
+                    router.push("/member-detail");
+                  } else {
+                    router.push("/member-benefits" as any);
+                  }
+                } else {
+                  router.push("/member-login" as any);
+                }
+              }}
+            >
+              <MaterialCommunityIcons
+                name="crown"
+                size={24}
+                color={isPlusVip ? "#FFD700" : colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -990,69 +1083,73 @@ export default function PersonalScreen() {
           { key: "favorites", label: t("personal.favorites") },
           { key: "history", label: t("personal.history") },
           { key: "downloads", label: t("personalPage.downloads") },
-        ].filter((tab) => !(sourceType === "Emby" && tab.key === "history")).map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tabItem,
-              activeTab === tab.key && {
-                borderBottomColor: colors.primary,
-                borderBottomWidth: 2,
-              },
-            ]}
-            onPress={() => setActiveTab(tab.key as TabType)}
-          >
-            <Text
+        ]
+          .filter((tab) => !(sourceType === "Emby" && tab.key === "history"))
+          .map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
               style={[
-                styles.tabText,
-                {
-                  color:
-                    activeTab === tab.key ? colors.primary : colors.secondary,
+                styles.tabItem,
+                activeTab === tab.key && {
+                  borderBottomColor: colors.primary,
+                  borderBottomWidth: 2,
                 },
-                activeTab === tab.key && { fontWeight: "bold" },
               ]}
+              onPress={() => setActiveTab(tab.key as TabType)}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.tabText,
+                  {
+                    color:
+                      activeTab === tab.key ? colors.primary : colors.secondary,
+                  },
+                  activeTab === tab.key && { fontWeight: "bold" },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
       </View>
 
       {/* Sub-tabs for favorites and history */}
       {(activeTab === "favorites" || activeTab === "history") && (
-          <View style={styles.subTabContainer}>
-            {[
-              { id: "album", label: t("personal.album") },
-              ...(mode !== "AUDIOBOOK" ? [{ id: "track", label: t("personal.track") }] : []),
-            ].map((sub) => (
-              <TouchableOpacity
-                key={sub.id}
+        <View style={styles.subTabContainer}>
+          {[
+            { id: "album", label: t("personal.album") },
+            ...(mode !== "AUDIOBOOK"
+              ? [{ id: "track", label: t("personal.track") }]
+              : []),
+          ].map((sub) => (
+            <TouchableOpacity
+              key={sub.id}
+              style={[
+                styles.subTabItem,
+                activeSubTab === sub.id && {
+                  backgroundColor: "rgba(150,150,150,0.1)",
+                },
+              ]}
+              onPress={() => setActiveSubTab(sub.id as SubTabType)}
+            >
+              <Text
                 style={[
-                  styles.subTabItem,
-                  activeSubTab === sub.id && {
-                    backgroundColor: "rgba(150,150,150,0.1)",
+                  styles.subTabText,
+                  {
+                    color:
+                      activeSubTab === sub.id
+                        ? colors.primary
+                        : colors.secondary,
                   },
+                  activeSubTab === sub.id && { fontWeight: "bold" },
                 ]}
-                onPress={() => setActiveSubTab(sub.id as SubTabType)}
               >
-                <Text
-                  style={[
-                    styles.subTabText,
-                    {
-                      color:
-                        activeSubTab === sub.id
-                          ? colors.primary
-                          : colors.secondary,
-                    },
-                    activeSubTab === sub.id && { fontWeight: "bold" },
-                  ]}
-                >
-                  {sub.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+                {sub.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* Back Button for Audiobook Downloads */}
       {activeTab === "downloads" &&
@@ -1067,7 +1164,9 @@ export default function PersonalScreen() {
               <Text
                 style={{ marginLeft: 5, color: colors.primary, fontSize: 16 }}
               >
-                {t("personalPage.backToAlbum", { name: selectedDownloadAlbumName })}
+                {t("personalPage.backToAlbum", {
+                  name: selectedDownloadAlbumName,
+                })}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1117,8 +1216,6 @@ export default function PersonalScreen() {
         }}
       />
 
-
-
       <Modal
         isVisible={createModalVisible}
         onBackdropPress={() => setCreateModalVisible(false)}
@@ -1163,7 +1260,9 @@ export default function PersonalScreen() {
                   setNewPlaylistName("");
                 }}
               >
-                <Text style={{ color: colors.secondary }}>{t("common.cancel")}</Text>
+                <Text style={{ color: colors.secondary }}>
+                  {t("common.cancel")}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -1267,7 +1366,10 @@ export default function PersonalScreen() {
                   </Text>
                 </TouchableOpacity>
                 <View
-                  style={[styles.menuDivider, { backgroundColor: colors.border }]}
+                  style={[
+                    styles.menuDivider,
+                    { backgroundColor: colors.border },
+                  ]}
                 />
               </>
             )}
@@ -1310,7 +1412,9 @@ export default function PersonalScreen() {
             </Text>
 
             <View style={styles.importStatusRow}>
-              <Text style={{ color: colors.secondary }}>{t("personalPage.statusLabel")}</Text>
+              <Text style={{ color: colors.secondary }}>
+                {t("personalPage.statusLabel")}
+              </Text>
               <Text style={{ color: colors.text, fontWeight: "500" }}>
                 {importTask?.message &&
                 importTask.status !== TaskStatus.FAILED &&
@@ -1324,23 +1428,24 @@ export default function PersonalScreen() {
                       ? importTask?.mode === "compact"
                         ? t("personal.compactData")
                         : t("personal.preparingEnv")
-                    : importTask?.status === TaskStatus.PARSING
-                      ? t("personal.parsingMedia")
-                      : importTask?.status === TaskStatus.SUCCESS
-                        ? importTask?.mode === "compact"
-                          ? t("personal.compactComplete")
-                          : t("personal.importComplete")
-                        : importTask?.status === TaskStatus.FAILED
+                      : importTask?.status === TaskStatus.PARSING
+                        ? t("personal.parsingMedia")
+                        : importTask?.status === TaskStatus.SUCCESS
                           ? importTask?.mode === "compact"
-                            ? t("personal.compactFailed")
-                            : t("personal.importFailed")
-                          : t("common.loading")}
+                            ? t("personal.compactComplete")
+                            : t("personal.importComplete")
+                          : importTask?.status === TaskStatus.FAILED
+                            ? importTask?.mode === "compact"
+                              ? t("personal.compactFailed")
+                              : t("personal.importFailed")
+                            : t("common.loading")}
               </Text>
             </View>
 
             {importTask?.status === TaskStatus.FAILED && (
               <Text style={[styles.importErrorText, { color: colors.primary }]}>
-                {t("personalPage.errorLabel")}{importTask.message}
+                {t("personalPage.errorLabel")}
+                {importTask.message}
               </Text>
             )}
 
@@ -1363,83 +1468,82 @@ export default function PersonalScreen() {
 
             {importTask?.mode !== "compact" && (
               <View style={{ marginBottom: 20 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 4,
-                }}
-              >
-                <Text style={{ color: colors.secondary, fontSize: 12 }}>
-                  {t("personalPage.localFiles")}
-                </Text>
-                <Text style={{ color: colors.text, fontSize: 12 }}>
-                  {importTask?.localCurrent || 0} /{" "}
-                  {importTask?.localTotal || 0}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 4,
-                }}
-              >
-                <Text style={{ color: colors.secondary, fontSize: 12 }}>
-                  {t("personalPage.webdavFiles")}
-                </Text>
-                <Text style={{ color: colors.text, fontSize: 12 }}>
-                  {importTask?.webdavCurrent || 0} /{" "}
-                  {importTask?.webdavTotal || 0}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 4,
-                }}
-              >
-                <Text style={{ color: colors.secondary, fontSize: 12 }}>
-                  {t("personalPage.mvFiles")}
-                </Text>
-                <Text style={{ color: colors.text, fontSize: 12 }}>
-                  {importTask?.mvCurrent || 0} /{" "}
-                  {importTask?.mvTotal || 0}
-                </Text>
-              </View>
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: colors.border,
-                  marginVertical: 4,
-                }}
-              />
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
+                <View
                   style={{
-                    color: colors.text,
-                    fontSize: 13,
-                    fontWeight: "bold",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginBottom: 4,
                   }}
                 >
-                  {t("personalPage.totalProgress")}
-                </Text>
-                <Text
+                  <Text style={{ color: colors.secondary, fontSize: 12 }}>
+                    {t("personalPage.localFiles")}
+                  </Text>
+                  <Text style={{ color: colors.text, fontSize: 12 }}>
+                    {importTask?.localCurrent || 0} /{" "}
+                    {importTask?.localTotal || 0}
+                  </Text>
+                </View>
+                <View
                   style={{
-                    color: colors.primary,
-                    fontSize: 13,
-                    fontWeight: "bold",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginBottom: 4,
                   }}
                 >
-                  {importTask?.current || 0} / {importTask?.total || 0}
-                </Text>
-              </View>
+                  <Text style={{ color: colors.secondary, fontSize: 12 }}>
+                    {t("personalPage.webdavFiles")}
+                  </Text>
+                  <Text style={{ color: colors.text, fontSize: 12 }}>
+                    {importTask?.webdavCurrent || 0} /{" "}
+                    {importTask?.webdavTotal || 0}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginBottom: 4,
+                  }}
+                >
+                  <Text style={{ color: colors.secondary, fontSize: 12 }}>
+                    {t("personalPage.mvFiles")}
+                  </Text>
+                  <Text style={{ color: colors.text, fontSize: 12 }}>
+                    {importTask?.mvCurrent || 0} / {importTask?.mvTotal || 0}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: colors.border,
+                    marginVertical: 4,
+                  }}
+                />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.text,
+                      fontSize: 13,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {t("personalPage.totalProgress")}
+                  </Text>
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontSize: 13,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {importTask?.current || 0} / {importTask?.total || 0}
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -1461,7 +1565,9 @@ export default function PersonalScreen() {
                     fontStyle: "italic",
                   }}
                 >
-                  {t("personalPage.processing", { name: importTask.currentFileName })}
+                  {t("personalPage.processing", {
+                    name: importTask.currentFileName,
+                  })}
                 </Text>
               </View>
             )}
@@ -1489,14 +1595,14 @@ export default function PersonalScreen() {
                 style={styles.importHideBtn}
                 onPress={() => setImportModalVisible(false)}
               >
-                <Text style={{ color: colors.secondary }}>{t("personalPage.backgroundRun")}</Text>
+                <Text style={{ color: colors.secondary }}>
+                  {t("personalPage.backgroundRun")}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
       </Modal>
-
-
     </View>
   );
 }

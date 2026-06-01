@@ -10,9 +10,39 @@
   z-index: 100;
   -webkit-app-region: drag; // Enable window dragging
 }
- 
+
 .winHeader {
-  padding-right: 135px !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+.winControls {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.winControlBtn {
+  padding: 4px 14px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: all 0.2s;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.winCloseBtn {
+  &:hover {
+    background-color: #e81123;
+    color: #fff;
+  }
 }
 
 .navControls {
@@ -36,7 +66,9 @@
 .navIcon {
   cursor: pointer;
   opacity: 0.7;
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
   color: inherit;
 
   &:hover {
@@ -88,7 +120,9 @@
   color: inherit;
   cursor: pointer;
   opacity: 0.8;
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 
   &:hover {
     opacity: 1;
@@ -97,7 +131,8 @@
 }
 
 @keyframes radioPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }

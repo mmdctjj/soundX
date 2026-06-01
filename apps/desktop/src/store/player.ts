@@ -139,8 +139,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
   const storedVolume = Number(localStorage.getItem("playerVolume")) || 70;
 
   // Progress Reporting Helper
-  let lastReportTime = 0;
-  const ATTEMPT_REPORT_INTERVAL = 5; // Seconds (unified with Mobile)
+  let lastReportTime = 0; // Date.now() timestamp
+  let lastReportedPosition = 0;
+  const ATTEMPT_REPORT_INTERVAL = 5000; // ms (unified with Mobile)
 
   const reportProgress = (state: PlayerState, force = false) => {
     const { currentTrack, currentTime, isPlaying, activeMode } = state;
@@ -150,8 +151,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     const roundedTime = Math.floor(currentTime);
     if (roundedTime <= 0) return;
 
-    // Report if forced (e.g. pause/change) or interval met
-    if (force || (isPlaying && Math.abs(roundedTime - lastReportTime) >= ATTEMPT_REPORT_INTERVAL)) {
+    const now = Date.now();
+    const timeElapsed = now - lastReportTime >= ATTEMPT_REPORT_INTERVAL;
+    const positionChanged = Math.abs(roundedTime - lastReportedPosition) >= 5;
+
+    // Report if forced (e.g. pause/change) or interval met and position changed
+    if (force || (isPlaying && timeElapsed && positionChanged)) {
       const userId = useAuthStore.getState().user?.id;
       if (!userId) return;
 
@@ -160,7 +165,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         trackId: currentTrack.id,
         progress: roundedTime
       }).catch(e => console.error("Failed to report progress", e));
-      lastReportTime = roundedTime;
+      lastReportTime = now;
+      lastReportedPosition = roundedTime;
 
       // Sync progress to local playlist and currentTrack
       const updatedPlaylist = state.playlist.map(t =>
@@ -452,7 +458,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
         const userId = useAuthStore.getState().user?.id;
         if (userId) {
-          addToHistory(Number(nextTrack.id), userId).catch(console.error);
+          const deviceName =
+            (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+          const device = JSON.parse(localStorage.getItem("device") || "{}");
+          addToHistory(Number(nextTrack.id), userId, 0, deviceName, device.id).catch(console.error); // fix: progress report fix
         }
       }
       get()._saveCurrentStateToMode();
@@ -480,9 +489,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       reportProgress(get(), true);
 
       const userId = useAuthStore.getState().user?.id;
-        if (userId) {
-          addToHistory(Number(prevTrack.id), userId).catch(console.error);
-        }
+      if (userId) {
+        const deviceName =
+          (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+        const device = JSON.parse(localStorage.getItem("device") || "{}");
+        addToHistory(Number(prevTrack.id), userId, 0, deviceName, device.id).catch(console.error); // fix: progress report fix
+      }
 
       get()._saveCurrentStateToMode();
     },

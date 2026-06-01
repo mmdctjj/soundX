@@ -1724,6 +1724,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         
         lastReportTimeRef.current = now;
+        // fix: sync local progress after report
+        const reportedProgress = currentTime;
+        if (currentTrackRef.current) {
+          currentTrackRef.current = { ...currentTrackRef.current, progress: reportedProgress };
+          setCurrentTrack(currentTrackRef.current);
+        }
+        const updatedTrackList = trackListRef.current.map(t =>
+          t.id === currentTrackRef.current?.id ? { ...t, progress: reportedProgress } : t
+        );
+        setTrackList(updatedTrackList);
       } catch (e) {
         console.log(
           "Background history sync skipped due to network/transient error"

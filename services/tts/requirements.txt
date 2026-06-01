@@ -3,6 +3,7 @@ uvicorn
 sqlmodel
 aiofiles
 aiohttp
+websockets
 mutagen
 chardet
 edge-tts

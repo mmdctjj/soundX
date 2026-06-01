@@ -2,7 +2,13 @@ import os
 from dotenv import load_dotenv
 
 # 加载环境变量，一定要在导入其他业务模块之前
-# load_dotenv(override=True)
+# 显式指定 .env 文件路径，确保能正确加载
+env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+load_dotenv(dotenv_path=env_path)
+print(f"[main] Loaded .env from: {os.path.abspath(env_path)}")
+print(f"[main] TTS_MINIMAX_API_KEY present: {bool(os.getenv('TTS_MINIMAX_API_KEY'))}")
+print(f"[main] TTS_MINIMAX_GROUP_ID present: {bool(os.getenv('TTS_MINIMAX_GROUP_ID'))}")
+print(f"[main] TTS_MIMO_API_TOKEN present: {bool(os.getenv('TTS_MIMO_API_TOKEN'))}")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

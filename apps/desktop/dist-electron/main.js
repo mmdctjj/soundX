@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { app, ipcMain, dialog, shell, net, screen, BrowserWindow, protocol, Menu, nativeImage, Tray } from "electron";
+import { app, ipcMain, dialog, shell, net, screen, BrowserWindow, protocol, nativeTheme, Menu, nativeImage, Tray } from "electron";
 import fs from "fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import os from "os";
@@ -10,6 +10,20 @@ app.name = "AudioDock";
 if (process.platform === "darwin") {
   process.title = "AudioDock";
 }
+const getTitleBarSymbolColor = () => {
+  return nativeTheme.shouldUseDarkColors ? "#ffffff" : "#1f1f1f";
+};
+const syncWindowTitleBarOverlay = () => {
+  if (!win || process.platform !== "win32") return;
+  try {
+    win.setTitleBarOverlay({
+      color: "rgba(0,0,0,0)",
+      symbolColor: getTitleBarSymbolColor(),
+      height: 30
+    });
+  } catch {
+  }
+};
 function getDeviceName() {
   const hostname = os.hostname().replace(/\.local$/, "");
   const platform = process.platform;
@@ -524,6 +538,19 @@ ipcMain.on("window:set-mini", () => {
     createMiniPlayerWindow();
   }
 });
+ipcMain.on("window:minimize", () => {
+  win?.minimize();
+});
+ipcMain.on("window:maximize", () => {
+  if (win?.isMaximized()) {
+    win?.unmaximize();
+  } else {
+    win?.maximize();
+  }
+});
+ipcMain.on("window:close", () => {
+  win?.close();
+});
 ipcMain.on("window:restore-main", () => {
   if (miniWin) {
     miniWin.close();
@@ -590,11 +617,13 @@ function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, "logo.png"),
     titleBarStyle: "hidden",
-    titleBarOverlay: {
-      color: "rgba(0,0,0,0)",
-      symbolColor: "#ffffff",
-      height: 30
-    },
+    ...process.platform !== "win32" ? {
+      titleBarOverlay: {
+        color: "rgba(0,0,0,0)",
+        symbolColor: getTitleBarSymbolColor(),
+        height: 30
+      }
+    } : {},
     width: 1020,
     // 初始宽度
     height: 700,
@@ -852,6 +881,7 @@ app.whenReady().then(() => {
     }
   });
   createWindow();
+  syncWindowTitleBarOverlay();
   createTray();
   setupApplicationMenu();
 });
@@ -865,3 +895,4 @@ app.on("activate", () => {
     win?.show();
   }
 });
+nativeTheme.on("updated", syncWindowTitleBarOverlay);

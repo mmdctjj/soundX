@@ -277,6 +277,128 @@ export class ImportService implements OnModuleInit {
     return !isWebDAV && !filePath.toLowerCase().endsWith('.mp4');
   }
 
+  // ---------- Audio Transcode ----------
+
+  private needsAudioTranscode(filePath: string): boolean {
+    return /\.(wma|ape|dsf|dff|wv|mpc)$/i.test(filePath);
+  }
+
+  private getAudioTranscodedDir(cachePath: string): string {
+    return path.join(cachePath, 'transcoded-audio');
+  }
+
+  private getAudioTranscodedPublicUrl(outputPath: string, cachePath: string): string {
+    // cacheDir is served under /covers/ prefix in main.ts
+    // outputPath is like .../music/cover/transcoded-audio/xxx.mp3
+    // We need to return /covers/transcoded-audio/xxx.mp3
+    const transcodedDir = this.getAudioTranscodedDir(cachePath);
+    const relativePath = path.relative(transcodedDir, outputPath);
+    return `/covers/transcoded-audio/${relativePath}`;
+  }
+
+  private isTranscodedAudioPath(targetPath: string, cachePath: string): boolean {
+    return targetPath.startsWith(this.getAudioTranscodedDir(cachePath));
+  }
+
+  private getAudioTranscodedFilePath(sourcePath: string, cachePath: string): string {
+    const sourceKey = crypto
+      .createHash('sha1')
+      .update(path.resolve(sourcePath))
+      .digest('hex');
+    return path.join(this.getAudioTranscodedDir(cachePath), `${sourceKey}.mp3`);
+  }
+
+  private async ensureAudioAsMp3(
+    sourcePath: string,
+    cachePath: string,
+  ): Promise<MvStorageTarget> {
+    if (!this.needsAudioTranscode(sourcePath)) {
+      return {
+        sourcePath,
+        publicUrl: '',
+      };
+    }
+
+    const outputDir = this.getAudioTranscodedDir(cachePath);
+    const outputPath = this.getAudioTranscodedFilePath(sourcePath, cachePath);
+
+    fs.mkdirSync(outputDir, { recursive: true });
+
+    const sourceStat = fs.statSync(sourcePath);
+    if (fs.existsSync(outputPath)) {
+      const outputStat = fs.statSync(outputPath);
+      if (outputStat.mtimeMs >= sourceStat.mtimeMs) {
+        return {
+          sourcePath: outputPath,
+          publicUrl: this.getAudioTranscodedPublicUrl(outputPath, cachePath),
+        };
+      }
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const ffmpeg = spawn('ffmpeg', [
+        '-y',
+        '-i', sourcePath,
+        '-c:a', 'libmp3lame',
+        '-b:a', '192k',
+        '-ar', '44100',
+        '-ac', '2',
+        '-map_metadata', '0',
+        '-id3v2_version', '3',
+        '-write_xing', '0',
+        outputPath,
+      ]);
+
+      let stderr = '';
+
+      ffmpeg.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      ffmpeg.on('error', (error) => {
+        reject(error);
+      });
+
+      ffmpeg.on('close', (code) => {
+        if (code === 0 && fs.existsSync(outputPath)) {
+          // Verify output file is valid (non-empty and has MP3 header)
+          const outputStat = fs.statSync(outputPath);
+          if (outputStat.size === 0) {
+            reject(new Error('ffmpeg produced empty output file'));
+            return;
+          }
+
+          // Check for MP3 frame sync bytes (0xFFE or 0xFFF at start)
+          const fd = fs.openSync(outputPath, 'r');
+          const header = Buffer.alloc(4);
+          fs.readSync(fd, header, 0, 4, 0);
+          fs.closeSync(fd);
+
+          const isMp3 = (header[0] === 0xFF) && ((header[1] & 0xE0) === 0xE0);
+          if (!isMp3) {
+            this.logger.warn(`[Transcode] Output file does not have valid MP3 header. First bytes: ${header.toString('hex')}. stderr: ${stderr}`);
+            // Don't reject - some formats may have ID3 tags before frames
+          }
+
+          if (stderr) {
+            this.logger.log(`[Transcode] ffmpeg stderr for ${path.basename(sourcePath)}: ${stderr.substring(0, 500)}`);
+          }
+
+          this.logger.log(`[Transcode] Success: ${path.basename(sourcePath)} -> ${path.basename(outputPath)} (${outputStat.size} bytes)`);
+          resolve();
+          return;
+        }
+
+        reject(new Error(stderr || `ffmpeg exited with code ${code}`));
+      });
+    });
+
+    return {
+      sourcePath: outputPath,
+      publicUrl: this.getAudioTranscodedPublicUrl(outputPath, cachePath),
+    };
+  }
+
   private getMvTranscodedDir(cachePath: string): string {
     return path.join(cachePath, 'transcoded-mv');
   }
@@ -495,7 +617,7 @@ export class ImportService implements OnModuleInit {
         }
         const info = getBasePathAndType(filePath);
         if (info) {
-          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
+          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(filePath)) {
             this.logger.log(`[Watcher] File added: ${filePath}`);
             await this.handleFileAdd(filePath, info.basePath, info.type, cachePath);
           } else if (/\.(jpg|jpeg|png|webp)$/i.test(filePath)) {
@@ -514,7 +636,7 @@ export class ImportService implements OnModuleInit {
         const info = getBasePathAndType(filePath);
 
         if (info) {
-          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
+          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(filePath)) {
             try {
               // 检查函数是否存在
               if (typeof this.handleFileChange !== 'function') {
@@ -540,7 +662,7 @@ export class ImportService implements OnModuleInit {
           return;
         }
         this.logger.log(`[Watcher] File unlinked: ${filePath}`);
-        if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
+        if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(filePath)) {
           await this.handleFileUnlink(filePath, musicPaths, audiobookPaths, mvPaths, cachePath);
         } else if (/\.(jpg|jpeg|png|webp)$/i.test(filePath)) {
           await this.handleImageUnlink(filePath, cachePath);
@@ -570,6 +692,17 @@ export class ImportService implements OnModuleInit {
       return Array.from(new Set(input.map((value) => resolvePathList(value, './')).flat()));
     }
     return resolvePathList(input, './');
+  }
+
+  private isPathInsideAnyBase(targetPath: string, basePaths: string[]): boolean {
+    if (!targetPath || targetPath.startsWith('http')) return false;
+
+    const resolvedTarget = path.resolve(targetPath);
+    return basePaths.some((basePath) => {
+      const resolvedBase = path.resolve(basePath);
+      const relative = path.relative(resolvedBase, resolvedTarget);
+      return relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+    });
   }
 
   private getTrackSortFields(
@@ -645,13 +778,24 @@ export class ImportService implements OnModuleInit {
         audioUrl = filePath.startsWith('http') ? filePath : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
       }
 
+      // Audio transcode for incompatible formats on resurrection
+      let finalAudioUrl = audioUrl;
+      let transcodedPath: string | null = null;
+      if (!audioUrl.startsWith('http') && this.needsAudioTranscode(filePath)) {
+        const transcodeResult = await this.ensureAudioAsMp3(filePath, cachePath);
+        if (transcodeResult.publicUrl) {
+          finalAudioUrl = transcodeResult.publicUrl;
+          transcodedPath = transcodeResult.sourcePath;
+        }
+      }
+
       const folderId = await this.getFolderId(filePath, basePath, type);
       const sortFields = this.getTrackSortFields(filePath, basePath);
 
       await this.prisma.track.update({
         where: { id: trashedTrack.id },
         data: {
-          path: audioUrl,
+          path: finalAudioUrl,
           folderId: folderId,
           status: FileStatus.ACTIVE,
           trashedAt: null,
@@ -659,6 +803,7 @@ export class ImportService implements OnModuleInit {
           fileName: sortFields.fileName,
           relativePath: sortFields.relativePath,
           fileCreatedAt: sortFields.fileCreatedAt,
+          transcodedPath: transcodedPath || trashedTrack.transcodedPath,
         }
       });
 
@@ -697,22 +842,42 @@ export class ImportService implements OnModuleInit {
           return;
         }
 
-        const audioUrl = metadata.path.startsWith('http') ? metadata.path : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
+        let audioUrl = metadata.path.startsWith('http') ? metadata.path : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
         this.logger.log(`[Watcher] Audio URL: ${audioUrl}`);
 
-        const track = await this.trackService.findByPath(audioUrl);
+        // Audio transcode for incompatible formats on change
+        let finalAudioUrl = audioUrl;
+        let transcodedPath: string | null = null;
+        if (!audioUrl.startsWith('http') && this.needsAudioTranscode(filePath)) {
+          const transcodeResult = await this.ensureAudioAsMp3(filePath, cachePath);
+          if (transcodeResult.publicUrl) {
+            finalAudioUrl = transcodeResult.publicUrl;
+            transcodedPath = transcodeResult.sourcePath;
+          }
+        }
+
+        const track = await this.trackService.findByPath(finalAudioUrl);
+        if (!track) {
+          // Fallback: try to find by original audioUrl
+          const trackByOriginal = await this.trackService.findByPath(audioUrl);
+          if (trackByOriginal) {
+            this.logger.log(`[Watcher] Track found by original path: ${trackByOriginal.id}`);
+          }
+        }
         this.logger.log(`[Watcher] Track found in DB: ${!!track} (id: ${track?.id})`);
 
         const hash = await this.calculateFingerprint(filePath);
 
-        if (track) {
+        const targetTrack = track || await this.trackService.findByPath(audioUrl);
+
+        if (targetTrack) {
           const coverUrl = metadata.coverPath ? this.convertToHttpUrl(metadata.coverPath, 'cover', cachePath) : null;
           const sortFields = this.getTrackSortFields(metadata.originalPath || filePath, basePath);
 
-          this.logger.log(`[Watcher] Updating track ${track.id} - cover: ${coverUrl}, lyrics: ${!!metadata.lyrics}`);
+          this.logger.log(`[Watcher] Updating track ${targetTrack.id} - cover: ${coverUrl}, lyrics: ${!!metadata.lyrics}`);
 
           await this.prisma.track.update({
-            where: { id: track.id },
+            where: { id: targetTrack.id },
             data: {
               name: metadata.title || path.basename(filePath),
               duration: Math.round(metadata.duration || 0),
@@ -720,17 +885,19 @@ export class ImportService implements OnModuleInit {
               fileModifiedAt: metadata?.mtime ? new Date(metadata.mtime) : fs.statSync(filePath).mtime,
               cover: coverUrl,
               lyrics: metadata.lyrics || null,
-              artist: metadata.artist || track.artist,
-              album: metadata.album || track.album,
+              artist: metadata.artist || targetTrack.artist,
+              album: metadata.album || targetTrack.album,
               fileName: sortFields.fileName,
               relativePath: sortFields.relativePath,
               fileCreatedAt: sortFields.fileCreatedAt,
+              path: finalAudioUrl,
+              transcodedPath: transcodedPath || targetTrack.transcodedPath,
             }
           });
 
-          this.logger.log(`[Watcher] Successfully updated track metadata: ${track.name}`);
+          this.logger.log(`[Watcher] Successfully updated track metadata: ${targetTrack.name}`);
         } else {
-          this.logger.warn(`[Watcher] Track not found in database for path: ${audioUrl}`);
+          this.logger.warn(`[Watcher] Track not found in database for path: ${finalAudioUrl}`);
         }
       } else {
         this.logger.error(`[Watcher] Failed to extract metadata from: ${filePath}`);
@@ -810,6 +977,11 @@ export class ImportService implements OnModuleInit {
           trashedAt: new Date()
         }
       });
+
+      // Clean up transcoded audio file if exists
+      if (track.transcodedPath && fs.existsSync(track.transcodedPath)) {
+        fs.unlinkSync(track.transcodedPath);
+      }
 
       if (track.albumId) {
         await this.updateParentStatus(track.albumId, 'album');
@@ -1044,7 +1216,7 @@ export class ImportService implements OnModuleInit {
       task.localTotal = musicCount + audiobookCount;
       task.webdavTotal = webdavMusicCount + webdavAudiobookCount;
       task.mvTotal = mvCount + webdavMvCount;
-      task.total = task.localTotal + task.webdavTotal + task.mvTotal;
+      task.total = (task.localTotal || 0) + (task.webdavTotal || 0) + (task.mvTotal || 0);
 
       task.localCurrent = 0;
       task.webdavCurrent = 0;
@@ -1086,6 +1258,9 @@ export class ImportService implements OnModuleInit {
 
       for (const musicPath of musicPaths) {
         await this.scanner.scanMusic(musicPath, async (item) => {
+          if (this.isPathInsideAnyBase(item.originalPath || item.path, audiobookPaths)) {
+            return;
+          }
           task.currentFileName = item.title || path.basename(item.path);
           await processItem(item, TrackType.MUSIC, musicPath);
         });
@@ -1566,10 +1741,23 @@ export class ImportService implements OnModuleInit {
       await this.processMvData(item, audioBasePath, cachePath, audioUrl, hash, isWebDAV, item.originalPath || item.path);
       return null;
     }
+
+    // Audio transcode for incompatible formats
+    let finalAudioUrl = audioUrl;
+    let transcodedPath: string | null = null;
+    const originalPath = item.originalPath || item.path;
+    if (!audioUrl.startsWith('http') && originalPath && this.needsAudioTranscode(originalPath)) {
+      const transcodeResult = await this.ensureAudioAsMp3(originalPath, cachePath);
+      if (transcodeResult.publicUrl) {
+        finalAudioUrl = transcodeResult.publicUrl;
+        transcodedPath = transcodeResult.sourcePath;
+      }
+    }
+
     const artistName = item.artist || '未知';
     const albumName = item.album || '未知';
     const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
-    const albumGroupArtist = item.albumArtist || artistName;
+    const albumGroupArtist = this.isUnknownMetadata(item.albumArtist) ? artistName : item.albumArtist!;
 
     // 1. Resolve Track Artist (Required for Track.artistId)
     // Support multi-artist parsing: "A & B", "A and B", "A、B"
@@ -1674,7 +1862,7 @@ export class ImportService implements OnModuleInit {
       await this.prisma.track.update({
         where: { id: existingTrack.id },
         data: {
-          path: audioUrl,
+          path: finalAudioUrl,
           folderId: folderId,
           status: FileStatus.ACTIVE,
           trashedAt: null,
@@ -1684,6 +1872,9 @@ export class ImportService implements OnModuleInit {
           name: item.title || path.basename(item.path),
           duration: Math.round(item.duration || 0),
           index: item.track?.no || 0,
+          type: type,
+          artist: artistName,
+          album: albumName,
           episodeNumber: extractEpisodeNumber(item.title || ""),
           lyrics: item.lyrics || null, // Ensure lyrics update too
           fileName: sortFields.fileName,
@@ -1696,6 +1887,7 @@ export class ImportService implements OnModuleInit {
           albumId: album.id,
           // album: albumName,   // Optional: Update denormalized album name
           cover: coverUrl || existingTrack.cover,
+          transcodedPath: transcodedPath || existingTrack.transcodedPath,
         }
       });
 
@@ -1711,7 +1903,7 @@ export class ImportService implements OnModuleInit {
         artist: artistName,
         album: albumName,
         cover: coverUrl,
-        path: audioUrl,
+        path: finalAudioUrl,
         duration: Math.round(item.duration || 0),
         lyrics: item.lyrics || null,
         index: item.track?.no || 0,
@@ -1728,7 +1920,8 @@ export class ImportService implements OnModuleInit {
         folderId: folderId,
         fileHash: hash,
         status: FileStatus.ACTIVE,
-        trashedAt: null
+        trashedAt: null,
+        transcodedPath: transcodedPath,
       } as any);
       return createdTrack.id;
     }

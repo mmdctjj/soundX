@@ -93,14 +93,12 @@ function RootLayoutNav() {
       segmentName === "playback-quality" ||
       segmentName === "mv";
 
-    if (!plusToken && inAuthGroup) {
-      router.replace("/member-login");
-    } else if (plusToken && !token && inAuthGroup) {
+    if (!token && inAuthGroup) {
       router.replace("/login");
-    } else if (token && plusToken && !inAuthGroup && !isDetailPage) {
+    } else if (token && !inAuthGroup && !isDetailPage) {
       router.replace("/(tabs)");
     }
-  }, [token, plusToken, segments, isLoading]);
+  }, [token, segments, isLoading]);
 
   useEffect(() => {
     if (!url) return;

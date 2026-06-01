@@ -4,14 +4,18 @@ import {
   getTtsLocalFiles,
   getTtsPreviewUrl,
   getTtsVoices,
+  getTtsProviders,
   identifyTtsBatch,
   TtsFileItem,
   TtsReviewItem,
   TtsVoice,
+  TtsProvider,
+  plusGetMe,
 } from "@soundx/services";
 import { Audio } from "expo-av";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -33,12 +37,41 @@ export default function TtsCreateTaskScreen() {
 
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<"select" | "review">("select");
+
+  // [NEW] 服务商相关状态
+  const [providers, setProviders] = useState<TtsProvider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<string>("edge");
+
   const [voices, setVoices] = useState<TtsVoice[]>([]);
   const [localFiles, setLocalFiles] = useState<TtsFileItem[]>([]);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [selectedVoice, setSelectedVoice] = useState("zh-CN-XiaoxiaoNeural");
   const [reviewData, setReviewData] = useState<TtsReviewItem[]>([]);
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
+
+  const ensureVipAccess = useCallback(async () => {
+    const plusToken = await AsyncStorage.getItem("plus_token");
+    const plusUserId = await AsyncStorage.getItem("plus_user_id");
+    if (!plusToken || !plusUserId) {
+      Alert.alert("提示", "请先登录会员账号", [
+        { text: "取消", style: "cancel" },
+        { text: "去登录", onPress: () => router.replace("/member-login" as any) },
+      ]);
+      return false;
+    }
+    let id:any = plusUserId;
+    try { id = JSON.parse(plusUserId); } catch {}
+    const res = await plusGetMe(id);
+    const tier = res?.data?.data?.vipTier;
+    if (!tier || tier === "NONE") {
+      Alert.alert("提示", "该功能需要开通会员", [
+        { text: "取消", style: "cancel" },
+        { text: "去开通", onPress: () => router.replace("/member-benefits" as any) },
+      ]);
+      return false;
+    }
+    return true;
+  }, [router]);
 
   const soundRef = useRef<Audio.Sound | null>(null);
 
@@ -50,8 +83,7 @@ export default function TtsCreateTaskScreen() {
       shouldDuckAndroid: true,
       playThroughEarpieceAndroid: false,
     });
-    fetchVoices();
-    fetchLocalFiles();
+    ensureVipAccess().then((ok)=>{ if (ok) { fetchProviders(); fetchLocalFiles(); } });
     return () => {
       if (soundRef.current) {
         soundRef.current.unloadAsync();
@@ -59,12 +91,38 @@ export default function TtsCreateTaskScreen() {
     };
   }, []);
 
-  const fetchVoices = async () => {
+  // [NEW] 服务商变更时重新加载音色
+  useEffect(() => {
+    if (selectedProvider) {
+      fetchVoices(selectedProvider);
+    }
+  }, [selectedProvider]);
+
+  // [NEW] 加载服务商列表
+  const fetchProviders = async () => {
     try {
-      const data = await getTtsVoices();
+      const data = await getTtsProviders();
+      if (data.providers && Array.isArray(data.providers)) {
+        setProviders(data.providers);
+        if (data.providers.length > 0) {
+          setSelectedProvider(data.providers[0].id);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch providers", err);
+    }
+  };
+
+  // [MODIFIED] 加载音色列表，带 provider 参数
+  const fetchVoices = async (provider: string = selectedProvider) => {
+    try {
+      const data = await getTtsVoices(provider);
       console.log("Fetched voices:", data);
-      if (Array.isArray(data)) {
-        setVoices(data);
+      if (data.voices && Array.isArray(data.voices)) {
+        setVoices(data.voices);
+        if (data.voices.length > 0) {
+          setSelectedVoice(data.voices[0].id);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch voices", err);
@@ -85,20 +143,21 @@ export default function TtsCreateTaskScreen() {
     }
   };
 
-  const handlePreview = async (voice: string) => {
+  // [MODIFIED] 预览传入 provider
+  const handlePreview = async (voice: string, provider: string = selectedProvider) => {
     if (previewLoading) return;
     setPreviewLoading(voice);
     trackEvent({
       feature: "tts",
       eventName: "tts_voice_preview",
-      metadata: { voice },
+      metadata: { voice, provider },
     });
     try {
       if (soundRef.current) {
         await soundRef.current.unloadAsync();
       }
-      const previewUrl = await getTtsPreviewUrl(voice);
-      console.log("Previewing voice:", voice, "URL:", previewUrl);
+      const previewUrl = await getTtsPreviewUrl(voice, provider);
+      console.log("Previewing voice:", voice, "provider:", provider, "URL:", previewUrl);
       
       const { sound } = await Audio.Sound.createAsync(
         { uri: previewUrl },
@@ -152,6 +211,7 @@ export default function TtsCreateTaskScreen() {
           title: r.title,
           author: r.author,
           voice: selectedVoice,
+          provider: selectedProvider,
         }));
         setReviewData(items);
         setView("review");
@@ -177,6 +237,7 @@ export default function TtsCreateTaskScreen() {
           title: item.title,
           author: item.author,
           voice: item.voice,
+          provider: item.provider || selectedProvider,
           file_id: item.file_id,
           temp_path: item.temp_path,
         }))
@@ -208,17 +269,39 @@ export default function TtsCreateTaskScreen() {
   const renderSelectView = () => (
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.scrollContent}>
+        {/* [NEW] 服务商选择 */}
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>TTS 服务商</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.providerChipScroll}>
+            {providers.map(p => (
+              <TouchableOpacity
+                key={p.id}
+                style={[
+                  styles.providerChip,
+                  { borderColor: colors.border },
+                  selectedProvider === p.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                ]}
+                onPress={() => setSelectedProvider(p.id)}
+              >
+                <Text style={[styles.providerChipText, { color: selectedProvider === p.id ? colors.background : colors.secondary }]}>
+                  {p.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>预设音色</Text>
           <View style={styles.voicePickerRow}>
             <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                <Text style={{ color: colors.text, paddingHorizontal: 12 }}>
-                 {voices.find(v => v.value === selectedVoice)?.label || selectedVoice}
+                 {voices.find(v => v.id === selectedVoice)?.name || selectedVoice}
                </Text>
             </View>
             <TouchableOpacity
               style={[styles.previewBtn, { backgroundColor: colors.primary }]}
-              onPress={() => handlePreview(selectedVoice)}
+              onPress={() => handlePreview(selectedVoice, selectedProvider)}
               disabled={previewLoading === selectedVoice}
             >
               {previewLoading === selectedVoice ? (
@@ -231,16 +314,16 @@ export default function TtsCreateTaskScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.voiceChipScroll}>
              {voices.map(v => (
                <TouchableOpacity
-                 key={v.value}
+                 key={v.id}
                  style={[
                    styles.voiceChip,
                    { borderColor: colors.border },
-                   selectedVoice === v.value && { backgroundColor: colors.primary, borderColor: colors.primary }
+                   selectedVoice === v.id && { backgroundColor: colors.primary, borderColor: colors.primary }
                  ]}
-                 onPress={() => setSelectedVoice(v.value)}
+                 onPress={() => setSelectedVoice(v.id)}
                >
-                 <Text style={[styles.voiceChipText, { color: selectedVoice === v.value ? colors.background : colors.secondary }]}>
-                   {v.label}
+                 <Text style={[styles.voiceChipText, { color: selectedVoice === v.id ? colors.background : colors.secondary }]}>
+                   {v.name} {v.gender === 'male' ? '♂' : v.gender === 'female' ? '♀' : ''}
                  </Text>
                </TouchableOpacity>
              ))}
@@ -348,16 +431,38 @@ export default function TtsCreateTaskScreen() {
               />
             </View>
             <View style={styles.reviewInputRow}>
+              <Text style={[styles.inputLabel, { color: colors.secondary }]}>服务商</Text>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {providers.map(p => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[
+                        styles.smallProviderChip,
+                        { borderColor: colors.border },
+                        item.provider === p.id && { backgroundColor: colors.primary, borderColor: colors.primary }
+                      ]}
+                      onPress={() => updateReviewItem(item.key, "provider", p.id)}
+                    >
+                      <Text style={{ fontSize: 11, color: item.provider === p.id ? "#fff" : colors.secondary }}>
+                        {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+            <View style={styles.reviewInputRow}>
               <Text style={[styles.inputLabel, { color: colors.secondary }]}>音色</Text>
               <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={[styles.textInput, { borderColor: colors.border, justifyContent: 'center', flex: 1 }]}>
                     <Text style={{ color: colors.text, fontSize: 14 }}>
-                      {voices.find(v => v.value === item.voice)?.label || item.voice}
+                      {voices.find(v => v.id === item.voice)?.name || item.voice}
                     </Text>
                 </View>
                 <TouchableOpacity
                   style={[styles.smallPreviewBtn, { backgroundColor: colors.primary + '20' }]}
-                  onPress={() => handlePreview(item.voice)}
+                  onPress={() => handlePreview(item.voice, item.provider || selectedProvider)}
                   disabled={previewLoading === item.voice}
                 >
                    {previewLoading === item.voice ? (
@@ -372,16 +477,16 @@ export default function TtsCreateTaskScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
                {voices.map(v => (
                  <TouchableOpacity
-                   key={v.value}
+                   key={v.id}
                    style={[
                      styles.smallVoiceChip,
                      { borderColor: colors.border },
-                     item.voice === v.value && { backgroundColor: colors.primary, borderColor: colors.primary }
+                     item.voice === v.id && { backgroundColor: colors.primary, borderColor: colors.primary }
                    ]}
-                   onPress={() => updateReviewItem(item.key, "voice", v.value)}
+                   onPress={() => updateReviewItem(item.key, "voice", v.id)}
                  >
-                   <Text style={{ fontSize: 11, color: item.voice === v.value ? "#fff" : colors.secondary }}>
-                     {v.label}
+                   <Text style={{ fontSize: 11, color: item.voice === v.id ? "#fff" : colors.secondary }}>
+                     {v.name}
                    </Text>
                  </TouchableOpacity>
                ))}
@@ -470,6 +575,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 12,
+  },
+  providerChipScroll: {
+    marginTop: 8,
+  },
+  providerChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 10,
+  },
+  providerChipText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   voicePickerRow: {
     flexDirection: "row",
@@ -612,6 +731,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginRight: 6,
+  },
+  smallProviderChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginRight: 8,
   },
   removeBtn: {
     marginTop: 12,
