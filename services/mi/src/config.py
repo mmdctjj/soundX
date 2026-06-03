@@ -35,12 +35,14 @@ class Config:
 
     @classmethod
     def validate(cls) -> list[str]:
-        """验证必填配置，返回缺失的配置项列表"""
+        """验证必填配置，返回缺失的配置项列表
+
+        注意：MI_USERNAME/MI_PASSWORD 不再是必填项，因为支持扫码登录。
+        如果未配置账号密码，用户可以通过 Web 控制台扫码登录。
+        """
         missing = []
-        if not cls.MI_USERNAME:
-            missing.append("MI_USERNAME")
-        if not cls.MI_PASSWORD:
-            missing.append("MI_PASSWORD")
+        if not cls.MI_USERNAME and not cls.MI_PASSWORD:
+            logger.info("未配置小米账号密码，将使用扫码登录方式")
         if not os.path.isdir(cls.MUSIC_DIR):
             logger.warning(f"MUSIC_DIR does not exist: {cls.MUSIC_DIR}")
         return missing

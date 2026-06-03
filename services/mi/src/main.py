@@ -20,7 +20,7 @@ from src.config import Config
 from src.music_library import MusicLibrary
 from src.speaker_player import SpeakerPlayer
 from src.voice_listener import VoiceCommandListener
-from src.web_api import music, player as player_api
+from src.web_api import music, player as player_api, auth
 
 # 全局共享实例
 library: MusicLibrary | None = None
@@ -50,31 +50,34 @@ app.add_middleware(
 async def startup_event():
     global library, player, listener
 
-    # 验证配置
-    missing = Config.validate()
-    if missing:
-        logger.error(f"Missing required config: {missing}")
-        raise RuntimeError(f"Missing config: {missing}")
-
-    # 初始化音乐库
+    # 初始化音乐库（不依赖登录）
     library = MusicLibrary()
     music.library = library
     player_api.library = library
 
     # 初始化音箱播放器
     player = SpeakerPlayer()
-    await player.init()
-    music.player = player  # 如果需要的话
+    try:
+        await player.init()
+    except Exception as e:
+        logger.error(f"SpeakerPlayer init error: {e}", exc_info=True)
+        # 即使初始化失败也继续运行，前端会提示扫码登录
+
+    music.player = player
     player_api.player = player
 
-    # 启动语音监听（后台任务）
-    if player.devices:
+    # 启动语音监听（只在登录成功且有设备时启动）
+    if player and player.is_logged_in() and player.devices:
         listener = VoiceCommandListener(player, library)
         import asyncio
         asyncio.create_task(listener.start())
         logger.info("Voice listener started")
     else:
-        logger.warning("No Mi devices found, voice listener not started")
+        logger.warning(
+            "Voice listener not started: "
+            f"logged_in={player.is_logged_in() if player else False}, "
+            f"devices={len(player.devices) if player else 0}"
+        )
 
 
 @app.on_event("shutdown")
@@ -90,6 +93,7 @@ async def shutdown_event():
 # 注册 API 路由
 app.include_router(music.router, prefix="/api")
 app.include_router(player_api.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
 
 
 # 音乐文件静态服务
@@ -158,23 +162,51 @@ HTML_PAGE = """<!DOCTYPE html>
     width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px;
     font-size: 0.95rem; margin-bottom: 10px;
   }
+  /* 登录面板样式 */
+  .login-panel { text-align: center; padding: 20px; }
+  .login-panel img { max-width: 200px; margin: 10px auto; display: block; }
+  .login-panel .login-status { color: #666; margin: 10px 0; }
+  .login-panel .login-btn {
+    padding: 10px 24px; border: none; border-radius: 20px; background: #ff6700;
+    color: #fff; font-size: 1rem; cursor: pointer; margin: 5px;
+  }
+  .login-panel .login-btn:hover { background: #e65c00; }
+  .login-panel .login-btn.secondary { background: #999; }
+  .login-panel .login-btn.secondary:hover { background: #777; }
+  .hidden { display: none; }
 </style>
 </head>
 <body>
 <h1>🎵 小爱音箱音乐控制台</h1>
 
-<div class="panel">
+<!-- 登录面板 -->
+<div class="panel" id="login-panel">
+  <div class="panel-title">🔐 小米账号登录</div>
+  <div class="login-panel" id="login-content">
+    <div id="login-status" class="login-status">检查登录状态...</div>
+    <img id="qrcode-img" class="hidden" src="" alt="扫码登录">
+    <div id="login-actions">
+      <button class="login-btn hidden" id="btn-get-qr" onclick="getQRCode()">获取二维码</button>
+      <button class="login-btn secondary hidden" id="btn-logout" onclick="doLogout()">退出登录</button>
+    </div>
+  </div>
+</div>
+
+<!-- 设备面板（登录后显示） -->
+<div class="panel hidden" id="device-panel">
   <div class="panel-title">📻 选择音箱</div>
   <div class="device-list" id="devices"></div>
 </div>
 
+<!-- 歌曲面板 -->
 <div class="panel">
   <div class="panel-title">🎶 歌曲列表</div>
   <input type="text" id="search-box" placeholder="搜索歌曲..." oninput="filterSongs()">
   <div class="song-list" id="songs"></div>
 </div>
 
-<div class="panel">
+<!-- 控制面板 -->
+<div class="panel hidden" id="control-panel">
   <div class="panel-title">⏯️ 播放控制</div>
   <div class="controls">
     <button class="ctrl-btn" onclick="doControl('stop')">⏹ 停止</button>
@@ -188,6 +220,118 @@ HTML_PAGE = """<!DOCTYPE html>
 let devices = [];
 let songs = [];
 let selectedDevice = null;
+let isLoggedIn = false;
+
+// 页面加载时检查登录状态
+async function checkLoginStatus() {
+  const res = await fetch('/api/auth/status');
+  const data = await res.json();
+  isLoggedIn = data.logged_in;
+  updateLoginUI();
+  if (isLoggedIn) {
+    loadDevices();
+  }
+  loadSongs();
+}
+
+function updateLoginUI() {
+  const statusEl = document.getElementById('login-status');
+  const qrImg = document.getElementById('qrcode-img');
+  const btnGetQr = document.getElementById('btn-get-qr');
+  const btnLogout = document.getElementById('btn-logout');
+  const devicePanel = document.getElementById('device-panel');
+  const controlPanel = document.getElementById('control-panel');
+
+  if (isLoggedIn) {
+    statusEl.textContent = '✅ 已登录';
+    qrImg.classList.add('hidden');
+    btnGetQr.classList.add('hidden');
+    btnLogout.classList.remove('hidden');
+    devicePanel.classList.remove('hidden');
+    controlPanel.classList.remove('hidden');
+  } else {
+    statusEl.textContent = '❌ 未登录，请使用米家 APP 扫码登录';
+    btnGetQr.classList.remove('hidden');
+    btnLogout.classList.add('hidden');
+    devicePanel.classList.add('hidden');
+    controlPanel.classList.add('hidden');
+  }
+}
+
+async function getQRCode() {
+  const statusEl = document.getElementById('login-status');
+  const qrImg = document.getElementById('qrcode-img');
+  const btnGetQr = document.getElementById('btn-get-qr');
+
+  statusEl.textContent = '正在获取二维码...';
+  btnGetQr.disabled = true;
+
+  try {
+    const res = await fetch('/api/auth/qrcode');
+    const data = await res.json();
+
+    if (data.already_logged_in) {
+      isLoggedIn = true;
+      updateLoginUI();
+      loadDevices();
+      return;
+    }
+
+    if (data.success && data.qrcode_url) {
+      qrImg.src = data.qrcode_url;
+      qrImg.classList.remove('hidden');
+      statusEl.textContent = '请使用米家 APP 扫描上方二维码';
+
+      // 开始轮询扫码状态
+      pollQRStatus(data.status_url);
+    } else {
+      statusEl.textContent = '获取二维码失败: ' + (data.message || 'unknown');
+      btnGetQr.disabled = false;
+    }
+  } catch (e) {
+    statusEl.textContent = '获取二维码出错: ' + e.message;
+    btnGetQr.disabled = false;
+  }
+}
+
+async function pollQRStatus(lpUrl) {
+  const statusEl = document.getElementById('login-status');
+  const btnGetQr = document.getElementById('btn-get-qr');
+
+  try {
+    const res = await fetch('/api/auth/qrcode_status?lp_url=' + encodeURIComponent(lpUrl));
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      isLoggedIn = true;
+      statusEl.textContent = '✅ 扫码登录成功！正在刷新...';
+      updateLoginUI();
+      loadDevices();
+      // 刷新页面以重新加载后端状态
+      setTimeout(() => location.reload(), 1500);
+    } else if (data.status === 'expired') {
+      statusEl.textContent = '⏱ 二维码已过期，请重新获取';
+      btnGetQr.disabled = false;
+    } else {
+      statusEl.textContent = '扫码登录失败: ' + (data.message || 'unknown');
+      btnGetQr.disabled = false;
+    }
+  } catch (e) {
+    statusEl.textContent = '轮询出错: ' + e.message;
+    btnGetQr.disabled = false;
+  }
+}
+
+async function doLogout() {
+  if (!confirm('确定要退出登录吗？')) return;
+  const res = await fetch('/api/auth/logout', { method: 'POST' });
+  const data = await res.json();
+  if (data.success) {
+    isLoggedIn = false;
+    updateLoginUI();
+    location.reload();
+  }
+}
 
 async function loadDevices() {
   const res = await fetch('/api/devices');
@@ -285,8 +429,8 @@ function updateStatus(msg) {
   document.getElementById('status').textContent = (msg || '就绪') + ' | 设备: ' + devName;
 }
 
-loadDevices();
-loadSongs();
+// 初始化
+checkLoginStatus();
 </script>
 </body>
 </html>
@@ -300,7 +444,12 @@ async def index():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "devices": len(player.devices) if player else 0, "songs": len(library.get_all()) if library else 0}
+    return {
+        "status": "ok",
+        "logged_in": player.is_logged_in() if player else False,
+        "devices": len(player.devices) if player else 0,
+        "songs": len(library.get_all()) if library else 0,
+    }
 
 
 if __name__ == "__main__":

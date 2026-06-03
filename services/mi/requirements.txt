@@ -4,3 +4,6 @@ python-dotenv
 aiohttp
 mutagen
 miservice
+requests
+qrcode
+pycryptodome
