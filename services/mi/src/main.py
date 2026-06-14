@@ -66,6 +66,15 @@ async def startup_event():
     music.player = player
     player_api.player = player
 
+    # 如果未登录，在终端打印扫码提示
+    if player and not player.is_logged_in():
+        print("\n" + "=" * 60)
+        print("🔐 小米账号未登录")
+        print("=" * 60)
+        print("请访问 http://localhost:8080 进行扫码登录")
+        print('或打开浏览器访问上述地址，点击"获取二维码"按钮')
+        print("=" * 60 + "\n")
+
     # 启动语音监听（只在登录成功且有设备时启动）
     if player and player.is_logged_in() and player.devices:
         listener = VoiceCommandListener(player, library)

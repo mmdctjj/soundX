@@ -234,7 +234,7 @@ class MiQRAuth:
             if key in data:
                 self.auth_data[key] = data[key]
 
-        # 访问 callback URL 获取 serviceToken（micoapi 需要）
+        # 访问 callback URL 获取 serviceToken（mijia 服务）
         callback_url = data.get("location", "")
         if callback_url:
             # 计算 clientSign
@@ -245,7 +245,10 @@ class MiQRAuth:
             session.get(callback_url, headers=headers, timeout=30)
             cookies = session.cookies.get_dict()
             self.auth_data.update(cookies)
-            logger.info(f"[MiQRAuth] callback cookies: {list(cookies.keys())}")
+            logger.info(f"[MiQRAuth] mijia callback cookies: {list(cookies.keys())}")
+
+        # 额外步骤：获取 micoapi 的 serviceToken（小爱音箱 API 需要）
+        self._exchange_micoapi_token()
 
         # 设置过期时间（30天）
         self.auth_data["expireTime"] = int(
@@ -256,26 +259,91 @@ class MiQRAuth:
         logger.info("[MiQRAuth] 扫码登录成功！")
         return self.auth_data
 
+    def _exchange_micoapi_token(self):
+        """用 mijia 的 passToken 换取 micoapi 的 serviceToken"""
+        try:
+            pass_token = self.auth_data.get("passToken", "")
+            user_id = self.auth_data.get("userId", "")
+            device_id = self.auth_data.get("deviceId", "")
+
+            if not pass_token or not user_id:
+                logger.warning("[MiQRAuth] 缺少 passToken 或 userId，无法换取 micoapi token")
+                return
+
+            # 调用 micoapi 的 serviceLogin
+            service_login_url = "https://account.xiaomi.com/pass/serviceLogin?sid=micoapi&_json=true"
+            headers = {
+                "User-Agent": "APP/com.xiaomi.mihome APPV/6.0.103 iosPassportSDK/3.9.0 iOS/14.4 miHSTS",
+                "Cookie": f"sdkVersion=3.9; deviceId={device_id}; userId={user_id}; passToken={pass_token}",
+            }
+
+            resp = requests.get(service_login_url, headers=headers, timeout=30)
+            text = resp.text.replace("&&&START&&&", "")
+            data = json.loads(text)
+
+            if data.get("code") != 0:
+                logger.warning(f"[MiQRAuth] micoapi serviceLogin 失败: {data}")
+                return
+
+            # 获取 serviceToken
+            ssecurity = data.get("ssecurity", "")
+            nonce = data.get("nonce", "")
+            location = data.get("location", "")
+
+            if location and ssecurity:
+                nsec = "nonce=" + str(nonce) + "&" + ssecurity
+                client_sign = base64.b64encode(hashlib.sha1(nsec.encode()).digest()).decode()
+                url = location + "&clientSign=" + parse.quote(client_sign)
+
+                session = requests.Session()
+                session.get(url, headers=headers, allow_redirects=True, timeout=30)
+                cookies = session.cookies.get_dict()
+
+                if "serviceToken" in cookies:
+                    self.auth_data["micoapi_ssecurity"] = ssecurity
+                    self.auth_data["micoapi_serviceToken"] = cookies["serviceToken"]
+                    logger.info("[MiQRAuth] micoapi serviceToken 获取成功")
+                else:
+                    logger.warning("[MiQRAuth] micoapi callback 未返回 serviceToken")
+
+        except Exception as e:
+            logger.warning(f"[MiQRAuth] 换取 micoapi token 失败: {e}")
+
     def get_miservice_token(self) -> dict | None:
         """获取 miservice 所需的 token 字典
 
         Returns:
             miservice 格式的 token dict，或 None（未登录）
         """
-        required = ["userId", "passToken", "ssecurity", "deviceId"]
+        required = ["userId", "passToken", "deviceId"]
         if not all(k in self.auth_data for k in required):
             return None
 
-        # miservice 的 .mi.token 格式
-        return {
-            "deviceId": self.auth_data["deviceId"],
-            "userId": self.auth_data["userId"],
-            "passToken": self.auth_data["passToken"],
-            "micoapi": [
-                self.auth_data["ssecurity"],
-                self.auth_data.get("serviceToken", ""),
-            ],
-        }
+        # 优先使用 micoapi 的 token（小爱音箱 API 需要）
+        if "micoapi_ssecurity" in self.auth_data and "micoapi_serviceToken" in self.auth_data:
+            return {
+                "deviceId": self.auth_data["deviceId"],
+                "userId": self.auth_data["userId"],
+                "passToken": self.auth_data["passToken"],
+                "micoapi": [
+                    self.auth_data["micoapi_ssecurity"],
+                    self.auth_data["micoapi_serviceToken"],
+                ],
+            }
+
+        # 回退到 mijia 的 token（可能无法调用小爱音箱 API）
+        if "ssecurity" in self.auth_data:
+            return {
+                "deviceId": self.auth_data["deviceId"],
+                "userId": self.auth_data["userId"],
+                "passToken": self.auth_data["passToken"],
+                "micoapi": [
+                    self.auth_data["ssecurity"],
+                    self.auth_data.get("serviceToken", ""),
+                ],
+            }
+
+        return None
 
     def to_mi_token_file(self, token_path: str) -> bool:
         """将当前 auth 数据写入 miservice 的 .mi.token 文件
