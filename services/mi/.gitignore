@@ -16,3 +16,5 @@ env/
 
 # Music directory (if inside project)
 music/
+
+auth.json

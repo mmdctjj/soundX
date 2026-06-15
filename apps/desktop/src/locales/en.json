@@ -355,7 +355,10 @@
     "miSpeaker": "XiaoAi Speaker",
     "miSpeakerTitle": "XiaoAi Speaker Devices",
     "noMiDevices": "No devices found. Please log in to the mi service first.",
-    "loadMiDevicesFailed": "Failed to load XiaoAi speaker list"
+    "loadMiDevicesFailed": "Failed to load XiaoAi speaker list",
+    "miCastNoTrack": "Please select a track first",
+    "miCastSuccess": "Casting to {{device}}",
+    "miCastFailed": "Failed to cast to XiaoAi speaker"
   },
   "library": {
     "title": "Library",

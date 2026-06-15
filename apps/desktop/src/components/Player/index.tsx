@@ -25,6 +25,7 @@ import {
   getLatestHistory,
   getMiDevices,
   getMvByTrackId,
+  playMiDeviceByUrl,
   getPlaylists,
   type MiDevice,
   type Playlist,
@@ -354,6 +355,7 @@ const Player: React.FC = () => {
   const [miDevices, setMiDevices] = useState<MiDevice[]>([]);
   const [isMiDevicesLoading, setIsMiDevicesLoading] = useState(false);
   const [isMiDevicesPopoverOpen, setIsMiDevicesPopoverOpen] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   // Playback Rate
   const [playbackRate, setPlaybackRate] = useState(() => {
@@ -1249,6 +1251,26 @@ const Player: React.FC = () => {
     }
   };
 
+  const handleCastToMi = async (deviceId: string, deviceName: string) => {
+    if (!currentTrack) {
+      message.warning(t("player.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const url = buildTrackPlaybackUrl(currentTrack, currentAudioQuality);
+      const title = `${currentTrack.name} - ${currentTrack.artist}`;
+      await playMiDeviceByUrl({ device_id: deviceId, url, title });
+      message.success(t("player.miCastSuccess", { device: deviceName }));
+      setIsMiDevicesPopoverOpen(false);
+    } catch (error) {
+      console.error("Failed to cast to Mi device:", error);
+      message.error(t("player.miCastFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
+
   const renderPlayOrderButton = () => {
     if (isRadioMode) return null;
     return (
@@ -1758,7 +1780,13 @@ const Player: React.FC = () => {
                   size="small"
                   dataSource={miDevices}
                   renderItem={(device) => (
-                    <List.Item>
+                    <List.Item
+                      style={{ cursor: currentTrack ? "pointer" : "not-allowed" }}
+                      onClick={() => {
+                        if (!currentTrack || isCastingToMi) return;
+                        handleCastToMi(device.device_id, device.name);
+                      }}
+                    >
                       <List.Item.Meta
                         avatar={
                           <Avatar

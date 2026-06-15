@@ -221,6 +221,50 @@ class SpeakerPlayer:
             logger.error(f"Failed to play song: {e}", exc_info=True)
             return False
 
+    async def play_by_url(self, device_id: str, url: str, title: str = "") -> bool:
+        """通过 URL 直接推送到音箱播放（不依赖本地 MusicLibrary）
+
+        适用于 desktop 等外部客户端把当前 track 的 stream URL 转发给小爱音箱。
+        若 URL 不可被音箱直接访问（典型场景：URL 含 localhost / 内网 IP），
+        会先用 mi 自己的 HTTP 服务代理为对音箱可达的地址再推送。
+        """
+        if not self.service or not device_id or not url:
+            logger.warning("Service/device_id/url not available")
+            return False
+
+        try:
+            await self.stop(device_id)
+            await asyncio.sleep(0.3)
+
+            proxied_url = await self._proxy_url_if_needed(url)
+            logger.info(f"Play-by-url on {device_id}: {title or url} -> {proxied_url}")
+            await self.service.play_by_url(device_id, proxied_url)
+            self._current_device_id = device_id
+            return True
+        except Exception as e:
+            logger.error(f"play_by_url failed: {e}", exc_info=True)
+            return False
+
+    async def _proxy_url_if_needed(self, url: str) -> str:
+        """若 URL 指向 localhost/127.0.0.1，则改为走 mi 自身的 HTTP 服务代理。
+
+        小爱音箱在局域网内无法把 desktop 的 localhost 解析到正确主机，
+        通过代理让 mi 服务去 desktop 拉流，再用自己的 IP 暴露给音箱。
+        """
+        try:
+            parsed = urllib.parse.urlparse(url)
+            host = (parsed.hostname or "").lower()
+            if host not in ("localhost", "127.0.0.1", "::1"):
+                return url
+            if not self._http_base:
+                await self._setup_http_base()
+            base = self._http_base[: -len("/music")] if self._http_base.endswith("/music") else self._http_base
+            proxy_path = f"/api/proxy?url={urllib.parse.quote(url, safe='')}"
+            return f"{base}{proxy_path}"
+        except Exception as e:
+            logger.warning(f"proxy_url_if_needed fallback to original: {e}")
+            return url
+
     async def stop(self, device_id: str) -> bool:
         """停止播放"""
         if not self.service or not device_id:

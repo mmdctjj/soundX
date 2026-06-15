@@ -119,6 +119,43 @@ async def serve_music(path: str):
     return FileResponse(target)
 
 
+@app.get("/api/proxy")
+async def proxy_audio(url: str):
+    """代理外部音频流：把 desktop 等不可被音箱直接访问的 URL 转为 mi 自身可访问的地址。
+
+    小爱音箱在 LAN 中无法把 desktop 的 localhost/127.0.0.1 解析到正确主机。
+    此端点让 mi 服务从原 URL 拉流，再以流式响应转发给音箱。
+    """
+    if not player or not player._session:
+        return HTMLResponse("Service not initialized", status_code=503)
+
+    if not url or not url.startswith(("http://", "https://")):
+        return HTMLResponse("Invalid url", status_code=400)
+
+    import aiohttp
+    from fastapi.responses import StreamingResponse
+
+    session: aiohttp.ClientSession = player._session
+    req_headers = {
+        "User-Agent": "MiHome/6.0.103",
+    }
+
+    async def stream():
+        async with session.get(url, headers=req_headers, allow_redirects=True) as upstream:
+            if upstream.status != 200:
+                logger.warning(f"proxy upstream {upstream.status} for {url}")
+                return
+            content_type = upstream.headers.get("content-type", "audio/mpeg")
+            async for chunk in upstream.content.iter_chunked(64 * 1024):
+                yield chunk
+
+    return StreamingResponse(
+        stream(),
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 # 内嵌 HTML 前端页面
 HTML_PAGE = """<!DOCTYPE html>
 <html lang="zh-CN">
