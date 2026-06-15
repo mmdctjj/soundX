@@ -13,7 +13,8 @@ import {
   StepBackwardOutlined,
   StepForwardOutlined,
   TeamOutlined,
-  VideoCameraOutlined
+  VideoCameraOutlined,
+  CustomerServiceOutlined,
 } from "@ant-design/icons";
 import Icon from "@ant-design/icons";
 import {
@@ -22,8 +23,10 @@ import {
   deleteTrack,
   getDeletionImpact,
   getLatestHistory,
+  getMiDevices,
   getMvByTrackId,
   getPlaylists,
+  type MiDevice,
   type Playlist,
 } from "@soundx/services";
 import {
@@ -346,6 +349,11 @@ const Player: React.FC = () => {
   // Upgrade: Invite User Modal
   const [isUserSelectModalOpen, setIsUserSelectModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Mi Speaker (XiaoAi) State
+  const [miDevices, setMiDevices] = useState<MiDevice[]>([]);
+  const [isMiDevicesLoading, setIsMiDevicesLoading] = useState(false);
+  const [isMiDevicesPopoverOpen, setIsMiDevicesPopoverOpen] = useState(false);
 
   // Playback Rate
   const [playbackRate, setPlaybackRate] = useState(() => {
@@ -1227,6 +1235,20 @@ const Player: React.FC = () => {
     }
   };
 
+  const handleLoadMiDevices = async () => {
+    setIsMiDevicesLoading(true);
+    try {
+      const res = await getMiDevices();
+      setMiDevices(res.devices || []);
+    } catch (error) {
+      console.error("Failed to load Mi devices:", error);
+      message.error(t("player.loadMiDevicesFailed"));
+      setMiDevices([]);
+    } finally {
+      setIsMiDevicesLoading(false);
+    }
+  };
+
   const renderPlayOrderButton = () => {
     if (isRadioMode) return null;
     return (
@@ -1719,6 +1741,55 @@ const Player: React.FC = () => {
             </div>
           </Tooltip>
         )}
+
+        {/* Mi Speaker (XiaoAi) Devices */}
+        <Popover
+          content={
+            <Flex vertical style={{ width: 280, maxHeight: 320, overflow: "auto" }}>
+              <Text strong style={{ marginBottom: 8 }}>
+                {t("player.miSpeakerTitle")}
+              </Text>
+              {isMiDevicesLoading ? (
+                <Text type="secondary">{t("common.loading")}</Text>
+              ) : miDevices.length === 0 ? (
+                <Text type="secondary">{t("player.noMiDevices")}</Text>
+              ) : (
+                <List
+                  size="small"
+                  dataSource={miDevices}
+                  renderItem={(device) => (
+                    <List.Item>
+                      <List.Item.Meta
+                        avatar={
+                          <Avatar
+                            size={32}
+                            style={{ backgroundColor: token.colorPrimary }}
+                            icon={<CustomerServiceOutlined />}
+                          />
+                        }
+                        title={device.name}
+                        description={device.model}
+                      />
+                    </List.Item>
+                  )}
+                />
+              )}
+            </Flex>
+          }
+          trigger="click"
+          placement="top"
+          open={isMiDevicesPopoverOpen}
+          onOpenChange={(open) => {
+            setIsMiDevicesPopoverOpen(open);
+            if (open) {
+              handleLoadMiDevices();
+            }
+          }}
+        >
+          <Tooltip title={t("player.miSpeaker")}>
+            <CustomerServiceOutlined className={styles.settingIcon} />
+          </Tooltip>
+        </Popover>
 
         {/* Volume */}
         <Popover
