@@ -98,15 +98,21 @@ app.include_router(auth.router, prefix="/api")
 # 音乐文件静态服务
 @app.get("/music/{path:path}")
 async def serve_music(path: str):
-    """提供音乐文件静态服务，音箱通过 HTTP 拉取音频"""
-    music_dir = os.path.abspath(Config.MUSIC_DIR)
-    target = os.path.normpath(os.path.join(music_dir, path))
-    # 安全检查：确保不越界访问
-    if not target.startswith(music_dir + os.sep) and target != music_dir:
-        return HTMLResponse("Forbidden", status_code=403)
-    if not os.path.isfile(target):
-        return HTMLResponse("Not Found", status_code=404)
-    return FileResponse(target)
+    """提供音乐文件静态服务，音箱通过 HTTP 拉取音频
+
+    支持多个扫描根（AUDIO_BOOK_DIR / MUSIC_BASE_DIR/music / MUSIC_DIR）。
+    按 URL 路径前缀与各根的相对路径尝试解析，命中后返回文件。
+    """
+    for root in Config.scan_roots():
+        candidate = os.path.normpath(os.path.join(root, path))
+        try:
+            if os.path.commonpath([candidate, root]) != root:
+                continue
+        except ValueError:
+            continue
+        if os.path.isfile(candidate):
+            return FileResponse(candidate)
+    return HTMLResponse("Not Found", status_code=404)
 
 
 # 内嵌 HTML 前端页面

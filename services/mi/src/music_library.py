@@ -18,31 +18,41 @@ class MusicLibrary:
 
     def __init__(self, music_dir: str = None):
         self.music_dir = music_dir or Config.MUSIC_DIR
+        self.scan_roots: list[str] = (
+            [os.path.abspath(music_dir)] if music_dir else Config.scan_roots()
+        )
         self.songs: list[dict] = []
         self._scan()
 
     def _scan(self) -> None:
-        """扫描音乐目录，收集所有支持的音频文件"""
+        """扫描配置的多个根目录，收集所有支持的音频文件"""
         self.songs = []
-        if not os.path.isdir(self.music_dir):
-            logger.warning(f"Music directory not found: {self.music_dir}")
+        if not self.scan_roots:
+            logger.warning("No scan roots configured")
             return
 
-        for root, _, files in os.walk(self.music_dir):
-            for filename in files:
-                if filename.lower().endswith(Config.SUPPORTED_EXTS):
-                    filepath = os.path.join(root, filename)
-                    name = os.path.splitext(filename)[0]
-                    duration = self._get_duration(filepath)
-                    self.songs.append({
-                        "name": name,
-                        "filename": filename,
-                        "path": filepath,
-                        "duration": duration,
-                    })
+        for root in self.scan_roots:
+            if not os.path.isdir(root):
+                logger.warning(f"Scan root not found: {root}")
+                continue
+            for dirpath, _, files in os.walk(root):
+                for filename in files:
+                    if filename.lower().endswith(Config.SUPPORTED_EXTS):
+                        filepath = os.path.join(dirpath, filename)
+                        name = os.path.splitext(filename)[0]
+                        duration = self._get_duration(filepath)
+                        self.songs.append({
+                            "name": name,
+                            "filename": filename,
+                            "path": filepath,
+                            "duration": duration,
+                        })
 
         self.songs.sort(key=lambda s: s["name"])
-        logger.info(f"Scanned {len(self.songs)} songs from {self.music_dir}")
+        logger.info(
+            f"Scanned {len(self.songs)} songs from {len(self.scan_roots)} root(s): "
+            f"{self.scan_roots}"
+        )
 
     def _get_duration(self, filepath: str) -> float:
         """获取音频文件时长（秒）"""

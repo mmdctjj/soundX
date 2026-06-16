@@ -17,8 +17,14 @@ class Config:
     MI_USERNAME: str = os.getenv("MI_USERNAME", "")
     MI_PASSWORD: str = os.getenv("MI_PASSWORD", "")
 
-    # 本地音乐目录
-    MUSIC_DIR: str = os.path.expanduser(os.getenv("MUSIC_DIR", "~/Music"))
+    # 本地音乐目录（兼容旧版单目录配置；未显式设置时为空，避免无意中扫描默认目录）
+    MUSIC_DIR: str = os.path.expanduser(os.getenv("MUSIC_DIR", ""))
+
+    # 有声书目录（与 desktop 后端的 AUDIO_BOOK_DIR 对齐）
+    AUDIO_BOOK_DIR: str = os.getenv("AUDIO_BOOK_DIR", "")
+
+    # 音乐基础目录（与 desktop 后端的 MUSIC_BASE_DIR 对齐），实际音乐在 MUSIC_BASE_DIR/music
+    MUSIC_BASE_DIR: str = os.getenv("MUSIC_BASE_DIR", "")
 
     # HTTP 服务配置
     HTTP_HOST: str = os.getenv("HTTP_HOST", "0.0.0.0")
@@ -44,6 +50,37 @@ class Config:
     SUPPORTED_EXTS: tuple = (".mp3", ".flac", ".wav", ".m4a", ".ogg")
 
     @classmethod
+    def scan_roots(cls) -> list[str]:
+        """返回实际需要扫描的根目录列表。
+
+        直接使用 AUDIO_BOOK_DIR 和 MUSIC_BASE_DIR 作为扫描根（命名即语义：
+        audio 目录是有声书，music 目录是音乐）。MUSIC_DIR 留作兜底。
+        子目录与父目录都存在时只保留子目录，避免重复扫描。
+        """
+        candidates: list[str] = []
+        if cls.AUDIO_BOOK_DIR:
+            candidates.append(cls.AUDIO_BOOK_DIR)
+        if cls.MUSIC_BASE_DIR:
+            candidates.append(cls.MUSIC_BASE_DIR)
+        if cls.MUSIC_DIR:
+            candidates.append(cls.MUSIC_DIR)
+
+        existing = sorted(
+            {os.path.abspath(r) for r in candidates if r and os.path.isdir(r)}
+        )
+
+        # 若一个根是另一个根的祖先，仅保留最深的那个
+        result: list[str] = []
+        for r in existing:
+            if any(
+                r != other and os.path.commonpath([r, other]) == other
+                for other in existing
+            ):
+                continue
+            result.append(r)
+        return result
+
+    @classmethod
     def validate(cls) -> list[str]:
         """验证必填配置，返回缺失的配置项列表
 
@@ -53,14 +90,20 @@ class Config:
         missing = []
         if not cls.MI_USERNAME and not cls.MI_PASSWORD:
             logger.info("未配置小米账号密码，将使用扫码登录方式")
-        if not os.path.isdir(cls.MUSIC_DIR):
-            logger.warning(f"MUSIC_DIR does not exist: {cls.MUSIC_DIR}")
+        roots = cls.scan_roots()
+        if not roots:
+            logger.warning(
+                "No valid scan roots: set MUSIC_BASE_DIR / AUDIO_BOOK_DIR / MUSIC_DIR"
+            )
         return missing
 
 
 # 初始化时打印关键配置（隐藏密码）
 logger.info(f"MI_USERNAME present: {bool(Config.MI_USERNAME)}")
 logger.info(f"MUSIC_DIR: {Config.MUSIC_DIR}")
+logger.info(f"AUDIO_BOOK_DIR: {Config.AUDIO_BOOK_DIR}")
+logger.info(f"MUSIC_BASE_DIR: {Config.MUSIC_BASE_DIR}")
+logger.info(f"Scan roots: {Config.scan_roots()}")
 logger.info(f"HTTP_HOST: {Config.HTTP_HOST}:{Config.HTTP_PORT}")
 logger.info(f"COMMAND_PREFIX: {Config.COMMAND_PREFIX}")
 logger.info(f"VOICE_KEYWORDS: {Config.VOICE_KEYWORDS}")

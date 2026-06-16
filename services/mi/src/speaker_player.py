@@ -185,13 +185,30 @@ class SpeakerPlayer:
         return self._login_ok
 
     def file_to_url(self, filepath: str) -> str:
-        """将本地文件路径转为音箱可访问的 HTTP URL"""
-        music_dir = os.path.abspath(Config.MUSIC_DIR)
+        """将本地文件路径转为音箱可访问的 HTTP URL
+
+        路径策略：取所有扫描根中最长的公共前缀作为 base，使 URL 与
+        `/music/{path:path}` 路由的实际挂载根一致。
+        """
         filepath_abs = os.path.abspath(filepath)
-        try:
-            rel_path = os.path.relpath(filepath_abs, music_dir)
-        except ValueError:
+        roots = [os.path.abspath(r) for r in Config.scan_roots()]
+
+        rel_path = os.path.basename(filepath_abs)
+        best_root: str | None = None
+        for r in roots:
+            try:
+                candidate = os.path.relpath(filepath_abs, r)
+            except ValueError:
+                continue
+            if candidate.startswith(".."):
+                continue
+            if best_root is None or len(r) > len(best_root):
+                best_root = r
+                rel_path = candidate
+
+        if best_root is None:
             rel_path = os.path.basename(filepath_abs)
+
         encoded = "/".join(urllib.parse.quote(part) for part in rel_path.split(os.sep))
         return f"{self._http_base}/{encoded}"
 

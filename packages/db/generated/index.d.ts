@@ -24122,11 +24122,13 @@ export namespace Prisma {
   }
 
   export type TtsTaskAvgAggregateOutputType = {
+    speed: number | null
     totalChapters: number | null
     completedChapters: number | null
   }
 
   export type TtsTaskSumAggregateOutputType = {
+    speed: number | null
     totalChapters: number | null
     completedChapters: number | null
   }
@@ -24136,6 +24138,9 @@ export namespace Prisma {
     bookName: string | null
     author: string | null
     filePath: string | null
+    provider: string | null
+    voice: string | null
+    speed: number | null
     totalChapters: number | null
     completedChapters: number | null
     status: string | null
@@ -24148,6 +24153,9 @@ export namespace Prisma {
     bookName: string | null
     author: string | null
     filePath: string | null
+    provider: string | null
+    voice: string | null
+    speed: number | null
     totalChapters: number | null
     completedChapters: number | null
     status: string | null
@@ -24160,6 +24168,9 @@ export namespace Prisma {
     bookName: number
     author: number
     filePath: number
+    provider: number
+    voice: number
+    speed: number
     totalChapters: number
     completedChapters: number
     status: number
@@ -24170,11 +24181,13 @@ export namespace Prisma {
 
 
   export type TtsTaskAvgAggregateInputType = {
+    speed?: true
     totalChapters?: true
     completedChapters?: true
   }
 
   export type TtsTaskSumAggregateInputType = {
+    speed?: true
     totalChapters?: true
     completedChapters?: true
   }
@@ -24184,6 +24197,9 @@ export namespace Prisma {
     bookName?: true
     author?: true
     filePath?: true
+    provider?: true
+    voice?: true
+    speed?: true
     totalChapters?: true
     completedChapters?: true
     status?: true
@@ -24196,6 +24212,9 @@ export namespace Prisma {
     bookName?: true
     author?: true
     filePath?: true
+    provider?: true
+    voice?: true
+    speed?: true
     totalChapters?: true
     completedChapters?: true
     status?: true
@@ -24208,6 +24227,9 @@ export namespace Prisma {
     bookName?: true
     author?: true
     filePath?: true
+    provider?: true
+    voice?: true
+    speed?: true
     totalChapters?: true
     completedChapters?: true
     status?: true
@@ -24307,6 +24329,9 @@ export namespace Prisma {
     bookName: string
     author: string
     filePath: string
+    provider: string
+    voice: string
+    speed: number
     totalChapters: number
     completedChapters: number
     status: string
@@ -24338,6 +24363,9 @@ export namespace Prisma {
     bookName?: boolean
     author?: boolean
     filePath?: boolean
+    provider?: boolean
+    voice?: boolean
+    speed?: boolean
     totalChapters?: boolean
     completedChapters?: boolean
     status?: boolean
@@ -24352,6 +24380,9 @@ export namespace Prisma {
     bookName?: boolean
     author?: boolean
     filePath?: boolean
+    provider?: boolean
+    voice?: boolean
+    speed?: boolean
     totalChapters?: boolean
     completedChapters?: boolean
     status?: boolean
@@ -24364,6 +24395,9 @@ export namespace Prisma {
     bookName?: boolean
     author?: boolean
     filePath?: boolean
+    provider?: boolean
+    voice?: boolean
+    speed?: boolean
     totalChapters?: boolean
     completedChapters?: boolean
     status?: boolean
@@ -24376,6 +24410,9 @@ export namespace Prisma {
     bookName?: boolean
     author?: boolean
     filePath?: boolean
+    provider?: boolean
+    voice?: boolean
+    speed?: boolean
     totalChapters?: boolean
     completedChapters?: boolean
     status?: boolean
@@ -24383,7 +24420,7 @@ export namespace Prisma {
     options?: boolean
   }
 
-  export type TtsTaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookName" | "author" | "filePath" | "totalChapters" | "completedChapters" | "status" | "createdAt" | "options", ExtArgs["result"]["ttsTask"]>
+  export type TtsTaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookName" | "author" | "filePath" | "provider" | "voice" | "speed" | "totalChapters" | "completedChapters" | "status" | "createdAt" | "options", ExtArgs["result"]["ttsTask"]>
   export type TtsTaskInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     chapters?: boolean | TtsTask$chaptersArgs<ExtArgs>
     _count?: boolean | TtsTaskCountOutputTypeDefaultArgs<ExtArgs>
@@ -24401,6 +24438,9 @@ export namespace Prisma {
       bookName: string
       author: string
       filePath: string
+      provider: string
+      voice: string
+      speed: number
       totalChapters: number
       completedChapters: number
       status: string
@@ -24834,6 +24874,9 @@ export namespace Prisma {
     readonly bookName: FieldRef<"TtsTask", 'String'>
     readonly author: FieldRef<"TtsTask", 'String'>
     readonly filePath: FieldRef<"TtsTask", 'String'>
+    readonly provider: FieldRef<"TtsTask", 'String'>
+    readonly voice: FieldRef<"TtsTask", 'String'>
+    readonly speed: FieldRef<"TtsTask", 'Float'>
     readonly totalChapters: FieldRef<"TtsTask", 'Int'>
     readonly completedChapters: FieldRef<"TtsTask", 'Int'>
     readonly status: FieldRef<"TtsTask", 'String'>
@@ -27934,6 +27977,9 @@ export namespace Prisma {
     bookName: 'bookName',
     author: 'author',
     filePath: 'filePath',
+    provider: 'provider',
+    voice: 'voice',
+    speed: 'speed',
     totalChapters: 'totalChapters',
     completedChapters: 'completedChapters',
     status: 'status',
@@ -29306,6 +29352,9 @@ export namespace Prisma {
     bookName?: StringFilter<"TtsTask"> | string
     author?: StringFilter<"TtsTask"> | string
     filePath?: StringFilter<"TtsTask"> | string
+    provider?: StringFilter<"TtsTask"> | string
+    voice?: StringFilter<"TtsTask"> | string
+    speed?: FloatFilter<"TtsTask"> | number
     totalChapters?: IntFilter<"TtsTask"> | number
     completedChapters?: IntFilter<"TtsTask"> | number
     status?: StringFilter<"TtsTask"> | string
@@ -29319,6 +29368,9 @@ export namespace Prisma {
     bookName?: SortOrder
     author?: SortOrder
     filePath?: SortOrder
+    provider?: SortOrder
+    voice?: SortOrder
+    speed?: SortOrder
     totalChapters?: SortOrder
     completedChapters?: SortOrder
     status?: SortOrder
@@ -29335,6 +29387,9 @@ export namespace Prisma {
     bookName?: StringFilter<"TtsTask"> | string
     author?: StringFilter<"TtsTask"> | string
     filePath?: StringFilter<"TtsTask"> | string
+    provider?: StringFilter<"TtsTask"> | string
+    voice?: StringFilter<"TtsTask"> | string
+    speed?: FloatFilter<"TtsTask"> | number
     totalChapters?: IntFilter<"TtsTask"> | number
     completedChapters?: IntFilter<"TtsTask"> | number
     status?: StringFilter<"TtsTask"> | string
@@ -29348,6 +29403,9 @@ export namespace Prisma {
     bookName?: SortOrder
     author?: SortOrder
     filePath?: SortOrder
+    provider?: SortOrder
+    voice?: SortOrder
+    speed?: SortOrder
     totalChapters?: SortOrder
     completedChapters?: SortOrder
     status?: SortOrder
@@ -29368,6 +29426,9 @@ export namespace Prisma {
     bookName?: StringWithAggregatesFilter<"TtsTask"> | string
     author?: StringWithAggregatesFilter<"TtsTask"> | string
     filePath?: StringWithAggregatesFilter<"TtsTask"> | string
+    provider?: StringWithAggregatesFilter<"TtsTask"> | string
+    voice?: StringWithAggregatesFilter<"TtsTask"> | string
+    speed?: FloatWithAggregatesFilter<"TtsTask"> | number
     totalChapters?: IntWithAggregatesFilter<"TtsTask"> | number
     completedChapters?: IntWithAggregatesFilter<"TtsTask"> | number
     status?: StringWithAggregatesFilter<"TtsTask"> | string
@@ -30771,6 +30832,9 @@ export namespace Prisma {
     bookName: string
     author: string
     filePath?: string
+    provider?: string
+    voice?: string
+    speed?: number
     totalChapters: number
     completedChapters?: number
     status?: string
@@ -30784,6 +30848,9 @@ export namespace Prisma {
     bookName: string
     author: string
     filePath?: string
+    provider?: string
+    voice?: string
+    speed?: number
     totalChapters: number
     completedChapters?: number
     status?: string
@@ -30797,6 +30864,9 @@ export namespace Prisma {
     bookName?: StringFieldUpdateOperationsInput | string
     author?: StringFieldUpdateOperationsInput | string
     filePath?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    voice?: StringFieldUpdateOperationsInput | string
+    speed?: FloatFieldUpdateOperationsInput | number
     totalChapters?: IntFieldUpdateOperationsInput | number
     completedChapters?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
@@ -30810,6 +30880,9 @@ export namespace Prisma {
     bookName?: StringFieldUpdateOperationsInput | string
     author?: StringFieldUpdateOperationsInput | string
     filePath?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    voice?: StringFieldUpdateOperationsInput | string
+    speed?: FloatFieldUpdateOperationsInput | number
     totalChapters?: IntFieldUpdateOperationsInput | number
     completedChapters?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
@@ -30823,6 +30896,9 @@ export namespace Prisma {
     bookName: string
     author: string
     filePath?: string
+    provider?: string
+    voice?: string
+    speed?: number
     totalChapters: number
     completedChapters?: number
     status?: string
@@ -30835,6 +30911,9 @@ export namespace Prisma {
     bookName?: StringFieldUpdateOperationsInput | string
     author?: StringFieldUpdateOperationsInput | string
     filePath?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    voice?: StringFieldUpdateOperationsInput | string
+    speed?: FloatFieldUpdateOperationsInput | number
     totalChapters?: IntFieldUpdateOperationsInput | number
     completedChapters?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
@@ -30847,6 +30926,9 @@ export namespace Prisma {
     bookName?: StringFieldUpdateOperationsInput | string
     author?: StringFieldUpdateOperationsInput | string
     filePath?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    voice?: StringFieldUpdateOperationsInput | string
+    speed?: FloatFieldUpdateOperationsInput | number
     totalChapters?: IntFieldUpdateOperationsInput | number
     completedChapters?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
@@ -32156,6 +32238,17 @@ export namespace Prisma {
     id?: SortOrder
   }
 
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[]
+    notIn?: number[]
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
   export type TtsChapterTaskListRelationFilter = {
     every?: TtsChapterTaskWhereInput
     some?: TtsChapterTaskWhereInput
@@ -32171,6 +32264,9 @@ export namespace Prisma {
     bookName?: SortOrder
     author?: SortOrder
     filePath?: SortOrder
+    provider?: SortOrder
+    voice?: SortOrder
+    speed?: SortOrder
     totalChapters?: SortOrder
     completedChapters?: SortOrder
     status?: SortOrder
@@ -32179,6 +32275,7 @@ export namespace Prisma {
   }
 
   export type TtsTaskAvgOrderByAggregateInput = {
+    speed?: SortOrder
     totalChapters?: SortOrder
     completedChapters?: SortOrder
   }
@@ -32188,6 +32285,9 @@ export namespace Prisma {
     bookName?: SortOrder
     author?: SortOrder
     filePath?: SortOrder
+    provider?: SortOrder
+    voice?: SortOrder
+    speed?: SortOrder
     totalChapters?: SortOrder
     completedChapters?: SortOrder
     status?: SortOrder
@@ -32200,6 +32300,9 @@ export namespace Prisma {
     bookName?: SortOrder
     author?: SortOrder
     filePath?: SortOrder
+    provider?: SortOrder
+    voice?: SortOrder
+    speed?: SortOrder
     totalChapters?: SortOrder
     completedChapters?: SortOrder
     status?: SortOrder
@@ -32208,8 +32311,25 @@ export namespace Prisma {
   }
 
   export type TtsTaskSumOrderByAggregateInput = {
+    speed?: SortOrder
     totalChapters?: SortOrder
     completedChapters?: SortOrder
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[]
+    notIn?: number[]
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type TrackNullableScalarRelationFilter = {
@@ -33888,6 +34008,14 @@ export namespace Prisma {
     connect?: TtsChapterTaskWhereUniqueInput | TtsChapterTaskWhereUniqueInput[]
   }
 
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type TtsChapterTaskUpdateManyWithoutTaskNestedInput = {
     create?: XOR<TtsChapterTaskCreateWithoutTaskInput, TtsChapterTaskUncheckedCreateWithoutTaskInput> | TtsChapterTaskCreateWithoutTaskInput[] | TtsChapterTaskUncheckedCreateWithoutTaskInput[]
     connectOrCreate?: TtsChapterTaskCreateOrConnectWithoutTaskInput | TtsChapterTaskCreateOrConnectWithoutTaskInput[]
@@ -34211,6 +34339,22 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[]
+    notIn?: number[]
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type ArtistCreateWithoutTracksInput = {
@@ -38088,6 +38232,9 @@ export namespace Prisma {
     bookName: string
     author: string
     filePath?: string
+    provider?: string
+    voice?: string
+    speed?: number
     totalChapters: number
     completedChapters?: number
     status?: string
@@ -38100,6 +38247,9 @@ export namespace Prisma {
     bookName: string
     author: string
     filePath?: string
+    provider?: string
+    voice?: string
+    speed?: number
     totalChapters: number
     completedChapters?: number
     status?: string
@@ -38128,6 +38278,9 @@ export namespace Prisma {
     bookName?: StringFieldUpdateOperationsInput | string
     author?: StringFieldUpdateOperationsInput | string
     filePath?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    voice?: StringFieldUpdateOperationsInput | string
+    speed?: FloatFieldUpdateOperationsInput | number
     totalChapters?: IntFieldUpdateOperationsInput | number
     completedChapters?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
@@ -38140,6 +38293,9 @@ export namespace Prisma {
     bookName?: StringFieldUpdateOperationsInput | string
     author?: StringFieldUpdateOperationsInput | string
     filePath?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    voice?: StringFieldUpdateOperationsInput | string
+    speed?: FloatFieldUpdateOperationsInput | number
     totalChapters?: IntFieldUpdateOperationsInput | number
     completedChapters?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string

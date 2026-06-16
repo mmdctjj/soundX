@@ -28,7 +28,9 @@ python src/main.py
 |------|------|--------|
 | MI_USERNAME | 小米账号 | - |
 | MI_PASSWORD | 小米密码 | - |
-| MUSIC_DIR | 本地音乐目录 | ~/Music |
+| AUDIO_BOOK_DIR | 有声书目录（命名即语义：audio=有声书） | - |
+| MUSIC_BASE_DIR | 音乐目录（命名即语义：music=音乐） | - |
+| MUSIC_DIR | 兼容旧版单目录配置（兜底） | ~/Music |
 | HTTP_HOST | HTTP 服务监听地址 | 0.0.0.0 |
 | HTTP_PORT | HTTP 服务端口 | 8080 |
 | COMMAND_PREFIX | 语音指令前缀 | 本地播放 |

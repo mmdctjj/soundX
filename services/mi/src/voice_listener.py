@@ -119,12 +119,16 @@ class VoiceCommandListener:
 
         auth_data = self._build_auth_data()
         if not auth_data:
-            logger.debug("[voice] skip poll: auth_data build failed")
+            logger.warning("[voice] skip poll: auth_data build failed（无 token）")
             return
 
         api = ConversationAPI(auth_data, self.player._session)
         if not api.has_credentials():
-            logger.debug("[voice] skip poll: ConversationAPI missing credentials")
+            logger.warning(
+                "[voice] skip poll: ConversationAPI missing credentials "
+                f"(userId={api.user_id!r} token={'yes' if api.service_token else 'no'} "
+                f"ua={'yes' if api.user_agent else 'fallback'})"
+            )
             return
 
         logger.debug(
@@ -165,6 +169,16 @@ class VoiceCommandListener:
     async def _handle_record(self, device_id: str, rec: dict) -> None:
         """处理一条对话记录：关键词匹配 → 本地查歌 → 推 URL"""
         query = rec.get("query", "").strip()
+        answer_text = rec.get("answer_text", "")
+
+        # 任何拉到的小爱记录都打 INFO，方便排错"用户说了啥"
+        logger.info(
+            f"[voice] 收到 device={device_id} "
+            f"query='{query}' "
+            f"answer='{answer_text[:80]}' "
+            f"req_id={rec.get('request_id', '')}"
+        )
+
         if not query:
             return
 
@@ -175,7 +189,11 @@ class VoiceCommandListener:
                 matched_kw = kw
                 break
         if not matched_kw:
-            logger.debug(f"[voice] skip: '{query[:60]}'")
+            # 明确打印没命中的关键词候选，让"为什么不触发"一目了然
+            logger.info(
+                f"[voice] 未命中关键词: query='{query}' "
+                f"candidates={self.keywords}"
+            )
             return
 
         song_name = query[len(matched_kw):].strip()

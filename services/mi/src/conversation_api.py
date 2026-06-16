@@ -22,6 +22,12 @@ LATEST_ASK_API = (
     "?source=dialogu&hardware={hardware}&timestamp={timestamp}&limit={limit}"
 )
 
+# 兜底 UA：未配置 UA 时使用，userprofile API 对 UA 不严格
+FALLBACK_USER_AGENT = (
+    "Android-7.1.1-1.0.0-ONEPLUS A3010-136-{} APP/com.xiaomi.mihome APPV/1.0 "
+    "iosPassportSDK/3.9.0 iOSSdkVersion/com.xiaomi.mihome:MiHomeSDK:3.9.0"
+).format("0" * 13)
+
 
 class ConversationAPI:
     """userprofile 对话记录 API 客户端
@@ -37,7 +43,10 @@ class ConversationAPI:
 
     @property
     def user_agent(self) -> str:
-        return self._auth.get("ua", "")
+        ua = self._auth.get("ua", "")
+        if not ua:
+            ua = FALLBACK_USER_AGENT
+        return ua
 
     @property
     def user_id(self) -> str:
@@ -53,7 +62,7 @@ class ConversationAPI:
         return self._auth.get("serviceToken", "")
 
     def has_credentials(self) -> bool:
-        return bool(self.user_id and self.service_token and self.user_agent)
+        return bool(self.user_id and self.service_token)
 
     def _build_headers(self, device_id: str) -> dict:
         return {
