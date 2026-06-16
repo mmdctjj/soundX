@@ -39,24 +39,19 @@ class SpeakerPlayer:
         self._login_ok: bool = False
 
     async def init(self) -> None:
-        """初始化 miservice：尝试 token 登录 → 密码登录 → 标记为未登录"""
+        """初始化 miservice：尝试 token 登录 → 标记为未登录"""
         self._session = aiohttp.ClientSession()
         token_path = os.path.join(os.path.dirname(__file__), "..", ".mi.token")
         token_path = os.path.abspath(token_path)
 
-        # 1. 优先尝试从 .mi.token 加载已有 token
+        # 1. 优先尝试从 .mi.token / auth.json 加载已有 token
         if await self._try_token_login(token_path):
             logger.info("SpeakerPlayer init: 使用已有 token 登录成功")
             return
 
-        # 2. 尝试密码登录（如果配置了用户名密码）
-        if Config.MI_USERNAME and Config.MI_PASSWORD:
-            if await self._try_password_login(token_path):
-                logger.info("SpeakerPlayer init: 密码登录成功")
-                return
-            logger.warning("SpeakerPlayer init: 密码登录失败，可能需要扫码登录")
-        else:
-            logger.info("SpeakerPlayer init: 未配置用户名密码，跳过密码登录")
+        # 2. 没有有效 token → 不再尝试密码登录（小米接口需要二次验证/扫码）
+        #    用户必须通过 Web 控制台扫码登录
+        logger.info("SpeakerPlayer init: 无有效 token，请访问 Web 控制台扫码登录")
 
         # 3. 都失败了，标记为未登录，但不抛异常（让服务继续运行，前端提示扫码）
         self._login_ok = False
@@ -65,105 +60,84 @@ class SpeakerPlayer:
         )
 
     async def _try_token_login(self, token_path: str) -> bool:
-        """尝试从 .mi.token 或 auth.json 加载 token 登录"""
-        # 先尝试 .mi.token（miservice 格式）
+        """尝试从 .mi.token 或 auth.json 加载 token 登录
+
+        对齐 xiaomusic auth.py login_miboy：
+        1) 注入 {passToken, userId, deviceId} 到 MiAccount
+        2) 显式调用 login('micoapi') 触发 serviceLogin + _securityTokenService
+           → 这一步会刷新 micoapi 数组（ssecurity, serviceToken）
+        3) 创建 MiNAService，调 device_list() 验证
+        """
+        token = None
+
+        # 1) 先尝试 .mi.token（miservice 格式）
         if os.path.isfile(token_path):
             try:
                 with open(token_path, encoding="utf-8") as f:
                     token = json.load(f)
-                if token and "userId" in token and "passToken" in token:
-                    self.account = MiAccount(
-                        self._session,
-                        Config.MI_USERNAME or token.get("userId", ""),
-                        Config.MI_PASSWORD or "",
-                        token_path,
-                    )
-                    # 手动注入 token，跳过 login 流程
-                    self.account.token = token
-                    self.service = MiNAService(self.account)
-                    # 验证 token 是否有效
-                    try:
-                        result = await self.service.device_list()
-                        self.devices = result or []
-                        self._login_ok = True
-                        await self._setup_http_base()
-                        logger.info(
-                            f"Token 登录成功，发现 {len(self.devices)} 个设备"
-                        )
-                        return True
-                    except Exception as e:
-                        logger.warning(f"Token 已失效: {e}")
-                        self.service = None
-                        self.account = None
+                logger.info(f"加载 .mi.token: keys={list(token.keys()) if token else None}")
             except Exception as e:
                 logger.warning(f"读取 .mi.token 失败: {e}")
+                token = None
 
-        # 再尝试 auth.json（扫码登录保存的格式）
+        # 2) 再尝试 auth.json（扫码登录保存的格式）作为兜底
         auth_path = os.path.join(os.path.dirname(__file__), "..", "auth.json")
         auth_path = os.path.abspath(auth_path)
         qr_auth = MiQRAuth()
-        if qr_auth.is_logged_in():
+        if (not token or "userId" not in token or "passToken" not in token) and qr_auth.is_logged_in():
             token = qr_auth.get_miservice_token()
             if token:
-                # 同时写入 .mi.token 方便下次
                 qr_auth.to_mi_token_file(token_path)
-                self.account = MiAccount(
-                    self._session,
-                    token.get("userId", ""),
-                    "",
-                    token_path,
-                )
-                self.account.token = token
-                self.service = MiNAService(self.account)
-                try:
-                    result = await self.service.device_list()
-                    self.devices = result or []
-                    self._login_ok = True
-                    await self._setup_http_base()
-                    logger.info(
-                        f"从 auth.json 登录成功，发现 {len(self.devices)} 个设备"
-                    )
-                    return True
-                except Exception as e:
-                    logger.warning(f"auth.json token 已失效: {e}")
-                    self.service = None
-                    self.account = None
 
-        return False
+        if not token or "userId" not in token or "passToken" not in token:
+            return False
 
-    async def _try_password_login(self, token_path: str) -> bool:
-        """尝试用户名密码登录"""
+        # 3) 注入 token 走 miservice（仅传 passToken/userId/deviceId，micoapi 留给 login 刷新）
         self.account = MiAccount(
             self._session,
-            Config.MI_USERNAME,
-            Config.MI_PASSWORD,
+            Config.MI_USERNAME or token.get("userId", ""),
+            Config.MI_PASSWORD or "",
             token_path,
         )
+        self.account.token = {
+            "passToken": token["passToken"],
+            "userId": token["userId"],
+            "deviceId": token.get("deviceId", ""),
+        }
 
+        # 4) 显式 login('micoapi') → 走 serviceLogin 拿 ssecurity → _securityTokenService 拿 serviceToken
+        #    失败时不抛，miservice 内部已记录日志
         try:
-            login_result = await self.account.login("micoapi")
-            if not login_result:
-                logger.error("MiAccount login 返回 False")
-                return False
-
-            logger.info("MiAccount 密码登录成功")
-            self.service = MiNAService(self.account)
-            await self._discover_devices()
-            await self._setup_http_base()
-            self._login_ok = True
-            return True
-
+            login_ok = await self.account.login("micoapi")
         except Exception as e:
-            error_str = str(e)
-            if "securityStatus" in error_str:
-                logger.error(
-                    f"密码登录需要二次验证（securityStatus）: {e}"
-                )
-            elif "70016" in error_str or "登录验证失败" in error_str:
-                logger.error(f"密码登录验证失败（70016）: {e}")
-            else:
-                logger.error(f"密码登录失败: {e}")
+            logger.warning(f"login(micoapi) 抛异常: {e}")
+            login_ok = False
+
+        if not login_ok:
+            # 区分 70016（需扫码）与临时网络失败
+            error_str = str(self.account.token) if self.account else ""
+            logger.warning(f"login(micoapi) 失败；token={list(self.account.token.keys()) if self.account and self.account.token else None}")
+            self.account = None
             return False
+
+        logger.info(f"MiAccount login(micoapi) 成功，token keys={list(self.account.token.keys())}")
+
+        # 5) 创建 MiNAService 并发现设备
+        self.service = MiNAService(self.account)
+        try:
+            result = await self.service.device_list()
+            self.devices = result or []
+            self._login_ok = True
+            await self._setup_http_base()
+            logger.info(f"Token 登录成功，发现 {len(self.devices)} 个设备")
+            return True
+        except Exception as e:
+            logger.warning(f"device_list 失败: {e}")
+            self.service = None
+            self.account = None
+            self._login_ok = False
+            return False
+
 
     async def _setup_http_base(self) -> None:
         """构建 HTTP 文件服务基础 URL"""
@@ -195,6 +169,18 @@ class SpeakerPlayer:
         """扫码登录成功后重新初始化"""
         if self._login_ok:
             return True
+        # 关闭旧的 session，避免泄漏
+        if self._session:
+            try:
+                await self._session.close()
+            except Exception:
+                pass
+            self._session = None
+        # 重置状态
+        self.account = None
+        self.service = None
+        self.devices = []
+        self._login_ok = False
         await self.init()
         return self._login_ok
 

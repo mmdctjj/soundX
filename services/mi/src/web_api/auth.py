@@ -80,7 +80,7 @@ async def get_qrcode_status(lp_url: str = Query(..., description="轮询状态 U
     """查询扫码登录状态
 
     前端需要轮询此接口，直到返回 success 或 expired。
-    扫码成功后，token 会自动写入 auth.json 和 .mi.token。
+    扫码成功后，token 会自动写入 auth.json 和 .mi.token，并重新加载 SpeakerPlayer。
 
     Args:
         lp_url: 从 /auth/qrcode 返回的 status_url
@@ -96,6 +96,12 @@ async def get_qrcode_status(lp_url: str = Query(..., description="轮询状态 U
         token_path = os.path.join(os.path.dirname(__file__), "..", "..", ".mi.token")
         token_path = os.path.abspath(token_path)
         qr_auth.to_mi_token_file(token_path)
+
+        # 重新加载 SpeakerPlayer，使设备列表可用
+        from src.main import player
+        if player:
+            await player.reload_after_login()
+            logger.info(f"SpeakerPlayer 重新加载完成，设备数: {len(player.devices)}")
 
         return JSONResponse(
             content={
