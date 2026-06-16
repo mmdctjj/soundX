@@ -13,7 +13,7 @@ import {
   StepBackwardOutlined,
   StepForwardOutlined,
   TeamOutlined,
-  VideoCameraOutlined
+  VideoCameraOutlined,
 } from "@ant-design/icons";
 import Icon from "@ant-design/icons";
 import {
@@ -22,8 +22,14 @@ import {
   deleteTrack,
   getDeletionImpact,
   getLatestHistory,
+  getMiAuthStatus,
+  getMiDevices,
+  getMiQRCode,
+  getMiQRCodeStatus,
   getMvByTrackId,
   getPlaylists,
+  type MiDevice,
+  type MiQRCodeResponse,
   type Playlist,
 } from "@soundx/services";
 import {
@@ -51,6 +57,7 @@ import LoopOutlined from "../../assets/loop.svg?react";
 import MusiclistOutlined from "../../assets/musiclist.svg?react";
 import RandomOutlined from "../../assets/random.svg?react";
 import SinglecycleOutlined from "../../assets/singlecycle.svg?react";
+import XiaoAiOutlined from "../../assets/xiaoai.svg?react";
 import { useMessage } from "../../context/MessageContext";
 import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
@@ -346,6 +353,14 @@ const Player: React.FC = () => {
   // Upgrade: Invite User Modal
   const [isUserSelectModalOpen, setIsUserSelectModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Mi Speaker (XiaoAi) State
+  const [miDevices, setMiDevices] = useState<MiDevice[]>([]);
+  const [isMiDevicesLoading, setIsMiDevicesLoading] = useState(false);
+  const [isMiDevicesPopoverOpen, setIsMiDevicesPopoverOpen] = useState(false);
+  const [miAuthStatus, setMiAuthStatus] = useState<{ logged_in: boolean } | null>(null);
+  const [miQRCode, setMiQRCode] = useState<MiQRCodeResponse | null>(null);
+  const miPollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Playback Rate
   const [playbackRate, setPlaybackRate] = useState(() => {
@@ -1227,6 +1242,82 @@ const Player: React.FC = () => {
     }
   };
 
+  const handleLoadMiDevices = async () => {
+    setIsMiDevicesLoading(true);
+    try {
+      // 先检查登录状态
+      const authRes = await getMiAuthStatus();
+      setMiAuthStatus(authRes);
+
+      if (authRes.logged_in) {
+        const res = await getMiDevices();
+        setMiDevices(res.devices || []);
+      } else {
+        // 未登录，获取二维码
+        const qrRes = await getMiQRCode();
+        setMiQRCode(qrRes);
+        if (qrRes.already_logged_in) {
+          // 已登录但状态不同步，重新加载设备
+          const res = await getMiDevices();
+          setMiDevices(res.devices || []);
+        } else if (qrRes.status_url) {
+          // 开始轮询扫码状态
+          startMiQRPolling(qrRes.status_url);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load Mi devices:", error);
+      message.error(t("player.loadMiDevicesFailed"));
+      setMiDevices([]);
+    } finally {
+      setIsMiDevicesLoading(false);
+    }
+  };
+
+  const startMiQRPolling = (lpUrl: string) => {
+    // 清除之前的轮询
+    if (miPollingTimerRef.current) {
+      clearInterval(miPollingTimerRef.current);
+      miPollingTimerRef.current = null;
+    }
+
+    // 每 3 秒轮询一次
+    miPollingTimerRef.current = setInterval(async () => {
+      try {
+        const statusRes = await getMiQRCodeStatus(lpUrl);
+        if (statusRes.status === "success") {
+          // 扫码成功，停止轮询，重新加载设备
+          if (miPollingTimerRef.current) {
+            clearInterval(miPollingTimerRef.current);
+            miPollingTimerRef.current = null;
+          }
+          message.success(t("player.miLoginSuccess"));
+          setMiAuthStatus({ logged_in: true });
+          const res = await getMiDevices();
+          setMiDevices(res.devices || []);
+        } else if (statusRes.status === "expired" || statusRes.status === "error") {
+          // 二维码过期或错误，停止轮询
+          if (miPollingTimerRef.current) {
+            clearInterval(miPollingTimerRef.current);
+            miPollingTimerRef.current = null;
+          }
+          setMiQRCode(null);
+        }
+      } catch (error) {
+        console.error("QR polling error:", error);
+      }
+    }, 3000);
+  };
+
+  // 清理轮询定时器
+  useEffect(() => {
+    return () => {
+      if (miPollingTimerRef.current) {
+        clearInterval(miPollingTimerRef.current);
+      }
+    };
+  }, []);
+
   const renderPlayOrderButton = () => {
     if (isRadioMode) return null;
     return (
@@ -1719,6 +1810,79 @@ const Player: React.FC = () => {
             </div>
           </Tooltip>
         )}
+
+        {/* Mi Speaker (XiaoAi) Devices */}
+        <Popover
+          content={
+            <Flex vertical style={{ width: 280, maxHeight: 320, overflow: "auto" }}>
+              <Text strong style={{ marginBottom: 8 }}>
+                {t("player.miSpeakerTitle")}
+              </Text>
+              {isMiDevicesLoading ? (
+                <Text type="secondary">{t("common.loading")}</Text>
+              ) : miAuthStatus?.logged_in ? (
+                // 已登录：展示设备列表
+                miDevices.length === 0 ? (
+                  <Text type="secondary">{t("player.noMiDevices")}</Text>
+                ) : (
+                  <List
+                    size="small"
+                    dataSource={miDevices}
+                    renderItem={(device) => (
+                      <List.Item>
+                        <List.Item.Meta
+                          avatar={
+                            <Avatar
+                              size={32}
+                              style={{ backgroundColor: token.colorPrimary }}
+                              icon={<XiaoAiOutlined style={{ width: 20, height: 20, color: token.colorTextLightSolid }} />}
+                            />
+                          }
+                          title={device.name}
+                          description={device.model}
+                        />
+                      </List.Item>
+                    )}
+                  />
+                )
+              ) : miQRCode?.qrcode_url ? (
+                // 未登录：展示二维码
+                <Flex vertical align="center" gap="12px">
+                  <Text type="secondary">{t("player.miLoginRequired")}</Text>
+                  <img
+                    src={miQRCode.qrcode_url}
+                    alt="小米扫码登录"
+                    style={{ width: 180, height: 180, borderRadius: 8 }}
+                  />
+                  <Text type="secondary" style={{ fontSize: "12px" }}>
+                    {t("player.miScanQRCode")}
+                  </Text>
+                </Flex>
+              ) : (
+                <Text type="secondary">{t("player.miLoginRequired")}</Text>
+              )}
+            </Flex>
+          }
+          trigger="click"
+          placement="top"
+          open={isMiDevicesPopoverOpen}
+          onOpenChange={(open) => {
+            setIsMiDevicesPopoverOpen(open);
+            if (open) {
+              handleLoadMiDevices();
+            } else {
+              // 关闭时停止轮询
+              if (miPollingTimerRef.current) {
+                clearInterval(miPollingTimerRef.current);
+                miPollingTimerRef.current = null;
+              }
+            }
+          }}
+        >
+          <Tooltip title={t("player.miSpeaker")}>
+            <XiaoAiOutlined className={styles.settingIcon} style={{ width: 18, height: 18 }} />
+          </Tooltip>
+        </Popover>
 
         {/* Volume */}
         <Popover

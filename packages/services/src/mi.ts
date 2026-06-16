@@ -1,0 +1,78 @@
+import { request } from "./request";
+
+export interface MiDevice {
+  device_id: string;
+  name: string;
+  model: string;
+}
+
+export interface MiDevicesResponse {
+  devices: MiDevice[];
+}
+
+export interface MiAuthStatusResponse {
+  success: boolean;
+  logged_in: boolean;
+  message?: string;
+}
+
+export interface MiQRCodeResponse {
+  success: boolean;
+  already_logged_in: boolean;
+  qrcode_url: string;
+  login_url?: string;
+  status_url?: string;
+  expire_seconds: number;
+  message?: string;
+}
+
+export interface MiQRCodeStatusResponse {
+  success: boolean;
+  status: "pending" | "success" | "expired" | "error";
+  message?: string;
+  user_id?: string;
+}
+
+const MI_BASE_URL = "/mi";
+
+/**
+ * 获取小爱音箱设备列表
+ * 通过 /mi 前缀由后端代理到 mi 服务
+ */
+export const getMiDevices = async (): Promise<MiDevicesResponse> => {
+  return request.get<MiDevicesResponse>(`${MI_BASE_URL}/api/devices`);
+};
+
+/**
+ * 检查小米账号登录状态
+ */
+export const getMiAuthStatus = async (): Promise<MiAuthStatusResponse> => {
+  return request.get<MiAuthStatusResponse>(`${MI_BASE_URL}/api/auth/status`);
+};
+
+/**
+ * 获取小米账号扫码登录二维码
+ */
+export const getMiQRCode = async (): Promise<MiQRCodeResponse> => {
+  return request.get<MiQRCodeResponse>(`${MI_BASE_URL}/api/auth/qrcode`);
+};
+
+/**
+ * 查询扫码登录状态
+ * @param lpUrl 从 /auth/qrcode 返回的 status_url
+ */
+export const getMiQRCodeStatus = async (
+  lpUrl: string,
+): Promise<MiQRCodeStatusResponse> => {
+  return request.get<MiQRCodeStatusResponse>(
+    `${MI_BASE_URL}/api/auth/qrcode_status`,
+    { params: { lp_url: lpUrl } },
+  );
+};
+
+/**
+ * 退出小米账号登录
+ */
+export const logoutMiAccount = async (): Promise<{ success: boolean; message?: string }> => {
+  return request.post(`${MI_BASE_URL}/api/auth/logout`);
+};

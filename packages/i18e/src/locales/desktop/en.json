@@ -362,7 +362,14 @@
     "setTimerPrompt": "Set timer to stop",
     "shufflePlay": "Shuffle Play",
     "singleLoop": "Single Loop",
-    "willStopAfterCurrent": "Will stop after current track"
+    "willStopAfterCurrent": "Will stop after current track",
+    "miSpeaker": "XiaoAi Speaker",
+    "miSpeakerTitle": "XiaoAi Speaker Devices",
+    "noMiDevices": "No devices found",
+    "loadMiDevicesFailed": "Failed to load XiaoAi speaker list",
+    "miLoginRequired": "Please log in to your Mi account first",
+    "miScanQRCode": "Please scan with Mi Store App",
+    "miLoginSuccess": "Mi account logged in successfully"
   },
   "library": {
     "title": "Library",

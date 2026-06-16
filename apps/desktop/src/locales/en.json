@@ -351,7 +351,11 @@
     "setTimerPrompt": "Set timer to stop",
     "shufflePlay": "Shuffle Play",
     "singleLoop": "Single Loop",
-    "willStopAfterCurrent": "Will stop after current track"
+    "willStopAfterCurrent": "Will stop after current track",
+    "miSpeaker": "XiaoAi Speaker",
+    "miSpeakerTitle": "XiaoAi Speaker Devices",
+    "noMiDevices": "No devices found. Please log in to the mi service first.",
+    "loadMiDevicesFailed": "Failed to load XiaoAi speaker list"
   },
   "library": {
     "title": "Library",
