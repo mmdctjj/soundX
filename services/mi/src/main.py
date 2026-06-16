@@ -69,8 +69,7 @@ async def startup_event():
     # 启动语音监听（只在登录成功且有设备时启动）
     if player and player.is_logged_in() and player.devices:
         listener = VoiceCommandListener(player, library)
-        import asyncio
-        asyncio.create_task(listener.start())
+        await listener.start()
         logger.info("Voice listener started")
     else:
         logger.warning(

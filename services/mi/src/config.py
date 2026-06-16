@@ -24,8 +24,18 @@ class Config:
     HTTP_HOST: str = os.getenv("HTTP_HOST", "0.0.0.0")
     HTTP_PORT: int = int(os.getenv("HTTP_PORT", "8080"))
 
-    # 语音指令前缀
+    # 语音指令前缀（兼容旧版单前缀模式，保留作为默认触发词之一）
     COMMAND_PREFIX: str = os.getenv("COMMAND_PREFIX", "本地播放")
+
+    # 语音抢答关键词列表（命中后从本地音乐库匹配并推 URL 给音箱）
+    # 多个关键词用英文逗号分隔，按最长匹配优先
+    VOICE_KEYWORDS: list[str] = [
+        kw.strip() for kw in os.getenv("VOICE_KEYWORDS", "本地播放,播放声仓,声仓").split(",")
+        if kw.strip()
+    ]
+
+    # 对话记录轮询间隔（秒）。userprofile API 频率限制较宽松，1s 即可
+    PULL_ASK_INTERVAL_SEC: float = float(os.getenv("PULL_ASK_INTERVAL_SEC", "1"))
 
     # 日志级别
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
@@ -53,3 +63,5 @@ logger.info(f"MI_USERNAME present: {bool(Config.MI_USERNAME)}")
 logger.info(f"MUSIC_DIR: {Config.MUSIC_DIR}")
 logger.info(f"HTTP_HOST: {Config.HTTP_HOST}:{Config.HTTP_PORT}")
 logger.info(f"COMMAND_PREFIX: {Config.COMMAND_PREFIX}")
+logger.info(f"VOICE_KEYWORDS: {Config.VOICE_KEYWORDS}")
+logger.info(f"PULL_ASK_INTERVAL_SEC: {Config.PULL_ASK_INTERVAL_SEC}")
