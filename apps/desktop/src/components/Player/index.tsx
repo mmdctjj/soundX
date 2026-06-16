@@ -25,6 +25,7 @@ import {
   getMiAuthStatus,
   getMiDevices,
   getMiQRCode,
+  playMiDeviceByUrl,
   getMiQRCodeStatus,
   getMvByTrackId,
   getPlaylists,
@@ -360,6 +361,7 @@ const Player: React.FC = () => {
   const [isMiDevicesPopoverOpen, setIsMiDevicesPopoverOpen] = useState(false);
   const [miAuthStatus, setMiAuthStatus] = useState<{ logged_in: boolean } | null>(null);
   const [miQRCode, setMiQRCode] = useState<MiQRCodeResponse | null>(null);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
   const miPollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Playback Rate
@@ -1274,6 +1276,29 @@ const Player: React.FC = () => {
     }
   };
 
+  const handleCastToMi = async (deviceId: string, deviceName: string) => {
+    if (!currentTrack) {
+      message.warning(t("player.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const url = buildTrackPlaybackUrl(currentTrack, currentAudioQuality);
+      const title = `${currentTrack.name} - ${currentTrack.artist}`;
+      await playMiDeviceByUrl({ device_id: deviceId, url, title });
+      if (isPlaying) {
+        pause();
+      }
+      message.success(t("player.miCastSuccess", { device: deviceName }));
+      setIsMiDevicesPopoverOpen(false);
+    } catch (error) {
+      console.error("Failed to cast to Mi device:", error);
+      message.error(t("player.miCastFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
+
   const startMiQRPolling = (lpUrl: string) => {
     // 清除之前的轮询
     if (miPollingTimerRef.current) {
@@ -1829,7 +1854,13 @@ const Player: React.FC = () => {
                     size="small"
                     dataSource={miDevices}
                     renderItem={(device) => (
-                      <List.Item>
+                      <List.Item
+                        style={{ cursor: currentTrack && !isCastingToMi ? "pointer" : "not-allowed" }}
+                        onClick={() => {
+                          if (!currentTrack || isCastingToMi) return;
+                          handleCastToMi(device.device_id, device.name);
+                        }}
+                      >
                         <List.Item.Meta
                           avatar={
                             <Avatar

@@ -76,3 +76,28 @@ export const getMiQRCodeStatus = async (
 export const logoutMiAccount = async (): Promise<{ success: boolean; message?: string }> => {
   return request.post(`${MI_BASE_URL}/api/auth/logout`);
 };
+
+export interface MiPlayByUrlRequest {
+  device_id: string;
+  url: string;
+  title?: string;
+}
+
+export interface MiPlayByUrlResponse {
+  success: boolean;
+  title: string;
+}
+
+/**
+ * 通过 URL 把当前播放的歌曲推送到小爱音箱
+ * desktop 端构造 track 流地址后调用此接口
+ */
+export const playMiDeviceByUrl = async (
+  payload: MiPlayByUrlRequest,
+): Promise<MiPlayByUrlResponse> => {
+  return request.post<MiPlayByUrlResponse>(
+    `${MI_BASE_URL}/api/play_by_url`,
+    null,
+    { params: payload },
+  );
+};

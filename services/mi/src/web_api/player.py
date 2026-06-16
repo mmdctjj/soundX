@@ -40,7 +40,7 @@ async def play_song(
         raise HTTPException(status_code=500, detail="Service not initialized")
     if not device_id:
         raise HTTPException(status_code=400, detail="device_id is required")
-    
+
     song = library.get_by_index(song_index)
     if not song:
         raise HTTPException(status_code=404, detail=f"Song index {song_index} not found")
@@ -49,6 +49,29 @@ async def play_song(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to play song")
     return JSONResponse(content={"success": True, "song": song["name"]})
+
+
+@router.post("/play_by_url")
+async def play_by_url(
+    device_id: str = Query(..., description="音箱设备 ID"),
+    url: str = Query(..., description="音箱可访问的音频 HTTP URL"),
+    title: str = Query(None, description="歌曲名称（用于日志）"),
+):
+    """通过 URL 直接推送音频到音箱
+
+    适用于 desktop 等外部客户端：把当前播放的 track 流地址转发给小爱音箱。
+    """
+    if not player:
+        raise HTTPException(status_code=500, detail="Player not initialized")
+    if not device_id or not url:
+        raise HTTPException(status_code=400, detail="device_id and url are required")
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="url must be http(s)")
+
+    success = await player.play_by_url(device_id, url, title or url)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to play by url")
+    return JSONResponse(content={"success": True, "title": title or url})
 
 
 @router.get("/control")
