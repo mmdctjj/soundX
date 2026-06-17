@@ -98,12 +98,15 @@ COPY --from=builder /app/services/api/dist          ./services/api/dist
 COPY --from=builder /app/services/api/package.json  ./services/api/package.json
 COPY --from=builder /app/apps/desktop/dist          /usr/share/nginx/html
 
-# 4. 复制并安装 TTS 和 ASR 服务 (Python)
+# 4. 复制并安装 TTS、ASR 和 MI 服务 (Python)
 COPY services/tts /app/services/tts
 RUN python3 -m pip install --no-cache-dir -r /app/services/tts/requirements.txt
 
 COPY services/asr /app/services/asr
 RUN python3 -m pip install --no-cache-dir -r /app/services/asr/requirements.txt
+
+COPY services/mi /app/services/mi
+RUN python3 -m pip install --no-cache-dir -r /app/services/mi/requirements.txt
 
 # 5. 安装 Node 运行时依赖
 # Use China registry mirror for faster/more reliable installs.
@@ -117,8 +120,8 @@ RUN npm config set registry https://registry.npmmirror.com \
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # 7. 暴露服务端口
-# 3000: API, 8000: TTS, 3300: ASR, 9958: Web
-EXPOSE 3000 8000 3300 9958
+# 3000: API, 8000: TTS, 3300: ASR, 8080: MI, 9958: Web
+EXPOSE 3000 8000 3300 8080 9958
 
 # 8. 启动脚本
 RUN echo '#!/bin/bash\n\
@@ -151,7 +154,15 @@ else\n\
   echo "ASR Service is disabled."\n\
 fi\n\
 \n\
-# 6. 启动 Node API 服务 (前台运行)\n\
+# 6. 启动 Python MI 服务 (后台运行)
+if [ "$DISABLE_MI" != "true" ]; then
+  echo "Starting MI Service..."
+  cd /app/services/mi && (python3 -m uvicorn src.main:app --host 0.0.0.0 --port 8080 || echo "❌ MI Service failed to start") > /var/log/mi.log 2>&1 &
+else
+  echo "MI Service is disabled."
+fi
+
+# 7. 启动 Node API 服务 (前台运行)\n\
 echo "Starting API Service..."\n\
 cd /app/services/api && node dist/main.js' > /app/start.sh && chmod +x /app/start.sh
 
