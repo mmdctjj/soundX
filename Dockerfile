@@ -154,14 +154,14 @@ else\n\
   echo "ASR Service is disabled."\n\
 fi\n\
 \n\
-# 6. 启动 Python MI 服务 (后台运行)
-if [ "$DISABLE_MI" != "true" ]; then
-  echo "Starting MI Service..."
-  cd /app/services/mi && (python3 -m uvicorn src.main:app --host 0.0.0.0 --port 8080 || echo "❌ MI Service failed to start") > /var/log/mi.log 2>&1 &
-else
-  echo "MI Service is disabled."
-fi
-
+# 6. 启动 Python MI 服务 (后台运行)\
+if [ "$DISABLE_MI" != "true" ]; then\
+  echo "Starting MI Service..."\
+  cd /app/services/mi && (python3 -m uvicorn src.main:app --host 0.0.0.0 --port 8080 || echo "❌ MI Service failed to start") > /var/log/mi.log 2>&1 &\
+else\
+  echo "MI Service is disabled."\
+fi\
+\n\
 # 7. 启动 Node API 服务 (前台运行)\n\
 echo "Starting API Service..."\n\
 cd /app/services/api && node dist/main.js' > /app/start.sh && chmod +x /app/start.sh

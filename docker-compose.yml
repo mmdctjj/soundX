@@ -30,6 +30,7 @@ services:
       - DISABLE_TTS=${DISABLE_TTS:-false} # 是否禁用 tts 服务，不用tts功能可注释
       - DISABLE_ASR=${DISABLE_ASR:-false} # 是否禁用 asr 服务，不用语音助手可注释
       - DISABLE_MI=${DISABLE_MI:-false} # 是否禁用 mi 服务，不用小爱音箱功能可注释
+      - VOICE_KEYWORDS=小苍小苍 # 语音唤醒关键词，多个用英文逗号分隔，按最长匹配优先
       - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
       - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
       - LLM_BASE_URL=${LLM_BASE_URL:-}
