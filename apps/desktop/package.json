@@ -120,7 +120,7 @@
         "deb"
       ],
       "category": "Audio",
-      "icon": "public/logo.icns"
+      "icon": "public/logo.png"
     },
     "dmg": {
       "contents": [
