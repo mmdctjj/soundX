@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 import logging
 
@@ -55,6 +55,7 @@ async def play_song(
 
 @router.post("/play_by_url")
 async def play_by_url(
+    request: Request,
     device_id: str = Query(..., description="音箱设备 ID"),
     url: str = Query(..., description="音箱可访问的音频 HTTP URL"),
     title: str = Query(None, description="歌曲名称（用于日志）"),
@@ -62,13 +63,20 @@ async def play_by_url(
     """通过 URL 直接推送音频到音箱
 
     适用于 desktop 等外部客户端：把当前播放的 track 流地址转发给小爱音箱。
+    允许传入相对路径（如 `/api/track/stream/123`），会自动用当前请求的 origin 补全。
     """
     if not player:
         raise HTTPException(status_code=500, detail="Player not initialized")
     if not device_id or not url:
         raise HTTPException(status_code=400, detail="device_id and url are required")
+
+    # 补全相对路径：用当前请求的 scheme + host 拼成绝对 URL
     if not url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="url must be http(s)")
+        scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+        if not host:
+            raise HTTPException(status_code=400, detail="url must be http(s) or a relative path with a valid Host header")
+        url = f"{scheme}://{host}{url if url.startswith('/') else '/' + url}"
 
     success = await player.play_by_url(device_id, url, title or url)
     if not success:
