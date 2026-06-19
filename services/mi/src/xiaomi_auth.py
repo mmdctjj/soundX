@@ -10,6 +10,8 @@
 - callback 拿 serviceToken 用 session 直接取 cookies
 """
 
+from __future__ import annotations
+
 import base64
 import hashlib
 import json

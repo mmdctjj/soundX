@@ -9,6 +9,8 @@
 - songloft 多账号多设备；这里单账号多设备
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
