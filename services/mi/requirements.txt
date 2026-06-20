@@ -3,7 +3,7 @@ uvicorn
 python-dotenv
 aiohttp
 mutagen
-miservice
+miservice==2.0.1
 requests
 qrcode
 pycryptodome
