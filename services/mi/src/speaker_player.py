@@ -14,6 +14,14 @@ from src.xiaomi_auth import MiQRAuth
 
 logger = logging.getLogger(__name__)
 
+# 需要使用 player_play_music API 的硬件型号列表
+# 这些型号不支持 player_play_url，必须使用 player_play_music
+_USE_PLAY_MUSIC_API = [
+    "LX04", "LX05", "L05B", "L05C", "L06", "L06A", "LX06",
+    "X08A", "X10A", "X08C", "X08E", "X8F", "X4B",
+    "OH2", "OH2P", "X6A",
+]
+
 
 def _get_lan_ip() -> str:
     """获取本机局域网 IP（非 127.0.0.1）"""
@@ -65,11 +73,13 @@ class SpeakerPlayer:
         """尝试从 .mi.token 或 auth.json 加载 token 登录
 
         对齐 xiaomusic auth.py login_miboy：
-        1) 注入 {passToken, userId, deviceId} 到 MiAccount
-        2) 显式调用 login('micoapi') 触发 serviceLogin + _securityTokenService
+        1) 使用 MiTokenStore 包装 token 文件路径
+        2) 创建 MiAccount 并显式调用 login('micoapi') 触发 serviceLogin + _securityTokenService
            → 这一步会刷新 micoapi 数组（ssecurity, serviceToken）
         3) 创建 MiNAService，调 device_list() 验证
         """
+        from miservice import MiTokenStore
+
         token = None
 
         # 1) 先尝试 .mi.token（miservice 格式）
@@ -94,25 +104,21 @@ class SpeakerPlayer:
         if not token or "userId" not in token or "passToken" not in token:
             return False
 
-        # 3) 注入 token 走 miservice（仅传 passToken/userId/deviceId，micoapi 留给 login 刷新）
+        # 3) 使用 MiTokenStore 创建 MiAccount，让 miservice 自动管理 token 持久化
+        token_store = MiTokenStore(token_path)
         self.account = MiAccount(
             self._session,
-            Config.MI_USERNAME or token.get("userId", ""),
-            Config.MI_PASSWORD or "",
-            token_path,
+            str(token.get("userId", "")),
+            "",
+            token_store,
         )
-        self.account.token = {
-            "passToken": token["passToken"],
-            "userId": token["userId"],
-            "deviceId": token.get("deviceId", ""),
-        }
 
         # 4) 显式 login('micoapi') → 走 serviceLogin 拿 ssecurity → _securityTokenService 拿 serviceToken
         #    失败时不抛，miservice 内部已记录日志
         try:
             login_ok = await self.account.login("micoapi")
         except Exception as e:
-            logger.warning(f"login(micoapi) 抛异常: {e}")
+            logger.warning(f"login(micoapi) 抛异常: {e}", exc_info=True)
             login_ok = False
 
         if not login_ok:
@@ -134,7 +140,7 @@ class SpeakerPlayer:
             logger.info(f"Token 登录成功，发现 {len(self.devices)} 个设备")
             return True
         except Exception as e:
-            logger.warning(f"device_list 失败: {e}")
+            logger.warning(f"device_list 失败: {e}", exc_info=True)
             self.service = None
             self.account = None
             self._login_ok = False
@@ -227,7 +233,7 @@ class SpeakerPlayer:
             url = self.file_to_url(song["path"])
             logger.info(f"Playing {song['name']} on {device_id} -> {url}")
 
-            await self.service.play_by_url(device_id, url)
+            await self.play_by_url(device_id, url, song.get("name", ""))
 
             self._current_device_id = device_id
 
@@ -246,6 +252,11 @@ class SpeakerPlayer:
         适用于 desktop 等外部客户端把当前 track 的 stream URL 转发给小爱音箱。
         若 URL 不可被音箱直接访问（典型场景：URL 含 localhost / 内网 IP），
         会先用 mi 自己的 HTTP 服务代理为对音箱可达的地址再推送。
+
+        根据硬件型号选择播放 API：
+        - LX04, LX05, L05B, L05C, L06, L06A, X08A, X10A, X08C, X08E, X8F, X4B, OH2, OH2P, X6A
+          等型号需要使用 player_play_music API
+        - 其他型号使用 player_play_url
         """
         if not self.service or not device_id or not url:
             logger.warning("Service/device_id/url not available")
@@ -257,12 +268,73 @@ class SpeakerPlayer:
 
             proxied_url = await self._proxy_url_if_needed(url)
             logger.info(f"Play-by-url on {device_id}: {title or url} -> {proxied_url}")
-            await self.service.play_by_url(device_id, proxied_url)
+            
+            # 获取设备硬件型号
+            hardware = self._get_device_hardware(device_id)
+            
+            # 根据硬件型号选择播放 API
+            if hardware in _USE_PLAY_MUSIC_API:
+                result = await self._play_by_music_url(device_id, proxied_url)
+            else:
+                result = await self.service.ubus_request(
+                    device_id,
+                    "player_play_url",
+                    "mediaplayer",
+                    {"url": proxied_url, "type": 1, "media": "app_ios"}
+                )
+            
+            if not result:
+                logger.warning(f"play failed for {device_id} (hardware={hardware})")
+                return False
+                
             self._current_device_id = device_id
             return True
         except Exception as e:
             logger.error(f"play_by_url failed: {e}", exc_info=True)
             return False
+
+    def _get_device_hardware(self, device_id: str) -> str:
+        """从设备列表中获取硬件型号"""
+        for d in self.devices:
+            if d.get("deviceID") == device_id:
+                return d.get("hardware", "")
+        return ""
+
+    async def _play_by_music_url(self, device_id: str, url: str, audio_id: str = "1582971365183456177") -> bool:
+        """使用 player_play_music API 播放（适配需要此 API 的硬件型号）"""
+        import json
+        music = {
+            "payload": {
+                "audio_type": "MUSIC",
+                "audio_items": [
+                    {
+                        "item_id": {
+                            "audio_id": audio_id,
+                            "cp": {
+                                "album_id": "-1",
+                                "episode_index": 0,
+                                "id": "355454500",
+                                "name": "xiaowei",
+                            },
+                        },
+                        "stream": {"url": url},
+                    }
+                ],
+                "list_params": {
+                    "listId": "-1",
+                    "loadmore_offset": 0,
+                    "origin": "xiaowei",
+                    "type": "MUSIC",
+                },
+            },
+            "play_behavior": "REPLACE_ALL",
+        }
+        return await self.service.ubus_request(
+            device_id,
+            "player_play_music",
+            "mediaplayer",
+            {"startaudioid": audio_id, "music": json.dumps(music)}
+        )
 
     async def _proxy_url_if_needed(self, url: str) -> str:
         """若 URL 指向 localhost/127.0.0.1，则改为走 mi 自身的 HTTP 服务代理。
@@ -289,9 +361,15 @@ class SpeakerPlayer:
         if not self.service or not device_id:
             return False
         try:
-            await self.service.player_stop(device_id)
-            logger.info(f"Stopped playback on {device_id}")
-            return True
+            result = await self.service.ubus_request(
+                device_id,
+                "player_play_operation",
+                "mediaplayer",
+                {"action": "stop", "media": "app_ios"}
+            )
+            if result:
+                logger.info(f"Stopped playback on {device_id}")
+            return bool(result)
         except Exception as e:
             logger.warning(f"Stop failed: {e}")
             return False
@@ -301,9 +379,15 @@ class SpeakerPlayer:
         if not self.service or not device_id:
             return False
         try:
-            await self.service.player_pause(device_id)
-            logger.info(f"Paused playback on {device_id}")
-            return True
+            result = await self.service.ubus_request(
+                device_id,
+                "player_play_operation",
+                "mediaplayer",
+                {"action": "pause", "media": "app_ios"}
+            )
+            if result:
+                logger.info(f"Paused playback on {device_id}")
+            return bool(result)
         except Exception as e:
             logger.warning(f"Pause failed: {e}")
             return False
