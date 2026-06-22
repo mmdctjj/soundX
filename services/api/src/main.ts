@@ -120,6 +120,21 @@ async function bootstrap() {
     }),
   );
 
+  // Mi Service Proxy (XiaoAi Speaker)
+  const miServiceUrl = process.env.MI_SERVICE_URL || 'http://localhost:8080';
+  console.log(`Proxying /mi requests to: ${miServiceUrl}`);
+  app.use(
+    ['/mi', '/api/mi'],
+    createProxyMiddleware({
+      target: miServiceUrl,
+      changeOrigin: true,
+      pathRewrite: {
+        '^/api/mi': '', // Remove /api/mi prefix
+        '^/mi': '',     // Remove /mi prefix
+      },
+    }),
+  );
+
   const config = new DocumentBuilder()
     .setTitle('AudioDock API')
     .setDescription('AudioDock API documentation')

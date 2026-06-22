@@ -255,7 +255,17 @@
     "setTimerPrompt": "设置定时停止",
     "shufflePlay": "随机播放",
     "singleLoop": "单曲循环",
-    "willStopAfterCurrent": "将在当前曲目后停止"
+    "willStopAfterCurrent": "将在当前曲目后停止",
+    "miSpeaker": "小爱音箱",
+    "miSpeakerTitle": "小爱音箱设备",
+    "noMiDevices": "暂无设备",
+    "loadMiDevicesFailed": "获取小爱音箱列表失败",
+    "miLoginRequired": "请先登录小米账号",
+    "miScanQRCode": "请使用小米商城 App 扫码登录",
+    "miLoginSuccess": "小米账号登录成功",
+    "miCastNoTrack": "请先选择要播放的歌曲",
+    "miCastSuccess": "已推送到 {{device}}",
+    "miCastFailed": "推送到小爱音箱失败"
   },
   "library": {
     "title": "音乐库",

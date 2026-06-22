@@ -484,10 +484,18 @@
   },
   "playerPage": {
     "notice": "Notice",
-    "vipFeatureOnly": "This feature is available to VIP members only.",
+    "vipFeatureOnly": "This is a VIP feature and is only available with a VIP subscription.",
     "activateNow": "Activate Now",
-    "vipStatusFailed": "Failed to get membership status. Please try again later",
-    "listened": "Played"
+    "vipStatusFailed": "Failed to get VIP status, please try again later",
+    "listened": "Played",
+    "miSpeakerTitle": "XiaoAi Speaker Devices",
+    "noMiDevices": "No devices found",
+    "loadMiDevicesFailed": "Failed to load XiaoAi speaker list",
+    "miLoginRequired": "Please log in to your Mi account first",
+    "miScanQRCode": "Please scan with Mi Home App",
+    "miCastNoTrack": "Please select a track first",
+    "miCastSuccess": "Casting to {{device}}",
+    "miCastFailed": "Failed to cast to XiaoAi speaker"
   },
   "playlist": {
     "currentPlaylist": "Current ({{count}})",

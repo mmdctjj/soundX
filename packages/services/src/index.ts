@@ -9,6 +9,7 @@ export * from "./config";
 export * from "./folder";
 export * from "./import";
 export * from "./llm";
+export * from "./mi";
 export * from "./models";
 export * from "./mv";
 export * from "./playlist";
