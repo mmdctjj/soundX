@@ -1,3 +1,4 @@
+import { request } from "./request";
 export interface MiPlayPlaylistRequest {
   device_id: string;
   tracks: { url: string; title: string; duration?: number }[];
@@ -26,7 +27,7 @@ export const playMiDevicePlaylist = async (
       },
     },
   );
-};import { request } from "./request";
+};
 
 export interface MiDevice {
   device_id: string;
