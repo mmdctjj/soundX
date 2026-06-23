@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 import logging
 
@@ -82,6 +82,30 @@ async def play_by_url(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to play by url")
     return JSONResponse(content={"success": True, "title": title or url})
+
+
+@router.post("/play_playlist")
+async def play_playlist(
+    device_id: str = Query(..., description="音箱设备 ID"),
+    start_index: int = Query(0, description="开始播放的索引，默认 0"),
+    tracks: list[dict] = Body(default=[], description="歌曲列表，每项包含 {url, title, duration}"),
+):
+    """播放播放列表到小爱音箱
+
+    接收一个歌曲列表，从指定索引开始播放，自动切歌。
+    每首歌播完后根据 duration 自动播放下一首。
+    """
+    if not player:
+        raise HTTPException(status_code=500, detail="Player not initialized")
+    if not device_id:
+        raise HTTPException(status_code=400, detail="device_id is required")
+    if not tracks:
+        raise HTTPException(status_code=400, detail="tracks is required")
+
+    success = await player.play_playlist(device_id, tracks, start_index)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to play playlist")
+    return JSONResponse(content={"success": True, "tracks_count": len(tracks)})
 
 
 @router.get("/control")

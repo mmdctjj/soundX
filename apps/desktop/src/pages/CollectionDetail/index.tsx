@@ -10,6 +10,8 @@ import {
 import {
   deleteCollection,
   getCollectionById,
+  getCollectionAlbums,
+  playMiDevicePlaylist,
   removeAlbumFromCollection,
   reorderCollection,
   updateCollection,
@@ -30,8 +32,9 @@ import {
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
+import { MiDeviceSelector, XiaoAiIcon } from "../../components/MiDeviceSelector";
 import Cover from "../../components/Cover";
-import type { Album } from "../../models";
+import type { Album, Track } from "../../models";
 import { resolveArtworkUri } from "../../services/trackResolver";
 import styles from "./index.module.less";
 
@@ -48,6 +51,10 @@ const CollectionDetail: React.FC = () => {
   const [manageOpen, setManageOpen] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [uploadingCover, setUploadingCover] = useState(false);
+
+  // Mi Speaker cast state
+  const [isMiDeviceSelectorOpen, setIsMiDeviceSelectorOpen] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   useEffect(() => {
     if (id) loadDetail(id);
@@ -151,6 +158,49 @@ const CollectionDetail: React.FC = () => {
     }
   };
 
+  const handleCastCollectionToMi = async (deviceId: string, deviceName: string) => {
+    if (!collection?.id) {
+      message.warning(t("player.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      // 获取合集下的所有专辑曲目
+      const res = await getCollectionAlbums(collection.id);
+      const albumsData = res.data || [];
+      const allTracks: Track[] = [];
+      albumsData.forEach((item: any) => {
+        const albumTracks = item.album?.tracks || [];
+        allTracks.push(...albumTracks);
+      });
+
+      if (allTracks.length === 0) {
+        message.warning(t("player.miCastNoTrack"));
+        return;
+      }
+
+      const tracks = allTracks.map((track) => ({
+        url: `${window.location.origin}/api/track/stream/${track.id}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks,
+        start_index: 0,
+      });
+
+      message.success(t("player.miCastPlaylistSuccess", { device: deviceName, count: tracks.length }));
+      setIsMiDeviceSelectorOpen(false);
+    } catch (error) {
+      console.error("Failed to cast collection to Mi device:", error);
+      message.error(t("player.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
+
   if (!collection) {
     return (
       <div className={styles.empty} style={{ color: token.colorTextSecondary }}>
@@ -165,6 +215,12 @@ const CollectionDetail: React.FC = () => {
     `https://picsum.photos/seed/${album.id}/300/300`;
 
   const menuItems = [
+    {
+      key: "cast",
+      label: t("player.castToMiSpeaker"),
+      icon: <XiaoAiIcon style={{ width: 14, height: 14 }} />,
+      onClick: () => setIsMiDeviceSelectorOpen(true),
+    },
     {
       key: "rename",
       label: t("collectionDetail.rename"),
@@ -343,6 +399,12 @@ const CollectionDetail: React.FC = () => {
           ))}
         </div>
       </Modal>
+      <MiDeviceSelector
+        open={isMiDeviceSelectorOpen}
+        onClose={() => setIsMiDeviceSelectorOpen(false)}
+        onSelectDevice={(device) => handleCastCollectionToMi(device.device_id, device.name)}
+        loading={isCastingToMi}
+      />
     </div>
   );
 };

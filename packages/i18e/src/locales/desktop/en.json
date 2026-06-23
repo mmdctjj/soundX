@@ -35,7 +35,8 @@
     "settings": "Settings",
     "unknown": "Unknown",
     "artists": "Artists",
-    "selectAll": "Select All"
+    "selectAll": "Select All",
+    "retry": "Retry"
   },
   "nav": {
     "library": "Library",
@@ -371,6 +372,10 @@
     "miScanQRCode": "Please scan with Mi Store App",
     "miLoginSuccess": "Mi account logged in successfully",
     "miCastNoTrack": "Please select a track first",
+    "miCastPlaylist": "Cast Playlist",
+    "miCastPlaylistSuccess": "Cast {{count}} tracks to {{device}}",
+    "miCastPlaylistFailed": "Failed to cast playlist",
+    "castToMiSpeaker": "Cast to Speaker",
     "miCastSuccess": "Casting to {{device}}",
     "miCastFailed": "Failed to cast to XiaoAi speaker"
   },

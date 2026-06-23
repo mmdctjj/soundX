@@ -3,6 +3,7 @@ import { AlbumMoreModal } from "@/src/components/AlbumMoreModal";
 import { CollectionSelectModal } from "@/src/components/CollectionSelectModal";
 import { FilePathModal } from "@/src/components/FilePathModal";
 import { FloatingActionButtons } from "@/src/components/FloatingActionButtons";
+import { MiDeviceSelector } from "@/src/components/MiDeviceSelector";
 import PlayingIndicator from "@/src/components/PlayingIndicator";
 import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { TrackMoreModal } from "@/src/components/TrackMoreModal";
@@ -19,6 +20,7 @@ import {
   type AlbumTrackSortBy,
   getAlbumById,
   getAlbumTracks,
+  playMiDevicePlaylist,
   toggleAlbumLike,
   toggleAlbumUnLike,
   uploadAlbumCover,
@@ -77,6 +79,10 @@ export default function AlbumDetailScreen() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<(number | string)[]>([]);
   const flatListRef = useRef<FlatList<Track>>(null);
+
+  // Mi Speaker cast state
+  const [isMiDeviceSelectorVisible, setIsMiDeviceSelectorVisible] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   const PAGE_SIZE = 20000;
 
@@ -246,6 +252,39 @@ export default function AlbumDetailScreen() {
         animated: true,
         viewPosition: 0.5,
       });
+    }
+  };
+
+  const handleCastAlbumToMi = async (deviceId: string, deviceName: string) => {
+    if (tracks.length === 0) {
+      Alert.alert(t("playerPage.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const baseURL = (await import("@/src/https")).getBaseURL().replace(/\/$/, "");
+      const quality = "high";
+      const qualityQuery = `?quality=${quality}`;
+
+      const trackPayloads = tracks.map((track) => ({
+        url: `${baseURL}/track/stream/${track.id}${qualityQuery}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+
+      Alert.alert(t("playerPage.miCastPlaylistSuccess", { device: deviceName, count: trackPayloads.length }));
+      setIsMiDeviceSelectorVisible(false);
+    } catch (e) {
+      console.error("Failed to cast album to Mi device:", e);
+      Alert.alert(t("playerPage.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
     }
   };
 
@@ -686,6 +725,10 @@ export default function AlbumDetailScreen() {
         }}
         onUpdateCover={handleUpdateCover}
         onManageCollections={() => setCollectionModalVisible(true)}
+        onCastToMi={() => {
+          setAlbumMoreVisible(false);
+          setIsMiDeviceSelectorVisible(true);
+        }}
       />
 
       <FilePathModal
@@ -795,6 +838,12 @@ export default function AlbumDetailScreen() {
           locateDisabled={!currentTrack || !tracks.some(t => t.id === currentTrack.id)}
         />
       )}
+      <MiDeviceSelector
+        visible={isMiDeviceSelectorVisible}
+        onClose={() => setIsMiDeviceSelectorVisible(false)}
+        onSelectDevice={(device) => handleCastAlbumToMi(device.device_id, device.name)}
+        loading={isCastingToMi}
+      />
     </View>
   );
 }

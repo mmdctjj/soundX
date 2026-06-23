@@ -17,6 +17,7 @@ import {
   deletePlaylist,
   getPlaylistById,
   getPlaylists,
+  playMiDevicePlaylist,
   removeTrackFromPlaylist,
   updatePlaylist,
   type Playlist,
@@ -37,10 +38,12 @@ import {
   theme,
   Typography,
   type MenuProps,
+  message,
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
+import { MiDeviceSelector, XiaoAiIcon } from "../../components/MiDeviceSelector";
 import PlayingIndicator from "../../components/PlayingIndicator";
 import { useMessage } from "../../context/MessageContext";
 import { type Track } from "../../models";
@@ -82,6 +85,10 @@ const PlaylistDetail: React.FC = () => {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
 
   const [modalApi, modalContextHolder] = Modal.useModal();
+
+  // Mi Speaker cast state
+  const [isMiDeviceSelectorOpen, setIsMiDeviceSelectorOpen] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   const { token } = theme.useToken();
   const {
@@ -147,6 +154,35 @@ const PlaylistDetail: React.FC = () => {
         setSelectedRowKeys([]);
       }
     });
+  };
+
+  const handleCastPlaylistToMi = async (deviceId: string, deviceName: string) => {
+    if (!playlist?.tracks || playlist.tracks.length === 0) {
+      message.warning(t("player.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const tracks = playlist.tracks.map((track) => ({
+        url: `${window.location.origin}/api/track/stream/${track.id}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks,
+        start_index: 0,
+      });
+
+      message.success(t("player.miCastPlaylistSuccess", { device: deviceName, count: tracks.length }));
+      setIsMiDeviceSelectorOpen(false);
+    } catch (error) {
+      console.error("Failed to cast playlist to Mi device:", error);
+      message.error(t("player.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
   };
 
   const handlePlayTrack = (track: Track) => {
@@ -476,6 +512,13 @@ const PlaylistDetail: React.FC = () => {
                       setIsSelectionMode(true);
                     }}
                   />
+                  <XiaoAiIcon
+                    className={styles.actionIcon}
+                    style={{ width: 18, height: 18 }}
+                    onClick={() => {
+                      setIsMiDeviceSelectorOpen(true);
+                    }}
+                  />
                   {isSelectionMode && (
                     <Space size={8} style={{ marginLeft: 16 }}>
                       <Button
@@ -593,6 +636,12 @@ const PlaylistDetail: React.FC = () => {
           )}
         />
       </Modal>
+      <MiDeviceSelector
+        open={isMiDeviceSelectorOpen}
+        onClose={() => setIsMiDeviceSelectorOpen(false)}
+        onSelectDevice={(device) => handleCastPlaylistToMi(device.device_id, device.name)}
+        loading={isCastingToMi}
+      />
     </div>
   );
 };

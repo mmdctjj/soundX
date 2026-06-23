@@ -1,5 +1,6 @@
 import PlayingIndicator from "@/src/components/PlayingIndicator";
 import { TrackMoreModal } from "@/src/components/TrackMoreModal";
+import { MiDeviceSelector } from "@/src/components/MiDeviceSelector";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Playlist } from "@/src/models";
@@ -10,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import {
     deletePlaylist,
     getPlaylistById,
+    playMiDevicePlaylist,
     updatePlaylist,
 } from "@soundx/services";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -49,6 +51,10 @@ export default function PlaylistDetailScreen() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState<(number | string)[]>([]);
   const insets = useSafeAreaInsets();
+
+  // Mi Speaker cast state
+  const [isMiDeviceSelectorVisible, setIsMiDeviceSelectorVisible] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -166,6 +172,40 @@ export default function PlaylistDetailScreen() {
         },
       ]
     );
+  };
+
+  const handleCastPlaylistToMi = async (deviceId: string, deviceName: string) => {
+    const tracks = playlist?.tracks || [];
+    if (tracks.length === 0) {
+      Alert.alert(t("playerPage.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const baseURL = (await import("@/src/https")).getBaseURL().replace(/\/$/, "");
+      const quality = "high";
+      const qualityQuery = `?quality=${quality}`;
+
+      const trackPayloads = tracks.map((track) => ({
+        url: `${baseURL}/track/stream/${track.id}${qualityQuery}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+
+      Alert.alert(t("playerPage.miCastPlaylistSuccess", { device: deviceName, count: trackPayloads.length }));
+      setIsMiDeviceSelectorVisible(false);
+    } catch (e) {
+      console.error("Failed to cast playlist to Mi device:", e);
+      Alert.alert(t("playerPage.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
   };
 
   if (loading) {
@@ -434,6 +474,23 @@ export default function PlaylistDetailScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={[styles.menuItem]}
+              onPress={() => {
+                setMoreModalVisible(false);
+                setIsMiDeviceSelectorVisible(true);
+              }}
+            >
+              <Ionicons
+                name="radio-outline"
+                size={24}
+                color={colors.secondary}
+              />
+              <Text style={[styles.menuText, { color: colors.text }]}>
+                {t("playerPage.castToMiSpeaker")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.menuItem}
               onPress={() => {
                 setMoreModalVisible(false);
@@ -527,6 +584,12 @@ export default function PlaylistDetailScreen() {
           </View>
         </View>
       </Modal>
+      <MiDeviceSelector
+        visible={isMiDeviceSelectorVisible}
+        onClose={() => setIsMiDeviceSelectorVisible(false)}
+        onSelectDevice={(device) => handleCastPlaylistToMi(device.device_id, device.name)}
+        loading={isCastingToMi}
+      />
     </View>
   );
 }

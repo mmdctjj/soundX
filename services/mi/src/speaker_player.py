@@ -36,7 +36,13 @@ def _get_lan_ip() -> str:
 
 
 class SpeakerPlayer:
-    """音箱播放控制：封装 miservice 实现设备发现、播放、停止、TTS 等功能"""
+    """音箱播放控制：封装 miservice 实现设备发现、播放、停止、TTS 等功能
+
+    新增播放列表支持：
+    - _playlist: 当前播放列表（[{url, title, duration}]）
+    - _playlist_index: 当前播放索引
+    - _playlist_timer: 自动切歌定时器
+    """
 
     def __init__(self):
         self.account: MiAccount | None = None
@@ -47,6 +53,11 @@ class SpeakerPlayer:
         self._current_device_id: str | None = None
         self._session: aiohttp.ClientSession | None = None
         self._login_ok: bool = False
+        # 播放列表状态
+        self._playlist: list[dict] = []
+        self._playlist_index: int = 0
+        self._playlist_device_id: str | None = None
+        self._playlist_timer: asyncio.Task | None = None
 
     async def init(self) -> None:
         """初始化 miservice：尝试 token 登录 → 标记为未登录"""
@@ -300,8 +311,11 @@ class SpeakerPlayer:
                 return d.get("hardware", "")
         return ""
 
-    async def _play_by_music_url(self, device_id: str, url: str, audio_id: str = "1582971365183456177") -> bool:
-        """使用 player_play_music API 播放（适配需要此 API 的硬件型号）"""
+    async def _play_by_music_url(self, device_id: str, url: str, audio_id: str = "1582971365183456177", title: str = "") -> bool:
+        """使用 player_play_music API 播放（适配需要此 API 的硬件型号）
+        
+        支持单首播放和多首播放列表播放。
+        """
         import json
         music = {
             "payload": {
@@ -336,6 +350,60 @@ class SpeakerPlayer:
             {"startaudioid": audio_id, "music": json.dumps(music)}
         )
 
+    async def _play_playlist_by_music_url(self, device_id: str, tracks: list[dict], audio_id: str = "1582971365183456177") -> bool:
+        """使用 player_play_music API 播放播放列表（一次性推送多首）
+        
+        利用 audio_items 数组支持多首歌曲的特性，让音箱原生管理播放列表切歌。
+        """
+        import json
+        
+        if not tracks:
+            logger.warning("No tracks to play")
+            return False
+        
+        # 构建 audio_items 数组
+        audio_items = []
+        for i, track in enumerate(tracks):
+            url = track.get("url", "")
+            title = track.get("title", "")
+            proxied_url = await self._proxy_url_if_needed(url)
+            audio_items.append({
+                "item_id": {
+                    "audio_id": audio_id,
+                    "cp": {
+                        "album_id": "-1",
+                        "episode_index": i,
+                        "id": str(355454500 + i),
+                        "name": "xiaowei",
+                    },
+                },
+                "stream": {"url": proxied_url},
+            })
+            logger.info(f"播放列表曲目 {i+1}: {title} -> {proxied_url}")
+        
+        music = {
+            "payload": {
+                "audio_type": "MUSIC",
+                "audio_items": audio_items,
+                "list_params": {
+                    "listId": "-1",
+                    "loadmore_offset": 0,
+                    "origin": "xiaowei",
+                    "type": "MUSIC",
+                },
+            },
+            "play_behavior": "REPLACE_ALL",
+        }
+        
+        logger.info(f"推送播放列表到音箱: {len(tracks)} 首")
+        
+        return await self.service.ubus_request(
+            device_id,
+            "player_play_music",
+            "mediaplayer",
+            {"startaudioid": audio_id, "music": json.dumps(music)}
+        )
+
     async def _proxy_url_if_needed(self, url: str) -> str:
         """若 URL 指向 localhost/127.0.0.1，则改为走 mi 自身的 HTTP 服务代理。
 
@@ -356,11 +424,131 @@ class SpeakerPlayer:
             logger.warning(f"proxy_url_if_needed fallback to original: {e}")
             return url
 
+    async def play_playlist(self, device_id: str, tracks: list[dict], start_index: int = 0) -> bool:
+        """播放播放列表：从指定索引开始
+
+        根据音箱硬件型号选择播放策略：
+        - 使用 player_play_music API 的型号：一次性推送 audio_items 数组，让音箱原生管理切歌
+        - 其他型号：使用定时器自动切歌（player_play_url 不支持多首）
+
+        Args:
+            device_id: 音箱设备 ID
+            tracks: 歌曲列表，每项包含 {url, title, duration}
+            start_index: 开始播放的索引，默认 0
+        """
+        if not self.service or not device_id or not tracks:
+            logger.warning("Service/device_id/tracks not available")
+            return False
+
+        # 取消之前的播放列表定时器
+        self._cancel_playlist_timer()
+
+        # 设置播放列表状态
+        self._playlist = tracks
+        self._playlist_index = start_index
+        self._playlist_device_id = device_id
+
+        logger.info(f"开始播放列表: {len(tracks)} 首, 从索引 {start_index} 开始")
+
+        # 获取设备硬件型号
+        hardware = self._get_device_hardware(device_id)
+        
+        # 使用 player_play_music API 的型号：一次性推送多首，音箱原生切歌
+        if hardware in _USE_PLAY_MUSIC_API:
+            logger.info(f"设备 {hardware} 使用 player_play_music 播放列表")
+            try:
+                await self.stop(device_id)
+                await asyncio.sleep(0.3)
+                
+                # 从 start_index 开始的曲目
+                tracks_to_play = tracks[start_index:]
+                success = await self._play_playlist_by_music_url(device_id, tracks_to_play)
+                if success:
+                    logger.info(f"播放列表已推送到音箱: {len(tracks_to_play)} 首")
+                    return True
+                else:
+                    logger.warning("player_play_music 播放列表失败，回退到定时器模式")
+            except Exception as e:
+                logger.error(f"player_play_music 播放列表失败: {e}", exc_info=True)
+        
+        # 其他型号或 player_play_music 失败：使用定时器自动切歌
+        logger.info(f"使用定时器模式播放列表")
+        return await self._play_playlist_track()
+
+    async def _play_playlist_track(self) -> bool:
+        """播放播放列表中当前索引的歌曲，并设置定时器切下一首（定时器模式）"""
+        if not self._playlist or self._playlist_index >= len(self._playlist):
+            logger.info("播放列表已结束")
+            return True
+
+        track = self._playlist[self._playlist_index]
+        device_id = self._playlist_device_id
+        if not device_id:
+            return False
+
+        url = track.get("url", "")
+        title = track.get("title", "")
+        duration = track.get("duration", 0)
+
+        logger.info(f"播放列表 [{self._playlist_index + 1}/{len(self._playlist)}]: {title}")
+
+        # 播放当前歌曲
+        success = await self.play_by_url(device_id, url, title)
+        if not success:
+            logger.warning(f"播放列表第 {self._playlist_index} 首播放失败，尝试下一首")
+            self._playlist_index += 1
+            return await self._play_playlist_track()
+
+        # 设置定时器自动切下一首（根据歌曲时长 + 2秒缓冲）
+        if duration and duration > 0:
+            delay = duration + 2.0
+            logger.info(f"{delay:.1f} 秒后自动播放下一首")
+            self._playlist_timer = asyncio.create_task(self._playlist_auto_next(delay))
+        else:
+            # 没有时长信息，不自动切歌
+            logger.info("歌曲时长未知，不自动切歌")
+
+        return True
+
+    async def _playlist_auto_next(self, delay: float):
+        """定时器：延迟后播放下一首"""
+        try:
+            await asyncio.sleep(delay)
+            if self._playlist and self._playlist_device_id:
+                self._playlist_index += 1
+                if self._playlist_index < len(self._playlist):
+                    await self._play_playlist_track()
+                else:
+                    logger.info("播放列表播放完毕")
+                    self._clear_playlist()
+        except asyncio.CancelledError:
+            logger.info("播放列表定时器被取消")
+        except Exception as e:
+            logger.error(f"自动切歌失败: {e}")
+
+    def _cancel_playlist_timer(self):
+        """取消播放列表定时器"""
+        if self._playlist_timer:
+            self._playlist_timer.cancel()
+            self._playlist_timer = None
+            logger.info("播放列表定时器已取消")
+
+    def _clear_playlist(self):
+        """清空播放列表状态"""
+        self._playlist = []
+        self._playlist_index = 0
+        self._playlist_device_id = None
+        self._cancel_playlist_timer()
+
     async def stop(self, device_id: str) -> bool:
-        """停止播放"""
+        """停止播放（同时取消播放列表自动切歌）"""
         if not self.service or not device_id:
             return False
         try:
+            # 如果是当前播放列表的设备，取消播放列表定时器
+            if device_id == self._playlist_device_id:
+                self._clear_playlist()
+                
             result = await self.service.ubus_request(
                 device_id,
                 "player_play_operation",

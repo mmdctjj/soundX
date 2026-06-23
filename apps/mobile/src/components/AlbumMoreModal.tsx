@@ -27,6 +27,7 @@ interface AlbumMoreModalProps {
   onSelectTracks?: () => void;
   onUpdateCover: () => void;
   onManageCollections?: () => void;
+  onCastToMi?: () => void;
 }
 
 export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
@@ -39,6 +40,7 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
   onSelectTracks,
   onUpdateCover,
   onManageCollections,
+  onCastToMi,
 }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -156,6 +158,13 @@ export const AlbumMoreModal: React.FC<AlbumMoreModalProps> = ({
               <Ionicons name="cloud-download-outline" size={24} color={colors.text} />
               <Text style={[styles.optionText, { color: colors.text }]}>{t('albumMore.batchDownload')}</Text>
             </TouchableOpacity>
+
+            {onCastToMi && (
+              <TouchableOpacity style={styles.option} onPress={() => handleOptionPress(onCastToMi)}>
+                <Ionicons name="radio-outline" size={24} color={colors.text} />
+                <Text style={[styles.optionText, { color: colors.text }]}>{t('playerPage.castToMiSpeaker')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </Pressable>
       </Pressable>

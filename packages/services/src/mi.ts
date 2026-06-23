@@ -1,4 +1,32 @@
-import { request } from "./request";
+export interface MiPlayPlaylistRequest {
+  device_id: string;
+  tracks: { url: string; title: string; duration?: number }[];
+  start_index?: number;
+}
+
+export interface MiPlayPlaylistResponse {
+  success: boolean;
+  tracks_count: number;
+}
+
+/**
+ * 播放播放列表到小爱音箱
+ * 从指定索引开始播放，服务端自动切歌
+ */
+export const playMiDevicePlaylist = async (
+  payload: MiPlayPlaylistRequest,
+): Promise<MiPlayPlaylistResponse> => {
+  return request.post<MiPlayPlaylistResponse>(
+    `${MI_BASE_URL}/api/play_playlist`,
+    payload.tracks,
+    {
+      params: {
+        device_id: payload.device_id,
+        start_index: payload.start_index || 0,
+      },
+    },
+  );
+};import { request } from "./request";
 
 export interface MiDevice {
   device_id: string;
