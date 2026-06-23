@@ -7,6 +7,7 @@ import { MiDeviceSelector } from "@/src/components/MiDeviceSelector";
 import PlayingIndicator from "@/src/components/PlayingIndicator";
 import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { TrackMoreModal } from "@/src/components/TrackMoreModal";
+import { XiaoAiIcon } from "@/src/components/XiaoAiIcon";
 import { useAuth } from "@/src/context/AuthContext";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
@@ -466,6 +467,14 @@ export default function AlbumDetailScreen() {
                       color={isLiked ? colors.primary : colors.secondary}
                     />
                   </TouchableOpacity>
+                  {!isSelectionMode && album.type !== "AUDIOBOOK" && (
+                    <TouchableOpacity
+                      style={[styles.likeButton, { backgroundColor: colors.card }]}
+                      onPress={() => setIsMiDeviceSelectorVisible(true)}
+                    >
+                      <XiaoAiIcon size={22} color={colors.secondary} />
+                    </TouchableOpacity>
+                  )}
                   {!isSelectionMode ? (
                     <TouchableOpacity
                       style={[styles.likeButton, { backgroundColor: colors.card }]}
@@ -725,10 +734,6 @@ export default function AlbumDetailScreen() {
         }}
         onUpdateCover={handleUpdateCover}
         onManageCollections={() => setCollectionModalVisible(true)}
-        onCastToMi={() => {
-          setAlbumMoreVisible(false);
-          setIsMiDeviceSelectorVisible(true);
-        }}
       />
 
       <FilePathModal

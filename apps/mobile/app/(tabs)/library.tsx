@@ -1,9 +1,11 @@
 import { AddToPlaylistModal } from "@/src/components/AddToPlaylistModal";
 import { CachedImage } from "@/src/components/CachedImage";
 import { FloatingActionButtons } from "@/src/components/FloatingActionButtons";
+import { MiDeviceSelector } from "@/src/components/MiDeviceSelector";
+import { XiaoAiIcon } from "@/src/components/XiaoAiIcon";
 import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { Ionicons } from "@expo/vector-icons";
-import { getArtistList, getCollections, loadMoreAlbum, loadMoreTrack, getMvList } from "@soundx/services";
+import { getArtistList, getCollections, loadMoreAlbum, loadMoreTrack, getMvList, playMiDevicePlaylist } from "@soundx/services";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -963,6 +965,10 @@ export default function LibraryScreen() {
   const [heartbeatModeActive, setHeartbeatModeActive] = useState(false);
   const swingAnim = useRef(new Animated.Value(0)).current;
 
+  // Mi Speaker cast state (for SongList tab)
+  const [isMiDeviceSelectorVisible, setIsMiDeviceSelectorVisible] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
+
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -1103,6 +1109,54 @@ export default function LibraryScreen() {
     </Text>
   );
 
+  const handleCastTracksToMi = async (deviceId: string, deviceName: string) => {
+    setIsCastingToMi(true);
+    try {
+      const baseURL = (await import("@/src/https")).getBaseURL().replace(/\/$/, "");
+      const quality = "high";
+      const qualityQuery = `?quality=${quality}`;
+      const res = await loadMoreTrack({
+        pageSize: 2000,
+        loadCount: 0,
+        type: "MUSIC",
+        sortBy: heartbeatModeActive ? "heartbeat" : undefined,
+      });
+      if (res.code !== 200 || !res.data) {
+        Alert.alert(t("playerPage.miCastNoTrack"));
+        return;
+      }
+      const tracks = res.data.list.map((item: any) => item.track ? item.track : item);
+      const finalTracks = heartbeatModeActive
+        ? tracks
+        : tracks.sort((a: any, b: any) => a.name.localeCompare(b.name));
+      
+      if (finalTracks.length === 0) {
+        Alert.alert(t("playerPage.miCastNoTrack"));
+        return;
+      }
+      
+      const trackPayloads = finalTracks.map((track: any) => ({
+        url: `${baseURL}/track/stream/${track.id}${qualityQuery}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+
+      Alert.alert(t("playerPage.miCastPlaylistSuccess", { device: deviceName, count: trackPayloads.length }));
+      setIsMiDeviceSelectorVisible(false);
+    } catch (error) {
+      console.error("Failed to cast tracks to Mi device:", error);
+      Alert.alert(t("playerPage.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
+
   return (
     <View
       style={[
@@ -1134,6 +1188,17 @@ export default function LibraryScreen() {
         <View style={styles.headerRight}>
           {mode === "MUSIC" && activeTab === "songs" && (
             <>
+              {!isSelectionMode && (
+                <TouchableOpacity
+                  onPress={() => setIsMiDeviceSelectorVisible(true)}
+                  style={[
+                    styles.iconButton,
+                    { backgroundColor: colors.card, marginRight: 12 },
+                  ]}
+                >
+                  <XiaoAiIcon size={20} color={colors.primary} />
+                </TouchableOpacity>
+              )}
               {isSelectionMode ? (
                 <TouchableOpacity
                   onPress={() => {
@@ -1327,6 +1392,12 @@ export default function LibraryScreen() {
       ) : (
         <CollectionList />
       )}
+      <MiDeviceSelector
+        visible={isMiDeviceSelectorVisible}
+        onClose={() => setIsMiDeviceSelectorVisible(false)}
+        onSelectDevice={(device) => handleCastTracksToMi(device.device_id, device.name)}
+        loading={isCastingToMi}
+      />
     </View>
   );
 }

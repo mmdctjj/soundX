@@ -13,6 +13,7 @@ import {
     getTracksByArtist,
     uploadArtistAvatar,
     getMvsByArtist,
+    playMiDevicePlaylist,
 } from "@soundx/services";
 import type { Mv } from "@soundx/services";
 import {
@@ -32,6 +33,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
+import { MiDeviceSelector, XiaoAiIcon } from "../../components/MiDeviceSelector";
 import Cover from "../../components/Cover";
 import TrackList from "../../components/TrackList";
 import { getBaseURL } from "../../https";
@@ -70,6 +72,10 @@ const ArtistDetail: React.FC = () => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const isAudioDockSource =
     (localStorage.getItem("selectedSourceType") || "AudioDock") === "AudioDock";
+
+  // Mi Speaker cast state
+  const [isMiDeviceSelectorOpen, setIsMiDeviceSelectorOpen] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -200,6 +206,35 @@ const ArtistDetail: React.FC = () => {
       disabled: uploadingAvatar || !isAudioDockSource,
     },
   ];
+
+  const handleCastTracksToMi = async (deviceId: string, deviceName: string) => {
+    if (tracks.length === 0) {
+      messageApi.warning(t("player.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const trackPayloads = tracks.map((track) => ({
+        url: `${window.location.origin}/api/track/stream/${track.id}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+
+      messageApi.success(t("player.miCastPlaylistSuccess", { device: deviceName, count: trackPayloads.length }));
+      setIsMiDeviceSelectorOpen(false);
+    } catch (error) {
+      console.error("Failed to cast tracks to Mi device:", error);
+      messageApi.error(t("player.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
 
 
 
@@ -394,12 +429,20 @@ const ArtistDetail: React.FC = () => {
                   </Button>
                 </Flex>
             ) : (
-                <Button
-                  icon={<CheckSquareOutlined />}
-                  onClick={handleToggleSelectionMode}
-                >
-                  批量操作
-                </Button>
+                <Flex gap={8} align="center">
+                  <Button
+                    icon={<XiaoAiIcon style={{ width: 14, height: 14 }} />}
+                    onClick={() => setIsMiDeviceSelectorOpen(true)}
+                  >
+                    投放到音箱
+                  </Button>
+                  <Button
+                    icon={<CheckSquareOutlined />}
+                    onClick={handleToggleSelectionMode}
+                  >
+                    批量操作
+                  </Button>
+                </Flex>
             )}
           </Flex>
           <TrackList
@@ -423,6 +466,12 @@ const ArtistDetail: React.FC = () => {
             setIsSelectionMode(false);
             setSelectedRowKeys([]);
         }}
+      />
+      <MiDeviceSelector
+        open={isMiDeviceSelectorOpen}
+        onClose={() => setIsMiDeviceSelectorOpen(false)}
+        onSelectDevice={(device) => handleCastTracksToMi(device.device_id, device.name)}
+        loading={isCastingToMi}
       />
     </div>
   );

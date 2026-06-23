@@ -1,4 +1,4 @@
-import PlayingIndicator from "@/src/components/PlayingIndicator";
+import { XiaoAiIcon } from "@/src/components/XiaoAiIcon";import PlayingIndicator from "@/src/components/PlayingIndicator";
 import { TrackMoreModal } from "@/src/components/TrackMoreModal";
 import { MiDeviceSelector } from "@/src/components/MiDeviceSelector";
 import { usePlayer } from "@/src/context/PlayerContext";
@@ -480,11 +480,7 @@ export default function PlaylistDetailScreen() {
                 setIsMiDeviceSelectorVisible(true);
               }}
             >
-              <Ionicons
-                name="radio-outline"
-                size={24}
-                color={colors.secondary}
-              />
+              <XiaoAiIcon size={24} color={colors.secondary} />
               <Text style={[styles.menuText, { color: colors.text }]}>
                 {t("playerPage.castToMiSpeaker")}
               </Text>

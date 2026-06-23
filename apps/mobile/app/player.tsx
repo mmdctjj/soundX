@@ -1,5 +1,6 @@
 import MarqueeText from "@/src/components/MarqueeText";
 import PlayingIndicator from "@/src/components/PlayingIndicator";
+import { XiaoAiIcon } from "@/src/components/XiaoAiIcon";
 import { useAuth } from "@/src/context/AuthContext";
 import { PlayMode, usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
@@ -953,11 +954,7 @@ export function PlayerDetailView({
                             { backgroundColor: colors.primary },
                           ]}
                         >
-                          <MaterialCommunityIcons
-                            name="speaker"
-                            size={20}
-                            color="#fff"
-                          />
+                          <XiaoAiIcon size={20} color="#fff" />
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={{ color: colors.text, fontSize: 15, fontWeight: "600" }}>
@@ -1052,11 +1049,7 @@ export function PlayerDetailView({
           }}
           style={styles.likeButton}
         >
-          <MaterialCommunityIcons
-            name="speaker"
-            size={24}
-            color={miLoggedIn ? colors.primary : colors.text}
-          />
+          <XiaoAiIcon size={24} color={miLoggedIn ? colors.primary : colors.text} />
         </TouchableOpacity>
       </View>
 

@@ -10,7 +10,7 @@ import {
   PlayCircleOutlined,
   PlusOutlined
 } from "@ant-design/icons";
-import { loadMoreTrack } from "@soundx/services";
+import { loadMoreTrack, playMiDevicePlaylist } from "@soundx/services";
 import { useInfiniteScroll } from "ahooks";
 import {
   Button,
@@ -24,6 +24,7 @@ import {
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
+import { MiDeviceSelector, XiaoAiIcon } from "../../components/MiDeviceSelector";
 import TrackList from "../../components/TrackList";
 import { type Track } from "../../models";
 import { downloadTracks } from "../../services/downloadManager";
@@ -55,6 +56,9 @@ const Songs: React.FC = () => {
   // Batch Add to Playlist
   const [isBatchAddModalOpen, setIsBatchAddModalOpen] = useState(false);
 
+  // Mi Speaker cast state
+  const [isMiDeviceSelectorOpen, setIsMiDeviceSelectorOpen] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   const { mode } = usePlayMode();
   const { heartbeatModeActive, toggleHeartbeatMode } = useLibraryStore();
@@ -153,6 +157,35 @@ const Songs: React.FC = () => {
     }
   };
 
+  const handleCastTracksToMi = async (deviceId: string, deviceName: string) => {
+    if (!data?.list.length) {
+      messageApi.warning(t("player.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const trackPayloads = data.list.map((track) => ({
+        url: `${window.location.origin}/api/track/stream/${track.id}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+
+      messageApi.success(t("player.miCastPlaylistSuccess", { device: deviceName, count: trackPayloads.length }));
+      setIsMiDeviceSelectorOpen(false);
+    } catch (error) {
+      console.error("Failed to cast tracks to Mi device:", error);
+      messageApi.error(t("player.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
+
   const showFloatingActions = (data?.list.length || 0) > 50;
   const canLocateCurrent =
     !!currentTrack && !!data?.list.some((t) => t.id === currentTrack.id);
@@ -237,11 +270,11 @@ const Songs: React.FC = () => {
             <Flex gap={8} align="center">
               {mode === "MUSIC" && (
                 <Button
-                  type={heartbeatModeActive ? "primary" : "default"}
-                  icon={heartbeatModeActive ? <HeartFilled /> : <HeartOutlined />}
-                  onClick={toggleHeartbeatMode}
+                  icon={<XiaoAiIcon style={{ width: 14, height: 14 }} />}
+                  onClick={() => setIsMiDeviceSelectorOpen(true)}
+                  disabled={!data?.list.length}
                 >
-                  {t("songs.heartbeatMode")}
+                  投放到音箱
                 </Button>
               )}
               <Button 
@@ -289,6 +322,13 @@ const Songs: React.FC = () => {
             setIsSelectionMode(false);
             setSelectedRowKeys([]);
         }}
+      />
+
+      <MiDeviceSelector
+        open={isMiDeviceSelectorOpen}
+        onClose={() => setIsMiDeviceSelectorOpen(false)}
+        onSelectDevice={(device) => handleCastTracksToMi(device.device_id, device.name)}
+        loading={isCastingToMi}
       />
 
       {(loading || loadingMore) && (
