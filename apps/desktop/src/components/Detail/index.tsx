@@ -17,6 +17,7 @@ import {
     type AlbumTrackSortBy,
     getAlbumById,
     getAlbumTracks,
+    playMiDevicePlaylist,
     toggleAlbumLike,
     toggleAlbumUnLike,
     uploadAlbumCover,
@@ -41,6 +42,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AddToPlaylistModal from "../../components/AddToPlaylistModal";
+import { MiDeviceSelector, XiaoAiIcon } from "../../components/MiDeviceSelector";
 import { useMessage } from "../../context/MessageContext";
 import { type Album, type Track } from "../../models";
 import { downloadTracks } from "../../services/downloadManager";
@@ -80,6 +82,10 @@ const Detail: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [isBatchAddModalOpen, setIsBatchAddModalOpen] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+
+  // Mi Speaker cast state
+  const [isMiDeviceSelectorOpen, setIsMiDeviceSelectorOpen] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   const location = useLocation();
   const hasResumed = React.useRef(false);
@@ -389,6 +395,35 @@ const Detail: React.FC = () => {
     !!currentTrack && tracks.some((t) => t.id === currentTrack.id);
   const isAudiobookAlbum = album?.type === "AUDIOBOOK";
 
+  const handleCastAlbumToMi = async (deviceId: string, deviceName: string) => {
+    if (tracks.length === 0) {
+      message.warning(t("player.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const trackPayloads = tracks.map((track) => ({
+        url: `${window.location.origin}/api/track/stream/${track.id}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+
+      message.success(t("player.miCastPlaylistSuccess", { device: deviceName, count: trackPayloads.length }));
+      setIsMiDeviceSelectorOpen(false);
+    } catch (error) {
+      console.error("Failed to cast album to Mi device:", error);
+      message.error(t("player.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
+
   const sortMenuItems: MenuProps["items"] = [
     {
       key: "sort-fileName",
@@ -575,6 +610,15 @@ const Detail: React.FC = () => {
                         onClick={() =>
                           album && user?.id && likeAlbum(album.id, user.id)
                         }
+                      />
+                    )}
+                    {!isSelectionMode && !isAudiobookAlbum && activeTab === "tracks" && (
+                      <XiaoAiIcon
+                        className={styles.actionIcon}
+                        style={{ width: 18, height: 18 }}
+                        onClick={() => {
+                          setIsMiDeviceSelectorOpen(true);
+                        }}
                       />
                     )}
                     <OrderedListOutlined
@@ -769,6 +813,12 @@ const Detail: React.FC = () => {
             setIsSelectionMode(false);
             setSelectedRowKeys([]);
           }}
+        />
+        <MiDeviceSelector
+          open={isMiDeviceSelectorOpen}
+          onClose={() => setIsMiDeviceSelectorOpen(false)}
+          onSelectDevice={(device) => handleCastAlbumToMi(device.device_id, device.name)}
+          loading={isCastingToMi}
         />
       </div>
     </div>

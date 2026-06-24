@@ -129,10 +129,15 @@ const CollectionDetail: React.FC = () => {
         setAlbums((prev) => prev.filter((item) => item.id !== album.id));
         message.success(t("collectionDetail.removed"));
       } else {
-        message.error(res.message || t("collectionDetail.removeFailed", { defaultValue: "移除失败" }));
+        message.error(
+          res.message ||
+            t("collectionDetail.removeFailed", { defaultValue: "移除失败" }),
+        );
       }
     } catch (error) {
-      message.error(t("collectionDetail.removeFailed", { defaultValue: "移除失败" }));
+      message.error(
+        t("collectionDetail.removeFailed", { defaultValue: "移除失败" }),
+      );
     }
   };
 
@@ -141,13 +146,24 @@ const CollectionDetail: React.FC = () => {
     try {
       const res = await deleteCollection(collection.id);
       if (res.code === 200) {
-        message.success(t("collectionDetail.collectionDisbanded", { defaultValue: "合集已解散" }));
+        message.success(
+          t("collectionDetail.collectionDisbanded", {
+            defaultValue: "合集已解散",
+          }),
+        );
         navigate("/collections");
       } else {
-        message.error(res.message || t("collectionDetail.disbandFailed", { defaultValue: "删除合集失败" }));
+        message.error(
+          res.message ||
+            t("collectionDetail.disbandFailed", {
+              defaultValue: "删除合集失败",
+            }),
+        );
       }
     } catch (error) {
-      message.error(t("collectionDetail.disbandFailed", { defaultValue: "删除合集失败" }));
+      message.error(
+        t("collectionDetail.disbandFailed", { defaultValue: "删除合集失败" }),
+      );
     }
   };
 

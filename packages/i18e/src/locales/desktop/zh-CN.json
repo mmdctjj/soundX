@@ -35,7 +35,8 @@
     "settings": "设置",
     "unknown": "未知",
     "artists": "艺术家",
-    "selectAll": "全选"
+    "selectAll": "全选",
+    "retry": "重试"
   },
   "nav": {
     "library": "音乐库",
@@ -264,6 +265,10 @@
     "miScanQRCode": "请使用小米商城 App 扫码登录",
     "miLoginSuccess": "小米账号登录成功",
     "miCastNoTrack": "请先选择要播放的歌曲",
+    "miCastPlaylist": "投放播放列表",
+    "miCastPlaylistSuccess": "已投放 {{count}} 首到 {{device}}",
+    "miCastPlaylistFailed": "投放播放列表失败",
+    "castToMiSpeaker": "投放到音箱",
     "miCastSuccess": "已推送到 {{device}}",
     "miCastFailed": "推送到小爱音箱失败"
   },

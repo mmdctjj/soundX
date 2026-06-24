@@ -59,7 +59,8 @@
     "loadingCount": "共加载 {{count}}",
     "operationFailed": "操作失败",
     "and": "和",
-    "property": "属性"
+    "property": "属性",
+    "retry": "重试"
   },
   "nav": {
     "home": "首页",
@@ -501,6 +502,11 @@
     "loadMiDevicesFailed": "获取小爱音箱列表失败",
     "miLoginRequired": "请先登录小米账号",
     "miScanQRCode": "请使用米家 App 扫码登录",
+    "miCastPlaylist": "投放播放列表",
+    "miCastPlaylistSuccess": "已投放 {{count}} 首到 {{device}}",
+    "miCastPlaylistFailed": "投放播放列表失败",
+    "tracks": "首",
+    "castToMiSpeaker": "投放到音箱",
     "miCastNoTrack": "请先选择要播放的歌曲",
     "miCastSuccess": "已推送到 {{device}}",
     "miCastFailed": "推送到小爱音箱失败"

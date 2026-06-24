@@ -17,6 +17,7 @@ import {
   deletePlaylist,
   getPlaylistById,
   getPlaylists,
+  playMiDevicePlaylist,
   removeTrackFromPlaylist,
   updatePlaylist,
   type Playlist,
@@ -41,6 +42,10 @@ import {
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  MiDeviceSelector,
+  XiaoAiIcon,
+} from "../../components/MiDeviceSelector";
 import PlayingIndicator from "../../components/PlayingIndicator";
 import { useMessage } from "../../context/MessageContext";
 import { type Track } from "../../models";
@@ -82,6 +87,10 @@ const PlaylistDetail: React.FC = () => {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
 
   const [modalApi, modalContextHolder] = Modal.useModal();
+
+  // Mi Speaker cast state
+  const [isMiDeviceSelectorOpen, setIsMiDeviceSelectorOpen] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   const { token } = theme.useToken();
   const {
@@ -136,17 +145,56 @@ const PlaylistDetail: React.FC = () => {
       selectedRowKeys.includes(t.id),
     );
     if (selectedTracks.length === 0) {
-      message.warning(t('playlistDetail.selectTracksFirst'));
+      message.warning(t("playlistDetail.selectTracksFirst"));
       return;
     }
-    message.info(t('playlistDetail.startDownload', { count: selectedTracks.length }));
+    message.info(
+      t("playlistDetail.startDownload", { count: selectedTracks.length }),
+    );
     downloadTracks(selectedTracks, (completed: number, total: number) => {
       if (completed === total) {
-        message.success(t('playlistDetail.downloadComplete', { count: total }));
+        message.success(t("playlistDetail.downloadComplete", { count: total }));
         setIsSelectionMode(false);
         setSelectedRowKeys([]);
       }
     });
+  };
+
+  const handleCastPlaylistToMi = async (
+    deviceId: string,
+    deviceName: string,
+  ) => {
+    if (!playlist?.tracks || playlist.tracks.length === 0) {
+      message.warning(t("player.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const tracks = playlist.tracks.map((track) => ({
+        url: `${window.location.origin}/api/track/stream/${track.id}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks,
+        start_index: 0,
+      });
+
+      message.success(
+        t("player.miCastPlaylistSuccess", {
+          device: deviceName,
+          count: tracks.length,
+        }),
+      );
+      setIsMiDeviceSelectorOpen(false);
+    } catch (error) {
+      console.error("Failed to cast playlist to Mi device:", error);
+      message.error(t("player.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
   };
 
   const handlePlayTrack = (track: Track) => {
@@ -161,12 +209,12 @@ const PlaylistDetail: React.FC = () => {
     try {
       const res = await deletePlaylist(id);
       if (res.code === 200) {
-        message.success(t('common.success'));
+        message.success(t("common.success"));
         navigate("/recommended");
         window.location.reload();
       }
     } catch (error) {
-      message.error(t('common.error'));
+      message.error(t("common.error"));
     }
   };
 
@@ -176,7 +224,7 @@ const PlaylistDetail: React.FC = () => {
       const values = await form.validateFields();
       const res = await updatePlaylist(id, values.name);
       if (res.code === 200) {
-        message.success(t('common.success'));
+        message.success(t("common.success"));
         setIsEditModalOpen(false);
         fetchPlaylist();
         // Refresh sidebar playlist list
@@ -185,7 +233,7 @@ const PlaylistDetail: React.FC = () => {
         }
       }
     } catch (error) {
-      message.error(t('common.error'));
+      message.error(t("common.error"));
     }
   };
 
@@ -194,11 +242,11 @@ const PlaylistDetail: React.FC = () => {
     try {
       const res = await removeTrackFromPlaylist(id, trackId);
       if (res.code === 200) {
-        message.success(t('playlistDetail.removedSuccess'));
+        message.success(t("playlistDetail.removedSuccess"));
         fetchPlaylist();
       }
     } catch (error) {
-      message.error(t('playlistDetail.removeFailed'));
+      message.error(t("playlistDetail.removeFailed"));
     }
   };
 
@@ -213,7 +261,7 @@ const PlaylistDetail: React.FC = () => {
         setPlaylists(res.data);
       }
     } catch (error) {
-      message.error(t('player.getPlaylistsFailed'));
+      message.error(t("player.getPlaylistsFailed"));
     }
   };
 
@@ -233,20 +281,20 @@ const PlaylistDetail: React.FC = () => {
             selectedTrack.id,
           );
           if (removeRes.code === 200) {
-            message.success(t('playlistDetail.moveSuccess'));
+            message.success(t("playlistDetail.moveSuccess"));
             fetchPlaylist();
           } else {
-            message.warning(t('playlistDetail.addSuccessRemoveFailed'));
+            message.warning(t("playlistDetail.addSuccessRemoveFailed"));
           }
         } else {
-          message.success(t('common.success'));
+          message.success(t("common.success"));
         }
         setIsAddToPlaylistModalOpen(false);
       } else {
-        message.error(t('common.error'));
+        message.error(t("common.error"));
       }
     } catch (error) {
-      message.error(t('common.error'));
+      message.error(t("common.error"));
     }
   };
 
@@ -274,7 +322,7 @@ const PlaylistDetail: React.FC = () => {
       },
     },
     {
-      title: t('playlistDetail.cover'),
+      title: t("playlistDetail.cover"),
       key: "cover",
       width: 60,
       render: (_: any, record: Track) => {
@@ -310,7 +358,7 @@ const PlaylistDetail: React.FC = () => {
       },
     },
     {
-      title: t('playlistDetail.trackTitle'),
+      title: t("playlistDetail.trackTitle"),
       dataIndex: "name",
       key: "name",
       ellipsis: true,
@@ -319,7 +367,7 @@ const PlaylistDetail: React.FC = () => {
       ),
     },
     {
-      title: t('playlistDetail.duration'),
+      title: t("playlistDetail.duration"),
       dataIndex: "duration",
       key: "duration",
       width: 80,
@@ -335,7 +383,7 @@ const PlaylistDetail: React.FC = () => {
         const items: MenuProps["items"] = [
           {
             key: "move",
-            label: t('playlistDetail.moveToPlaylist'),
+            label: t("playlistDetail.moveToPlaylist"),
             icon: <PlusOutlined />,
             onClick: (info) => {
               info.domEvent.stopPropagation();
@@ -344,7 +392,7 @@ const PlaylistDetail: React.FC = () => {
           },
           {
             key: "remove",
-            label: t('playlistDetail.removeFromList'),
+            label: t("playlistDetail.removeFromList"),
             icon: <DeleteOutlined />,
             danger: true,
             onClick: (info) => {
@@ -355,7 +403,7 @@ const PlaylistDetail: React.FC = () => {
               // Let's use a simple confirm or just direct call for now as it's inside a menu.
               // Actually, let's wrap the logic in a function that shows modal.
               modalApi.confirm({
-                title: t('playlistDetail.confirmRemove'),
+                title: t("playlistDetail.confirmRemove"),
                 onOk: () => handleRemoveTrack(record.id),
               });
             },
@@ -420,7 +468,7 @@ const PlaylistDetail: React.FC = () => {
               {playlist?.name || "Unknown Playlist"}
             </Title>
             <Text type="secondary" style={{ color: "#ccc" }}>
-              {t('playlistDetail.createdAt')} 
+              {t("playlistDetail.createdAt")}
               {playlist?.createdAt
                 ? new Date(playlist.createdAt).toLocaleDateString()
                 : ""}
@@ -461,11 +509,11 @@ const PlaylistDetail: React.FC = () => {
                     }}
                   />
                   <Popconfirm
-                    title={t('playlistDetail.confirmDelete')}
-                    description={t('playlistDetail.deleteWarning')}
+                    title={t("playlistDetail.confirmDelete")}
+                    description={t("playlistDetail.deleteWarning")}
                     onConfirm={handleDeletePlaylist}
-                    okText={t('playlistDetail.disband')}
-                    cancelText={t('common.cancel')}
+                    okText={t("playlistDetail.disband")}
+                    cancelText={t("common.cancel")}
                     okButtonProps={{ danger: true }}
                   >
                     <DeleteOutlined className={styles.actionIcon} />
@@ -476,6 +524,13 @@ const PlaylistDetail: React.FC = () => {
                       setIsSelectionMode(true);
                     }}
                   />
+                  <XiaoAiIcon
+                    className={styles.actionIcon}
+                    style={{ width: 18, height: 18 }}
+                    onClick={() => {
+                      setIsMiDeviceSelectorOpen(true);
+                    }}
+                  />
                   {isSelectionMode && (
                     <Space size={8} style={{ marginLeft: 16 }}>
                       <Button
@@ -483,7 +538,9 @@ const PlaylistDetail: React.FC = () => {
                         size="small"
                         onClick={handleDownloadSelected}
                       >
-                        {t('playlistDetail.clickToDownload', { count: selectedRowKeys.length })}
+                        {t("playlistDetail.clickToDownload", {
+                          count: selectedRowKeys.length,
+                        })}
                       </Button>
                       <Button
                         size="small"
@@ -494,7 +551,7 @@ const PlaylistDetail: React.FC = () => {
                           setSelectedRowKeys([]);
                         }}
                       >
-                        {t('common.cancel')}
+                        {t("common.cancel")}
                       </Button>
                     </Space>
                   )}
@@ -513,7 +570,7 @@ const PlaylistDetail: React.FC = () => {
                   className={styles.searchInput}
                   onChange={(e) => setKeywordMidValue(e.target.value)}
                   onPressEnter={() => setKeyword(keywordMidValue)}
-                  placeholder={t('playlistDetail.searchPlaceholder')}
+                  placeholder={t("playlistDetail.searchPlaceholder")}
                 />
                 {sort === "desc" ? (
                   <SortAscendingOutlined
@@ -557,7 +614,7 @@ const PlaylistDetail: React.FC = () => {
       </div>
       {modalContextHolder}
       <Modal
-        title={t('playlistDetail.editPlaylist')}
+        title={t("playlistDetail.editPlaylist")}
         open={isEditModalOpen}
         onOk={handleUpdatePlaylist}
         onCancel={() => setIsEditModalOpen(false)}
@@ -565,8 +622,13 @@ const PlaylistDetail: React.FC = () => {
         <Form form={form} layout="vertical">
           <Form.Item
             name="name"
-            label={t('playlistDetail.listName')}
-            rules={[{ required: true, message: t('playlistDetail.enterListName') || '' }]}
+            label={t("playlistDetail.listName")}
+            rules={[
+              {
+                required: true,
+                message: t("playlistDetail.enterListName") || "",
+              },
+            ]}
           >
             <Input />
           </Form.Item>
@@ -574,7 +636,11 @@ const PlaylistDetail: React.FC = () => {
       </Modal>
 
       <Modal
-        title={pendingAction === "move" ? t('playlistDetail.moveToPlaylist') : t('addToPlaylistModal.title')}
+        title={
+          pendingAction === "move"
+            ? t("playlistDetail.moveToPlaylist")
+            : t("addToPlaylistModal.title")
+        }
         open={isAddToPlaylistModalOpen}
         onCancel={() => setIsAddToPlaylistModalOpen(false)}
         footer={null}
@@ -588,11 +654,22 @@ const PlaylistDetail: React.FC = () => {
               className={styles.playlistItem}
             >
               <Text>{item.name}</Text>
-              <Text type="secondary">{item._count?.tracks || 0} {t("playlist.trackCount", { count: "" }).replace("首", "")}首</Text>
+              <Text type="secondary">
+                {item._count?.tracks || 0}{" "}
+                {t("playlist.trackCount", { count: "" }).replace("首", "")}首
+              </Text>
             </List.Item>
           )}
         />
       </Modal>
+      <MiDeviceSelector
+        open={isMiDeviceSelectorOpen}
+        onClose={() => setIsMiDeviceSelectorOpen(false)}
+        onSelectDevice={(device) =>
+          handleCastPlaylistToMi(device.device_id, device.name)
+        }
+        loading={isCastingToMi}
+      />
     </div>
   );
 };

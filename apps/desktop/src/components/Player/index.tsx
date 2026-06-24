@@ -1850,31 +1850,33 @@ const Player: React.FC = () => {
                 miDevices.length === 0 ? (
                   <Text type="secondary">{t("player.noMiDevices")}</Text>
                 ) : (
-                  <List
-                    size="small"
-                    dataSource={miDevices}
-                    renderItem={(device) => (
-                      <List.Item
-                        style={{ cursor: currentTrack && !isCastingToMi ? "pointer" : "not-allowed" }}
-                        onClick={() => {
-                          if (!currentTrack || isCastingToMi) return;
-                          handleCastToMi(device.device_id, device.name);
-                        }}
-                      >
-                        <List.Item.Meta
-                          avatar={
-                            <Avatar
-                              size={32}
-                              style={{ backgroundColor: token.colorPrimary }}
-                              icon={<XiaoAiOutlined style={{ width: 20, height: 20, color: token.colorTextLightSolid }} />}
-                            />
-                          }
-                          title={device.name}
-                          description={device.model}
-                        />
-                      </List.Item>
-                    )}
-                  />
+                  <>
+                    <List
+                      size="small"
+                      dataSource={miDevices}
+                      renderItem={(device) => (
+                        <List.Item
+                          style={{ cursor: currentTrack && !isCastingToMi ? "pointer" : "not-allowed" }}
+                          onClick={() => {
+                            if (!currentTrack || isCastingToMi) return;
+                            handleCastToMi(device.device_id, device.name);
+                          }}
+                        >
+                          <List.Item.Meta
+                            avatar={
+                              <Avatar
+                                size={32}
+                                style={{ backgroundColor: token.colorPrimary }}
+                                icon={<XiaoAiOutlined style={{ width: 20, height: 20, color: token.colorTextLightSolid }} />}
+                              />
+                            }
+                            title={device.name}
+                            description={device.model}
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  </>
                 )
               ) : miQRCode?.qrcode_url ? (
                 // 未登录：展示二维码

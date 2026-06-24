@@ -51,7 +51,8 @@
     "loadingCount": "Loaded {{count}}",
     "operationFailed": "Operation failed",
     "and": "and",
-    "property": "Property"
+    "property": "Property",
+    "retry": "Retry"
   },
   "nav": {
     "home": "Home",
@@ -493,6 +494,11 @@
     "loadMiDevicesFailed": "Failed to load XiaoAi speaker list",
     "miLoginRequired": "Please log in to your Mi account first",
     "miScanQRCode": "Please scan with Mi Home App",
+    "miCastPlaylist": "Cast Playlist",
+    "miCastPlaylistSuccess": "Cast {{count}} tracks to {{device}}",
+    "miCastPlaylistFailed": "Failed to cast playlist",
+    "tracks": "tracks",
+    "castToMiSpeaker": "Cast to Speaker",
     "miCastNoTrack": "Please select a track first",
     "miCastSuccess": "Casting to {{device}}",
     "miCastFailed": "Failed to cast to XiaoAi speaker"

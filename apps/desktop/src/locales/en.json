@@ -358,7 +358,10 @@
     "loadMiDevicesFailed": "Failed to load XiaoAi speaker list",
     "miCastNoTrack": "Please select a track first",
     "miCastSuccess": "Casting to {{device}}",
-    "miCastFailed": "Failed to cast to XiaoAi speaker"
+    "miCastFailed": "Failed to cast to XiaoAi speaker",
+    "miCastPlaylist": "Cast Playlist",
+    "miCastPlaylistSuccess": "Playlist cast to {{device}}",
+    "miCastPlaylistFailed": "Failed to cast playlist"
   },
   "library": {
     "title": "Library",
