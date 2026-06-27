@@ -1,1 +1,39 @@
-"use strict";const e=require("electron"),t=new WeakMap;e.contextBridge.exposeInMainWorld("platform",process.platform);e.contextBridge.exposeInMainWorld("ipcRenderer",{on(...r){const[i,n]=r,o=(c,...d)=>n(c,...d);return t.set(n,o),e.ipcRenderer.on(i,o)},off(...r){const[i,n]=r,o=t.get(n);return o?(t.delete(n),e.ipcRenderer.off(i,o)):e.ipcRenderer.off(i,n)},send(...r){const[i,...n]=r;return e.ipcRenderer.send(i,...n)},invoke(...r){const[i,...n]=r;return e.ipcRenderer.invoke(i,...n)},platform:process.platform,getName:async()=>await e.ipcRenderer.invoke("get-device-name"),openExternal:r=>e.ipcRenderer.invoke("open-url",r),selectDirectory:()=>e.ipcRenderer.invoke("select-directory"),minimizeWindow:()=>e.ipcRenderer.send("window:minimize"),maximizeWindow:()=>e.ipcRenderer.send("window:maximize"),closeWindow:()=>e.ipcRenderer.send("window:close")});
+"use strict";
+const electron = require("electron");
+const listenerMap = /* @__PURE__ */ new WeakMap();
+electron.contextBridge.exposeInMainWorld("platform", process.platform);
+electron.contextBridge.exposeInMainWorld("ipcRenderer", {
+  on(...args) {
+    const [channel, listener] = args;
+    const wrappedListener = (event, ...args2) => listener(event, ...args2);
+    listenerMap.set(listener, wrappedListener);
+    return electron.ipcRenderer.on(channel, wrappedListener);
+  },
+  off(...args) {
+    const [channel, listener] = args;
+    const wrappedListener = listenerMap.get(listener);
+    if (wrappedListener) {
+      listenerMap.delete(listener);
+      return electron.ipcRenderer.off(channel, wrappedListener);
+    }
+    return electron.ipcRenderer.off(channel, listener);
+  },
+  send(...args) {
+    const [channel, ...omit] = args;
+    return electron.ipcRenderer.send(channel, ...omit);
+  },
+  invoke(...args) {
+    const [channel, ...omit] = args;
+    return electron.ipcRenderer.invoke(channel, ...omit);
+  },
+  // You can expose other APTs you need here.
+  platform: process.platform,
+  getName: async () => {
+    return await electron.ipcRenderer.invoke("get-device-name");
+  },
+  openExternal: (url) => electron.ipcRenderer.invoke("open-url", url),
+  selectDirectory: () => electron.ipcRenderer.invoke("select-directory"),
+  minimizeWindow: () => electron.ipcRenderer.send("window:minimize"),
+  maximizeWindow: () => electron.ipcRenderer.send("window:maximize"),
+  closeWindow: () => electron.ipcRenderer.send("window:close")
+});

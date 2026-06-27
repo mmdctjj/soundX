@@ -1,285 +1,380 @@
-import { spawn as Q } from "child_process";
-import { app as u, ipcMain as i, dialog as ie, shell as R, net as $, screen as se, BrowserWindow as L, protocol as V, nativeTheme as K, Menu as F, nativeImage as M, Tray as T } from "electron";
-import l from "fs";
-import { fileURLToPath as ce, pathToFileURL as H } from "node:url";
-import P from "os";
-import r from "path";
-import { Readable as X } from "stream";
-import { pipeline as pe } from "stream/promises";
-u.name = "AudioDock";
-process.platform === "darwin" && (process.title = "AudioDock");
-const G = () => K.shouldUseDarkColors ? "#ffffff" : "#1f1f1f", Z = () => {
-  if (!(!n || process.platform !== "win32"))
-    try {
-      n.setTitleBarOverlay({
-        color: "rgba(0,0,0,0)",
-        symbolColor: G(),
-        height: 30
-      });
-    } catch {
-    }
-};
-function de() {
-  const t = P.hostname().replace(/\.local$/, ""), e = process.platform;
-  return e === "darwin" ? `${t}（Mac）` : e === "win32" ? `${t}（Windows）` : t;
+import { spawn } from "child_process";
+import { app, ipcMain, dialog, shell, net, screen, BrowserWindow, protocol, nativeTheme, Menu, nativeImage, Tray } from "electron";
+import fs from "fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import os from "os";
+import path from "path";
+import { Readable } from "stream";
+import { pipeline } from "stream/promises";
+app.name = "AudioDock";
+if (process.platform === "darwin") {
+  process.title = "AudioDock";
 }
-const ue = (t) => new Promise((e) => {
-  const o = Q("ffprobe", [
-    "-v",
-    "error",
-    "-select_streams",
-    "a:0",
-    "-show_entries",
-    "stream=codec_name",
-    "-of",
-    "default=noprint_wrappers=1:nokey=1",
-    t
-  ]);
-  let a = "";
-  o.stdout.on("data", (d) => a += d.toString()), o.on("close", () => e(a.trim())), o.on("error", (d) => {
-    console.warn("ffprobe failed", d), e("");
+const getTitleBarSymbolColor = () => {
+  return nativeTheme.shouldUseDarkColors ? "#ffffff" : "#1f1f1f";
+};
+const syncWindowTitleBarOverlay = () => {
+  if (!win || process.platform !== "win32") return;
+  try {
+    win.setTitleBarOverlay({
+      color: "rgba(0,0,0,0)",
+      symbolColor: getTitleBarSymbolColor(),
+      height: 30
+    });
+  } catch {
+  }
+};
+function getDeviceName() {
+  const hostname = os.hostname().replace(/\.local$/, "");
+  const platform = process.platform;
+  if (platform === "darwin") return `${hostname}（Mac）`;
+  if (platform === "win32") return `${hostname}（Windows）`;
+  return hostname;
+}
+const checkAudioCodec = (filePath) => {
+  return new Promise((resolve) => {
+    const p = spawn("ffprobe", [
+      "-v",
+      "error",
+      "-select_streams",
+      "a:0",
+      "-show_entries",
+      "stream=codec_name",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      filePath
+    ]);
+    let output = "";
+    p.stdout.on("data", (d) => output += d.toString());
+    p.on("close", () => resolve(output.trim()));
+    p.on("error", (e) => {
+      console.warn("ffprobe failed", e);
+      resolve("");
+    });
   });
+};
+ipcMain.handle("get-device-name", () => {
+  return getDeviceName();
 });
-i.handle("get-device-name", () => de());
-i.handle("get-auto-launch", () => u.getLoginItemSettings().openAtLogin);
-i.handle("player:get-state", () => g);
-i.handle("set-auto-launch", (t, e) => {
-  u.setLoginItemSettings({
-    openAtLogin: e,
+ipcMain.handle("get-auto-launch", () => {
+  return app.getLoginItemSettings().openAtLogin;
+});
+ipcMain.handle("player:get-state", () => {
+  return playerState;
+});
+ipcMain.handle("set-auto-launch", (event, enable) => {
+  app.setLoginItemSettings({
+    openAtLogin: enable,
     path: process.execPath
   });
 });
-i.handle("select-directory", async () => {
-  if (!n) return null;
-  const t = await ie.showOpenDialog(n, {
+ipcMain.handle("select-directory", async () => {
+  if (!win) return null;
+  const result = await dialog.showOpenDialog(win, {
     properties: ["openDirectory"]
   });
-  return t.canceled ? null : t.filePaths[0];
+  if (result.canceled) return null;
+  return result.filePaths[0];
 });
-i.handle("open-url", (t, e) => (console.log("Opening URL:", e), R.openExternal(e)));
-i.handle("open-directory", async (t, e) => {
-  const o = e.replace(/^~/, P.homedir());
-  if (!l.existsSync(o))
+ipcMain.handle("open-url", (event, url) => {
+  console.log("Opening URL:", url);
+  return shell.openExternal(url);
+});
+ipcMain.handle("open-directory", async (event, folderPath) => {
+  const fullPath = folderPath.replace(/^~/, os.homedir());
+  if (!fs.existsSync(fullPath)) {
     try {
-      l.mkdirSync(o, { recursive: !0 });
-    } catch (a) {
-      return console.error("Failed to create directory:", a), "Directory does not exist and could not be created";
+      fs.mkdirSync(fullPath, { recursive: true });
+    } catch (e) {
+      console.error("Failed to create directory:", e);
+      return "Directory does not exist and could not be created";
     }
-  return R.openPath(o);
+  }
+  return shell.openPath(fullPath);
 });
-const p = r.join(u.getPath("userData"), "audio_cache");
-l.existsSync(p) || l.mkdirSync(p, { recursive: !0 });
-const fe = r.join(P.homedir(), "Music/Downloads"), ee = (t) => (j || fe).trim().replace(/^~/, P.homedir()), J = (t) => {
+const CACHE_DIR = path.join(app.getPath("userData"), "audio_cache");
+if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+const DEFAULT_DOWNLOAD_DIR = path.join(os.homedir(), "Music/Downloads");
+const resolveDownloadPath = (downloadPath) => {
+  const normalized = (currentDownloadPath || DEFAULT_DOWNLOAD_DIR).trim();
+  return normalized.replace(/^~/, os.homedir());
+};
+const getFileSizeSafe = (targetPath) => {
   try {
-    return l.statSync(t).size;
+    return fs.statSync(targetPath).size;
   } catch {
     return 0;
   }
-}, he = (t, e) => {
-  let o = r.dirname(t);
-  const a = r.resolve(e);
-  for (; o.startsWith(a) && o !== a; )
+};
+const removeEmptyParentDirs = (targetPath, stopPath) => {
+  let current = path.dirname(targetPath);
+  const normalizedStop = path.resolve(stopPath);
+  while (current.startsWith(normalizedStop) && current !== normalizedStop) {
     try {
-      if (l.readdirSync(o).length > 0) break;
-      l.rmdirSync(o), o = r.dirname(o);
+      if (fs.readdirSync(current).length > 0) break;
+      fs.rmdirSync(current);
+      current = path.dirname(current);
     } catch {
       break;
     }
-}, te = () => {
-  if (!l.existsSync(p)) return [];
-  const t = [];
-  for (const e of l.readdirSync(p))
-    if (e.endsWith(".json"))
-      try {
-        const o = JSON.parse(l.readFileSync(r.join(p, e), "utf8"));
-        t.push(o);
-      } catch (o) {
-        console.warn(`[Main] Failed to parse cache metadata ${e}`, o);
-      }
-  return t;
-}, me = (t, e, o, a) => {
-  const d = decodeURIComponent(a), b = r.basename(d), s = e === "MUSIC" ? "music" : r.join("audio", o.replace(/[/\\?%*:|"<>]/g, "-"));
+  }
+};
+const listCacheMetadata = () => {
+  if (!fs.existsSync(CACHE_DIR)) return [];
+  const items = [];
+  for (const file of fs.readdirSync(CACHE_DIR)) {
+    if (!file.endsWith(".json")) continue;
+    try {
+      const parsed = JSON.parse(fs.readFileSync(path.join(CACHE_DIR, file), "utf8"));
+      items.push(parsed);
+    } catch (error) {
+      console.warn(`[Main] Failed to parse cache metadata ${file}`, error);
+    }
+  }
+  return items;
+};
+const getTrackAudioLocalPath = (basePath, type, albumName, originalPath) => {
+  const decodedPath = decodeURIComponent(originalPath);
+  const fileName = path.basename(decodedPath);
+  const subFolder = type === "MUSIC" ? "music" : path.join("audio", albumName.replace(/[/\\?%*:|"<>]/g, "-"));
   return {
-    filePath: r.join(t.replace(/^~/, P.homedir()), s, b),
-    relPath: r.join(s, b).replace(/\\/g, "/")
+    filePath: path.join(basePath.replace(/^~/, os.homedir()), subFolder, fileName),
+    relPath: path.join(subFolder, fileName).replace(/\\/g, "/")
   };
-}, D = /* @__PURE__ */ new Map();
-i.handle("cache:check", async (t, e, o, a, d, b) => {
-  const s = r.join(p, `${e}.json`);
-  if (!l.existsSync(s)) return null;
+};
+const activeDownloads = /* @__PURE__ */ new Map();
+ipcMain.handle("cache:check", async (event, trackId, originalPath, downloadPath, type, albumName) => {
+  const metaPath = path.join(CACHE_DIR, `${trackId}.json`);
+  if (!fs.existsSync(metaPath)) return null;
   try {
-    const y = JSON.parse(l.readFileSync(s, "utf8"));
-    if (!y.localPath) return null;
-    const c = r.join(a.replace(/^~/, P.homedir()), y.localPath);
-    if (l.existsSync(c) && l.statSync(c).size > 0)
-      return `media://audio/${y.localPath}`;
-  } catch (y) {
-    console.error("[Main] cache:check error", y);
+    const metadata = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+    if (!metadata.localPath) return null;
+    const filePath = path.join(downloadPath.replace(/^~/, os.homedir()), metadata.localPath);
+    if (fs.existsSync(filePath) && fs.statSync(filePath).size > 0) {
+      return `media://audio/${metadata.localPath}`;
+    }
+  } catch (e) {
+    console.error("[Main] cache:check error", e);
   }
   return null;
 });
-i.handle("cache:download", async (t, e, o, a, d, b, s, y) => {
-  if (D.has(e)) return D.get(e);
-  const c = (async () => {
-    let f = "";
+ipcMain.handle("cache:download", async (event, trackId, url, downloadPath, type, albumName, metadata, token) => {
+  if (activeDownloads.has(trackId)) return activeDownloads.get(trackId);
+  const downloadPromise = (async () => {
+    let tempPath = "";
     try {
-      const { filePath: v, relPath: S } = me(a, d, b, new URL(o).pathname), w = r.dirname(v);
-      if (l.existsSync(w) || l.mkdirSync(w, { recursive: !0 }), f = v + ".tmp", l.existsSync(v))
-        return s.localPath = S, l.writeFileSync(r.join(p, `${e}.json`), JSON.stringify(s, null, 2)), `media://audio/${S}`;
-      console.log(`[Main] Starting split download for track ${e}: ${o}`);
-      const A = { "User-Agent": "SoundX-Desktop" };
-      y && (A.Authorization = `Bearer ${y}`);
-      const C = await $.fetch(o, { headers: A });
-      if (!C.ok) throw new Error(`Fetch failed: ${C.status}`);
-      const O = C.body;
-      if (!O) throw new Error("Body empty");
-      if (await pe(X.fromWeb(O), l.createWriteStream(f)), l.renameSync(f, v), s.cover)
+      const { filePath, relPath } = getTrackAudioLocalPath(downloadPath, type, albumName, new URL(url).pathname);
+      const dirPath = path.dirname(filePath);
+      if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+      tempPath = filePath + ".tmp";
+      if (fs.existsSync(filePath)) {
+        metadata.localPath = relPath;
+        fs.writeFileSync(path.join(CACHE_DIR, `${trackId}.json`), JSON.stringify(metadata, null, 2));
+        return `media://audio/${relPath}`;
+      }
+      console.log(`[Main] Starting split download for track ${trackId}: ${url}`);
+      const headers = { "User-Agent": "SoundX-Desktop" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const response = await net.fetch(url, { headers });
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      const body = response.body;
+      if (!body) throw new Error("Body empty");
+      await pipeline(Readable.fromWeb(body), fs.createWriteStream(tempPath));
+      fs.renameSync(tempPath, filePath);
+      if (metadata.cover) {
         try {
-          const E = s.cover;
-          console.log(`[Main] Downloading cover: ${E}`);
-          const le = r.extname(new URL(E).pathname) || ".jpg", z = `${e}_cover${le}`, I = await $.fetch(E);
-          if (I.ok && I.body) {
-            const W = I.headers.get("content-type");
-            if (W && W.includes("text/html"))
+          const coverUrl = metadata.cover;
+          console.log(`[Main] Downloading cover: ${coverUrl}`);
+          const coverExt = path.extname(new URL(coverUrl).pathname) || ".jpg";
+          const coverName = `${trackId}_cover${coverExt}`;
+          const cRes = await net.fetch(coverUrl);
+          if (cRes.ok && cRes.body) {
+            const contentType = cRes.headers.get("content-type");
+            if (contentType && contentType.includes("text/html")) {
               throw new Error("Received HTML instead of image (likely dev server fallback)");
-            const B = await I.arrayBuffer(), N = Buffer.from(B.slice(0, 10)).toString();
-            if (N.toLowerCase().includes("<!doc") || N.toLowerCase().includes("<html"))
+            }
+            const buffer = await cRes.arrayBuffer();
+            const snippet = Buffer.from(buffer.slice(0, 10)).toString();
+            if (snippet.toLowerCase().includes("<!doc") || snippet.toLowerCase().includes("<html")) {
               throw new Error("Response content looks like HTML");
-            l.writeFileSync(r.join(p, z), Buffer.from(B)), s.cover = `media://cover/${z}`;
+            }
+            fs.writeFileSync(path.join(CACHE_DIR, coverName), Buffer.from(buffer));
+            metadata.cover = `media://cover/${coverName}`;
           }
-        } catch (E) {
-          console.error("[Main] Cover download failed:", E);
+        } catch (ce) {
+          console.error("[Main] Cover download failed:", ce);
         }
-      return s.localPath = S, l.writeFileSync(r.join(p, `${e}.json`), JSON.stringify(s, null, 2)), console.log(`[Main] Successfully cached/downloaded track ${e}`), `media://audio/${S}`;
-    } catch (v) {
-      if (console.error(`[Main] Split download failed for ${e}:`, v), f && l.existsSync(f)) try {
-        l.unlinkSync(f);
-      } catch {
+      }
+      metadata.localPath = relPath;
+      fs.writeFileSync(path.join(CACHE_DIR, `${trackId}.json`), JSON.stringify(metadata, null, 2));
+      console.log(`[Main] Successfully cached/downloaded track ${trackId}`);
+      return `media://audio/${relPath}`;
+    } catch (error) {
+      console.error(`[Main] Split download failed for ${trackId}:`, error);
+      if (tempPath && fs.existsSync(tempPath)) try {
+        fs.unlinkSync(tempPath);
+      } catch (e) {
       }
       return null;
     } finally {
-      D.delete(e);
+      activeDownloads.delete(trackId);
     }
   })();
-  return D.set(e, c), c;
+  activeDownloads.set(trackId, downloadPromise);
+  return downloadPromise;
 });
-i.handle("cache:list", async (t, e, o) => {
+ipcMain.handle("cache:list", async (event, downloadPath, type) => {
   try {
-    const a = [];
-    if (!l.existsSync(p)) return [];
-    const d = l.readdirSync(p);
-    for (const b of d)
-      if (b.endsWith(".json"))
+    const results = [];
+    if (!fs.existsSync(CACHE_DIR)) return [];
+    const files = fs.readdirSync(CACHE_DIR);
+    for (const file of files) {
+      if (file.endsWith(".json")) {
         try {
-          const s = JSON.parse(l.readFileSync(r.join(p, b), "utf8"));
-          if (s.type === o) {
-            const y = r.join(e.replace(/^~/, P.homedir()), s.localPath);
-            l.existsSync(y) && a.push(s);
+          const data = JSON.parse(fs.readFileSync(path.join(CACHE_DIR, file), "utf8"));
+          if (data.type === type) {
+            const fullAudioPath = path.join(downloadPath.replace(/^~/, os.homedir()), data.localPath);
+            if (fs.existsSync(fullAudioPath)) {
+              results.push(data);
+            }
           }
-        } catch {
+        } catch (e) {
         }
-    return a;
-  } catch (a) {
-    return console.error("[Main] cache:list failed", a), [];
-  }
-});
-i.handle("cache:get-size", async () => {
-  try {
-    const t = ee();
-    let e = 0;
-    if (l.existsSync(p))
-      for (const o of l.readdirSync(p))
-        e += J(r.join(p, o));
-    for (const o of te())
-      o.localPath && (e += J(r.join(t, o.localPath)));
-    return e;
-  } catch (t) {
-    return console.error("[Main] cache:get-size failed", t), 0;
-  }
-});
-i.handle("cache:clear", async () => {
-  try {
-    const t = ee();
-    for (const e of te()) {
-      if (!e.localPath) continue;
-      const o = r.join(t, e.localPath);
-      if (l.existsSync(o))
-        try {
-          l.unlinkSync(o), he(o, t);
-        } catch (a) {
-          console.warn(`[Main] Failed to remove cached audio ${o}`, a);
-        }
+      }
     }
-    if (l.existsSync(p))
-      for (const e of l.readdirSync(p))
+    return results;
+  } catch (error) {
+    console.error("[Main] cache:list failed", error);
+    return [];
+  }
+});
+ipcMain.handle("cache:get-size", async () => {
+  try {
+    const resolvedDownloadPath = resolveDownloadPath();
+    let totalSize = 0;
+    if (fs.existsSync(CACHE_DIR)) {
+      for (const file of fs.readdirSync(CACHE_DIR)) {
+        totalSize += getFileSizeSafe(path.join(CACHE_DIR, file));
+      }
+    }
+    for (const metadata of listCacheMetadata()) {
+      if (!metadata.localPath) continue;
+      totalSize += getFileSizeSafe(path.join(resolvedDownloadPath, metadata.localPath));
+    }
+    return totalSize;
+  } catch (error) {
+    console.error("[Main] cache:get-size failed", error);
+    return 0;
+  }
+});
+ipcMain.handle("cache:clear", async () => {
+  try {
+    const resolvedDownloadPath = resolveDownloadPath();
+    for (const metadata of listCacheMetadata()) {
+      if (!metadata.localPath) continue;
+      const audioPath = path.join(resolvedDownloadPath, metadata.localPath);
+      if (!fs.existsSync(audioPath)) continue;
+      try {
+        fs.unlinkSync(audioPath);
+        removeEmptyParentDirs(audioPath, resolvedDownloadPath);
+      } catch (error) {
+        console.warn(`[Main] Failed to remove cached audio ${audioPath}`, error);
+      }
+    }
+    if (fs.existsSync(CACHE_DIR)) {
+      for (const file of fs.readdirSync(CACHE_DIR)) {
         try {
-          l.unlinkSync(r.join(p, e));
-        } catch (o) {
-          console.warn(`[Main] Failed to remove cache file ${e}`, o);
+          fs.unlinkSync(path.join(CACHE_DIR, file));
+        } catch (error) {
+          console.warn(`[Main] Failed to remove cache file ${file}`, error);
         }
-    return !0;
-  } catch (t) {
-    return console.error("[Main] cache:clear failed", t), !1;
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error("[Main] cache:clear failed", error);
+    return false;
   }
 });
-let j = "";
-i.on("settings:update-download-path", (t, e) => {
-  j = e;
+let currentDownloadPath = "";
+ipcMain.on("settings:update-download-path", (event, path2) => {
+  currentDownloadPath = path2;
 });
-const _ = r.dirname(ce(import.meta.url));
-process.env.DIST = r.join(_, "../dist");
-process.env.VITE_PUBLIC = u.isPackaged ? process.env.DIST : r.join(process.env.DIST, "../public");
-let n = null, h = null, m = null, Y = null, U = null, q = null, k = null, x = null, g = {
-  isPlaying: !1,
+const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
+process.env.DIST = path.join(__dirname$1, "../dist");
+process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
+let win = null;
+let lyricWin = null;
+let miniWin = null;
+let trayPrev = null;
+let trayPlay = null;
+let trayNext = null;
+let trayMain = null;
+let trayLyric = null;
+let playerState = {
+  isPlaying: false,
   track: null
-}, oe = !0, ne = !1;
-function re(t = !0) {
-  const e = g.isPlaying ? "pause.png" : "play.png";
-  if (U) {
-    const d = M.createFromPath(r.join(process.env.VITE_PUBLIC, e)).resize({ width: 18, height: 18 });
-    process.platform === "darwin" && d.setTemplateImage(!0), U.setImage(d);
+};
+let minimizeToTray = true;
+let isQuitting = false;
+function updatePlayerUI(shouldUpdateTitle = true) {
+  const playIcon = playerState.isPlaying ? "pause.png" : "play.png";
+  if (trayPlay) {
+    const img = nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC, playIcon)).resize({ width: 18, height: 18 });
+    if (process.platform === "darwin") img.setTemplateImage(true);
+    trayPlay.setImage(img);
   }
-  process.platform === "darwin" && t && (g.track ? x?.setTitle(`${g.track.name} - ${g.track.artist}`) : x?.setTitle(""));
-  const o = [];
-  g.track && o.push(
-    { label: `♫ ${g.track.name}`, enabled: !1 },
-    { label: `   ${g.track.artist}`, enabled: !1 },
-    { type: "separator" },
-    { label: "⏮ 上一曲", click: () => n?.webContents.send("player:prev") },
-    {
-      label: g.isPlaying ? "⏸ 暂停" : "▶️ 播放",
-      click: () => n?.webContents.send("player:toggle")
-    },
-    { label: "⏭ 下一曲", click: () => n?.webContents.send("player:next") },
-    { type: "separator" }
-  ), o.push(
-    { label: "打开播放器", click: () => n?.show() },
-    { label: "退出", click: () => u.quit() }
-  );
-  const a = F.buildFromTemplate(o);
-  k?.setContextMenu(a);
-}
-function ye() {
-  const t = process.platform === "darwin", e = [
-    ...t ? [
+  if (process.platform === "darwin" && shouldUpdateTitle) {
+    if (playerState.track) {
+      trayLyric?.setTitle(`${playerState.track.name} - ${playerState.track.artist}`);
+    } else {
+      trayLyric?.setTitle("");
+    }
+  }
+  const menuItems = [];
+  if (playerState.track) {
+    menuItems.push(
+      { label: `♫ ${playerState.track.name}`, enabled: false },
+      { label: `   ${playerState.track.artist}`, enabled: false },
+      { type: "separator" },
+      { label: "⏮ 上一曲", click: () => win?.webContents.send("player:prev") },
       {
-        label: u.name,
+        label: playerState.isPlaying ? "⏸ 暂停" : "▶️ 播放",
+        click: () => win?.webContents.send("player:toggle")
+      },
+      { label: "⏭ 下一曲", click: () => win?.webContents.send("player:next") },
+      { type: "separator" }
+    );
+  }
+  menuItems.push(
+    { label: "打开播放器", click: () => win?.show() },
+    { label: "退出", click: () => app.quit() }
+  );
+  const menu = Menu.buildFromTemplate(menuItems);
+  trayMain?.setContextMenu(menu);
+}
+function setupApplicationMenu() {
+  const isMac = process.platform === "darwin";
+  const template = [
+    ...isMac ? [
+      {
+        label: app.name,
         submenu: [
-          { role: "about", label: `关于 ${u.name}` },
+          { role: "about", label: `关于 ${app.name}` },
           { type: "separator" },
           { role: "services", label: "服务" },
           { type: "separator" },
-          { role: "hide", label: `隐藏 ${u.name}` },
+          { role: "hide", label: `隐藏 ${app.name}` },
           { role: "hideOthers", label: "隐藏其他" },
           { role: "unhide", label: "显示全部" },
           { type: "separator" },
-          { role: "quit", label: `退出 ${u.name}` }
+          { role: "quit", label: `退出 ${app.name}` }
         ]
       }
     ] : [],
     {
       label: "文件",
-      submenu: [t ? { role: "close", label: "关闭窗口" } : { role: "quit", label: "退出" }]
+      submenu: [isMac ? { role: "close", label: "关闭窗口" } : { role: "quit", label: "退出" }]
     },
     {
       label: "编辑",
@@ -290,7 +385,7 @@ function ye() {
         { role: "cut", label: "剪切" },
         { role: "copy", label: "复制" },
         { role: "paste", label: "粘贴" },
-        ...t ? [
+        ...isMac ? [
           { role: "pasteAndMatchStyle", label: "粘贴并匹配样式" },
           { role: "delete", label: "删除" },
           { role: "selectAll", label: "全选" },
@@ -328,7 +423,7 @@ function ye() {
       submenu: [
         { role: "minimize", label: "最小化" },
         { role: "zoom", label: "缩放" },
-        ...t ? [
+        ...isMac ? [
           { type: "separator" },
           { role: "front", label: "前置全部窗口" },
           { type: "separator" },
@@ -345,127 +440,174 @@ function ye() {
         {
           label: "项目主页",
           click: async () => {
-            await R.openExternal("https://www.audiodock.cn");
+            await shell.openExternal("https://www.audiodock.cn");
           }
         },
         {
           label: "查看文档",
           click: async () => {
-            await R.openExternal("https://www.audiodock.cn/docs");
+            await shell.openExternal("https://www.audiodock.cn/docs");
           }
         },
         {
           label: "报告问题",
           click: async () => {
-            await R.openExternal("https://github.com/mmdctjj/AudioDock/issues");
+            await shell.openExternal("https://github.com/mmdctjj/AudioDock/issues");
           }
         }
       ]
     }
-  ], o = F.buildFromTemplate(e);
-  F.setApplicationMenu(o);
+  ];
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 }
-i.on("player:update", (t, e) => {
-  g = { ...g, ...e };
-  const o = e.track !== void 0;
-  re(o), h?.webContents.send("player:update", e), m?.webContents.send("player:update", e);
+ipcMain.on("player:update", (event, payload) => {
+  playerState = { ...playerState, ...payload };
+  const shouldUpdateTitle = payload.track !== void 0;
+  updatePlayerUI(shouldUpdateTitle);
+  lyricWin?.webContents.send("player:update", payload);
+  miniWin?.webContents.send("player:update", payload);
 });
-i.on("settings:update-minimize-to-tray", (t, e) => {
-  oe = e;
+ipcMain.on("settings:update-minimize-to-tray", (event, value) => {
+  minimizeToTray = value;
 });
-i.on("lyric:update", (t, e) => {
-  const { currentLyric: o } = e;
+ipcMain.on("lyric:update", (event, payload) => {
+  const { currentLyric } = payload;
   if (process.platform === "darwin") {
-    const a = o || (g.track ? `${g.track.name} - ${g.track.artist}` : "");
-    x?.setTitle(a);
+    const displayTitle = currentLyric || (playerState.track ? `${playerState.track.name} - ${playerState.track.artist}` : "");
+    trayLyric?.setTitle(displayTitle);
   }
-  h?.webContents.send("lyric:update", e), m?.webContents.send("lyric:update", e);
+  lyricWin?.webContents.send("lyric:update", payload);
+  miniWin?.webContents.send("lyric:update", payload);
 });
-i.on("lyric:settings-update", (t, e) => {
-  h?.webContents.send("lyric:settings-update", e);
+ipcMain.on("lyric:settings-update", (event, payload) => {
+  lyricWin?.webContents.send("lyric:settings-update", payload);
 });
-i.on("lyric:open", (t, e) => {
-  ge(e);
+ipcMain.on("lyric:open", (event, settings) => {
+  createLyricWindow(settings);
 });
-i.on("lyric:toggle", () => {
-  n && n.webContents.send("lyric:toggle");
+ipcMain.on("lyric:toggle", () => {
+  if (win) {
+    win.webContents.send("lyric:toggle");
+  }
 });
-i.on("lyric:close", () => {
-  h && (h.close(), h = null);
+ipcMain.on("lyric:close", () => {
+  if (lyricWin) {
+    lyricWin.close();
+    lyricWin = null;
+  }
 });
-i.on("lyric:set-mouse-ignore", (t, e) => {
-  h?.setIgnoreMouseEvents(e, { forward: !0 });
+ipcMain.on("lyric:set-mouse-ignore", (event, ignore) => {
+  lyricWin?.setIgnoreMouseEvents(ignore, { forward: true });
 });
-i.on("player:toggle", () => {
-  console.log("Main process: received player:toggle"), n ? (console.log("Main process: forwarding player:toggle to main window"), n.webContents.send("player:toggle")) : console.warn("Main process: win is null, cannot forward player:toggle");
+ipcMain.on("player:toggle", () => {
+  console.log("Main process: received player:toggle");
+  if (win) {
+    console.log("Main process: forwarding player:toggle to main window");
+    win.webContents.send("player:toggle");
+  } else {
+    console.warn("Main process: win is null, cannot forward player:toggle");
+  }
 });
-i.on("player:next", () => {
-  console.log("Main process: received player:next"), n?.webContents.send("player:next");
+ipcMain.on("player:next", () => {
+  console.log("Main process: received player:next");
+  win?.webContents.send("player:next");
 });
-i.on("player:prev", () => {
-  n?.webContents.send("player:prev");
+ipcMain.on("player:prev", () => {
+  win?.webContents.send("player:prev");
 });
-i.on("player:seek", (t, e) => {
-  n?.webContents.send("player:seek", e);
+ipcMain.on("player:seek", (event, time) => {
+  win?.webContents.send("player:seek", time);
 });
-i.on("window:set-mini", () => {
-  n && (n.hide(), we());
+ipcMain.on("window:set-mini", () => {
+  if (win) {
+    win.hide();
+    createMiniPlayerWindow();
+  }
 });
-i.on("window:minimize", () => {
-  n?.minimize();
+ipcMain.on("window:minimize", () => {
+  win?.minimize();
 });
-i.on("window:maximize", () => {
-  n?.isMaximized() ? n?.unmaximize() : n?.maximize();
+ipcMain.on("window:maximize", () => {
+  if (win?.isMaximized()) {
+    win?.unmaximize();
+  } else {
+    win?.maximize();
+  }
 });
-i.on("window:close", () => {
-  n?.close();
+ipcMain.on("window:close", () => {
+  win?.close();
 });
-i.on("window:restore-main", () => {
-  m && (m.close(), m = null), n && (n.show(), n.center());
+ipcMain.on("window:restore-main", () => {
+  if (miniWin) {
+    miniWin.close();
+    miniWin = null;
+  }
+  if (win) {
+    win.show();
+    win.center();
+  }
 });
-i.on("app:show-main", () => {
-  n && (n.isVisible() ? n.focus() : n.show());
+ipcMain.on("app:show-main", () => {
+  if (win) {
+    if (win.isVisible()) {
+      win.focus();
+    } else {
+      win.show();
+    }
+  }
 });
-i.on("window:set-always-on-top", (t, e) => {
-  m && m.setAlwaysOnTop(e, "floating");
+ipcMain.on("window:set-always-on-top", (event, enable) => {
+  if (miniWin) {
+    miniWin.setAlwaysOnTop(enable, "floating");
+  }
 });
-function we() {
-  if (m) {
-    m.show();
+function createMiniPlayerWindow() {
+  if (miniWin) {
+    miniWin.show();
     return;
   }
-  m = new L({
+  miniWin = new BrowserWindow({
     width: 360,
     height: 170,
-    frame: !1,
+    frame: false,
     titleBarStyle: "hidden",
-    resizable: !1,
-    alwaysOnTop: !0,
+    resizable: false,
+    alwaysOnTop: true,
     // Start always on top
-    skipTaskbar: !0,
-    hasShadow: !1,
-    transparent: !0,
+    skipTaskbar: true,
+    hasShadow: false,
+    transparent: true,
     vibrancy: "popover",
     visualEffectState: "active",
     webPreferences: {
-      contextIsolation: !0,
-      nodeIntegration: !1,
-      preload: r.join(_, "preload.mjs")
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname$1, "preload.mjs")
     }
   });
-  const t = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/mini` : "app://./index.html#/mini";
-  process.env.VITE_DEV_SERVER_URL, m.loadURL(t), process.platform === "darwin" && (m.setAlwaysOnTop(!0, "floating"), m.setVisibleOnAllWorkspaces(!0, { visibleOnFullScreen: !0 })), m.on("closed", () => {
-    m = null;
+  const miniUrl = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/mini` : `app://./index.html#/mini`;
+  if (process.env.VITE_DEV_SERVER_URL) {
+    miniWin.loadURL(miniUrl);
+  } else {
+    miniWin.loadURL(miniUrl);
+  }
+  if (process.platform === "darwin") {
+    miniWin.setAlwaysOnTop(true, "floating");
+    miniWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+  miniWin.on("closed", () => {
+    miniWin = null;
   });
 }
-function ae() {
-  n = new L({
-    icon: r.join(process.env.VITE_PUBLIC, "logo.png"),
+function createWindow() {
+  win = new BrowserWindow({
+    icon: path.join(process.env.VITE_PUBLIC, "logo.png"),
     titleBarStyle: "hidden",
     ...process.platform !== "win32" ? {
       titleBarOverlay: {
         color: "rgba(0,0,0,0)",
-        symbolColor: G(),
+        symbolColor: getTitleBarSymbolColor(),
         height: 30
       }
     } : {},
@@ -482,146 +624,214 @@ function ae() {
     vibrancy: "popover",
     visualEffectState: "active",
     webPreferences: {
-      contextIsolation: !0,
+      contextIsolation: true,
       // 明确开启
-      nodeIntegration: !1,
+      nodeIntegration: false,
       // 保持安全
-      preload: r.join(_, "preload.mjs")
+      preload: path.join(__dirname$1, "preload.mjs")
     }
-  }), n.on("close", (t) => (!ne && oe && (t.preventDefault(), n?.hide()), !1)), process.env.VITE_DEV_SERVER_URL ? n.loadURL(process.env.VITE_DEV_SERVER_URL) : n.loadURL("app://./index.html");
+  });
+  win.on("close", (event) => {
+    if (!isQuitting && minimizeToTray) {
+      event.preventDefault();
+      win?.hide();
+    }
+    return false;
+  });
+  if (process.env.VITE_DEV_SERVER_URL) {
+    win.loadURL(process.env.VITE_DEV_SERVER_URL);
+  } else {
+    win.loadURL("app://./index.html");
+  }
 }
-function ge(t) {
-  if (h) return;
-  const { width: e, height: o } = se.getPrimaryDisplay().workAreaSize, a = 800, d = 120, b = t?.x !== void 0 ? t.x : Math.floor((e - a) / 2), s = t?.y !== void 0 ? t.y : o - d - 50;
-  h = new L({
-    width: a,
-    height: d,
-    x: b,
-    y: s,
-    frame: !1,
-    transparent: !0,
-    alwaysOnTop: !0,
-    skipTaskbar: !0,
-    resizable: !0,
-    hasShadow: !1,
-    hiddenInMissionControl: !0,
+function createLyricWindow(settings) {
+  if (lyricWin) return;
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+  const winWidth = 800;
+  const winHeight = 120;
+  const x = settings?.x !== void 0 ? settings.x : Math.floor((screenWidth - winWidth) / 2);
+  const y = settings?.y !== void 0 ? settings.y : screenHeight - winHeight - 50;
+  lyricWin = new BrowserWindow({
+    width: winWidth,
+    height: winHeight,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: true,
+    hasShadow: false,
+    hiddenInMissionControl: true,
     // Prevent Mission Control interference
     webPreferences: {
-      contextIsolation: !0,
-      nodeIntegration: !1,
-      preload: r.join(_, "preload.mjs")
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname$1, "preload.mjs")
     }
   });
-  const y = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/lyric` : `${r.join(process.env.DIST, "index.html")}#/lyric`;
-  process.env.VITE_DEV_SERVER_URL ? h.loadURL(y) : h.loadURL("app://./index.html#/lyric"), process.platform === "darwin" && (h.setAlwaysOnTop(!0, "screen-saver"), h.setVisibleOnAllWorkspaces(!0, { visibleOnFullScreen: !0 }));
-  let c = null;
-  h.on("move", () => {
-    c && clearTimeout(c), c = setTimeout(() => {
-      if (h && n) {
-        const [f, v] = h.getPosition();
-        n.webContents.send("lyric:position-updated", { x: f, y: v });
+  const lyricUrl = process.env.VITE_DEV_SERVER_URL ? `${process.env.VITE_DEV_SERVER_URL}#/lyric` : `${path.join(process.env.DIST, "index.html")}#/lyric`;
+  if (process.env.VITE_DEV_SERVER_URL) {
+    lyricWin.loadURL(lyricUrl);
+  } else {
+    lyricWin.loadURL("app://./index.html#/lyric");
+  }
+  if (process.platform === "darwin") {
+    lyricWin.setAlwaysOnTop(true, "screen-saver");
+    lyricWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+  let moveTimeout = null;
+  lyricWin.on("move", () => {
+    if (moveTimeout) clearTimeout(moveTimeout);
+    moveTimeout = setTimeout(() => {
+      if (lyricWin && win) {
+        const [newX, newY] = lyricWin.getPosition();
+        win.webContents.send("lyric:position-updated", { x: newX, y: newY });
       }
     }, 500);
-  }), h.on("closed", () => {
-    h = null;
+  });
+  lyricWin.on("closed", () => {
+    lyricWin = null;
   });
 }
-function be() {
-  const t = (e, o = 20) => {
-    let a = M.createFromPath(r.join(process.env.VITE_PUBLIC, e));
-    return a = a.resize({ width: o, height: o }), process.platform === "darwin" && a.setTemplateImage(!0), a;
+function createTray() {
+  const img = (name, size = 20) => {
+    let icon = nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC, name));
+    icon = icon.resize({ width: size, height: size });
+    if (process.platform === "darwin") {
+      icon.setTemplateImage(true);
+    }
+    return icon;
   };
   if (process.platform === "darwin") {
-    const e = M.createFromDataURL("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
-    x = new T(e), x.on("click", () => {
-      n?.webContents.send("lyric:toggle");
-    }), q = new T(t("next.png")), U = new T(t("play.png")), Y = new T(t("previous.png")), k = new T(t("mini_logo.png")), q.on("click", () => n?.webContents.send("player:next")), U.on("click", () => n?.webContents.send("player:toggle")), Y.on("click", () => n?.webContents.send("player:prev"));
+    const emptyImg = nativeImage.createFromDataURL("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
+    trayLyric = new Tray(emptyImg);
+    trayLyric.on("click", () => {
+      win?.webContents.send("lyric:toggle");
+    });
+    trayNext = new Tray(img("next.png"));
+    trayPlay = new Tray(img("play.png"));
+    trayPrev = new Tray(img("previous.png"));
+    trayMain = new Tray(img("mini_logo.png"));
+    trayNext.on("click", () => win?.webContents.send("player:next"));
+    trayPlay.on("click", () => win?.webContents.send("player:toggle"));
+    trayPrev.on("click", () => win?.webContents.send("player:prev"));
   } else {
-    const e = M.createFromPath(r.join(process.env.VITE_PUBLIC, "logo.png")).resize({ width: 24, height: 24 });
-    k = new T(e), k.setToolTip("AudioDock");
+    const logoImg = nativeImage.createFromPath(path.join(process.env.VITE_PUBLIC, "logo.png")).resize({ width: 24, height: 24 });
+    trayMain = new Tray(logoImg);
+    trayMain.setToolTip("AudioDock");
   }
-  k.on("click", () => {
-    n && (n.isVisible() ? n.focus() : n.show());
-  }), re();
+  trayMain.on("click", () => {
+    if (win) {
+      if (win.isVisible()) {
+        win.focus();
+      } else {
+        win.show();
+      }
+    }
+  });
+  updatePlayerUI();
 }
-u.on("before-quit", () => {
-  ne = !0;
+app.on("before-quit", () => {
+  isQuitting = true;
 });
-V.registerSchemesAsPrivileged([
+protocol.registerSchemesAsPrivileged([
   {
     scheme: "app",
     privileges: {
-      standard: !0,
-      secure: !0,
-      supportFetchAPI: !0,
-      bypassCSP: !1,
-      corsEnabled: !0
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      bypassCSP: false,
+      corsEnabled: true
     }
   },
   {
     scheme: "media",
     privileges: {
-      standard: !0,
-      secure: !0,
-      supportFetchAPI: !0,
-      bypassCSP: !0,
-      corsEnabled: !0,
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      corsEnabled: true,
       // often needed for media elements
-      stream: !0
+      stream: true
     }
   }
 ]);
-u.whenReady().then(() => {
-  console.log("[Main] App is ready."), process.platform === "darwin" && u.setAboutPanelOptions({
-    applicationName: "AudioDock",
-    applicationVersion: u.getVersion(),
-    version: u.getVersion(),
-    copyright: "Copyright © 2026 北京声仓科技有限公司",
-    website: "https://www.audiodock.cn",
-    iconPath: r.join(process.env.VITE_PUBLIC, "logo.png")
-  }), console.log(`[Main] CACHE_DIR set to: ${p}`), console.log(`[Main] Initial Download Path: ${j || "Default (app/downloads)"}`), V.handle("app", (t) => {
+app.whenReady().then(() => {
+  console.log(`[Main] App is ready.`);
+  if (process.platform === "darwin") {
+    app.setAboutPanelOptions({
+      applicationName: "AudioDock",
+      applicationVersion: app.getVersion(),
+      version: app.getVersion(),
+      copyright: "Copyright © 2026 北京声仓科技有限公司",
+      website: "https://www.audiodock.cn",
+      iconPath: path.join(process.env.VITE_PUBLIC, "logo.png")
+    });
+  }
+  console.log(`[Main] CACHE_DIR set to: ${CACHE_DIR}`);
+  console.log(`[Main] Initial Download Path: ${currentDownloadPath || "Default (app/downloads)"}`);
+  protocol.handle("app", (request) => {
     try {
-      const e = new URL(t.url);
-      let o = decodeURIComponent(e.pathname);
-      o.startsWith("/") && (o = o.slice(1));
-      const a = r.join(process.env.DIST, o || "index.html");
-      return console.log(`[Main] App Protocol: url=${t.url} -> filePath=${a}`), $.fetch(H(a).href);
+      const url = new URL(request.url);
+      let pathname = decodeURIComponent(url.pathname);
+      if (pathname.startsWith("/")) pathname = pathname.slice(1);
+      const filePath = path.join(process.env.DIST, pathname || "index.html");
+      console.log(`[Main] App Protocol: url=${request.url} -> filePath=${filePath}`);
+      return net.fetch(pathToFileURL(filePath).href);
     } catch (e) {
-      return console.error("[Main] App protocol error:", e), new Response("Internal error", { status: 500 });
+      console.error("[Main] App protocol error:", e);
+      return new Response("Internal error", { status: 500 });
     }
-  }), V.handle("media", async (t) => {
+  });
+  protocol.handle("media", async (request) => {
     try {
-      const e = new URL(t.url), o = e.host;
-      let a = e.pathname;
-      a.startsWith("/") && (a = a.slice(1));
-      const d = decodeURIComponent(a);
-      let s = ((w, A) => {
-        if (w === "audio") {
-          const C = j || r.join(u.getPath("userData"), "downloads");
-          return r.join(C.replace(/^~/, P.homedir()), A);
+      const url = new URL(request.url);
+      const host = url.host;
+      let pathname = url.pathname;
+      if (pathname.startsWith("/")) pathname = pathname.slice(1);
+      const decodedPathname = decodeURIComponent(pathname);
+      const getPath = (h, p) => {
+        if (h === "audio") {
+          const base = currentDownloadPath || path.join(app.getPath("userData"), "downloads");
+          return path.join(base.replace(/^~/, os.homedir()), p);
+        } else if (h === "cover" || h === "metadata") {
+          return path.join(CACHE_DIR, p);
         } else {
-          if (w === "cover" || w === "metadata")
-            return r.join(p, A);
-          {
-            const C = j || r.join(u.getPath("userData"), "audio_cache");
-            return r.join(C.replace(/^~/, P.homedir()), w, A);
-          }
+          const base = currentDownloadPath || path.join(app.getPath("userData"), "audio_cache");
+          return path.join(base.replace(/^~/, os.homedir()), h, p);
         }
-      })(o, d);
-      if (!l.existsSync(s)) {
-        const w = r.join(p, d || o);
-        l.existsSync(w) && (console.log(`[Main] File found via CACHEFallback: ${w}`), s = w);
+      };
+      let filePath = getPath(host, decodedPathname);
+      if (!fs.existsSync(filePath)) {
+        const altCachePath = path.join(CACHE_DIR, decodedPathname || host);
+        if (fs.existsSync(altCachePath)) {
+          console.log(`[Main] File found via CACHEFallback: ${altCachePath}`);
+          filePath = altCachePath;
+        }
       }
-      const y = l.existsSync(s);
-      if (console.log(`[Main] Media Protocol: url=${t.url} -> host=${o}, path=${d} -> filePath=${s} (exists: ${y})`), !y)
+      const exists = fs.existsSync(filePath);
+      console.log(`[Main] Media Protocol: url=${request.url} -> host=${host}, path=${decodedPathname} -> filePath=${filePath} (exists: ${exists})`);
+      if (!exists) {
         return new Response("File Not Found", { status: 404 });
-      const c = r.extname(s).toLowerCase();
-      let f = "application/octet-stream";
-      if (c === ".jpg" || c === ".jpeg" ? f = "image/jpeg" : c === ".png" ? f = "image/png" : c === ".mp3" ? f = "audio/mpeg" : c === ".flac" ? f = "audio/flac" : c === ".wav" ? f = "audio/wav" : c === ".aac" ? f = "audio/aac" : c === ".json" && (f = "application/json"), c === ".m4a") {
-        if (await ue(s) === "alac") {
-          console.log(`[Main] Detected ALAC codec for ${s}, transcoding to WAV...`);
-          const A = Q("ffmpeg", ["-i", s, "-f", "wav", "-"]);
-          return new Response(X.toWeb(A.stdout), {
+      }
+      const ext = path.extname(filePath).toLowerCase();
+      let contentType = "application/octet-stream";
+      if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
+      else if (ext === ".png") contentType = "image/png";
+      else if (ext === ".mp3") contentType = "audio/mpeg";
+      else if (ext === ".flac") contentType = "audio/flac";
+      else if (ext === ".wav") contentType = "audio/wav";
+      else if (ext === ".aac") contentType = "audio/aac";
+      else if (ext === ".json") contentType = "application/json";
+      if (ext === ".m4a") {
+        const codec = await checkAudioCodec(filePath);
+        if (codec === "alac") {
+          console.log(`[Main] Detected ALAC codec for ${filePath}, transcoding to WAV...`);
+          const ffmpeg = spawn("ffmpeg", ["-i", filePath, "-f", "wav", "-"]);
+          return new Response(Readable.toWeb(ffmpeg.stdout), {
             headers: {
               "Content-Type": "audio/wav",
               "Access-Control-Allow-Origin": "*",
@@ -629,37 +839,47 @@ u.whenReady().then(() => {
             }
           });
         }
-        f = "audio/mp4";
+        contentType = "audio/mp4";
       }
-      if (o === "cover" || o === "metadata" || c === ".json" || c === ".jpeg" || c === ".jpg" || c === ".png") {
-        const w = l.readFileSync(s);
-        return new Response(new Uint8Array(w), {
+      if (host === "cover" || host === "metadata" || ext === ".json" || ext === ".jpeg" || ext === ".jpg" || ext === ".png") {
+        const fileData = fs.readFileSync(filePath);
+        return new Response(new Uint8Array(fileData), {
           headers: {
-            "Content-Type": f,
+            "Content-Type": contentType,
             "Access-Control-Allow-Origin": "*",
             "Cache-Control": "no-cache"
           }
         });
       }
-      const v = H(s).href, S = await $.fetch(v);
-      return new Response(S.body, {
-        status: S.status,
-        statusText: S.statusText,
+      const fileUrl = pathToFileURL(filePath).href;
+      const response = await net.fetch(fileUrl);
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
         headers: {
-          "Content-Type": f,
+          "Content-Type": contentType,
           "Access-Control-Allow-Origin": "*",
           "Cache-Control": "no-cache"
         }
       });
     } catch (e) {
-      return console.error("[Main] Protocol handle error:", e), new Response("Internal error", { status: 500 });
+      console.error("[Main] Protocol handle error:", e);
+      return new Response("Internal error", { status: 500 });
     }
-  }), ae(), Z(), be(), ye();
+  });
+  createWindow();
+  syncWindowTitleBarOverlay();
+  createTray();
+  setupApplicationMenu();
 });
-u.on("window-all-closed", () => {
-  process.platform !== "darwin" && u.quit();
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
 });
-u.on("activate", () => {
-  L.getAllWindows().length === 0 ? ae() : n?.show();
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  } else {
+    win?.show();
+  }
 });
-K.on("updated", Z);
+nativeTheme.on("updated", syncWindowTitleBarOverlay);
