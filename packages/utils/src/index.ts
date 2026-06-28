@@ -434,8 +434,9 @@ export class LocalMusicScanner {
         const picture = common.picture[0];
         const ext = picture.format.split('/')[1] || 'jpg';
         const fileName = path.basename(filePath);
-        // Cover name consistent with file name
-        const coverName = `${fileName}.${ext}`;
+        const dirName = path.basename(path.dirname(filePath));
+        // Cover name includes parent directory to avoid conflicts
+        const coverName = `${dirName}_${fileName}.${ext}`;
         const savePath = path.join(this.cacheDir, coverName);
 
         fs.writeFileSync(savePath, picture.data);
