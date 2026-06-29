@@ -91,7 +91,8 @@ function RootLayoutNav() {
       segmentName === "scan-confirm" ||
       segmentName === "language" ||
       segmentName === "playback-quality" ||
-      segmentName === "mv";
+      segmentName === "mv" ||
+      segmentName === "webdav-sources";
 
     if (!token && inAuthGroup) {
       router.replace("/login");
@@ -408,6 +409,7 @@ function RootLayoutNav() {
       <Stack.Screen name="language" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="playback-quality" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="mv/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="webdav-sources" options={{ headerShown: false, animation: 'slide_from_right' }} />
     </Stack>
   );
 
@@ -420,6 +422,7 @@ function RootLayoutNav() {
     rootSegment === "forgot-password" ||
     rootSegment === "settings" ||
     rootSegment === "source-manage" ||
+    rootSegment === "webdav-sources" ||
     rootSegment === "player" ||
     rootSegment === "product-updates" ||
     rootSegment === "member-detail" ||
