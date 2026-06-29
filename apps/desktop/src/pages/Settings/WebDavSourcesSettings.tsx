@@ -87,8 +87,9 @@ const WebDavSourcesSettings: React.FC = () => {
   const load = async () => {
     try {
       const res = await getWebDavSources();
+      const rawList = (res.code === 200 ? res.data : []) as WebDavSource[] | undefined;
       if (res.code === 200) {
-        const list = (res.data || []).map((s) => ({
+        const list = (rawList || []).map((s: WebDavSource) => ({
           ...s,
           paths: {
             MUSIC: s.paths?.MUSIC || "",
@@ -97,7 +98,7 @@ const WebDavSourcesSettings: React.FC = () => {
           },
         }));
         setSources(list);
-        setLegacyEnvImported(list.some((s) => s.name.endsWith("(env)")));
+        setLegacyEnvImported(list.some((s: WebDavSource) => s.name.endsWith("(env)")));
       } else {
         message.error(res.message || t("common.error"));
       }
@@ -162,12 +163,13 @@ const WebDavSourcesSettings: React.FC = () => {
         if (result.success) {
           message.success(t("settings.webdavTestSuccess"));
         } else {
-          const detailMsg = result.details
+          const detailEntries = result.details
             ? Object.entries(result.details)
-                .filter(([, v]) => !v.success)
-                .map(([k, v]) => `${k}: ${v.message}`)
-                .join("; ")
-            : result.message;
+            : [];
+          const detailMsg = detailEntries
+            .filter(([, v]) => !(v as { success: boolean }).success)
+            .map(([k, v]) => `${k}: ${(v as { message: string }).message}`)
+            .join("; ") || result.message;
           message.error(`${t("settings.webdavTestFailed")}: ${detailMsg}`);
         }
       } else {
@@ -212,8 +214,9 @@ const WebDavSourcesSettings: React.FC = () => {
     setSaving(true);
     try {
       const res = await saveWebDavSources(sanitized);
+      const rawList = (res.code === 200 ? res.data : []) as WebDavSource[] | undefined;
       if (res.code === 200) {
-        const list = (res.data || []).map((s) => ({
+        const list = (rawList || []).map((s: WebDavSource) => ({
           ...s,
           paths: {
             MUSIC: s.paths?.MUSIC || "",

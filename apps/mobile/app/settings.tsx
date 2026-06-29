@@ -454,6 +454,32 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           )}
 
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/webdav-sources" as any)}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  {t("settings.webdavSources")}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("settings.sourceManagementDescription")}
+                </Text>
+              </View>
+              <Ionicons
+                name="cloud-outline"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
+
           <Text
             style={[
               styles.sectionTitle,
