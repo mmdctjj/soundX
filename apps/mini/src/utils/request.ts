@@ -27,12 +27,30 @@ const taroAdapter: AxiosAdapter = (config) => {
       }
     }
 
+    // For non-GET methods, Taro treats `data` as the request body, so query params
+    // must be appended to the URL explicitly to match axios/REST conventions.
+    // For GET, Taro serializes `data` into the query string, so params stay there.
+    const method = (config.method?.toUpperCase() || 'GET');
+    let finalUrl: string = url!;
+    if (method !== 'GET' && method !== 'HEAD' && config.params && typeof config.params === 'object') {
+      const queryString = Object.keys(config.params)
+        .filter((key) => config.params[key] !== undefined && config.params[key] !== null)
+        .map((key) => {
+          const value = config.params[key];
+          return `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`;
+        })
+        .join('&');
+      if (queryString) {
+        finalUrl = finalUrl.includes('?') ? `${finalUrl}&${queryString}` : `${finalUrl}?${queryString}`;
+      }
+    }
+
     // creating a union of data and params, as Taro uses 'data' for both body and query params depending on method
     const requestConfig: Taro.request.Option = {
-      url: url!,
-      method: (config.method?.toUpperCase() || 'GET') as any,
+      url: finalUrl,
+      method: method as any,
       header: headers, // Taro uses 'header' not 'headers'
-      data: requestData || config.params, 
+      data: method === 'GET' || method === 'HEAD' ? (requestData || config.params) : requestData,
       responseType: config.responseType === 'arraybuffer' ? 'arraybuffer' : 'text',
       dataType: config.responseType === 'json' ? 'json' : undefined,
       success: (res) => {

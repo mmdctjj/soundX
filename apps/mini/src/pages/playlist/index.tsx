@@ -1,9 +1,11 @@
-import { getPlaylistById, Track } from "@soundx/services";
+import { getPlaylistById, Track, type MiDevice, playMiDevicePlaylist } from "@soundx/services";
 import { Image, ScrollView, Text, View } from "@tarojs/components";
 import Taro, { useRouter } from "@tarojs/taro";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import MiDeviceSelector from "../../components/MiDeviceSelector";
 import MiniPlayer from "../../components/MiniPlayer";
+import XiaoAiIcon from "../../components/XiaoAiIcon";
 import { usePlayer } from "../../context/PlayerContext";
 import { getBaseURL } from "../../utils/request";
 import "./index.scss";
@@ -18,6 +20,8 @@ export default function PlaylistDetail() {
   const [loading, setLoading] = useState(true);
   const [playlistName, setPlaylistName] = useState(t('nav.playlists'));
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [isMiDeviceSelectorVisible, setIsMiDeviceSelectorVisible] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   useEffect(() => {
     if (!playlistId) return;
@@ -69,6 +73,37 @@ export default function PlaylistDetail() {
       .slice(0, 11);
   }, [tracks]);
 
+  const handleCastPlaylistToMi = async (device: MiDevice) => {
+    if (tracks.length === 0) {
+      Taro.showToast({ title: t('playerPage.miCastNoTrack'), icon: 'none' });
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const baseURL = getBaseURL().replace(/\/$/, '');
+      const trackPayloads = tracks.map((track) => ({
+        url: `${baseURL}/track/stream/${track.id}`,
+        title: `${track.name} - ${track.artist ?? ''}`,
+        duration: track.duration || 0,
+      }));
+      await playMiDevicePlaylist({
+        device_id: device.device_id,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+      Taro.showToast({
+        title: t('playerPage.miCastPlaylistSuccess', { count: trackPayloads.length, device: device.name }),
+        icon: 'success',
+      });
+      setIsMiDeviceSelectorVisible(false);
+    } catch (e) {
+      console.error('Failed to cast playlist to Mi device:', e);
+      Taro.showToast({ title: t('playerPage.miCastPlaylistFailed'), icon: 'none' });
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
+
   if (loading) {
     return (
       <View className="playlist-page">
@@ -111,11 +146,21 @@ export default function PlaylistDetail() {
         </View>
 
         <View className="actions">
-          <View
-            className={`play-all ${tracks.length === 0 ? "disabled" : ""}`}
-            onClick={() => tracks.length > 0 && playTrackList(tracks as any, 0)}
-          >
-            <Text>{t('playlist.playAll')}</Text>
+          <View className="actions-row">
+            <View
+              className={`play-all ${tracks.length === 0 ? "disabled" : ""}`}
+              onClick={() => tracks.length > 0 && playTrackList(tracks as any, 0)}
+            >
+              <Text>{t('playlist.playAll')}</Text>
+            </View>
+            {tracks.length > 0 && (
+              <View
+                className='playlist-cast-btn'
+                onClick={() => setIsMiDeviceSelectorVisible(true)}
+              >
+                <XiaoAiIcon size={18} />
+              </View>
+            )}
           </View>
         </View>
 
@@ -149,6 +194,12 @@ export default function PlaylistDetail() {
         <View style={{ height: "180rpx" }} />
       </ScrollView>
 
+      <MiDeviceSelector
+        visible={isMiDeviceSelectorVisible}
+        onClose={() => setIsMiDeviceSelectorVisible(false)}
+        onSelectDevice={handleCastPlaylistToMi}
+        loading={isCastingToMi}
+      />
       <BottomTabBar />
       <MiniPlayer />
     </View>

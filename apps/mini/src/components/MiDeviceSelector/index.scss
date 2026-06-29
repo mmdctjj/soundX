@@ -1,0 +1,144 @@
+.mi-device-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.mi-device-sheet {
+  width: 100%;
+  max-width: 90vw;
+  max-height: 80vh;
+  background-color: #fff;
+  border-top-left-radius: 40rpx;
+  border-top-right-radius: 40rpx;
+  display: flex;
+  flex-direction: column;
+  padding: 30rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.mi-device-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #000;
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.mi-device-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+  gap: 20rpx;
+}
+
+.mi-device-secondary {
+  font-size: 28rpx;
+  color: #999;
+  text-align: center;
+}
+
+.mi-device-list {
+  max-height: 540rpx;
+  width: 100%;
+}
+
+.mi-device-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 24rpx 8rpx;
+  border-bottom: 1rpx solid rgba(150, 150, 150, 0.15);
+  gap: 20rpx;
+
+  &.disabled {
+    opacity: 0.5;
+  }
+}
+
+.mi-device-icon {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 30rpx;
+  background-color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mi-device-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  overflow: hidden;
+}
+
+.mi-device-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.mi-device-model {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.mi-device-chevron {
+  font-size: 28rpx;
+  color: #999;
+  transform: rotate(180deg);
+}
+
+.mi-device-qrcode {
+  width: 320rpx;
+  height: 320rpx;
+  background-color: #fff;
+  border-radius: 16rpx;
+  border: 2rpx solid rgba(0, 0, 0, 0.05);
+}
+
+.mi-device-hint {
+  font-size: 24rpx;
+  color: #999;
+  text-align: center;
+  margin-top: 10rpx;
+}
+
+.mi-device-retry {
+  margin-top: 20rpx;
+  padding: 16rpx 40rpx;
+  border-radius: 16rpx;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.mi-device-retry-text {
+  font-size: 28rpx;
+  color: #000;
+  font-weight: 500;
+}
+
+.mi-device-close {
+  margin-top: 30rpx;
+  padding: 24rpx 0;
+  border-radius: 16rpx;
+  background-color: rgba(150, 150, 150, 0.15);
+  text-align: center;
+}
+
+.mi-device-close-text {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 600;
+}
