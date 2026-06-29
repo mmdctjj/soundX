@@ -4,15 +4,18 @@ import type { Album } from "../models";
 interface ListCacheState {
   listMap: Record<string, Album[]>;
   loadCountMap: Record<string, number>;
+  totalMap: Record<string, number>;
   scrollMap: Record<string, number>;
   setList: (key: string, data: Album[]) => void;
   setLoadCount: (key: string, loadCount: number) => void;
+  setTotal: (key: string, total: number) => void;
   setScroll: (key: string, scroll: number) => void;
 }
 
 export const useAlbumListCache = create<ListCacheState>((set) => ({
   listMap: {},
   loadCountMap: {},
+  totalMap: {},
   scrollMap: {},
   setList: (key, data) =>
     set((state) => ({
@@ -26,6 +29,13 @@ export const useAlbumListCache = create<ListCacheState>((set) => ({
       loadCountMap: {
         ...state.loadCountMap,
         [key]: loadCount,
+      },
+    })),
+  setTotal: (key, total) =>
+    set((state) => ({
+      totalMap: {
+        ...state.totalMap,
+        [key]: total,
       },
     })),
   setScroll: (key, scroll) =>
