@@ -17,12 +17,8 @@ services:
       - CACHE_DIR=/covers # 封面目录
       - DATABASE_URL=file:/data/dev.db # 数据库
       - JWT_SECRET=/.jwt_secret # 这个是文件，不是目录
-      - PORT=3000
-      - STRM_ADDRESS=http://192.168.1.12:5244 # 没有可注释
-      - WEBDAV_MUSIC_URL=http://192.168.1.12:5005/音乐 # 没有可注释
-      - WEBDAV_AUDIOBOOK_URL=http://192.168.1.12:5005/有声书 # 没有可注释
-      - WEBDAV_USER=admin # 没有可注释
-      - WEBDAV_PASSWORD=123456 # 没有可注释
+- PORT=3000
+      - STRM_ADDRESS=http://192.168.1.12:5244
       - DISABLE_TTS=${DISABLE_TTS:-false} # 是否禁用 tts 服务，不用tts功能可注释
       - DISABLE_ASR=${DISABLE_ASR:-false} # 是否禁用 asr 服务，不用语音助手可注释
       - DISABLE_MI=${DISABLE_MI:-false} # 是否禁用 mi 服务，不用小爱音箱功能可注释

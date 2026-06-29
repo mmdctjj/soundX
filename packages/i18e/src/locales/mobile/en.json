@@ -501,7 +501,8 @@
     "castToMiSpeaker": "Cast to Speaker",
     "miCastNoTrack": "Please select a track first",
     "miCastSuccess": "Casting to {{device}}",
-    "miCastFailed": "Failed to cast to XiaoAi speaker"
+    "miCastFailed": "Failed to cast to XiaoAi speaker",
+    "miLoginSuccess": "Mi account logged in successfully"
   },
   "playlist": {
     "currentPlaylist": "Current ({{count}})",

@@ -509,7 +509,8 @@
     "castToMiSpeaker": "投放到音箱",
     "miCastNoTrack": "请先选择要播放的歌曲",
     "miCastSuccess": "已推送到 {{device}}",
-    "miCastFailed": "推送到小爱音箱失败"
+    "miCastFailed": "推送到小爱音箱失败",
+    "miLoginSuccess": "小米账号登录成功"
   },
   "playlist": {
     "currentPlaylist": "当前 ({{count}})",

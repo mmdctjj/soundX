@@ -25,6 +25,7 @@ import { languages } from "../../i18n";
 import { useAuthStore } from "../../store/auth";
 import { useSettingsStore } from "../../store/settings";
 import AdminSettings from "./AdminSettings";
+import WebDavSourcesSettings from "./WebDavSourcesSettings";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -155,6 +156,18 @@ const Settings: React.FC = () => {
               {t("settings.admin")}
             </Title>
             <AdminSettings />
+          </section>
+          <Divider className={styles.divider} />
+        </>
+      )}
+
+      {user?.is_admin && (
+        <>
+          <section className={styles.section}>
+            <Title level={4} className={styles.sectionTitle}>
+              {t("settings.webdavSources")}
+            </Title>
+            <WebDavSourcesSettings />
           </section>
           <Divider className={styles.divider} />
         </>

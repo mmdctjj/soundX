@@ -28,6 +28,8 @@ import { UserAudiobookHistoryController } from './controllers/user-audiobook-his
 import { UserAudiobookLikeController } from './controllers/user-audiobook-like';
 import { UserTrackHistoryController } from './controllers/user-track-history';
 import { UserTrackLikeController } from './controllers/user-track-like';
+import { WebDavSourcesController } from './controllers/webdav-sources.controller';
+import { WebDavSyncController } from './controllers/webdav-sync.controller';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { SyncGateway } from './gateways/sync.gateway';
 import { ResponseInterceptor } from './interceptors/response.interceptor';
@@ -51,6 +53,7 @@ import { UserAudiobookLikeService } from './services/user-audiobook-like';
 import { DatabaseSchemaService } from './services/database-schema.service';
 import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
+import { WebDavConfigService } from './services/webdav-config.service';
 
 @Module({
   imports: [
@@ -100,6 +103,8 @@ import { UserTrackLikeService } from './services/user-track-like';
     ScanLoginController,
     LlmController,
     MvController,
+    WebDavSourcesController,
+    WebDavSyncController,
   ],
   providers: [
     UserService,
@@ -136,6 +141,7 @@ import { UserTrackLikeService } from './services/user-track-like';
     LlmService,
     MvService,
     SyncGateway,
+    WebDavConfigService,
   ],
 })
 export class AppModule { }

@@ -61,7 +61,15 @@
   padding: 0 24rpx 16rpx;
 }
 
+.actions-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20rpx;
+}
+
 .play-all {
+  flex: 1;
   background: #000000;
   color: #fff;
   border-radius: 999rpx;
@@ -74,6 +82,17 @@
 
 .play-all.disabled {
   opacity: 0.4;
+}
+
+.playlist-cast-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .content {

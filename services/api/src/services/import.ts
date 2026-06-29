@@ -12,6 +12,7 @@ import { resolvePathList } from '../common/path-list';
 import { AlbumService } from './album';
 import { ArtistService } from './artist';
 import { TrackService } from './track';
+import { WebDavConfigService, WebDavPathKind, WebDavSource } from './webdav-config.service';
 
 export enum TaskStatus {
   INITIALIZING = 'INITIALIZING',
@@ -59,6 +60,7 @@ interface MvStorageTarget {
 export class ImportService implements OnModuleInit {
   private readonly logger = new Logger(ImportService.name);
   private tasks: Map<string, ImportTask> = new Map();
+  private webDavTasks: Map<string, ImportTask> = new Map();
   private prisma: PrismaClient;
   private folderCache = new Map<string, number>();
   private watcher: chokidar.FSWatcher | null = null;
@@ -68,6 +70,7 @@ export class ImportService implements OnModuleInit {
     private readonly trackService: TrackService,
     private readonly albumService: AlbumService,
     private readonly artistService: ArtistService,
+    private readonly webDavConfig: WebDavConfigService,
   ) {
     this.prisma = new PrismaClient();
   }
@@ -121,39 +124,51 @@ export class ImportService implements OnModuleInit {
     const count = await this.prisma.track.count();
     if (count === 0) {
       const cachePath = process.env.CACHE_DIR || './music/cover';
-      if (process.env.WEBDAV_MUSIC_URL) {
-        this.logger.log('Library is empty. Triggering initial WebDAV Music scan...');
-        this.startWebDAVImport(cachePath, TrackType.MUSIC).catch(e => this.logger.error('WebDAV Music initial scan failed', e));
-      }
-      if (process.env.WEBDAV_AUDIOBOOK_URL) {
-        this.logger.log('Library is empty. Triggering initial WebDAV Audiobook scan...');
-        this.startWebDAVImport(cachePath, TrackType.AUDIOBOOK).catch(e => this.logger.error('WebDAV Audiobook initial scan failed', e));
-      }
-      if (process.env.WEBDAV_MV_URL) {
-        this.logger.log('Library is empty. Triggering initial WebDAV MV scan...');
-        this.startWebDAVImport(cachePath, TrackType.MUSIC, undefined, true).catch(e => this.logger.error('WebDAV MV initial scan failed', e));
+      const sources = await this.webDavConfig.list();
+      if (sources.length > 0) {
+        this.logger.log(`Library is empty. Triggering initial WebDAV scan across ${sources.length} source(s)...`);
+        const targets = await this.webDavConfig.listScanTargets();
+        this.runWebDavTargets(targets, { cachePath, reason: 'initial' }).catch(e =>
+          this.logger.error('Initial WebDAV scan failed', e),
+        );
       }
     }
   }
 
   private async startWebDAVImport(cachePath: string, type: TrackType, taskId?: string, isMvDir = false) {
-    const webdavUrl = isMvDir
-      ? process.env.WEBDAV_MV_URL
-      : (type === TrackType.AUDIOBOOK ? process.env.WEBDAV_AUDIOBOOK_URL : process.env.WEBDAV_MUSIC_URL);
-
-    if (!webdavUrl) return;
+    // Legacy wrapper used by the local-path import flow. Map the desired content kind to one
+    // of the WebDAV path kinds and then scan every matching target.
+    const kind: WebDavPathKind = isMvDir ? 'MV' : type === TrackType.AUDIOBOOK ? 'AUDIOBOOK' : 'MUSIC';
+    const all = await this.webDavConfig.listScanTargets();
+    const matched = all.filter((target) => target.kind === kind);
+    if (matched.length === 0) return;
 
     const task = taskId ? this.tasks.get(taskId) : null;
 
+    for (const target of matched) {
+      await this.runSingleWebDavTarget(target, cachePath, task);
+    }
+  }
+
+  private async runSingleWebDavTarget(
+    target: { source: WebDavSource; kind: WebDavPathKind; path: string },
+    cachePath: string,
+    task?: ImportTask | null,
+  ) {
+    const isMv = target.kind === 'MV';
+    const type: TrackType = isMv ? TrackType.MUSIC : target.kind === 'AUDIOBOOK' ? TrackType.AUDIOBOOK : TrackType.MUSIC;
+
     const scanner = new WebDAVScanner(
-      webdavUrl,
-      process.env.WEBDAV_USER,
-      process.env.WEBDAV_PASSWORD,
-      cachePath
+      target.source.url,
+      target.source.username,
+      target.source.password,
+      cachePath,
     );
 
-    this.logger.log(`Starting WebDAV ${isMvDir ? 'MV' : type} scan: ${webdavUrl}`);
-    await scanner.scan('/', async (item) => {
+    this.logger.log(
+      `Starting WebDAV scan: ${target.source.name} [${target.kind}] ${target.path} → ${target.source.url}`,
+    );
+    await scanner.scan(target.path, async (item) => {
       if (task) {
         task.currentFileName = item.title || path.basename(item.path);
       }
@@ -161,7 +176,7 @@ export class ImportService implements OnModuleInit {
       const isMvFile = /\.(mp4|mkv|avi|webm)$/i.test(item.path);
 
       // Skip video files found in music/audiobook WebDAV folders — only MV folders should contain videos
-      if (isMvFile && !isMvDir) {
+      if (isMvFile && !isMv) {
         this.logger.log(`Skipping video file in non-MV WebDAV folder: ${item.path}`);
         return;
       }
@@ -172,7 +187,7 @@ export class ImportService implements OnModuleInit {
       await this.processTrackData(item, type, '', cachePath, item.path, null, '', sortFields);
 
       if (task) {
-        if (isMvDir) {
+        if (isMv) {
           task.mvCurrent = (task.mvCurrent || 0) + 1;
         } else {
           task.webdavCurrent = (task.webdavCurrent || 0) + 1;
@@ -180,7 +195,96 @@ export class ImportService implements OnModuleInit {
         task.current = (task.current || 0) + 1;
       }
     });
-    this.logger.log(`WebDAV ${isMvDir ? 'MV' : type} scan completed.`);
+    this.logger.log(
+      `WebDAV scan completed for source: ${target.source.name} [${target.kind}]`,
+    );
+  }
+
+  /**
+   * Run every enabled WebDAV target (one per configured sub-path).
+   * Used by both the initial scan on startup and the standalone "Save and Sync" flow.
+   */
+  private async runWebDavTargets(
+    targets: Array<{ source: WebDavSource; kind: WebDavPathKind; path: string }>,
+    options: { cachePath: string; task?: ImportTask; reason?: string },
+  ): Promise<void> {
+    if (targets.length === 0) return;
+
+    for (const target of targets) {
+      try {
+        await this.runSingleWebDavTarget(target, options.cachePath, options.task ?? null);
+      } catch (e) {
+        this.logger.error(
+          `WebDAV scan failed for source ${target.source.name} [${target.kind}] (${target.source.url}): ${(e as Error).message}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Public entry point for the standalone "Sync WebDAV now" action — kicks off a task that scans
+   * every enabled source and reports progress through the dedicated task map. Returns the task id
+   * so the frontend can poll.
+   */
+  @LogMethod()
+  triggerWebDavSync(): { id: string } {
+    const id = randomUUID();
+    const task: ImportTask = {
+      id,
+      status: TaskStatus.INITIALIZING,
+      mode: 'incremental',
+      message: '正在准备 WebDAV 扫描...',
+      total: 0,
+      current: 0,
+      webdavTotal: 0,
+      webdavCurrent: 0,
+      mvTotal: 0,
+      mvCurrent: 0,
+      localTotal: 0,
+      localCurrent: 0,
+    };
+    this.webDavTasks.set(id, task);
+
+    const cachePath = process.env.CACHE_DIR || './music/cover';
+
+    (async () => {
+      try {
+        const targets = await this.webDavConfig.listScanTargets();
+        if (targets.length === 0) {
+          task.status = TaskStatus.SUCCESS;
+          task.message = '没有启用的 WebDAV 路径';
+          return;
+        }
+
+        task.status = TaskStatus.PARSING;
+        task.message = `正在扫描 ${targets.length} 个 WebDAV 路径...`;
+
+        await this.runWebDavTargets(targets, { cachePath, task: task ?? undefined, reason: 'manual' });
+
+        task.status = TaskStatus.SUCCESS;
+        task.message = 'WebDAV 同步完成';
+      } catch (e) {
+        this.logger.error('Manual WebDAV sync failed', e);
+        task.status = TaskStatus.FAILED;
+        task.message = e instanceof Error ? e.message : String(e);
+      }
+    })().catch((e) => {
+      this.logger.error('Unhandled WebDAV sync error', e);
+    });
+
+    return { id };
+  }
+
+  @LogMethod()
+  getWebDavTask(id: string): ImportTask | undefined {
+    return this.webDavTasks.get(id);
+  }
+
+  @LogMethod()
+  getRunningWebDavTask(): ImportTask | undefined {
+    return Array.from(this.webDavTasks.values()).find(
+      (task) => task.status === TaskStatus.INITIALIZING || task.status === TaskStatus.PARSING,
+    );
   }
 
   private async generateMissingHashes() {
@@ -1197,20 +1301,18 @@ export class ImportService implements OnModuleInit {
       let webdavAudiobookCount = 0;
       let webdavMvCount = 0;
 
-      if (process.env.WEBDAV_MUSIC_URL) {
-        task.message = '正在统计 WebDAV 音乐文件...';
-        const wdScanner = new WebDAVScanner(process.env.WEBDAV_MUSIC_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
-        webdavMusicCount = await wdScanner.count('/');
-      }
-      if (process.env.WEBDAV_AUDIOBOOK_URL) {
-        task.message = '正在统计 WebDAV 有声书文件...';
-        const wdScanner = new WebDAVScanner(process.env.WEBDAV_AUDIOBOOK_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
-        webdavAudiobookCount = await wdScanner.count('/');
-      }
-      if (process.env.WEBDAV_MV_URL) {
-        task.message = '正在统计 WebDAV MV 文件...';
-        const wdScanner = new WebDAVScanner(process.env.WEBDAV_MV_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
-        webdavMvCount = await wdScanner.count('/');
+      const webdavTargets = await this.webDavConfig.listScanTargets();
+      for (const target of webdavTargets) {
+        task.message = `正在统计 WebDAV ${target.source.name} [${target.kind}]...`;
+        const wdScanner = new WebDAVScanner(
+          target.source.url,
+          target.source.username,
+          target.source.password,
+        );
+        const count = await wdScanner.count(target.path);
+        if (target.kind === 'MUSIC') webdavMusicCount += count;
+        else if (target.kind === 'AUDIOBOOK') webdavAudiobookCount += count;
+        else if (target.kind === 'MV') webdavMvCount += count;
       }
 
       task.localTotal = musicCount + audiobookCount;

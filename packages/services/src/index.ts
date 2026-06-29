@@ -22,6 +22,7 @@ export * from "./track";
 export * from "./tts";
 export * from "./user";
 export * from "./userAudiobookHistory";
+export * from "./webdav";
 
 export const SOURCEMAP = {
     AudioDock: "audiodock",
