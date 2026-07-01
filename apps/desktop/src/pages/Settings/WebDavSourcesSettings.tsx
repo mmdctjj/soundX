@@ -4,7 +4,6 @@ import {
   Empty,
   Form,
   Input,
-  message,
   Popconfirm,
   Progress,
   Space,
@@ -24,6 +23,7 @@ import {
 } from "@soundx/services";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useMessage } from "../../context/MessageContext";
 import styles from "./index.module.less";
 
 const { Text, Paragraph } = Typography;
@@ -64,6 +64,7 @@ const emptyPaths = () => ({ MUSIC: "", AUDIOBOOK: "", MV: "" });
 
 const WebDavSourcesSettings: React.FC = () => {
   const { t } = useTranslation();
+  const message = useMessage();
   const [sources, setSources] = useState<WebDavSource[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
