@@ -38,6 +38,14 @@ const TARGET_WIDTH = 100; // Slightly smaller target for dense list
 const SONG_SKELETON_COUNT = 9;
 const GRID_SKELETON_COUNT = 12;
 
+const libraryTabCache = {
+  tracks: new Map<string, Track[]>(),
+  artists: new Map<string, Artist[]>(),
+  albums: new Map<string, Album[]>(),
+  collections: new Map<string, any[]>(),
+  mvs: new Map<string, any[]>(),
+};
+
 interface SongListProps {
   isSelectionMode: boolean;
   setIsSelectionMode: (value: boolean) => void;
@@ -59,8 +67,9 @@ const SongList = ({
   const { t } = useTranslation();
   const { mode } = usePlayMode();
   const { playTrackList } = usePlayer();
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${mode}_${heartbeatModeActive ? "heartbeat" : "normal"}`;
+  const [tracks, setTracks] = useState<Track[]>(() => libraryTabCache.tracks.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.tracks.has(cacheKey));
   const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
   const flatListRef = useRef<FlatList<Track>>(null);
   const { currentTrack } = usePlayer();
@@ -86,12 +95,18 @@ const SongList = ({
   };
 
   useEffect(() => {
+    const cached = libraryTabCache.tracks.get(cacheKey);
+    if (cached) {
+      setTracks(cached);
+      setLoading(false);
+      return;
+    }
     loadTracks();
-  }, [mode, heartbeatModeActive]);
+  }, [cacheKey]);
 
   const loadTracks = async () => {
     try {
-      setLoading(true);
+      setLoading(tracks.length === 0);
       const res = await loadMoreTrack({
         pageSize: 2000,
         loadCount: 0,
@@ -104,11 +119,11 @@ const SongList = ({
         const mappedTracks = list.map((item: any) =>
           item.track ? item.track : item,
         );
-        setTracks(
-          heartbeatModeActive
-            ? mappedTracks
-            : mappedTracks.sort((a, b) => a.name.localeCompare(b.name)),
-        );
+        const nextTracks = heartbeatModeActive
+          ? mappedTracks
+          : mappedTracks.sort((a, b) => a.name.localeCompare(b.name));
+        libraryTabCache.tracks.set(cacheKey, nextTracks);
+        setTracks(nextTracks);
       }
     } catch (error) {
       console.error("Failed to load tracks:", error);
@@ -336,8 +351,9 @@ const ArtistList = ({
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
-  const [artists, setArtists] = useState<Artist[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${mode}_${heartbeatModeActive ? "heartbeat" : "normal"}`;
+  const [artists, setArtists] = useState<Artist[]>(() => libraryTabCache.artists.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.artists.has(cacheKey));
   const flatListRef = useRef<FlatList<Artist>>(null);
   const { currentTrack } = usePlayer();
 
@@ -371,12 +387,18 @@ const ArtistList = ({
   const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
 
   useEffect(() => {
+    const cached = libraryTabCache.artists.get(cacheKey);
+    if (cached) {
+      setArtists(cached);
+      setLoading(false);
+      return;
+    }
     loadArtists();
-  }, [mode, heartbeatModeActive]);
+  }, [cacheKey]);
 
   const loadArtists = async () => {
     try {
-      setLoading(true);
+      setLoading(artists.length === 0);
       const res = await getArtistList(
         1000,
         0,
@@ -386,11 +408,11 @@ const ArtistList = ({
 
       if (res.code === 200 && res.data) {
         const { list } = res.data;
-        setArtists(
-          heartbeatModeActive
-            ? list
-            : list.sort((a, b) => a.name.localeCompare(b.name)),
-        );
+        const nextArtists = heartbeatModeActive
+          ? list
+          : list.sort((a, b) => a.name.localeCompare(b.name));
+        libraryTabCache.artists.set(cacheKey, nextArtists);
+        setArtists(nextArtists);
       }
     } catch (error) {
       console.error("Failed to load artists:", error);
@@ -510,8 +532,9 @@ const AlbumList = ({
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${mode}_${heartbeatModeActive ? "heartbeat" : "normal"}`;
+  const [albums, setAlbums] = useState<Album[]>(() => libraryTabCache.albums.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.albums.has(cacheKey));
   const flatListRef = useRef<FlatList<Album>>(null);
   const { currentTrack } = usePlayer();
 
@@ -549,12 +572,18 @@ const AlbumList = ({
   const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
 
   useEffect(() => {
+    const cached = libraryTabCache.albums.get(cacheKey);
+    if (cached) {
+      setAlbums(cached);
+      setLoading(false);
+      return;
+    }
     loadAlbums();
-  }, [mode, heartbeatModeActive]);
+  }, [cacheKey]);
 
   const loadAlbums = async () => {
     try {
-      setLoading(true);
+      setLoading(albums.length === 0);
       const res = await loadMoreAlbum({
         pageSize: 1000,
         loadCount: 0,
@@ -564,11 +593,11 @@ const AlbumList = ({
 
       if (res.code === 200 && res.data) {
         const { list } = res.data;
-        setAlbums(
-          heartbeatModeActive
-            ? list
-            : list.sort((a, b) => a.name.localeCompare(b.name)),
-        );
+        const nextAlbums = heartbeatModeActive
+          ? list
+          : list.sort((a, b) => a.name.localeCompare(b.name));
+        libraryTabCache.albums.set(cacheKey, nextAlbums);
+        setAlbums(nextAlbums);
       }
     } catch (error) {
       console.error("Failed to load albums:", error);
@@ -709,8 +738,9 @@ const CollectionList = () => {
   const { mode } = usePlayMode();
   const { user } = useAuth();
   const { width } = useWindowDimensions();
-  const [collections, setCollections] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = user ? `${mode}_${user.id}` : `${mode}_anonymous`;
+  const [collections, setCollections] = useState<any[]>(() => libraryTabCache.collections.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.collections.has(cacheKey));
 
   // Calculate columns dynamically
   const availableWidth = width - SCREEN_PADDING;
@@ -722,15 +752,22 @@ const CollectionList = () => {
 
   useEffect(() => {
     if (mode !== "AUDIOBOOK" || !user) return;
+    const cached = libraryTabCache.collections.get(cacheKey);
+    if (cached) {
+      setCollections(cached);
+      setLoading(false);
+      return;
+    }
     loadCollections();
-  }, [mode, user]);
+  }, [cacheKey, mode, user]);
 
   const loadCollections = async () => {
     if (!user) return;
     try {
-      setLoading(true);
+      setLoading(collections.length === 0);
       const res = await getCollections(user.id);
       if (res.code === 200 && res.data) {
+        libraryTabCache.collections.set(cacheKey, res.data);
         setCollections(res.data);
       }
     } catch (error) {
@@ -826,8 +863,9 @@ const MvList = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const [mvs, setMvs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = "all";
+  const [mvs, setMvs] = useState<any[]>(() => libraryTabCache.mvs.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.mvs.has(cacheKey));
 
   // Calculate columns dynamically
   const availableWidth = width - SCREEN_PADDING;
@@ -838,14 +876,21 @@ const MvList = () => {
   const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
 
   useEffect(() => {
+    const cached = libraryTabCache.mvs.get(cacheKey);
+    if (cached) {
+      setMvs(cached);
+      setLoading(false);
+      return;
+    }
     loadMvs();
-  }, []);
+  }, [cacheKey]);
 
   const loadMvs = async () => {
     try {
-      setLoading(true);
+      setLoading(mvs.length === 0);
       const res = await getMvList(1000, 0);
       if (res?.list) {
+        libraryTabCache.mvs.set(cacheKey, res.list);
         setMvs(res.list);
       }
     } catch (error) {
