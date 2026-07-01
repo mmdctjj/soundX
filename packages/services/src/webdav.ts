@@ -11,9 +11,9 @@ export interface WebDavSource {
   password?: string;
   enabled: boolean;
   paths: {
-    MUSIC?: string;
-    AUDIOBOOK?: string;
-    MV?: string;
+    MUSIC?: string[];
+    AUDIOBOOK?: string[];
+    MV?: string[];
   };
 }
 
@@ -25,9 +25,9 @@ export interface WebDavSourceInput {
   password?: string;
   enabled?: boolean;
   paths?: {
-    MUSIC?: string;
-    AUDIOBOOK?: string;
-    MV?: string;
+    MUSIC?: string[];
+    AUDIOBOOK?: string[];
+    MV?: string[];
   };
 }
 
@@ -42,9 +42,12 @@ export const getWebDavSources = async () => {
 };
 
 export const saveWebDavSources = async (sources: WebDavSourceInput[]) => {
-  return request.post<ISuccessResponse<WebDavSource[]>>("/admin/webdav-sources", {
-    sources,
-  });
+  return request.post<ISuccessResponse<WebDavSource[]>>(
+    "/admin/webdav-sources",
+    {
+      sources,
+    },
+  );
 };
 
 export const testWebDavConnection = async (source: WebDavSourceInput) => {
@@ -63,5 +66,7 @@ export const getWebDavSyncTask = async (id: string) => {
 };
 
 export const getCurrentWebDavSyncTask = async () => {
-  return request.get<ISuccessResponse<any | null>>("/admin/webdav-sync/current-task");
+  return request.get<ISuccessResponse<any | null>>(
+    "/admin/webdav-sync/current-task",
+  );
 };
