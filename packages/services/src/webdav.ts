@@ -10,10 +10,10 @@ export interface WebDavSource {
   username?: string;
   password?: string;
   enabled: boolean;
-  paths: {
-    MUSIC?: string[];
-    AUDIOBOOK?: string[];
-    MV?: string[];
+  paths?: {
+    MUSIC?: string | string[];
+    AUDIOBOOK?: string | string[];
+    MV?: string | string[];
   };
 }
 
@@ -25,9 +25,9 @@ export interface WebDavSourceInput {
   password?: string;
   enabled?: boolean;
   paths?: {
-    MUSIC?: string[];
-    AUDIOBOOK?: string[];
-    MV?: string[];
+    MUSIC?: string | string[];
+    AUDIOBOOK?: string | string[];
+    MV?: string | string[];
   };
 }
 

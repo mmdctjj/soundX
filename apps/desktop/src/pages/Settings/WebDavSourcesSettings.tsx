@@ -110,9 +110,9 @@ const WebDavSourcesSettings: React.FC = () => {
         const list = (rawList || []).map((s: WebDavSource) => ({
           ...s,
           paths: {
-            MUSIC: normalizePathList(s.paths?.MUSIC),
-            AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK),
-            MV: normalizePathList(s.paths?.MV),
+            MUSIC: normalizePathList(s.paths?.MUSIC) as any,
+            AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK) as any,
+            MV: normalizePathList(s.paths?.MV) as any,
           },
         }));
         setSources(list);
@@ -140,7 +140,7 @@ const WebDavSourcesSettings: React.FC = () => {
         username: "",
         password: "",
         enabled: true,
-        paths: emptyPaths(),
+        paths: emptyPaths() as any,
       },
     ]);
   };
@@ -220,9 +220,9 @@ const WebDavSourcesSettings: React.FC = () => {
         password: source.password,
         enabled: source.enabled,
         paths: {
-          MUSIC: compactPathList(source.paths?.MUSIC),
-          AUDIOBOOK: compactPathList(source.paths?.AUDIOBOOK),
-          MV: compactPathList(source.paths?.MV),
+          MUSIC: compactPathList(source.paths?.MUSIC) as any,
+          AUDIOBOOK: compactPathList(source.paths?.AUDIOBOOK) as any,
+          MV: compactPathList(source.paths?.MV) as any,
         },
       });
       if (res.code === 200) {
@@ -258,9 +258,9 @@ const WebDavSourcesSettings: React.FC = () => {
       const name = s.name.trim();
       const url = s.url.trim();
       const pathInput = {
-        MUSIC: compactPathList(s.paths?.MUSIC),
-        AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK),
-        MV: compactPathList(s.paths?.MV),
+        MUSIC: compactPathList(s.paths?.MUSIC) as any,
+        AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK) as any,
+        MV: compactPathList(s.paths?.MV) as any,
       };
       if (
         !name &&
@@ -296,9 +296,9 @@ const WebDavSourcesSettings: React.FC = () => {
         const list = (rawList || []).map((s: WebDavSource) => ({
           ...s,
           paths: {
-            MUSIC: normalizePathList(s.paths?.MUSIC),
-            AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK),
-            MV: normalizePathList(s.paths?.MV),
+            MUSIC: normalizePathList(s.paths?.MUSIC) as any,
+            AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK) as any,
+            MV: normalizePathList(s.paths?.MV) as any,
           },
         }));
         setSources(list);
@@ -393,7 +393,7 @@ const WebDavSourcesSettings: React.FC = () => {
         );
       }
     }
-    return tags;
+    return <>{tags}</>;
   };
 
   const progress = useMemo(() => {
