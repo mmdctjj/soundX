@@ -14,9 +14,9 @@ export interface WebDavSource {
   // Each path is optional. An empty/missing path means that content type is not provided
   // by this server. Paths are interpreted as absolute paths on the WebDAV server root.
   paths: {
-    MUSIC?: string;
-    AUDIOBOOK?: string;
-    MV?: string;
+    MUSIC?: string[];
+    AUDIOBOOK?: string[];
+    MV?: string[];
   };
 }
 
@@ -28,9 +28,9 @@ export interface WebDavSourceInput {
   password?: string;
   enabled?: boolean;
   paths?: {
-    MUSIC?: string;
-    AUDIOBOOK?: string;
-    MV?: string;
+    MUSIC?: string[];
+    AUDIOBOOK?: string[];
+    MV?: string[];
   };
 }
 
@@ -94,12 +94,17 @@ export class WebDavConfigService implements OnModuleInit {
       return { success: false, message: 'WebDAV URL 不能为空' };
     }
     try {
-      const client = this.createClient(source.url, source.username, source.password);
+      const client = this.createClient(
+        source.url,
+        source.username,
+        source.password,
+      );
       const paths = this.normalizePaths(source.paths);
       const targetPaths: { kind: WebDavPathKind; path: string }[] = [];
       for (const kind of PATH_KIND_ORDER) {
-        const p = paths[kind];
-        if (p) targetPaths.push({ kind, path: p });
+        for (const p of paths[kind] || []) {
+          targetPaths.push({ kind, path: p });
+        }
       }
       // When no sub-path is set, fall back to the root for a base reachability check.
       if (targetPaths.length === 0) {
@@ -109,13 +114,18 @@ export class WebDavConfigService implements OnModuleInit {
       const details: Record<string, { success: boolean; message: string }> = {};
       let allOk = true;
       for (const { kind, path } of targetPaths) {
+        const detailKey = `${kind}:${path}`;
         try {
           await client.getDirectoryContents(path);
-          details[kind] = { success: true, message: '连接成功' };
+          details[detailKey] = { success: true, message: '连接成功' };
         } catch (error) {
           allOk = false;
-          const message = error instanceof Error ? error.message : String(error);
-          details[kind] = { success: false, message: this.translateError(error, message) };
+          const message =
+            error instanceof Error ? error.message : String(error);
+          details[detailKey] = {
+            success: false,
+            message: this.translateError(error, message),
+          };
         }
       }
       if (allOk) {
@@ -124,7 +134,9 @@ export class WebDavConfigService implements OnModuleInit {
       return { success: false, message: '部分路径连接失败', details };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`WebDAV test connection failed for ${source.url}: ${message}`);
+      this.logger.warn(
+        `WebDAV test connection failed for ${source.url}: ${message}`,
+      );
       return { success: false, message: this.translateError(error, message) };
     }
   }
@@ -141,20 +153,29 @@ export class WebDavConfigService implements OnModuleInit {
     }>
   > {
     const sources = await this.list();
-    const targets: Array<{ source: WebDavSource; kind: WebDavPathKind; path: string }> = [];
+    const targets: Array<{
+      source: WebDavSource;
+      kind: WebDavPathKind;
+      path: string;
+    }> = [];
     for (const source of sources) {
       if (!source.enabled) continue;
       for (const kind of PATH_KIND_ORDER) {
-        const p = source.paths[kind];
-        if (p && p.trim()) {
-          targets.push({ source, kind, path: this.normalizeRemotePath(p) });
+        for (const p of source.paths[kind] || []) {
+          if (p && p.trim()) {
+            targets.push({ source, kind, path: this.normalizeRemotePath(p) });
+          }
         }
       }
     }
     return targets;
   }
 
-  private createClient(url: string, username?: string, password?: string): WebDAVClient {
+  private createClient(
+    url: string,
+    username?: string,
+    password?: string,
+  ): WebDAVClient {
     let decoded = decodeURI(url);
     if (decoded.endsWith('/')) {
       decoded = decoded.slice(0, -1);
@@ -187,9 +208,15 @@ export class WebDavConfigService implements OnModuleInit {
     const result: WebDavSource['paths'] = {};
     if (!paths) return result;
     for (const kind of PATH_KIND_ORDER) {
-      const raw = (paths as Record<string, string | undefined>)[kind];
-      if (raw && raw.trim()) {
-        result[kind] = raw.trim();
+      const raw = (paths as Record<string, string | string[] | undefined>)[
+        kind
+      ];
+      const values = Array.isArray(raw) ? raw : raw ? [raw] : [];
+      const cleaned = Array.from(
+        new Set(values.map((p) => p.trim()).filter(Boolean)),
+      );
+      if (cleaned.length > 0) {
+        result[kind] = cleaned;
       }
     }
     return result;
@@ -220,10 +247,14 @@ export class WebDavConfigService implements OnModuleInit {
     try {
       const parsed = JSON.parse(raw.value);
       if (!Array.isArray(parsed)) return [];
-      const sources = parsed.filter((item): item is WebDavSource => this.isWebDavSource(item));
+      const sources = parsed.filter((item): item is WebDavSource =>
+        this.isWebDavSource(item),
+      );
       return sources.map((source) => this.migrateLegacySource(source));
-    } catch (e) {
-      this.logger.warn(`Failed to parse ${SETTING_KEY} setting value, ignoring.`);
+    } catch {
+      this.logger.warn(
+        `Failed to parse ${SETTING_KEY} setting value, ignoring.`,
+      );
       return [];
     }
   }
@@ -245,9 +276,11 @@ export class WebDavConfigService implements OnModuleInit {
       };
     }
     const legacyType: WebDavPathKind | undefined =
-      raw.type === 'MUSIC' || raw.type === 'AUDIOBOOK' || raw.type === 'MV' ? raw.type : undefined;
+      raw.type === 'MUSIC' || raw.type === 'AUDIOBOOK' || raw.type === 'MV'
+        ? raw.type
+        : undefined;
     const paths: WebDavSource['paths'] = {};
-    if (legacyType) paths[legacyType] = '/';
+    if (legacyType) paths[legacyType] = ['/'];
     return {
       id: raw.id,
       name: raw.name,
@@ -290,7 +323,11 @@ export class WebDavConfigService implements OnModuleInit {
 
     const sources: WebDavSource[] = [];
     // Each env var gets its own source because they may point to different servers entirely.
-    const add = (url: string | undefined, kind: WebDavPathKind, label: string) => {
+    const add = (
+      url: string | undefined,
+      kind: WebDavPathKind,
+      label: string,
+    ) => {
       if (!url) return;
       sources.push({
         id: this.generateId(),
@@ -299,7 +336,7 @@ export class WebDavConfigService implements OnModuleInit {
         username: user,
         password: pass,
         enabled: true,
-        paths: { [kind]: '/' },
+        paths: { [kind]: ['/'] },
       });
     };
 
@@ -314,7 +351,8 @@ export class WebDavConfigService implements OnModuleInit {
     const status = (error as { status?: number })?.status;
     if (status === 401 || status === 403) return '认证失败，请检查用户名/密码';
     if (status === 404) return '找不到 WebDAV 路径，请检查 URL';
-    if (status === 0 || status === undefined) return `无法连接到 WebDAV 服务器：${fallback}`;
+    if (status === 0 || status === undefined)
+      return `无法连接到 WebDAV 服务器：${fallback}`;
     return `连接失败 (${status}): ${fallback}`;
   }
 }

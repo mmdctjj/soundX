@@ -28,7 +28,12 @@ import styles from "./index.module.less";
 
 const { Text, Paragraph } = Typography;
 
-const PATH_FIELDS: { kind: WebDavPathKind; labelKey: string; placeholderKey: string; tagKey: string }[] = [
+const PATH_FIELDS: {
+  kind: WebDavPathKind;
+  labelKey: string;
+  placeholderKey: string;
+  tagKey: string;
+}[] = [
   {
     kind: "MUSIC",
     labelKey: "settings.webdavPathMusic",
@@ -60,7 +65,17 @@ interface SyncState {
   total?: number;
 }
 
-const emptyPaths = () => ({ MUSIC: "", AUDIOBOOK: "", MV: "" });
+const normalizePathList = (value?: string | string[]) => {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return values.length > 0 ? values : [""];
+};
+
+const compactPathList = (value?: string | string[]) =>
+  normalizePathList(value)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+const emptyPaths = () => ({ MUSIC: [""], AUDIOBOOK: [""], MV: [""] });
 
 const WebDavSourcesSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -88,18 +103,22 @@ const WebDavSourcesSettings: React.FC = () => {
   const load = async () => {
     try {
       const res = await getWebDavSources();
-      const rawList = (res.code === 200 ? res.data : []) as WebDavSource[] | undefined;
+      const rawList = (res.code === 200 ? res.data : []) as
+        | WebDavSource[]
+        | undefined;
       if (res.code === 200) {
         const list = (rawList || []).map((s: WebDavSource) => ({
           ...s,
           paths: {
-            MUSIC: s.paths?.MUSIC || "",
-            AUDIOBOOK: s.paths?.AUDIOBOOK || "",
-            MV: s.paths?.MV || "",
+            MUSIC: normalizePathList(s.paths?.MUSIC),
+            AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK),
+            MV: normalizePathList(s.paths?.MV),
           },
         }));
         setSources(list);
-        setLegacyEnvImported(list.some((s: WebDavSource) => s.name.endsWith("(env)")));
+        setLegacyEnvImported(
+          list.some((s: WebDavSource) => s.name.endsWith("(env)")),
+        );
       } else {
         message.error(res.message || t("common.error"));
       }
@@ -127,12 +146,59 @@ const WebDavSourcesSettings: React.FC = () => {
   };
 
   const updateSource = (id: string, patch: Partial<WebDavSource>) => {
-    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    setSources((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+    );
   };
 
-  const updateSourcePath = (id: string, kind: WebDavPathKind, value: string) => {
+  const updateSourcePath = (
+    id: string,
+    kind: WebDavPathKind,
+    index: number,
+    value: string,
+  ) => {
     setSources((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, paths: { ...s.paths, [kind]: value } } : s)),
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const next = normalizePathList(s.paths?.[kind]);
+        next[index] = value;
+        return { ...s, paths: { ...s.paths, [kind]: next } };
+      }),
+    );
+  };
+
+  const addSourcePath = (id: string, kind: WebDavPathKind) => {
+    setSources((prev) =>
+      prev.map((s) =>
+        s.id === id
+          ? {
+              ...s,
+              paths: {
+                ...s.paths,
+                [kind]: [...normalizePathList(s.paths?.[kind]), ""],
+              },
+            }
+          : s,
+      ),
+    );
+  };
+
+  const removeSourcePath = (
+    id: string,
+    kind: WebDavPathKind,
+    index: number,
+  ) => {
+    setSources((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const next = normalizePathList(s.paths?.[kind]).filter(
+          (_, i) => i !== index,
+        );
+        return {
+          ...s,
+          paths: { ...s.paths, [kind]: next.length > 0 ? next : [""] },
+        };
+      }),
     );
   };
 
@@ -154,9 +220,9 @@ const WebDavSourcesSettings: React.FC = () => {
         password: source.password,
         enabled: source.enabled,
         paths: {
-          MUSIC: source.paths?.MUSIC || undefined,
-          AUDIOBOOK: source.paths?.AUDIOBOOK || undefined,
-          MV: source.paths?.MV || undefined,
+          MUSIC: compactPathList(source.paths?.MUSIC),
+          AUDIOBOOK: compactPathList(source.paths?.AUDIOBOOK),
+          MV: compactPathList(source.paths?.MV),
         },
       });
       if (res.code === 200) {
@@ -167,10 +233,11 @@ const WebDavSourcesSettings: React.FC = () => {
           const detailEntries = result.details
             ? Object.entries(result.details)
             : [];
-          const detailMsg = detailEntries
-            .filter(([, v]) => !(v as { success: boolean }).success)
-            .map(([k, v]) => `${k}: ${(v as { message: string }).message}`)
-            .join("; ") || result.message;
+          const detailMsg =
+            detailEntries
+              .filter(([, v]) => !(v as { success: boolean }).success)
+              .map(([k, v]) => `${k}: ${(v as { message: string }).message}`)
+              .join("; ") || result.message;
           message.error(`${t("settings.webdavTestFailed")}: ${detailMsg}`);
         }
       } else {
@@ -190,7 +257,18 @@ const WebDavSourcesSettings: React.FC = () => {
     for (const s of sources) {
       const name = s.name.trim();
       const url = s.url.trim();
-      if (!name && !url && !s.paths.MUSIC && !s.paths.AUDIOBOOK && !s.paths.MV) {
+      const pathInput = {
+        MUSIC: compactPathList(s.paths?.MUSIC),
+        AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK),
+        MV: compactPathList(s.paths?.MV),
+      };
+      if (
+        !name &&
+        !url &&
+        !pathInput.MUSIC.length &&
+        !pathInput.AUDIOBOOK.length &&
+        !pathInput.MV.length
+      ) {
         continue; // untouched empty row
       }
       if (!name || !url) {
@@ -204,32 +282,33 @@ const WebDavSourcesSettings: React.FC = () => {
         username: s.username?.trim() || undefined,
         password: s.password || undefined,
         enabled: s.enabled,
-        paths: {
-          MUSIC: s.paths?.MUSIC?.trim() || undefined,
-          AUDIOBOOK: s.paths?.AUDIOBOOK?.trim() || undefined,
-          MV: s.paths?.MV?.trim() || undefined,
-        },
+        paths: pathInput,
       });
     }
 
     setSaving(true);
     try {
       const res = await saveWebDavSources(sanitized);
-      const rawList = (res.code === 200 ? res.data : []) as WebDavSource[] | undefined;
+      const rawList = (res.code === 200 ? res.data : []) as
+        | WebDavSource[]
+        | undefined;
       if (res.code === 200) {
         const list = (rawList || []).map((s: WebDavSource) => ({
           ...s,
           paths: {
-            MUSIC: s.paths?.MUSIC || "",
-            AUDIOBOOK: s.paths?.AUDIOBOOK || "",
-            MV: s.paths?.MV || "",
+            MUSIC: normalizePathList(s.paths?.MUSIC),
+            AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK),
+            MV: normalizePathList(s.paths?.MV),
           },
         }));
         setSources(list);
         setLegacyEnvImported(false);
         message.success(t("settings.webdavSaveSuccess"));
         const hasAnyPath = sanitized.some(
-          (s) => s.paths?.MUSIC || s.paths?.AUDIOBOOK || s.paths?.MV,
+          (s) =>
+            s.paths?.MUSIC?.length ||
+            s.paths?.AUDIOBOOK?.length ||
+            s.paths?.MV?.length,
         );
         if (triggerSync && sanitized.length > 0 && hasAnyPath) {
           await runSync();
@@ -304,10 +383,12 @@ const WebDavSourcesSettings: React.FC = () => {
   const renderPathTags = (source: WebDavSource) => {
     const tags: React.ReactNode[] = [];
     for (const f of PATH_FIELDS) {
-      if (source.paths?.[f.kind]) {
+      const paths = compactPathList(source.paths?.[f.kind]);
+      if (paths.length > 0) {
         tags.push(
           <Tag key={f.kind} color="blue">
-            {t(f.tagKey)}: {source.paths[f.kind]}
+            {t(f.tagKey)}:{" "}
+            {paths.length > 1 ? `${paths[0]} +${paths.length - 1}` : paths[0]}
           </Tag>,
         );
       }
@@ -317,7 +398,10 @@ const WebDavSourcesSettings: React.FC = () => {
 
   const progress = useMemo(() => {
     if (!syncState || !syncState.total || syncState.total <= 0) return 0;
-    return Math.min(100, Math.round(((syncState.current || 0) / syncState.total) * 100));
+    return Math.min(
+      100,
+      Math.round(((syncState.current || 0) / syncState.total) * 100),
+    );
   }, [syncState]);
 
   return (
@@ -349,13 +433,17 @@ const WebDavSourcesSettings: React.FC = () => {
             key: source.id,
             label: (
               <Space size={4} wrap>
-                <Text strong>{source.name || t("settings.webdavSourceName")}</Text>
+                <Text strong>
+                  {source.name || t("settings.webdavSourceName")}
+                </Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {source.url || "—"}
                 </Text>
                 {renderPathTags(source)}
                 {!source.enabled && (
-                  <Tag color="default">{t("settings.webdavSourceEnabled")}: OFF</Tag>
+                  <Tag color="default">
+                    {t("settings.webdavSourceEnabled")}: OFF
+                  </Tag>
                 )}
               </Space>
             ),
@@ -365,21 +453,27 @@ const WebDavSourcesSettings: React.FC = () => {
                   <Input
                     value={source.name}
                     placeholder={t("settings.webdavSourceNamePlaceholder")}
-                    onChange={(e) => updateSource(source.id, { name: e.target.value })}
+                    onChange={(e) =>
+                      updateSource(source.id, { name: e.target.value })
+                    }
                   />
                 </Form.Item>
                 <Form.Item label={t("settings.webdavSourceUrl")}>
                   <Input
                     value={source.url}
                     placeholder={t("settings.webdavSourceUrlPlaceholder")}
-                    onChange={(e) => updateSource(source.id, { url: e.target.value })}
+                    onChange={(e) =>
+                      updateSource(source.id, { url: e.target.value })
+                    }
                   />
                 </Form.Item>
                 <Form.Item label={t("settings.webdavSourceUsername")}>
                   <Input
                     value={source.username || ""}
                     placeholder={t("settings.webdavSourceUsernamePlaceholder")}
-                    onChange={(e) => updateSource(source.id, { username: e.target.value })}
+                    onChange={(e) =>
+                      updateSource(source.id, { username: e.target.value })
+                    }
                   />
                 </Form.Item>
                 <Form.Item
@@ -389,16 +483,54 @@ const WebDavSourcesSettings: React.FC = () => {
                   <Input.Password
                     value={source.password || ""}
                     placeholder={t("settings.webdavSourcePasswordPlaceholder")}
-                    onChange={(e) => updateSource(source.id, { password: e.target.value })}
+                    onChange={(e) =>
+                      updateSource(source.id, { password: e.target.value })
+                    }
                   />
                 </Form.Item>
                 {PATH_FIELDS.map((f) => (
                   <Form.Item key={f.kind} label={t(f.labelKey)}>
-                    <Input
-                      value={source.paths?.[f.kind] || ""}
-                      placeholder={t(f.placeholderKey)}
-                      onChange={(e) => updateSourcePath(source.id, f.kind, e.target.value)}
-                    />
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      {normalizePathList(source.paths?.[f.kind]).map(
+                        (pathValue, index) => (
+                          <Space.Compact
+                            key={`${f.kind}-${index}`}
+                            style={{ width: "100%" }}
+                          >
+                            <Input
+                              value={pathValue}
+                              placeholder={t(f.placeholderKey)}
+                              onChange={(e) =>
+                                updateSourcePath(
+                                  source.id,
+                                  f.kind,
+                                  index,
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <Button
+                              onClick={() =>
+                                removeSourcePath(source.id, f.kind, index)
+                              }
+                              disabled={
+                                normalizePathList(source.paths?.[f.kind])
+                                  .length <= 1
+                              }
+                            >
+                              -
+                            </Button>
+                          </Space.Compact>
+                        ),
+                      )}
+                      <Button
+                        type="dashed"
+                        size="small"
+                        onClick={() => addSourcePath(source.id, f.kind)}
+                      >
+                        + {t(f.labelKey)}
+                      </Button>
+                    </Space>
                   </Form.Item>
                 ))}
                 <Form.Item>
@@ -407,7 +539,9 @@ const WebDavSourcesSettings: React.FC = () => {
                       checked={source.enabled}
                       checkedChildren={t("settings.webdavSourceEnabled")}
                       unCheckedChildren={t("settings.webdavSourceEnabled")}
-                      onChange={(val) => updateSource(source.id, { enabled: val })}
+                      onChange={(val) =>
+                        updateSource(source.id, { enabled: val })
+                      }
                     />
                     <Button
                       loading={testingId === source.id}
@@ -441,17 +575,33 @@ const WebDavSourcesSettings: React.FC = () => {
           onClick={() => handleSave(true)}
           disabled={sources.length === 0}
         >
-          {saving ? t("settings.webdavSaving") : t("settings.webdavSaveAndSync")}
+          {saving
+            ? t("settings.webdavSaving")
+            : t("settings.webdavSaveAndSync")}
         </Button>
-        <Button onClick={() => handleSave(false)} loading={saving} disabled={sources.length === 0}>
-          {saving ? t("settings.webdavSaving") : t("settings.webdavSaveSuccess")}
+        <Button
+          onClick={() => handleSave(false)}
+          loading={saving}
+          disabled={sources.length === 0}
+        >
+          {saving
+            ? t("settings.webdavSaving")
+            : t("settings.webdavSaveSuccess")}
         </Button>
       </Space>
 
       {syncState && (
         <div className={styles.webdavSyncPanel}>
           <Text strong>{t("settings.webdavSyncStatus")}: </Text>
-          <Tag color={syncState.status === "SUCCESS" ? "green" : syncState.status === "FAILED" ? "red" : "blue"}>
+          <Tag
+            color={
+              syncState.status === "SUCCESS"
+                ? "green"
+                : syncState.status === "FAILED"
+                  ? "red"
+                  : "blue"
+            }
+          >
             {syncState.status}
           </Tag>
           {syncState.message && (
@@ -467,7 +617,8 @@ const WebDavSourcesSettings: React.FC = () => {
                 status={syncState.status === "FAILED" ? "exception" : "active"}
               />
               <Text type="secondary" style={{ fontSize: 12 }}>
-                {t("settings.webdavProgressCurrent")}: {syncState.current ?? 0} / {syncState.total ?? 0}
+                {t("settings.webdavProgressCurrent")}: {syncState.current ?? 0}{" "}
+                / {syncState.total ?? 0}
               </Text>
             </div>
           )}
