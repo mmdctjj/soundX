@@ -27,7 +27,7 @@ const Category: React.FC = () => {
   const { mode } = usePlayMode();
   const { heartbeatModeActive, toggleHeartbeatMode } = useLibraryStore();
   const { token } = theme.useToken();
-  const { setList, listMap, loadCountMap, scrollMap, setLoadCount, setScroll } = useAlbumListCache();
+  const { setList, listMap, loadCountMap, totalMap, scrollMap, setLoadCount, setTotal, setScroll } = useAlbumListCache();
   const key = `${CACHE_KEY}_${mode}_${heartbeatModeActive ? "heartbeat" : "default"}`;
 
   const loadMoreAlbums = async (d: Result | undefined): Promise<Result> => {
@@ -48,6 +48,7 @@ const Category: React.FC = () => {
         const newList = d?.list ? [...d.list, ...list] : list;
         setList(key, newList);
         setLoadCount(key, res?.data?.loadCount);
+        setTotal(key, Number(total));
         return {
           list: list, // ahooks automatically appends if we return list, wait.
           hasMore: (d?.list?.length || 0) + list.length < Number(total), // Fixed logic: existing + new < total
@@ -78,12 +79,13 @@ const Category: React.FC = () => {
   useLayoutEffect(() => {
     const cachedList = listMap[key];
     const cachedLoadCount = loadCountMap[key];
+    const cachedTotal = totalMap[key];
     
     if (cachedList && cachedList.length > 0) {
       mutate({
         list: cachedList,
-        hasMore: true, // Optimistically assume true or check logic
-        total: 9999, // Hack: we might not have total in cache unless we added it. But it's fine.
+        hasMore: cachedList.length < (cachedTotal || 0),
+        total: cachedTotal || cachedList.length,
         loadCount: cachedLoadCount || 0,
       });
       // Restore scroll

@@ -32,7 +32,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { initBaseURL } from "@/src/https";
 import { Image as ExpoImage } from "expo-image";
 import { CachedImage } from "../../src/components/CachedImage";
-import SkeletonBlock from "../../src/components/SkeletonBlock";
 import { useAuth } from "../../src/context/AuthContext";
 import { useSettings } from "../../src/context/SettingsContext";
 import { useTheme } from "../../src/context/ThemeContext";
@@ -45,91 +44,6 @@ interface Section {
   title: string;
   data: any[];
   type: "artist" | "album" | "track";
-}
-
-function HomeSkeleton({ insets }: { insets: { top: number } }) {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <SkeletonBlock width={72} height={30} borderRadius={10} />
-          <View style={styles.headerRight}>
-            <SkeletonBlock width={36} height={36} borderRadius={18} style={{ marginRight: 10 }} />
-            <SkeletonBlock width={36} height={36} borderRadius={18} />
-          </View>
-        </View>
-
-        <View style={styles.searchBar}>
-          <SkeletonBlock width={180} height={18} borderRadius={9} />
-        </View>
-
-        {Array.from({ length: 3 }).map((_, sectionIndex) => (
-          <View key={`home-skeleton-section-${sectionIndex}`}>
-            <View style={styles.sectionHeader}>
-              <SkeletonBlock width={96} height={26} borderRadius={10} />
-              <SkeletonBlock width={20} height={20} borderRadius={10} />
-            </View>
-
-            {sectionIndex === 2 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalList}
-              >
-                {Array.from({ length: 3 }).map((__, columnIndex) => (
-                  <View key={`track-skeleton-column-${columnIndex}`} style={styles.trackColumn}>
-                    {Array.from({ length: 2 }).map((___, rowIndex) => (
-                      <View key={`track-skeleton-${columnIndex}-${rowIndex}`} style={styles.trackCard}>
-                        <SkeletonBlock width={50} height={50} borderRadius={4} />
-                        <View style={styles.trackInfo}>
-                          <SkeletonBlock width={140} height={14} borderRadius={7} style={{ marginBottom: 6 }} />
-                          <SkeletonBlock width={96} height={12} borderRadius={6} />
-                        </View>
-                        <View style={styles.trackActions}>
-                          <SkeletonBlock width={18} height={18} borderRadius={9} style={{ marginBottom: 10 }} />
-                          <SkeletonBlock width={18} height={18} borderRadius={9} />
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalList}
-              >
-                {Array.from({ length: 4 }).map((__, itemIndex) => (
-                  <View
-                    key={`card-skeleton-${sectionIndex}-${itemIndex}`}
-                    style={sectionIndex === 0 ? styles.artistCard : styles.albumCard}
-                  >
-                    <SkeletonBlock
-                      width={sectionIndex === 0 ? 100 : 120}
-                      height={sectionIndex === 0 ? 100 : 120}
-                      borderRadius={sectionIndex === 0 ? 50 : 10}
-                      style={{ marginBottom: 8 }}
-                    />
-                    <SkeletonBlock width={sectionIndex === 0 ? 76 : 92} height={12} borderRadius={6} style={{ marginBottom: 6 }} />
-                    {sectionIndex !== 0 ? (
-                      <SkeletonBlock width={68} height={12} borderRadius={6} />
-                    ) : null}
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        ))}
-
-        <View style={styles.reorderButton}>
-          <SkeletonBlock width={20} height={20} borderRadius={10} />
-          <SkeletonBlock width={72} height={16} borderRadius={8} />
-        </View>
-      </ScrollView>
-    </View>
-  );
 }
 
 export default function HomeScreen() {
@@ -150,7 +64,6 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const [sections, setSections] = useState<Section[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const radioAnim = React.useRef(new Animated.Value(0)).current;
@@ -232,8 +145,6 @@ export default function HomeScreen() {
   const loadData = useCallback(
     async (forceRefresh = false) => {
       try {
-        if (!forceRefresh) setLoading(true);
-
         // Try cache first if not refreshing
         if (!forceRefresh) {
           const cachedSections = await cacheUtils.get<Section[]>(
@@ -265,7 +176,6 @@ export default function HomeScreen() {
               }
             }
             setSections(cachedSections);
-            setLoading(false);
             setRefreshing(false);
             return;
           }
@@ -351,7 +261,6 @@ export default function HomeScreen() {
       } catch (error) {
         console.error("Failed to load home data:", error);
       } finally {
-        setLoading(false);
         setRefreshing(false);
       }
     },
@@ -438,10 +347,6 @@ export default function HomeScreen() {
       console.error(`Failed to refresh section ${sectionId}:`, error);
     }
   };
-
-  if (loading && !refreshing) {
-    return <HomeSkeleton insets={insets} />;
-  }
 
   return (
     <View

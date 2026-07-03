@@ -1,10 +1,12 @@
-import { getFavoriteTracks, getMvByTrackId, toggleTrackLike, toggleTrackUnLike } from '@soundx/services';
+import { getFavoriteTracks, getMvByTrackId, toggleTrackLike, toggleTrackUnLike, type MiDevice, playMiDeviceByUrl } from '@soundx/services';
 import { Image, ScrollView, Slider, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AddToPlaylistModal from '../../components/AddToPlaylistModal';
+import MiDeviceSelector from '../../components/MiDeviceSelector';
 import PlaylistModal from '../../components/PlaylistModal';
+import XiaoAiIcon from '../../components/XiaoAiIcon';
 import { useAuth } from '../../context/AuthContext';
 import { PlayMode, usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
@@ -88,6 +90,8 @@ export default function Player() {
   const [showSkipConfigModal, setShowSkipConfigModal] = useState(false);
   const [skipConfigType, setSkipConfigType] = useState<'intro' | 'outro'>('intro');
   const [tempSkipTime, setTempSkipTime] = useState(30);
+  const [isMiDeviceSelectorVisible, setIsMiDeviceSelectorVisible] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   useEffect(() => {
     if (currentTrack && currentTrack.lyrics) {
@@ -310,13 +314,49 @@ export default function Player() {
     setShowSkipConfigModal(false);
   };
 
-  const handleOpenMore = () => {
+const handleOpenMore = () => {
     trackEvent({
       feature: 'player',
       eventName: 'player_more_open',
       metadata: { trackId: currentTrack?.id }
     });
     setShowMoreMenu(true);
+  };
+
+  const handleOpenMiCast = () => {
+    trackEvent({
+      feature: 'player',
+      eventName: 'cast_to_mi_open',
+      metadata: { trackId: currentTrack?.id }
+    });
+    setIsMiDeviceSelectorVisible(true);
+  };
+
+  const handleCastToMi = async (device: MiDevice) => {
+    if (!currentTrack) {
+      Taro.showToast({ title: t('playerPage.miCastNoTrack'), icon: 'none' });
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const baseURL = getBaseURL().replace(/\/$/, '');
+      const url = `${baseURL}/track/stream/${currentTrack.id}`;
+      const title = `${currentTrack.name} - ${currentTrack.artist ?? ''}`;
+      await playMiDeviceByUrl({ device_id: device.device_id, url, title });
+      Taro.showToast({
+        title: t('playerPage.miCastSuccess', { device: device.name }),
+        icon: 'success',
+      });
+      setIsMiDeviceSelectorVisible(false);
+      if (isPlaying) {
+        pause();
+      }
+    } catch (e) {
+      console.error('Failed to cast to Mi device:', e);
+      Taro.showToast({ title: t('playerPage.miCastFailed'), icon: 'none' });
+    } finally {
+      setIsCastingToMi(false);
+    }
   };
 
   if (!currentTrack) return (
@@ -410,6 +450,9 @@ export default function Player() {
                             </View>
                           </>
                         )}
+                        <View className='player-action-btn' onClick={handleOpenMiCast}>
+                            <XiaoAiIcon size={16} />
+                        </View>
                         <View className='player-action-btn' onClick={() => setShowMoreMenu(!showMoreMenu)}>
                             <Text className='player-action-icon icon icon-more-h' />
                         </View>
@@ -515,6 +558,12 @@ export default function Player() {
         )}
 
         <AddToPlaylistModal visible={showAddToPlaylist} onClose={() => setShowAddToPlaylist(false)} />
+        <MiDeviceSelector
+          visible={isMiDeviceSelectorVisible}
+          onClose={() => setIsMiDeviceSelectorVisible(false)}
+          onSelectDevice={handleCastToMi}
+          loading={isCastingToMi}
+        />
         <PlaylistModal />
 
         {showLyricsFontModal && (

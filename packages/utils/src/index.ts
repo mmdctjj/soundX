@@ -143,10 +143,12 @@ export class LocalMusicScanner {
     await this.traverse(dir, async (filePath) => {
       const metadata = await this.parseFile(filePath);
       if (metadata) {
-        // Override album with parent folder name
+        // 优先使用元信息中的 album，如果没有才使用文件夹名
         const parentDir = path.dirname(filePath);
         const folderName = path.basename(parentDir);
-        metadata.album = folderName;
+        if (this.isMissingAudiobookContributor(metadata.album)) {
+          metadata.album = folderName;
+        }
         if (this.isMissingAudiobookContributor(metadata.artist)) {
           metadata.artist = folderName;
         }
@@ -432,8 +434,9 @@ export class LocalMusicScanner {
         const picture = common.picture[0];
         const ext = picture.format.split('/')[1] || 'jpg';
         const fileName = path.basename(filePath);
-        // Cover name consistent with file name
-        const coverName = `${fileName}.${ext}`;
+        const dirName = path.basename(path.dirname(filePath));
+        // Cover name includes parent directory to avoid conflicts
+        const coverName = `${dirName}_${fileName}.${ext}`;
         const savePath = path.join(this.cacheDir, coverName);
 
         fs.writeFileSync(savePath, picture.data);
@@ -473,9 +476,58 @@ export class LocalMusicScanner {
         lyrics = lyrics.replace(/\u0000/g, '');
       }
 
-      let title = common.title;
-      let artist = common.artist || common.album;
-      let album = common.album;
+      // 优先从 ID3v2.4/ID3v2.3 读取标签，避免 APEv2 等标签污染
+      let title: string | undefined = undefined;
+      let artist: string | undefined = undefined;
+      let album: string | undefined = undefined;
+      let hasId3v2Title = false;
+
+      // 尝试从 ID3v2.4 获取
+      if (metadata.native && metadata.native['ID3v2.4']) {
+        const id3v24 = metadata.native['ID3v2.4'];
+        const tit2 = id3v24.find((tag: any) => tag.id === 'TIT2');
+        const tpe1 = id3v24.find((tag: any) => tag.id === 'TPE1');
+        const talb = id3v24.find((tag: any) => tag.id === 'TALB');
+        if (tit2 && tit2.value) {
+          title = tit2.value;
+          hasId3v2Title = true;
+        }
+        if (tpe1 && tpe1.value) artist = tpe1.value;
+        if (talb && talb.value) album = talb.value;
+      }
+
+      // 如果 ID3v2.4 没有，尝试从 ID3v2.3 获取
+      if ((!title || !artist || !album) && metadata.native && metadata.native['ID3v2.3']) {
+        const id3v23 = metadata.native['ID3v2.3'];
+        if (!title) {
+          const tit2 = id3v23.find((tag: any) => tag.id === 'TIT2');
+          if (tit2 && tit2.value) {
+            title = tit2.value;
+            hasId3v2Title = true;
+          }
+        }
+        if (!artist) {
+          const tpe1 = id3v23.find((tag: any) => tag.id === 'TPE1');
+          if (tpe1 && tpe1.value) artist = tpe1.value;
+        }
+        if (!album) {
+          const talb = id3v23.find((tag: any) => tag.id === 'TALB');
+          if (talb && talb.value) album = talb.value;
+        }
+      }
+
+      // 如果 ID3v2 中没有 title，则回退到文件名（避免使用可能被 APEv2 污染的 common.title）
+      if (!hasId3v2Title) {
+        title = path.basename(filePath, path.extname(filePath));
+      }
+
+      // 如果 ID3v2 中没有 artist/album，回退到 common
+      if (!artist) {
+        artist = common.artist || common.album;
+      }
+      if (!album) {
+        album = common.album;
+      }
 
       // Fix encoding if garbled
       title = this.fixEncoding(title || '');
