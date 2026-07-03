@@ -381,7 +381,7 @@ const WebDavSourcesSettings: React.FC = () => {
   };
 
   const renderPathTags = (source: WebDavSource) => {
-    const tags: React.ReactNode[] = [];
+    const tags: React.ReactElement[] = [];
     for (const f of PATH_FIELDS) {
       const paths = compactPathList(source.paths?.[f.kind]);
       if (paths.length > 0) {
@@ -393,7 +393,7 @@ const WebDavSourcesSettings: React.FC = () => {
         );
       }
     }
-    return <>{tags}</>;
+    return tags;
   };
 
   const progress = useMemo(() => {
