@@ -1,7 +1,0 @@
-cargo:rerun-if-changed=permissions
-cargo:PERMISSION_FILES_PATH=/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/aarch64-apple-darwin/debug/build/tauri-plugin-dialog-10d0e5926ed47bdc/out/tauri-plugin-dialog-permission-files
-cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
-cargo:GLOBAL_API_SCRIPT_PATH=/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-plugin-dialog-2.7.1/api-iife.js
-cargo:rustc-check-cfg=cfg(mobile)
-cargo:rustc-check-cfg=cfg(desktop)
-cargo:rustc-cfg=desktop
