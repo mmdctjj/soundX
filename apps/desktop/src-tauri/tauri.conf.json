@@ -12,13 +12,14 @@
   "app": {
     "windows": [
       {
-        "title": "AudioDock",
+        "title": "",
         "width": 1020,
         "height": 700,
         "minWidth": 1025,
         "minHeight": 700,
         "transparent": true,
-        "decorations": false,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
         "center": true,
         "visible": false
       }

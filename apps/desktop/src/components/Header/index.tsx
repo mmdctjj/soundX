@@ -844,9 +844,9 @@ const Header: React.FC = () => {
   };
 
   return (
-    <div className={`${styles.header}`}>
+    <div className={`${styles.header}`} data-tauri-drag-region>
       {/* Navigation Controls */}
-      <div className={styles.navControls}>
+      <div className={styles.navControls} data-tauri-no-drag>
         <div className={styles.navGroup}>
           <Tooltip title={t("header.back")}>
             <LeftOutlined
@@ -877,6 +877,7 @@ const Header: React.FC = () => {
         className={styles.searchBar}
         ref={searchContainerRef}
         style={{ display: "flex", alignItems: "center" }}
+        data-tauri-no-drag
       >
         <Tooltip
           title={
@@ -929,7 +930,7 @@ const Header: React.FC = () => {
       </div>
 
       {/* User Actions */}
-      <div className={styles.userActions}>
+      <div className={styles.userActions} data-tauri-no-drag>
         {playMode === TrackType.MUSIC &&
           !isSubsonicSource() &&
           !isEmbySource() && (
