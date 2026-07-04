@@ -166,7 +166,6 @@
     "webdavSourceTypeMusic": "Music",
     "webdavSourceTypeAudiobook": "Audiobook",
     "webdavSourceTypeMv": "MV / Video",
-<<<<<<< HEAD
     "webdavPathMusic": "Music Paths",
     "webdavPathAudiobook": "Audiobook Paths",
     "webdavPathMv": "MV Paths",
@@ -174,15 +173,6 @@
     "webdavPathAudiobookPlaceholder": "/audiobooks (add one or more; leave blank to skip)",
     "webdavPathMvPlaceholder": "/videos (add one or more; leave blank to skip)",
     "webdavPathHint": "Each path is optional; add multiple paths when one source exposes several folders",
-=======
-    "webdavPathMusic": "Music Path",
-    "webdavPathAudiobook": "Audiobook Path",
-    "webdavPathMv": "MV Path",
-    "webdavPathMusicPlaceholder": "/music (leave blank to skip)",
-    "webdavPathAudiobookPlaceholder": "/audiobooks (leave blank to skip)",
-    "webdavPathMvPlaceholder": "/videos (leave blank to skip)",
-    "webdavPathHint": "Each path is optional; only filled paths are scanned",
->>>>>>> origin/master
     "webdavSourceEnabled": "Enabled",
     "webdavSourceRemove": "Remove",
     "webdavTestConnection": "Test Connection",

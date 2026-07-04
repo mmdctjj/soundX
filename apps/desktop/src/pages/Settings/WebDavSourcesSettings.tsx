@@ -103,13 +103,9 @@ const WebDavSourcesSettings: React.FC = () => {
   const load = async () => {
     try {
       const res = await getWebDavSources();
-<<<<<<< HEAD
       const rawList = (res.code === 200 ? res.data : []) as
         | WebDavSource[]
         | undefined;
-=======
-      const rawList = (res.code === 200 ? res.data : []) as WebDavSource[] | undefined;
->>>>>>> origin/master
       if (res.code === 200) {
         const list = (rawList || []).map((s: WebDavSource) => ({
           ...s,
@@ -120,13 +116,9 @@ const WebDavSourcesSettings: React.FC = () => {
           },
         }));
         setSources(list);
-<<<<<<< HEAD
         setLegacyEnvImported(
           list.some((s: WebDavSource) => s.name.endsWith("(env)")),
         );
-=======
-        setLegacyEnvImported(list.some((s: WebDavSource) => s.name.endsWith("(env)")));
->>>>>>> origin/master
       } else {
         message.error(res.message || t("common.error"));
       }
@@ -241,18 +233,11 @@ const WebDavSourcesSettings: React.FC = () => {
           const detailEntries = result.details
             ? Object.entries(result.details)
             : [];
-<<<<<<< HEAD
           const detailMsg =
             detailEntries
               .filter(([, v]) => !(v as { success: boolean }).success)
               .map(([k, v]) => `${k}: ${(v as { message: string }).message}`)
               .join("; ") || result.message;
-=======
-          const detailMsg = detailEntries
-            .filter(([, v]) => !(v as { success: boolean }).success)
-            .map(([k, v]) => `${k}: ${(v as { message: string }).message}`)
-            .join("; ") || result.message;
->>>>>>> origin/master
           message.error(`${t("settings.webdavTestFailed")}: ${detailMsg}`);
         }
       } else {
@@ -304,13 +289,9 @@ const WebDavSourcesSettings: React.FC = () => {
     setSaving(true);
     try {
       const res = await saveWebDavSources(sanitized);
-<<<<<<< HEAD
       const rawList = (res.code === 200 ? res.data : []) as
         | WebDavSource[]
         | undefined;
-=======
-      const rawList = (res.code === 200 ? res.data : []) as WebDavSource[] | undefined;
->>>>>>> origin/master
       if (res.code === 200) {
         const list = (rawList || []).map((s: WebDavSource) => ({
           ...s,
