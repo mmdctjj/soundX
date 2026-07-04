@@ -55,25 +55,25 @@ const PATH_FIELDS: {
   placeholderKey: string;
   tagKey: string;
 }[] = [
-  {
-    kind: "MUSIC",
-    labelKey: "settings.webdavPathMusic",
-    placeholderKey: "settings.webdavPathMusicPlaceholder",
-    tagKey: "settings.webdavSourceTypeMusic",
-  },
-  {
-    kind: "AUDIOBOOK",
-    labelKey: "settings.webdavPathAudiobook",
-    placeholderKey: "settings.webdavPathAudiobookPlaceholder",
-    tagKey: "settings.webdavSourceTypeAudiobook",
-  },
-  {
-    kind: "MV",
-    labelKey: "settings.webdavPathMv",
-    placeholderKey: "settings.webdavPathMvPlaceholder",
-    tagKey: "settings.webdavSourceTypeMv",
-  },
-];
+    {
+      kind: "MUSIC",
+      labelKey: "settings.webdavPathMusic",
+      placeholderKey: "settings.webdavPathMusicPlaceholder",
+      tagKey: "settings.webdavSourceTypeMusic",
+    },
+    {
+      kind: "AUDIOBOOK",
+      labelKey: "settings.webdavPathAudiobook",
+      placeholderKey: "settings.webdavPathAudiobookPlaceholder",
+      tagKey: "settings.webdavSourceTypeAudiobook",
+    },
+    {
+      kind: "MV",
+      labelKey: "settings.webdavPathMv",
+      placeholderKey: "settings.webdavPathMvPlaceholder",
+      tagKey: "settings.webdavSourceTypeMv",
+    },
+  ];
 
 const generateId = () =>
   `wd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -187,12 +187,12 @@ export default function WebDavSourcesScreen() {
       prev.map((s) =>
         s.id === id
           ? {
-              ...s,
-              paths: {
-                ...s.paths,
-                [kind]: [...normalizePathList(s.paths?.[kind]), ""],
-              },
-            }
+            ...s,
+            paths: {
+              ...s.paths,
+              [kind]: [...normalizePathList(s.paths?.[kind]), ""],
+            },
+          }
           : s,
       ),
     );
