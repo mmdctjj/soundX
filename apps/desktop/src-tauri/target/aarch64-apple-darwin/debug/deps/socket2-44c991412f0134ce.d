@@ -1,0 +1,11 @@
+/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/aarch64-apple-darwin/debug/deps/socket2-44c991412f0134ce.d: /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/lib.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sockaddr.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/socket.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sockref.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sys/unix.rs
+
+/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/aarch64-apple-darwin/debug/deps/libsocket2-44c991412f0134ce.rlib: /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/lib.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sockaddr.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/socket.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sockref.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sys/unix.rs
+
+/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/aarch64-apple-darwin/debug/deps/libsocket2-44c991412f0134ce.rmeta: /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/lib.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sockaddr.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/socket.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sockref.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sys/unix.rs
+
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/lib.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sockaddr.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/socket.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sockref.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.6.4/src/sys/unix.rs:

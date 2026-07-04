@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import {
   AimOutlined,
   BackwardOutlined,
@@ -83,6 +85,7 @@ import { useSyncStore } from "../../store/sync";
 import { formatDuration } from "../../utils/formatDuration";
 import { getCurrentPlaybackQualityPreference } from "../../utils/playbackQuality";
 import { usePlayMode } from "../../utils/playMode";
+import { tauriGetDeviceName, isTauri } from "../../utils/platform";
 import PlayingIndicator from "../PlayingIndicator";
 import UserSelectModal from "../UserSelectModal";
 import styles from "./index.module.less";
@@ -384,8 +387,7 @@ const Player: React.FC = () => {
 
       try {
         // 获取设备
-        const deviceName =
-          (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+        const deviceName = await tauriGetDeviceName();
         const res = await getLatestHistory(user.id);
         if (res && res.code === 200 && res.data) {
           const history = res.data;
@@ -764,8 +766,7 @@ const Player: React.FC = () => {
   useEffect(() => {
     if (currentTrack) {
       (async () => {
-        const deviceName =
-          (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+        const deviceName = await tauriGetDeviceName();
         addToHistory(
           currentTrack.id,
           user?.id || 0,
@@ -782,8 +783,7 @@ const Player: React.FC = () => {
   useEffect(() => {
     if (currentTrack) {
       (async () => {
-        const deviceName =
-          (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+        const deviceName = await tauriGetDeviceName();
         addToHistory(
           currentTrack.id,
           user?.id || 0,
@@ -810,14 +810,14 @@ const Player: React.FC = () => {
       // IPC Broadcast for Mini Player (throttled ~250ms)
       const now = Date.now();
       if (
-        (window as any).ipcRenderer &&
+        isTauri() &&
         now - lastTimeUpdateRef.current > 250
       ) {
-        (window as any).ipcRenderer.send("player:update", {
+        invoke("update_player_state", {
           currentTime: time,
           duration: duration || audioRef.current.duration,
           isPlaying: !audioRef.current.paused,
-        });
+        }).catch(console.error);
         lastTimeUpdateRef.current = now;
       }
 
@@ -970,8 +970,8 @@ const Player: React.FC = () => {
 
   // Send track info to main process for tray display
   useEffect(() => {
-    if (window.ipcRenderer) {
-      window.ipcRenderer.send("player:update", {
+    if (isTauri()) {
+      invoke("update_player_state", {
         track: currentTrack
           ? {
               id: currentTrack.id,
@@ -982,22 +982,7 @@ const Player: React.FC = () => {
             }
           : null,
         isPlaying,
-      });
-    }
-    // Update main process for desktop lyrics
-    if (window.ipcRenderer) {
-      window.ipcRenderer.send("player:update", {
-        isPlaying,
-        track: currentTrack
-          ? {
-              id: currentTrack.id,
-              name: currentTrack.name,
-              artist: currentTrack.artist,
-              album: currentTrack.album,
-              cover: currentTrack.cover,
-            }
-          : null,
-      });
+      }).catch(console.error);
     }
   }, [currentTrack, isPlaying]);
 
@@ -1012,8 +997,8 @@ const Player: React.FC = () => {
     if (!rawLyrics) {
       setParsedLyrics([]);
       // Sync empty state immediately
-      if (window.ipcRenderer) {
-        window.ipcRenderer.send("lyric:update", { currentLyric: "" });
+      if (isTauri()) {
+        invoke("update_lyric", { currentLyric: "" }).catch(console.error);
       }
       return;
     }
@@ -1044,7 +1029,7 @@ const Player: React.FC = () => {
 
   // Sync active lyric line
   useEffect(() => {
-    if (parsedLyrics.length === 0 || !window.ipcRenderer) return;
+    if (parsedLyrics.length === 0 || !isTauri()) return;
 
     let index = parsedLyrics.findIndex((line) => line.time > currentTime) - 1;
     if (index === -2) index = -1;
@@ -1052,59 +1037,33 @@ const Player: React.FC = () => {
 
     const currentLineText = index >= 0 ? parsedLyrics[index].text : "";
 
-    // Optimize: Only send if needed (though main process handles diffs usually, better to be chatty or let throttling handle it?
-    // Main process throttling might be better, but let's send for now.
-    // Ideally we would check if it changed, but we don't store previous sent lyric here easily without ref.
-    // Given the frequency of currentTime updates (throttle in main loop?), this runs every time time updates.
-    // Actually handleTimeUpdate updates currentTime state.
-
-    window.ipcRenderer.send("lyric:update", {
-      currentLyric: currentLineText,
-    });
+    invoke("update_lyric", { currentLyric: currentLineText }).catch(console.error);
   }, [currentTime, parsedLyrics]);
-
-  // // Create refs for control functions to use in IPC handlers
-  // const togglePlayRef = useRef<(() => void) | undefined>(undefined);
-  // const nextRef = useRef<(() => void) | undefined>(undefined);
-  // const prevRef = useRef<(() => void) | undefined>(undefined);
-
-  // // Update refs when functions change
-  // useEffect(() => {
-  //   togglePlayRef.current = () => {
-  //     const state = usePlayerStore.getState();
-  //     if (state.isPlaying) {
-  //       state.pause();
-  //     } else {
-  //       state.play();
-  //     }
-  //   };
-  //   nextRef.current = () => usePlayerStore.getState().next();
-  //   prevRef.current = () => usePlayerStore.getState().prev();
-  // }, []);
 
   // Listen for playback control commands from main process
   useEffect(() => {
-    if (!window.ipcRenderer) return;
+    if (!isTauri()) return;
 
-    const handleToggle = () => {
+    let unlistenToggle: (() => void) | undefined;
+    let unlistenNext: (() => void) | undefined;
+    let unlistenPrev: (() => void) | undefined;
+
+    listen("player:toggle", () => {
       const state = usePlayerStore.getState();
       if (state.isPlaying) {
         state.pause();
       } else {
         state.play();
       }
-    };
-    const handleNext = () => usePlayerStore.getState().next();
-    const handlePrev = () => usePlayerStore.getState().prev();
+    }).then((fn) => { unlistenToggle = fn; });
 
-    window.ipcRenderer.on("player:toggle", handleToggle);
-    window.ipcRenderer.on("player:next", handleNext);
-    window.ipcRenderer.on("player:prev", handlePrev);
+    listen("player:next", () => usePlayerStore.getState().next()).then((fn) => { unlistenNext = fn; });
+    listen("player:prev", () => usePlayerStore.getState().prev()).then((fn) => { unlistenPrev = fn; });
 
     return () => {
-      window.ipcRenderer.off("player:toggle", handleToggle);
-      window.ipcRenderer.off("player:next", handleNext);
-      window.ipcRenderer.off("player:prev", handlePrev);
+      if (unlistenToggle) unlistenToggle();
+      if (unlistenNext) unlistenNext();
+      if (unlistenPrev) unlistenPrev();
     };
   }, []); // 空依赖数组，只在组件挂载时注册一次
 
@@ -1166,11 +1125,13 @@ const Player: React.FC = () => {
   };
 
   useEffect(() => {
-    if (window.ipcRenderer) {
-      const handleToggle = () => handleDesktopLyricToggle();
-      window.ipcRenderer.on("lyric:toggle", handleToggle);
+    if (isTauri()) {
+      let unlisten: (() => void) | undefined;
+      listen("lyric:toggle", () => handleDesktopLyricToggle()).then((fn) => {
+        unlisten = fn;
+      });
       return () => {
-        window.ipcRenderer?.off("lyric:toggle", handleToggle);
+        if (unlisten) unlisten();
       };
     }
   }, []);
@@ -1178,8 +1139,8 @@ const Player: React.FC = () => {
   useEffect(() => {
     // Initial sync of desktop lyric window on mount
     const { enable } = useSettingsStore.getState().desktopLyric;
-    if (enable && appMode === TrackType.MUSIC && window.ipcRenderer) {
-      window.ipcRenderer.send("lyric:open");
+    if (enable && appMode === TrackType.MUSIC && isTauri()) {
+      invoke("create_lyric_window").catch(console.error);
     }
   }, []);
 

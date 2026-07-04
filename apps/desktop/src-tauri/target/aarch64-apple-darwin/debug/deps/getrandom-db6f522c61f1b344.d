@@ -1,0 +1,11 @@
+/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/aarch64-apple-darwin/debug/deps/getrandom-db6f522c61f1b344.d: /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/lib.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/error.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/util.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/util_libc.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/getentropy.rs
+
+/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/aarch64-apple-darwin/debug/deps/libgetrandom-db6f522c61f1b344.rlib: /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/lib.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/error.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/util.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/util_libc.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/getentropy.rs
+
+/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/aarch64-apple-darwin/debug/deps/libgetrandom-db6f522c61f1b344.rmeta: /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/lib.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/error.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/util.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/util_libc.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/getentropy.rs
+
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/lib.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/error.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/util.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/util_libc.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17/src/getentropy.rs:

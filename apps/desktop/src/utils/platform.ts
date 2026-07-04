@@ -1,29 +1,129 @@
-export const isElectron = () => {
-  return typeof window !== "undefined" && window.ipcRenderer !== undefined;
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { platform } from "@tauri-apps/plugin-os";
+import { open } from "@tauri-apps/plugin-shell";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+
+export const isTauri = () => {
+  return typeof window !== "undefined" && (window as any).__TAURI__ !== undefined;
 };
 
 export const getPlatform = () => {
-  if (typeof window !== "undefined" && window.platform) {
-    return window.platform;
+  if (typeof window !== "undefined" && isTauri()) {
+    try {
+      return platform();
+    } catch (e) {
+      return "web";
+    }
   }
   return "web";
 };
 
 export const isMac = () => {
-  return getPlatform() === "darwin";
+  return getPlatform() === "macos";
 };
 
 export const isWindows = () => {
-  return getPlatform() === "win32";
+  return getPlatform() === "windows";
+};
+
+export const isLinux = () => {
+  return getPlatform() === "linux";
 };
 
 export const isWeb = () => {
-  return !isElectron();
+  return !isTauri();
 };
 
-// Add type definition for window.platform
-declare global {
-  interface Window {
-    platform?: string;
+// Tauri IPC helpers
+export const tauriInvoke = async (cmd: string, ...args: any[]): Promise<any> => {
+  if (!isTauri()) return null;
+  try {
+    return await invoke(cmd, args.length > 0 ? args[0] : undefined);
+  } catch (e) {
+    console.error(`Tauri invoke error (${cmd}):`, e);
+    return null;
   }
-}
+};
+
+export const tauriListen = async (event: string, handler: (payload: any) => void): Promise<() => void> => {
+  if (!isTauri()) return () => {};
+  try {
+    const unlisten = await listen(event, (event) => {
+      handler(event.payload);
+    });
+    return unlisten;
+  } catch (e) {
+    console.error(`Tauri listen error (${event}):`, e);
+    return () => {};
+  }
+};
+
+export const tauriOpenExternal = async (url: string): Promise<void> => {
+  if (!isTauri()) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
+  try {
+    await open(url);
+  } catch (e) {
+    console.error("Tauri openExternal error:", e);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+};
+
+export const tauriSelectDirectory = async (): Promise<string | null> => {
+  if (!isTauri()) return null;
+  try {
+    const result = await openDialog({ directory: true });
+    return result as string | null;
+  } catch (e) {
+    console.error("Tauri selectDirectory error:", e);
+    return null;
+  }
+};
+
+export const tauriMinimizeWindow = async (): Promise<void> => {
+  if (!isTauri()) return;
+  try {
+    const window = getCurrentWindow();
+    await window.minimize();
+  } catch (e) {
+    console.error("Tauri minimizeWindow error:", e);
+  }
+};
+
+export const tauriMaximizeWindow = async (): Promise<void> => {
+  if (!isTauri()) return;
+  try {
+    const window = getCurrentWindow();
+    if (await window.isMaximized()) {
+      await window.unmaximize();
+    } else {
+      await window.maximize();
+    }
+  } catch (e) {
+    console.error("Tauri maximizeWindow error:", e);
+  }
+};
+
+export const tauriCloseWindow = async (): Promise<void> => {
+  if (!isTauri()) return;
+  try {
+    const window = getCurrentWindow();
+    await window.close();
+  } catch (e) {
+    console.error("Tauri closeWindow error:", e);
+  }
+};
+
+export const tauriGetDeviceName = async (): Promise<string> => {
+  if (!isTauri()) return window.navigator.userAgent;
+  try {
+    return await invoke("get_device_name") as string;
+  } catch (e) {
+    console.error("Tauri getDeviceName error:", e);
+    return window.navigator.userAgent;
+  }
+};

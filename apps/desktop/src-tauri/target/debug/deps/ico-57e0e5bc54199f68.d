@@ -1,0 +1,12 @@
+/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/debug/deps/ico-57e0e5bc54199f68.d: /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/lib.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/macros.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/bmpdepth.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/icondir.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/image.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/restype.rs
+
+/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/debug/deps/libico-57e0e5bc54199f68.rlib: /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/lib.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/macros.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/bmpdepth.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/icondir.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/image.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/restype.rs
+
+/Users/ctjj/Documents/projects/AudioDock/apps/desktop/src-tauri/target/debug/deps/libico-57e0e5bc54199f68.rmeta: /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/lib.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/macros.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/bmpdepth.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/icondir.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/image.rs /Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/restype.rs
+
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/lib.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/macros.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/bmpdepth.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/icondir.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/image.rs:
+/Users/ctjj/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ico-0.5.0/src/restype.rs:

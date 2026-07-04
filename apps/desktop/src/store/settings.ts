@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { invoke } from "@tauri-apps/api/core";
 import type { AudioQuality } from '../services/trackQuality';
+import { isTauri } from "../utils/platform";
 
 export interface SettingsState {
   general: {
@@ -78,12 +80,13 @@ export const useSettingsStore = create<SettingsState>()(
           general: { ...state.general, [key]: value },
         }));
 
-        if ((window as any).ipcRenderer) {
+        if (isTauri()) {
           if (key === 'autoLaunch') {
-            (window as any).ipcRenderer.invoke('set-auto-launch', value);
+            invoke('set_auto_launch', { enable: value }).catch(console.error);
           }
           if (key === 'minimizeToTray') {
-            (window as any).ipcRenderer.send('settings:update-minimize-to-tray', value);
+            // In Tauri, we handle minimize to tray via window events
+            // The setting is read when window close event is triggered
           }
         }
       },
@@ -92,18 +95,19 @@ export const useSettingsStore = create<SettingsState>()(
           desktopLyric: { ...state.desktopLyric, [key]: value },
         }));
 
-        if ((window as any).ipcRenderer) {
+        if (isTauri()) {
           if (key === "enable") {
             if (value) {
-              (window as any).ipcRenderer.send("lyric:open", get().desktopLyric);
+              invoke('create_lyric_window', { settings: get().desktopLyric }).catch(console.error);
             } else {
-              (window as any).ipcRenderer.send("lyric:close");
+              invoke('close_lyric_window').catch(console.error);
             }
           }
           if (key === "lockPosition") {
-            (window as any).ipcRenderer.send("lyric:set-mouse-ignore", value);
+            invoke('set_ignore_mouse_events', { ignore: value }).catch(console.error);
           }
-          (window as any).ipcRenderer.send("lyric:settings-update", { [key]: value });
+          // Sync settings to lyric window
+          invoke('update_lyric_settings', { [key]: value }).catch(console.error);
         }
       },
       updateDownload: (key, value) => {
@@ -111,8 +115,9 @@ export const useSettingsStore = create<SettingsState>()(
           download: { ...state.download, [key]: value },
         }));
         
-        if (key === 'downloadPath' && (window as any).ipcRenderer) {
-          (window as any).ipcRenderer.send('settings:update-download-path', value);
+        if (key === 'downloadPath' && isTauri()) {
+          // Update download path in Tauri backend
+          invoke('update_download_path', { path: value }).catch(console.error);
         }
       },
     }),

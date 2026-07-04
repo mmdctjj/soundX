@@ -1,10 +1,26 @@
+import { invoke } from "@tauri-apps/api/core";
 import { getBaseURL } from "../https";
 import type { Track } from "../models";
 import { useAuthStore } from "../store/auth";
 import { useSettingsStore } from "../store/settings";
+import { isTauri } from "../utils/platform";
+
+interface TrackMetadata {
+  id: number | string;
+  path: string;
+  name: string;
+  artist: string;
+  album: string;
+  albumId?: number | string;
+  duration: number | null;
+  type: string;
+  cover?: string | null;
+  lyrics?: string | null;
+  localPath?: string;
+}
 
 export const downloadTrack = async (track: Track): Promise<boolean> => {
-  if (!(window as any).ipcRenderer) return false;
+  if (!isTauri()) return false;
 
   const settings = useSettingsStore.getState();
   const downloadPath = settings.download.downloadPath;
@@ -20,7 +36,7 @@ export const downloadTrack = async (track: Track): Promise<boolean> => {
 
   if (!remoteUri) return false;
 
-  const metadata = {
+  const metadata: TrackMetadata = {
     id: track.id,
     path: track.path,
     name: track.name,
@@ -34,16 +50,15 @@ export const downloadTrack = async (track: Track): Promise<boolean> => {
   };
 
   try {
-    const res = await (window as any).ipcRenderer.invoke(
-      "cache:download",
-      track.id,
-      remoteUri,
+    const res = await invoke("cache_download", {
+      trackId: track.id,
+      url: remoteUri,
       downloadPath,
-      track.type,
+      trackType: track.type,
       albumName,
       metadata,
-      token
-    );
+      token,
+    }) as string | null;
     return !!res;
   } catch (error) {
     console.error(`[DownloadManager] Failed to download track ${track.id}`, error);

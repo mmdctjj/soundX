@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import {
     CaretRightFilled,
     HeartFilled,
@@ -15,6 +17,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Track } from "../../models";
 import { resolveArtworkUri } from "../../services/trackResolver";
+import { isTauri } from "../../utils/platform";
 import styles from "./index.module.less";
 
 const { Text } = Typography;
@@ -35,22 +38,34 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(true);
 
   useEffect(() => {
-    if (!(window as any).ipcRenderer) return;
+    if (!isTauri()) return;
 
     const fetchState = async () => {
-      const state = await (window as any).ipcRenderer.invoke(
-        "player:get-state"
-      );
-      if (state) {
-        setIsPlaying(state.isPlaying);
-        setCurrentTrack(state.track);
-        // If track has duration, use it
+      try {
+        const state = await invoke<{
+          isPlaying: boolean;
+          track: Track | null;
+          currentTime: number;
+          duration: number;
+        }>("get_player_state");
+        if (state) {
+          setIsPlaying(state.isPlaying);
+          setCurrentTrack(state.track);
+          if (state.currentTime !== undefined) setCurrentTime(state.currentTime);
+          if (state.duration !== undefined) setDuration(state.duration);
+        }
+      } catch (e) {
+        console.error("Failed to get player state:", e);
       }
     };
 
     fetchState();
 
-    const handleUpdate = (_event: any, payload: any) => {
+    let unlistenUpdate: (() => void) | undefined;
+    let unlistenLyric: (() => void) | undefined;
+
+    listen("player:update", (event: any) => {
+      const payload = event.payload;
       if (payload.isPlaying !== undefined) setIsPlaying(payload.isPlaying);
       if (payload.track !== undefined) {
         setCurrentTrack(payload.track);
@@ -59,37 +74,51 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
       if (payload.currentTime !== undefined)
         setCurrentTime(payload.currentTime);
       if (payload.duration !== undefined) setDuration(payload.duration);
-    };
+    }).then((fn) => { unlistenUpdate = fn; });
 
-    const handleLyricUpdate = (_event: any, payload: any) => {
+    listen("lyric:update", (event: any) => {
+      const payload = event.payload;
       if (payload.currentLyric) setCurrentLyric(payload.currentLyric);
-    };
-
-    (window as any).ipcRenderer.on("player:update", handleUpdate);
-    (window as any).ipcRenderer.on("lyric:update", handleLyricUpdate);
+    }).then((fn) => { unlistenLyric = fn; });
 
     return () => {
-      (window as any).ipcRenderer.off("player:update", handleUpdate);
-      (window as any).ipcRenderer.off("lyric:update", handleLyricUpdate);
+      if (unlistenUpdate) unlistenUpdate();
+      if (unlistenLyric) unlistenLyric();
     };
   }, []);
 
   const toggleAlwaysOnTop = () => {
     const newState = !isAlwaysOnTop;
     setIsAlwaysOnTop(newState);
-    if ((window as any).ipcRenderer) {
-      (window as any).ipcRenderer.send("window:set-always-on-top", newState);
+    if (isTauri()) {
+      invoke("set_always_on_top", { alwaysOnTop: newState }).catch(console.error);
     }
   };
 
-  const play = () => (window as any).ipcRenderer?.send("player:toggle");
-  const pause = () => (window as any).ipcRenderer?.send("player:toggle");
-  const next = () => (window as any).ipcRenderer?.send("player:next");
-  const prev = () => (window as any).ipcRenderer?.send("player:prev");
+  const play = () => {
+    if (isTauri()) {
+      invoke("player_toggle").catch(console.error);
+    }
+  };
+  const pause = () => {
+    if (isTauri()) {
+      invoke("player_toggle").catch(console.error);
+    }
+  };
+  const next = () => {
+    if (isTauri()) {
+      invoke("player_next").catch(console.error);
+    }
+  };
+  const prev = () => {
+    if (isTauri()) {
+      invoke("player_prev").catch(console.error);
+    }
+  };
 
   const handleRestore = () => {
-    if ((window as any).ipcRenderer) {
-      (window as any).ipcRenderer.send("window:restore-main");
+    if (isTauri()) {
+      invoke("show_main_window").catch(console.error);
     }
     if (onRestore) onRestore();
   };
@@ -169,7 +198,7 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
           styles={{
             track: { background: token.colorPrimary },
             handle: { display: "none" },
-          }} // Hide handle for cleaner look like image? Or small handle
+          }}
         />
         <Text type="secondary">{formatTime(duration)}</Text>
       </div>
@@ -177,7 +206,6 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
       {/* Controls */}
       <div className={styles.controlsSection}>
         <div className={styles.controlSide}>
-          {/* Left side icons if any, e.g. like, or empty */}
           <Button
             type="text"
             size="small"
@@ -201,7 +229,6 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
             className={styles.prevNextBtn}
           />
 
-          {/* Main Play Button */}
           <div
             className={styles.playButtonWrapper}
             style={{ background: token.colorPrimary }}

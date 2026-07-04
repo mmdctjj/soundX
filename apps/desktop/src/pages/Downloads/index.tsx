@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import {
   ArrowLeftOutlined,
   FolderOpenOutlined,
@@ -20,6 +21,7 @@ import { type Album } from "../../models";
 import { usePlayerStore } from "../../store/player";
 import { useSettingsStore } from "../../store/settings";
 import { usePlayMode } from "../../utils/playMode";
+import { isTauri } from "../../utils/platform";
 import styles from "./index.module.less";
 
 const { Title } = Typography;
@@ -34,14 +36,13 @@ const Downloads: React.FC = () => {
   const downloadPath = useSettingsStore((state) => state.download.downloadPath);
 
   const fetchLocalItems = async () => {
-    if (!(window as any).ipcRenderer) return;
+    if (!isTauri()) return;
     setLoading(true);
     try {
-      const results = await (window as any).ipcRenderer.invoke(
-        "cache:list",
-        downloadPath,
-        mode
-      );
+      const results = await invoke<any[]>("cache_list", {
+        path: downloadPath,
+        mode,
+      });
       setLocalItems(results);
     } catch (error) {
       console.error("Failed to fetch local items:", error);
@@ -56,16 +57,14 @@ const Downloads: React.FC = () => {
   }, [mode, downloadPath]);
 
   const handleOpenFolder = () => {
-    if (!(window as any).ipcRenderer) return;
+    if (!isTauri()) return;
     const subFolder = mode === "MUSIC" ? "music" : "audio";
     const fullPath = downloadPath + "/" + subFolder;
-    (window as any)
-      .ipcRenderer.invoke("open-directory", fullPath)
-      .then((res: any) => {
-        if (res && typeof res === "string" && res.includes("Could not")) {
-          message.error(res);
-        }
-      });
+    invoke("open_directory", { path: fullPath }).catch((err: any) => {
+      if (err && typeof err === "string" && err.includes("Could not")) {
+        message.error(err);
+      }
+    });
   };
 
   // Group by album for Audiobook mode
