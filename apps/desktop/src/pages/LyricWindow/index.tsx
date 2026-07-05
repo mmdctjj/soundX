@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emitTo, listen } from "@tauri-apps/api/event";
 import {
     CloseOutlined,
     ExportOutlined,
@@ -83,38 +83,39 @@ const LyricWindow: React.FC = () => {
 
   const togglePlay = () => {
     if (isTauri()) {
-      invoke("player_toggle").catch(console.error);
+      emitTo("main", "player:toggle").catch(console.error);
     }
   };
   const next = () => {
     if (isTauri()) {
-      invoke("player_next").catch(console.error);
+      emitTo("main", "player:next").catch(console.error);
     }
   };
   const prev = () => {
     if (isTauri()) {
-      invoke("player_prev").catch(console.error);
+      emitTo("main", "player:prev").catch(console.error);
     }
   };
 
   return (
-    <div 
-      className={styles.container} 
-      style={{ 
+    <div
+      className={styles.container}
+      style={{
         "--font-color": config.fontColor,
         "--stroke-color": config.strokeColor,
         "--stroke-width": `${config.strokeWidth}px`
       } as any}
+      data-tauri-drag-region
     >
-      <div className={styles.header}>
+      <div className={styles.header} data-tauri-drag-region>
          <div className={styles.trackInfo}>
             {trackInfo ? `${trackInfo.name} - ${trackInfo.artist}` : t('lyricWindow.appName')}
          </div>
       </div>
-      
-      <div className={styles.content}>
-        <div 
-          className={styles.lyricText} 
+
+      <div className={styles.content} data-tauri-no-drag>
+        <div
+          className={styles.lyricText}
           style={{
             fontSize: `${config.fontSize}px`,
             fontWeight: config.fontWeight,
@@ -125,7 +126,7 @@ const LyricWindow: React.FC = () => {
         </div>
       </div>
 
-      <div className={styles.controls}>
+      <div className={styles.controls} data-tauri-no-drag>
         <Space size="large">
           <Button 
             type="text" 

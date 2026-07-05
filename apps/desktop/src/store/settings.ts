@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { invoke } from "@tauri-apps/api/core";
+import { emitTo } from "@tauri-apps/api/event";
 import type { AudioQuality } from '../services/trackQuality';
 import { isTauri } from "../utils/platform";
 
@@ -106,8 +107,8 @@ export const useSettingsStore = create<SettingsState>()(
           if (key === "lockPosition") {
             invoke('set_ignore_mouse_events', { ignore: value }).catch(console.error);
           }
-          // Sync settings to lyric window
-          invoke('update_lyric_settings', { [key]: value }).catch(console.error);
+          // Sync settings to lyric window via cross-window event
+          emitTo('lyric', 'lyric:settings-update', { [key]: value }).catch(console.error);
         }
       },
       updateDownload: (key, value) => {

@@ -205,7 +205,10 @@ const Settings: React.FC = () => {
             <Space>
               <Switch
                 checked={general.minimizeToTray}
-                onChange={(val) => updateGeneral("minimizeToTray", val)}
+                onChange={(val) => {
+                  updateGeneral("minimizeToTray", val);
+                  invoke("set_minimize_to_tray", { enable: val }).catch(console.error);
+                }}
               />
               <Text className={styles.description}>
                 {t("settings.minimizeToTrayDescription")}

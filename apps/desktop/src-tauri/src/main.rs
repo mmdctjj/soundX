@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use tauri::Manager;
+use tauri::{Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 
 mod commands;
@@ -8,7 +8,7 @@ mod window;
 mod cache;
 mod protocol;
 
-use commands::AppState;
+use commands::{AppState, MinimizeToTrayFlag};
 use cache::CacheManager;
 use window::PlayerState;
 
@@ -38,6 +38,7 @@ pub fn run() {
                 cache_manager,
                 player_state: Mutex::new(PlayerState::default()),
             });
+            app.manage(MinimizeToTrayFlag(true));
 
             // Setup tray (must be after state init)
             tray::setup_tray(app.handle())?;
@@ -45,6 +46,23 @@ pub fn run() {
             // Setup menu for macOS
             #[cfg(target_os = "macos")]
             window::setup_macos_menu(app.handle());
+
+            // Mirror Electron: clicking the close button hides the window instead
+            // of quitting, unless the user has disabled the option.
+            if let Some(window) = app.get_webview_window("main") {
+                let window_for_event = window.clone();
+                window.on_window_event(move |event| {
+                    if let WindowEvent::CloseRequested { api, .. } = event {
+                        let flag = window_for_event
+                            .app_handle()
+                            .state::<MinimizeToTrayFlag>();
+                        if flag.0 {
+                            api.prevent_close();
+                            let _ = window_for_event.hide();
+                        }
+                    }
+                });
+            }
 
             Ok(())
         })
@@ -71,6 +89,10 @@ pub fn run() {
             commands::close_lyric_window,
             commands::set_ignore_mouse_events,
             commands::update_lyric_position,
+            commands::update_player_state,
+            commands::update_tray_lyric,
+            commands::update_lyric,
+            commands::set_minimize_to_tray,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

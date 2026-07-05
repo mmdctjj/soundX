@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emitTo, listen } from "@tauri-apps/api/event";
 import {
   AimOutlined,
   BackwardOutlined,
@@ -814,9 +814,11 @@ const Player: React.FC = () => {
         now - lastTimeUpdateRef.current > 250
       ) {
         invoke("update_player_state", {
-          currentTime: time,
-          duration: duration || audioRef.current.duration,
-          isPlaying: !audioRef.current.paused,
+          state: {
+            isPlaying: !audioRef.current.paused,
+            trackName: currentTrack?.name ?? null,
+            trackArtist: currentTrack?.artist ?? null,
+          },
         }).catch(console.error);
         lastTimeUpdateRef.current = now;
       }
@@ -972,19 +974,14 @@ const Player: React.FC = () => {
   useEffect(() => {
     if (isTauri()) {
       invoke("update_player_state", {
-        track: currentTrack
-          ? {
-              id: currentTrack.id,
-              name: currentTrack.name,
-              artist: currentTrack.artist,
-              album: currentTrack.album,
-              cover: currentTrack.cover,
-            }
-          : null,
-        isPlaying,
+        state: {
+          isPlaying,
+          trackName: currentTrack?.name ?? null,
+          trackArtist: currentTrack?.artist ?? null,
+        },
       }).catch(console.error);
     }
-  }, [currentTrack, isPlaying]);
+  }, [currentTrack?.id, currentTrack?.name, currentTrack?.artist, isPlaying]);
 
   // Global Lyric Sync Logic
   const [parsedLyrics, setParsedLyrics] = useState<
@@ -999,6 +996,9 @@ const Player: React.FC = () => {
       // Sync empty state immediately
       if (isTauri()) {
         invoke("update_lyric", { currentLyric: "" }).catch(console.error);
+        const emptyPayload = { currentLyric: "" };
+        emitTo("mini", "lyric:update", emptyPayload).catch(console.error);
+        emitTo("lyric", "lyric:update", emptyPayload).catch(console.error);
       }
       return;
     }
@@ -1038,6 +1038,9 @@ const Player: React.FC = () => {
     const currentLineText = index >= 0 ? parsedLyrics[index].text : "";
 
     invoke("update_lyric", { currentLyric: currentLineText }).catch(console.error);
+    const lyricPayload = { currentLyric: currentLineText };
+    emitTo("mini", "lyric:update", lyricPayload).catch(console.error);
+    emitTo("lyric", "lyric:update", lyricPayload).catch(console.error);
   }, [currentTime, parsedLyrics]);
 
   // Listen for playback control commands from main process
@@ -1066,6 +1069,33 @@ const Player: React.FC = () => {
       if (unlistenPrev) unlistenPrev();
     };
   }, []); // 空依赖数组，只在组件挂载时注册一次
+
+  // Mirror Electron's `player:update` IPC: push current track/playing state to
+  // the system tray (via Rust command) and to mini/lyric windows (via emitTo).
+  useEffect(() => {
+    if (!isTauri()) return;
+    const payload = {
+      isPlaying,
+      track: currentTrack
+        ? {
+            id: currentTrack.id,
+            name: currentTrack.name,
+            artist: currentTrack.artist,
+            album: currentTrack.albumEntity?.name || currentTrack.album,
+            cover: currentTrack.cover,
+          }
+        : null,
+    };
+    invoke("update_player_state", {
+      state: {
+        isPlaying,
+        trackName: currentTrack?.name ?? null,
+        trackArtist: currentTrack?.artist ?? null,
+      },
+    }).catch(console.error);
+    emitTo("mini", "player:update", payload).catch(console.error);
+    emitTo("lyric", "player:update", payload).catch(console.error);
+  }, [isPlaying, currentTrack?.id, currentTrack?.name, currentTrack?.artist]);
 
   const togglePlay = () => {
     if (isPlaying) {

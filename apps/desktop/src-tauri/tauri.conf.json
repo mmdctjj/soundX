@@ -10,6 +10,7 @@
     "devUrl": "http://localhost:5173"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "",
@@ -20,8 +21,12 @@
         "transparent": true,
         "decorations": true,
         "titleBarStyle": "Overlay",
+        "windowEffects": {
+          "effects": ["popover"],
+          "state": "active"
+        },
         "center": true,
-        "visible": false
+        "visible": true
       }
     ],
     "security": {

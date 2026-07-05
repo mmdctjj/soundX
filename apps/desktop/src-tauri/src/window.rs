@@ -21,8 +21,21 @@ impl<'a> WindowManager<'a> {
     }
 
     pub fn create_lyric_window(&self, settings: Option<LyricSettingsPayload>) -> Result<(), String> {
+        eprintln!("[tauri] create_lyric_window called, existing={}", self.app.get_webview_window("lyric").is_some());
+
+        // If a lyric window already exists, just show + focus it. Re-building
+        // every time causes the "first toggle shows, second hides, third never
+        // reappears" bug because the rebuild races with the prior close event.
         if let Some(existing) = self.app.get_webview_window("lyric") {
-            let _ = existing.close();
+            let _ = existing.show();
+            let _ = existing.set_focus();
+            let _ = existing.unminimize();
+            #[cfg(target_os = "macos")]
+            {
+                let _ = existing.set_always_on_top(true);
+            }
+            eprintln!("[tauri] lyric window was existing, called show()");
+            return Ok(());
         }
 
         let mut builder =
@@ -30,32 +43,39 @@ impl<'a> WindowManager<'a> {
                 .title("Lyric")
                 .inner_size(800.0, 120.0)
                 .decorations(false)
+                .transparent(true)
                 .always_on_top(true)
                 .skip_taskbar(true)
                 .resizable(true)
-                .visible(true);
+                .visible(true)
+                .center();
 
         if let Some(s) = settings {
             if let (Some(x), Some(y)) = (s.x, s.y) {
                 builder = builder.position(x as f64, y as f64);
-            } else {
-                let monitor = self
-                    .app
-                    .primary_monitor()
-                    .map_err(|e| e.to_string())?
-                    .ok_or("No primary monitor found")?;
-                let size = monitor.size();
-                let x = ((size.width as f64) - 800.0) / 2.0;
-                let y = (size.height as f64) - 120.0 - 50.0;
-                builder = builder.position(x, y);
             }
         }
 
         let window = builder.build().map_err(|e| e.to_string())?;
+        eprintln!("[tauri] lyric window built: {:?}", window.label());
+
+        // Ensure the window is visible — `.visible(true)` on the builder can be
+        // overridden by webview state on macOS; force a show() after build.
+        match window.show() {
+            Ok(()) => eprintln!("[tauri] lyric window show() succeeded"),
+            Err(e) => eprintln!("[tauri] lyric window show() failed: {}", e),
+        }
+        match window.set_focus() {
+            Ok(()) => eprintln!("[tauri] lyric window set_focus() succeeded"),
+            Err(e) => eprintln!("[tauri] lyric window set_focus() failed: {}", e),
+        }
 
         #[cfg(target_os = "macos")]
         {
-            let _ = window.set_always_on_top(true);
+            match window.set_always_on_top(true) {
+                Ok(()) => eprintln!("[tauri] lyric window set_always_on_top succeeded"),
+                Err(e) => eprintln!("[tauri] lyric window set_always_on_top failed: {}", e),
+            }
         }
 
         Ok(())

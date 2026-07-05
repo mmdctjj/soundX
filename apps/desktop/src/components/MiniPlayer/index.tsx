@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emitTo, listen } from "@tauri-apps/api/event";
 import {
     CaretRightFilled,
     HeartFilled,
@@ -91,28 +91,28 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
     const newState = !isAlwaysOnTop;
     setIsAlwaysOnTop(newState);
     if (isTauri()) {
-      invoke("set_always_on_top", { alwaysOnTop: newState }).catch(console.error);
+      invoke("set_always_on_top", { enable: newState }).catch(console.error);
     }
   };
 
   const play = () => {
     if (isTauri()) {
-      invoke("player_toggle").catch(console.error);
+      emitTo("main", "player:toggle").catch(console.error);
     }
   };
   const pause = () => {
     if (isTauri()) {
-      invoke("player_toggle").catch(console.error);
+      emitTo("main", "player:toggle").catch(console.error);
     }
   };
   const next = () => {
     if (isTauri()) {
-      invoke("player_next").catch(console.error);
+      emitTo("main", "player:next").catch(console.error);
     }
   };
   const prev = () => {
     if (isTauri()) {
-      invoke("player_prev").catch(console.error);
+      emitTo("main", "player:prev").catch(console.error);
     }
   };
 

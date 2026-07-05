@@ -6,7 +6,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export const isTauri = () => {
-  return typeof window !== "undefined" && (window as any).__TAURI__ !== undefined;
+  return typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined;
 };
 
 export const getPlatform = () => {

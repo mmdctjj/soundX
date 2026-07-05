@@ -7,6 +7,7 @@ use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_os::OsType;
 
 use crate::cache::{CacheManager, TrackMetadata};
+use crate::tray::{self, PlayerStateForTray};
 use crate::window::{PlayerState, WindowManager};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -27,6 +28,7 @@ pub struct TrackInfo {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct LyricSettingsPayload {
     pub x: Option<i32>,
     pub y: Option<i32>,
@@ -284,3 +286,28 @@ pub fn update_lyric_position(app: AppHandle, x: i32, y: i32) -> Result<(), Strin
     }
     Ok(())
 }
+
+#[tauri::command]
+pub fn update_player_state(app: AppHandle, state: PlayerStateForTray) {
+    tray::update_player_state(&app, state);
+}
+
+#[tauri::command]
+pub fn update_tray_lyric(app: AppHandle, text: Option<String>) {
+    tray::update_tray_lyric(&app, text);
+}
+
+/// Alias used by the renderer (`invoke("update_lyric", { currentLyric })`) so the
+/// macOS lyric tray mirrors the desktop-lyric text. Mirrors Electron's
+/// `ipcMain.on("lyric:update")` payload shape.
+#[tauri::command]
+pub fn update_lyric(app: AppHandle, current_lyric: Option<String>) {
+    tray::update_tray_lyric(&app, current_lyric);
+}
+
+#[tauri::command]
+pub fn set_minimize_to_tray(app: AppHandle, enable: bool) {
+    app.manage(MinimizeToTrayFlag(enable));
+}
+
+pub struct MinimizeToTrayFlag(pub bool);
