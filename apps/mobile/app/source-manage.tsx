@@ -22,9 +22,9 @@ import { useAuth } from "../src/context/AuthContext";
 import { useTheme } from "../src/context/ThemeContext";
 import { selectBestServer } from "../src/utils/networkUtils";
 
-const logo = require("../assets/images/logo.png");
-const subsonicLogo = require("../assets/images/subsonic.png");
-const embyLogo = require("../assets/images/emby.png");
+const logo = require("../assets/images/logo.webp");
+const subsonicLogo = require("../assets/images/subsonic.webp");
+const embyLogo = require("../assets/images/emby.webp");
 
 export default function SourceManageScreen() {
   const { colors } = useTheme();

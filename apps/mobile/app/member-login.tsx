@@ -37,7 +37,7 @@ import {
 import QRCode from "react-native-qrcode-svg";
 import { trackEvent } from "../src/services/tracking";
 
-const logo = require("../assets/images/logo.png");
+const logo = require("../assets/images/logo.webp");
 
 export default function MemberLoginScreen() {
   const { colors } = useTheme();
