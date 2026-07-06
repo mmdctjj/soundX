@@ -92,7 +92,9 @@ function RootLayoutNav() {
       segmentName === "language" ||
       segmentName === "playback-quality" ||
       segmentName === "mv" ||
-      segmentName === "webdav-sources";
+      segmentName === "webdav-sources" ||
+      segmentName === "llm-config" ||
+      segmentName === "tts-config";
 
     if (!token && inAuthGroup) {
       router.replace("/login");
@@ -410,6 +412,8 @@ function RootLayoutNav() {
       <Stack.Screen name="playback-quality" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="mv/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="webdav-sources" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="llm-config" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="tts-config" options={{ headerShown: false, animation: 'slide_from_right' }} />
     </Stack>
   );
 
@@ -423,6 +427,8 @@ function RootLayoutNav() {
     rootSegment === "settings" ||
     rootSegment === "source-manage" ||
     rootSegment === "webdav-sources" ||
+    rootSegment === "llm-config" ||
+    rootSegment === "tts-config" ||
     rootSegment === "player" ||
     rootSegment === "product-updates" ||
     rootSegment === "member-detail" ||

@@ -241,6 +241,21 @@ export default function Settings() {
             t('settings.sourceManageDescription'),
             () => Taro.navigateTo({ url: '/pages/source-manage/index' })
           )}
+          {user?.is_admin && renderActionRow(
+            t('settings.webdavSources'),
+            t('settings.sourceManagementDescription'),
+            () => Taro.navigateTo({ url: '/pages/webdav-sources/index' })
+          )}
+          {user?.is_admin && renderActionRow(
+            t('settings.llmConfig'),
+            t('settings.llmConfigDescription'),
+            () => Taro.navigateTo({ url: '/pages/llm-config/index' })
+          )}
+          {user?.is_admin && renderActionRow(
+            t('settings.ttsConfig'),
+            t('settings.ttsConfigDescription'),
+            () => Taro.navigateTo({ url: '/pages/tts-config/index' })
+          )}
         </View>
 
         <View className='section'>
