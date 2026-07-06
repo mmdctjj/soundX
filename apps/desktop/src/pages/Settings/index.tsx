@@ -28,6 +28,8 @@ import { useSettingsStore } from "../../store/settings";
 import { isTauri } from "../../utils/platform";
 import AdminSettings from "./AdminSettings";
 import WebDavSourcesSettings from "./WebDavSourcesSettings";
+import LlmConfigSettings from "./LlmConfigSettings";
+import TtsConfigSettings from "./TtsConfigSettings";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -175,6 +177,30 @@ const Settings: React.FC = () => {
               {t("settings.webdavSources")}
             </Title>
             <WebDavSourcesSettings />
+          </section>
+          <Divider className={styles.divider} />
+        </>
+      )}
+
+      {user?.is_admin && (
+        <>
+          <section className={styles.section}>
+            <Title level={4} className={styles.sectionTitle}>
+              {t("settings.llmConfig")}
+            </Title>
+            <LlmConfigSettings />
+          </section>
+          <Divider className={styles.divider} />
+        </>
+      )}
+
+      {user?.is_admin && (
+        <>
+          <section className={styles.section}>
+            <Title level={4} className={styles.sectionTitle}>
+              {t("settings.ttsConfig")}
+            </Title>
+            <TtsConfigSettings />
           </section>
           <Divider className={styles.divider} />
         </>

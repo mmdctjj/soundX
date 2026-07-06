@@ -10,6 +10,12 @@ print(f"[main] TTS_MINIMAX_API_KEY present: {bool(os.getenv('TTS_MINIMAX_API_KEY
 print(f"[main] TTS_MINIMAX_GROUP_ID present: {bool(os.getenv('TTS_MINIMAX_GROUP_ID'))}")
 print(f"[main] TTS_MIMO_API_TOKEN present: {bool(os.getenv('TTS_MIMO_API_TOKEN'))}")
 
+# 启动时把 DB 中持久化的 provider 配置回写到 os.environ，
+# 让现有 processor/engine 直接从环境变量读取，无需修改核心逻辑。
+from src.core.settings_manager import hydrate_from_db
+hydrate_from_db()
+print("[main] TTS provider configs hydrated from DB")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

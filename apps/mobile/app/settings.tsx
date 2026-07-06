@@ -480,6 +480,58 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           )}
 
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/llm-config" as any)}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  {t("settings.llmConfig")}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("settings.llmConfigDescription")}
+                </Text>
+              </View>
+              <Ionicons
+                name="hardware-chip-outline"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
+
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/tts-config" as any)}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  {t("settings.ttsConfig")}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("settings.ttsConfigDescription")}
+                </Text>
+              </View>
+              <Ionicons
+                name="mic-outline"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
+
           <Text
             style={[
               styles.sectionTitle,
