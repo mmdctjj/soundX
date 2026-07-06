@@ -45,6 +45,9 @@ import i18n from "./i18n";
 import { socketService } from "./services/socket";
 import { useAuthStore } from "./store/auth";
 import { useSettingsStore, type SettingsState } from "./store/settings";
+import { isTauri } from "./utils/platform";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 // Wrapper to provide consistent background and color based on theme tokens
 const RootWrapper = ({
@@ -96,7 +99,7 @@ const AppContent = () => {
 
   // Sync settings on startup
   const settings = useSettingsStore((state: SettingsState) => state);
-  const { autoLaunch, minimizeToTray, language } = settings.general;
+  const { autoLaunch, language } = settings.general;
 
   useEffect(() => {
     if (language === "system") {
@@ -108,34 +111,23 @@ const AppContent = () => {
   }, [language, i18n.language]);
 
   useEffect(() => {
-    if ((window as any).ipcRenderer) {
-      (window as any).ipcRenderer.invoke("set-auto-launch", autoLaunch);
-      (window as any).ipcRenderer.send(
-        "settings:update-minimize-to-tray",
-        minimizeToTray,
-      );
-      (window as any).ipcRenderer.send(
-        "settings:update-download-path",
-        settings.download.downloadPath,
-      );
-
-      const handlePositionUpdate = (
-        _event: any,
-        pos: { x: number; y: number },
-      ) => {
+    if (isTauri()) {
+      invoke("set_auto_launch", { enable: autoLaunch }).catch(console.error);
+      
+      const handlePositionUpdate = (pos: { x: number; y: number }) => {
         useSettingsStore.getState().updateDesktopLyric("x", pos.x);
         useSettingsStore.getState().updateDesktopLyric("y", pos.y);
       };
 
-      (window as any).ipcRenderer.on(
-        "lyric:position-updated",
-        handlePositionUpdate,
-      );
+      let unlisten: (() => void) | undefined;
+      listen("lyric:position-updated", (event) => {
+        handlePositionUpdate(event.payload as { x: number; y: number });
+      }).then((fn) => {
+        unlisten = fn;
+      });
+      
       return () => {
-        (window as any).ipcRenderer.off(
-          "lyric:position-updated",
-          handlePositionUpdate,
-        );
+        if (unlisten) unlisten();
       };
     }
   }, []);
@@ -156,8 +148,8 @@ const AppContent = () => {
       <ConfigProvider theme={themeConfig} locale={zhCN}>
         <MiniPlayer
           onRestore={() => {
-            if ((window as any).ipcRenderer) {
-              (window as any).ipcRenderer.send("window:restore-main");
+            if (isTauri()) {
+              invoke("show_main_window").catch(console.error);
             }
           }}
         />

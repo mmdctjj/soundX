@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { emitTo, listen } from "@tauri-apps/api/event";
 import {
     CloseOutlined,
     ExportOutlined,
@@ -10,6 +12,7 @@ import { Button, Space } from "antd";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "../../store/settings";
+import { isTauri } from "../../utils/platform";
 import styles from "./index.module.less";
 
 const LyricWindow: React.FC = () => {
@@ -23,20 +26,24 @@ const LyricWindow: React.FC = () => {
   const [trackInfo, setTrackInfo] = useState<{ name: string; artist: string } | null>(null);
 
   useEffect(() => {
-    if (!window.ipcRenderer) return;
+    if (!isTauri()) return;
 
-    const handleSettingsUpdate = (_event: any, payload: any) => {
+    let unlistenSettings: (() => void) | undefined;
+    let unlistenLyric: (() => void) | undefined;
+    let unlistenPlayer: (() => void) | undefined;
+
+    const handleSettingsUpdate = (event: any) => {
+      const payload = event.payload;
       setConfig((prev) => ({ ...prev, ...payload }));
     };
 
-    const handleLyricUpdate = (_event: any, payload: { currentLyric: string }) => {
+    const handleLyricUpdate = (event: any) => {
+      const payload = event.payload;
       setCurrentLyric(payload.currentLyric || t('lyricWindow.defaultLyric'));
     };
 
-    const handlePlayerUpdate = (
-      _event: any,
-      payload: { isPlaying: boolean; track: { name: string; artist: string } }
-    ) => {
+    const handlePlayerUpdate = (event: any) => {
+      const payload = event.payload;
       setIsPlaying(payload.isPlaying);
       if (payload.track) {
          setTrackInfo(payload.track);
@@ -44,51 +51,71 @@ const LyricWindow: React.FC = () => {
     };
 
     const fetchInitialState = async () => {
-      const state = await window.ipcRenderer.invoke("player:get-state");
-      if (state) {
-        setIsPlaying(state.isPlaying);
-        if (state.track) {
-          setTrackInfo(state.track);
-          setCurrentLyric(`${state.track.name} - ${state.track.artist}`);
+      try {
+        const state = await invoke<{
+          isPlaying: boolean;
+          track: { name: string; artist: string } | null;
+        }>("get_player_state");
+        if (state) {
+          setIsPlaying(state.isPlaying);
+          if (state.track) {
+            setTrackInfo(state.track);
+            setCurrentLyric(`${state.track.name} - ${state.track.artist}`);
+          }
         }
+      } catch (e) {
+        console.error("Failed to get player state:", e);
       }
     };
 
     fetchInitialState();
 
-    window.ipcRenderer.on("lyric:update", handleLyricUpdate);
-    window.ipcRenderer.on("player:update", handlePlayerUpdate);
-    window.ipcRenderer.on("lyric:settings-update", handleSettingsUpdate);
+    listen("lyric:update", handleLyricUpdate).then((fn) => { unlistenLyric = fn; });
+    listen("player:update", handlePlayerUpdate).then((fn) => { unlistenPlayer = fn; });
+    listen("lyric:settings-update", handleSettingsUpdate).then((fn) => { unlistenSettings = fn; });
 
     return () => {
-      window.ipcRenderer.off("lyric:update", handleLyricUpdate);
-      window.ipcRenderer.off("player:update", handlePlayerUpdate);
-      window.ipcRenderer.off("lyric:settings-update", handleSettingsUpdate);
+      if (unlistenLyric) unlistenLyric();
+      if (unlistenPlayer) unlistenPlayer();
+      if (unlistenSettings) unlistenSettings();
     };
   }, []);
 
-  const togglePlay = () => window.ipcRenderer?.send("player:toggle");
-  const next = () => window.ipcRenderer?.send("player:next");
-  const prev = () => window.ipcRenderer?.send("player:prev");
+  const togglePlay = () => {
+    if (isTauri()) {
+      emitTo("main", "player:toggle").catch(console.error);
+    }
+  };
+  const next = () => {
+    if (isTauri()) {
+      emitTo("main", "player:next").catch(console.error);
+    }
+  };
+  const prev = () => {
+    if (isTauri()) {
+      emitTo("main", "player:prev").catch(console.error);
+    }
+  };
 
   return (
-    <div 
-      className={styles.container} 
-      style={{ 
+    <div
+      className={styles.container}
+      style={{
         "--font-color": config.fontColor,
         "--stroke-color": config.strokeColor,
         "--stroke-width": `${config.strokeWidth}px`
       } as any}
+      data-tauri-drag-region
     >
-      <div className={styles.header}>
+      <div className={styles.header} data-tauri-drag-region>
          <div className={styles.trackInfo}>
             {trackInfo ? `${trackInfo.name} - ${trackInfo.artist}` : t('lyricWindow.appName')}
          </div>
       </div>
-      
-      <div className={styles.content}>
-        <div 
-          className={styles.lyricText} 
+
+      <div className={styles.content} data-tauri-no-drag>
+        <div
+          className={styles.lyricText}
           style={{
             fontSize: `${config.fontSize}px`,
             fontWeight: config.fontWeight,
@@ -99,7 +126,7 @@ const LyricWindow: React.FC = () => {
         </div>
       </div>
 
-      <div className={styles.controls}>
+      <div className={styles.controls} data-tauri-no-drag>
         <Space size="large">
           <Button 
             type="text" 
@@ -130,7 +157,11 @@ const LyricWindow: React.FC = () => {
           <Button 
             type="text" 
             icon={<ExportOutlined />} 
-            onClick={() => window.ipcRenderer?.send("app:show-main")} 
+            onClick={() => {
+              if (isTauri()) {
+                invoke("show_main_window").catch(console.error);
+              }
+            }} 
             className={styles.controlBtn}
             title={t('lyricWindow.openPlayer')}
           />
