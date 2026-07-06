@@ -381,7 +381,7 @@ const WebDavSourcesSettings: React.FC = () => {
   };
 
   const renderPathTags = (source: WebDavSource) => {
-    const tags: React.ReactElement[] = [];
+    const tags: React.ReactNode[] = [];
     for (const f of PATH_FIELDS) {
       const paths = compactPathList(source.paths?.[f.kind]);
       if (paths.length > 0) {
