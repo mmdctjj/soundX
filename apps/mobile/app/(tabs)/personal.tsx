@@ -62,10 +62,10 @@ import {
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-const logo = require("../../assets/images/logo.png");
-const subsonicLogo = require("../../assets/images/subsonic.png");
-const embyLogo = require("../../assets/images/emby.png");
-const ctjjLogo = require("../../assets/images/ctjj.png");
+const logo = require("../../assets/images/logo.webp");
+const subsonicLogo = require("../../assets/images/subsonic.webp");
+const embyLogo = require("../../assets/images/emby.webp");
+const ctjjLogo = require("../../assets/images/ctjj.webp");
 
 type TabType = "playlists" | "favorites" | "history" | "downloads";
 type SubTabType = "track" | "album";

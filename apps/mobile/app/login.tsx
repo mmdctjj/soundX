@@ -14,9 +14,9 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../src/context/ThemeContext";
 
-const logo = require("../assets/images/logo.png");
-const subsonicLogo = require("../assets/images/subsonic.png");
-const embyLogo = require("../assets/images/emby.png");
+const logo = require("../assets/images/logo.webp");
+const subsonicLogo = require("../assets/images/subsonic.webp");
+const embyLogo = require("../assets/images/emby.webp");
 
 export default function LoginSelectionScreen() {
   const { colors } = useTheme();
