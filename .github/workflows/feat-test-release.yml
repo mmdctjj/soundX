@@ -115,41 +115,6 @@ jobs:
           ls -la apps/desktop/src-tauri/target/*/release/bundle/ 2>/dev/null || true
           find apps/desktop/src-tauri/target -type d -name "bundle" -exec ls -la {} \;
 
-      - name: Rename macOS artifacts with arch suffix
-        if: matrix.platform == 'mac'
-        run: |
-          BUNDLE_DIR="apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle"
-          cd "$BUNDLE_DIR/dmg" 2>/dev/null && {
-            for f in *.dmg; do
-              [ -f "$f" ] || continue
-              base="${f%.dmg}"
-              mv "$f" "${base}-${{ matrix.arch }}.dmg"
-              echo "Renamed $f -> ${base}-${{ matrix.arch }}.dmg"
-            done
-          }
-          cd "$BUNDLE_DIR/macos" 2>/dev/null && {
-            for d in *.app; do
-              [ -d "$d" ] || continue
-              base="${d%.app}"
-              mv "$d" "${base}-${{ matrix.arch }}.app"
-              echo "Renamed $d -> ${base}-${{ matrix.arch }}.app"
-            done
-          }
-
-      - name: Rename Windows artifacts with arch suffix
-        if: matrix.platform == 'win'
-        shell: bash
-        run: |
-          BUNDLE_DIR="apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle"
-          cd "$BUNDLE_DIR/nsis" 2>/dev/null && {
-            for f in *.exe; do
-              [ -f "$f" ] || continue
-              base="${f%.exe}"
-              mv "$f" "${base}-${{ matrix.arch }}.exe"
-              echo "Renamed $f -> ${base}-${{ matrix.arch }}.exe"
-            done
-          }
-
       - name: Upload Release Assets (Draft)
         uses: softprops/action-gh-release@v2
         with:
@@ -157,9 +122,9 @@ jobs:
           name: Test Build (feat/test)
           draft: true
           files: |
-            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/dmg/*-${{ matrix.arch }}.dmg
-            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/macos/*-${{ matrix.arch }}.app
-            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/nsis/*-${{ matrix.arch }}.exe
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/macos/*.app
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/nsis/*.exe
             apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
             apps/desktop/src-tauri/target/release/bundle/deb/*.deb
         env:
