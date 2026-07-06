@@ -16,19 +16,34 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
-            command: build:mac
-            bundle_dir: dmg
-            extra_files: ""
+            arch: arm64
+            target: aarch64-apple-darwin
+            command: build:mac:arm64
+            bundle_subdir: aarch64-apple-darwin
+          - os: macos-latest
+            platform: mac
+            arch: x64
+            target: x86_64-apple-darwin
+            command: build:mac:x64
+            bundle_subdir: x86_64-apple-darwin
           - os: windows-latest
             platform: win
+            arch: x64
+            target: x86_64-pc-windows-msvc
             command: build:win
-            bundle_dir: nsis
-            extra_files: "*.msi"
+            bundle_subdir: x86_64-pc-windows-msvc
+          - os: windows-latest
+            platform: win
+            arch: arm64
+            target: aarch64-pc-windows-msvc
+            command: build:win:arm64
+            bundle_subdir: aarch64-pc-windows-msvc
           - os: ubuntu-latest
             platform: linux
+            arch: x64
+            target: ""
             command: build:linux
-            bundle_dir: appimage,deb
-            extra_files: ""
+            bundle_subdir: ""
 
     runs-on: ${{ matrix.os }}
 
@@ -52,7 +67,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'mac' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.target && format('{0}', matrix.target) || '' }}
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
@@ -104,7 +119,7 @@ jobs:
       - name: Build Changelog
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v5
-        if: matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'mac' && matrix.arch == 'arm64' && startsWith(github.ref, 'refs/tags/')
         with:
           configurationJson: |
             {
@@ -134,13 +149,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Assets (Mac)
+      - name: Upload Release Assets (Mac x64, append)
         uses: softprops/action-gh-release@v2.4.1
-        if: matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'mac' && matrix.arch == 'x64' && startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
-            apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/macos/*.app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets (Mac arm64, with changelog, makes latest)
+        uses: softprops/action-gh-release@v2.4.1
+        if: matrix.platform == 'mac' && matrix.arch == 'arm64' && startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/macos/*.app
           body: ${{ steps.build_changelog.outputs.changelog }}
           make_latest: true
         env:
@@ -151,10 +176,9 @@ jobs:
         if: matrix.platform != 'mac' && startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/nsis/*.exe
             apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
             apps/desktop/src-tauri/target/release/bundle/deb/*.deb
-          make_latest: true
+          make_latest: ${{ matrix.arch == 'x64' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

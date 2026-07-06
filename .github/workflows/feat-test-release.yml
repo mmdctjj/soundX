@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-desktop:
-    name: Build Desktop (${{ matrix.platform }})
+    name: Build Desktop (${{ matrix.platform }}/${{ matrix.arch }})
     permissions:
       contents: write
     strategy:
@@ -17,13 +17,34 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
-            command: build:mac
+            arch: arm64
+            target: aarch64-apple-darwin
+            command: build:mac:arm64
+            bundle_subdir: aarch64-apple-darwin
+          - os: macos-latest
+            platform: mac
+            arch: x64
+            target: x86_64-apple-darwin
+            command: build:mac:x64
+            bundle_subdir: x86_64-apple-darwin
           - os: windows-latest
             platform: win
+            arch: x64
+            target: x86_64-pc-windows-msvc
             command: build:win
+            bundle_subdir: x86_64-pc-windows-msvc
+          - os: windows-latest
+            platform: win
+            arch: arm64
+            target: aarch64-pc-windows-msvc
+            command: build:win:arm64
+            bundle_subdir: aarch64-pc-windows-msvc
           - os: ubuntu-latest
             platform: linux
+            arch: x64
+            target: ""
             command: build:linux
+            bundle_subdir: ""
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -45,7 +66,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'mac' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.target && format('{0}', matrix.target) || '' }}
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
@@ -101,10 +122,9 @@ jobs:
           name: Test Build (feat/test)
           draft: true
           files: |
-            apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
-            apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app
-            apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-            apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/macos/*.app
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/nsis/*.exe
             apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
             apps/desktop/src-tauri/target/release/bundle/deb/*.deb
         env:
