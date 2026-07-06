@@ -1,10 +1,26 @@
+import { invoke } from "@tauri-apps/api/core";
 import type { Album, Track } from "@soundx/services";
 import { getBaseURL } from "../https";
 import { useAuthStore } from "../store/auth";
 import { useSettingsStore } from "../store/settings";
+import { isTauri } from "../utils/platform";
 
 interface ResolveOptions {
   cacheEnabled: boolean;
+}
+
+interface TrackMetadata {
+  id: number | string;
+  path: string;
+  name: string;
+  artist: string;
+  album: string;
+  albumId?: number | string;
+  duration: number | null;
+  type: string;
+  cover?: string | null;
+  lyrics?: string | null;
+  localPath?: string;
 }
 
 /**
@@ -40,16 +56,15 @@ export const resolveTrackUri = async (
   const downloadPath = settings.download.downloadPath;
   const albumName = track.albumEntity?.name || track.album || "Unknown Album";
 
-  if (cacheEnabled && track.id && (window as any).ipcRenderer) {
+  if (cacheEnabled && track.id && isTauri()) {
     try {
-      const cachedPath = await (window as any).ipcRenderer.invoke(
-        "cache:check", 
-        track.id, 
-        track.path, 
-        downloadPath, 
-        track.type, 
-        albumName
-      );
+      const cachedPath = await invoke("cache_check", {
+        trackId: track.id,
+        originalPath: track.path,
+        downloadPath,
+        trackType: track.type,
+        albumName,
+      }) as string | null;
       
       if (cachedPath) {
         return cachedPath;
@@ -59,7 +74,7 @@ export const resolveTrackUri = async (
       const token = useAuthStore.getState().token;
       
       // Prepare metadata for offline use
-      const metadata = {
+      const metadata: TrackMetadata = {
         id: track.id,
         path: track.path,
         name: track.name,
@@ -72,16 +87,15 @@ export const resolveTrackUri = async (
         lyrics: track.lyrics
       };
 
-      (window as any).ipcRenderer.invoke(
-        "cache:download", 
-        track.id, 
-        remoteUri, 
-        downloadPath, 
-        track.type, 
-        albumName, 
-        metadata, 
-        token
-      ).catch((e: any) =>
+      invoke("cache_download", {
+        trackId: track.id,
+        url: remoteUri,
+        downloadPath,
+        trackType: track.type,
+        albumName,
+        metadata,
+        token,
+      }).catch((e: any) =>
         console.error("[TrackResolver] Unified download IPC failed", e)
       );
     } catch (error) {

@@ -75,10 +75,11 @@ import { useTheme } from "../../context/ThemeContext";
 import { getBaseURL } from "../../https";
 import { TrackType } from "../../models";
 import { trackEvent } from "../../services/tracking";
+import { invoke } from "@tauri-apps/api/core";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { isEmbySource, isSubsonicSource } from "../../utils";
-import { isWeb, isWindows } from "../../utils/platform";
+import { isWeb, isWindows, isTauri, tauriOpenExternal } from "../../utils/platform";
 import { usePlayMode } from "../../utils/playMode";
 import SearchResults from "../SearchResults";
 import styles from "./index.module.less";
@@ -843,9 +844,9 @@ const Header: React.FC = () => {
   };
 
   return (
-    <div className={`${styles.header}`}>
+    <div className={`${styles.header}`} data-tauri-drag-region>
       {/* Navigation Controls */}
-      <div className={styles.navControls}>
+      <div className={styles.navControls} data-tauri-no-drag>
         <div className={styles.navGroup}>
           <Tooltip title={t("header.back")}>
             <LeftOutlined
@@ -876,6 +877,7 @@ const Header: React.FC = () => {
         className={styles.searchBar}
         ref={searchContainerRef}
         style={{ display: "flex", alignItems: "center" }}
+        data-tauri-no-drag
       >
         <Tooltip
           title={
@@ -928,7 +930,7 @@ const Header: React.FC = () => {
       </div>
 
       {/* User Actions */}
-      <div className={styles.userActions}>
+      <div className={styles.userActions} data-tauri-no-drag>
         {playMode === TrackType.MUSIC &&
           !isSubsonicSource() &&
           !isEmbySource() && (
@@ -1002,8 +1004,8 @@ const Header: React.FC = () => {
               className={styles.actionIcon}
               style={actionIconStyle}
               onClick={() => {
-                if ((window as any).ipcRenderer) {
-                  (window as any).ipcRenderer.send("window:set-mini");
+                if (isTauri()) {
+                  invoke("create_mini_window").catch(console.error);
                 }
               }}
             />
@@ -1208,16 +1210,7 @@ const Header: React.FC = () => {
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
-                  if (window.ipcRenderer) {
-                    window.ipcRenderer?.openExternal(
-                      "https://github.com/mmdctjj/AudioDock",
-                    );
-                  } else {
-                    window.open(
-                      "https://github.com/mmdctjj/AudioDock",
-                      "_blank",
-                    );
-                  }
+                  void tauriOpenExternal("https://github.com/mmdctjj/AudioDock");
                 }}
               >
                 <GithubOutlined />
@@ -1279,10 +1272,8 @@ const Header: React.FC = () => {
                     cancelText: t("common.cancel"),
                     onOk: async () => {
                       try {
-                        if ((window as any).ipcRenderer) {
-                          await (window as any).ipcRenderer.invoke(
-                            "cache:clear",
-                          );
+                        if (isTauri()) {
+                          await invoke("cache_clear");
                         }
                         const PRESERVED_KEYS = new Set([
                           "serverAddress",
@@ -1364,19 +1355,31 @@ const Header: React.FC = () => {
           <Flex className={styles.winControls}>
             <div
               className={styles.winControlBtn}
-              onClick={() => window.ipcRenderer?.minimizeWindow?.()}
+              onClick={() => {
+                if (isTauri()) {
+                  invoke("minimize_window").catch(console.error);
+                }
+              }}
             >
               <MinusOutlined />
             </div>
             <div
               className={styles.winControlBtn}
-              onClick={() => window.ipcRenderer?.maximizeWindow?.()}
+              onClick={() => {
+                if (isTauri()) {
+                  invoke("maximize_window").catch(console.error);
+                }
+              }}
             >
               <BorderOutlined />
             </div>
             <div
               className={`${styles.winControlBtn} ${styles.winCloseBtn}`}
-              onClick={() => window.ipcRenderer?.closeWindow?.()}
+              onClick={() => {
+                if (isTauri()) {
+                  invoke("close_window").catch(console.error);
+                }
+              }}
             >
               <CloseOutlined />
             </div>

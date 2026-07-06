@@ -15,6 +15,7 @@ import { TrackType, type Track } from "../models";
 import { getPlayMode } from "../utils/playMode";
 import { useAuthStore } from "./auth";
 import { useSettingsStore } from "./settings";
+import { tauriGetDeviceName } from "../utils/platform";
 
 export interface PlaylistSource {
   type: "album" | "tracks" | "history" | "favorites" | "other";
@@ -303,8 +304,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
             playlistSource: state.playlistSource,
           });
 
-          const deviceName =
-            (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+          const deviceName = await tauriGetDeviceName();
           const device = JSON.parse(localStorage.getItem("device") || "{}");
 
           // History Logic
@@ -458,8 +458,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
         const userId = useAuthStore.getState().user?.id;
         if (userId) {
-          const deviceName =
-            (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+          const deviceName = await tauriGetDeviceName();
           const device = JSON.parse(localStorage.getItem("device") || "{}");
           addToHistory(Number(nextTrack.id), userId, 0, deviceName, device.id).catch(console.error); // fix: progress report fix
         }
@@ -490,8 +489,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
       const userId = useAuthStore.getState().user?.id;
       if (userId) {
-        const deviceName =
-          (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+        const deviceName = await tauriGetDeviceName();
         const device = JSON.parse(localStorage.getItem("device") || "{}");
         addToHistory(Number(prevTrack.id), userId, 0, deviceName, device.id).catch(console.error); // fix: progress report fix
       }

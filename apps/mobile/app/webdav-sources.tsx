@@ -10,7 +10,13 @@ import {
   type WebDavSourceInput,
 } from "@soundx/services";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -43,29 +49,44 @@ interface SyncState {
   total?: number;
 }
 
-const PATH_FIELDS: { kind: WebDavPathKind; labelKey: string; placeholderKey: string; tagKey: string }[] = [
-  {
-    kind: "MUSIC",
-    labelKey: "settings.webdavPathMusic",
-    placeholderKey: "settings.webdavPathMusicPlaceholder",
-    tagKey: "settings.webdavSourceTypeMusic",
-  },
-  {
-    kind: "AUDIOBOOK",
-    labelKey: "settings.webdavPathAudiobook",
-    placeholderKey: "settings.webdavPathAudiobookPlaceholder",
-    tagKey: "settings.webdavSourceTypeAudiobook",
-  },
-  {
-    kind: "MV",
-    labelKey: "settings.webdavPathMv",
-    placeholderKey: "settings.webdavPathMvPlaceholder",
-    tagKey: "settings.webdavSourceTypeMv",
-  },
-];
+const PATH_FIELDS: {
+  kind: WebDavPathKind;
+  labelKey: string;
+  placeholderKey: string;
+  tagKey: string;
+}[] = [
+    {
+      kind: "MUSIC",
+      labelKey: "settings.webdavPathMusic",
+      placeholderKey: "settings.webdavPathMusicPlaceholder",
+      tagKey: "settings.webdavSourceTypeMusic",
+    },
+    {
+      kind: "AUDIOBOOK",
+      labelKey: "settings.webdavPathAudiobook",
+      placeholderKey: "settings.webdavPathAudiobookPlaceholder",
+      tagKey: "settings.webdavSourceTypeAudiobook",
+    },
+    {
+      kind: "MV",
+      labelKey: "settings.webdavPathMv",
+      placeholderKey: "settings.webdavPathMvPlaceholder",
+      tagKey: "settings.webdavSourceTypeMv",
+    },
+  ];
 
 const generateId = () =>
   `wd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+const normalizePathList = (value?: string | string[]) => {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return values.length > 0 ? values : [""];
+};
+
+const compactPathList = (value?: string | string[]) =>
+  normalizePathList(value)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
 export default function WebDavSourcesScreen() {
   const router = useRouter();
@@ -91,14 +112,16 @@ export default function WebDavSourcesScreen() {
   const load = useCallback(async () => {
     try {
       const res = await getWebDavSources();
-      const list = (res.code === 200 ? res.data : []) as WebDavSource[] | undefined;
+      const list = (res.code === 200 ? res.data : []) as
+        | WebDavSource[]
+        | undefined;
       if (res.code === 200) {
         const editable: EditableSource[] = (list || []).map((s, idx) => ({
           ...s,
           paths: {
-            MUSIC: s.paths?.MUSIC || "",
-            AUDIOBOOK: s.paths?.AUDIOBOOK || "",
-            MV: s.paths?.MV || "",
+            MUSIC: normalizePathList(s.paths?.MUSIC),
+            AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK),
+            MV: normalizePathList(s.paths?.MV),
           },
           // Expand only the first row by default; others stay collapsed.
           expanded: idx === 0,
@@ -131,21 +154,66 @@ export default function WebDavSourcesScreen() {
         username: "",
         password: "",
         enabled: true,
-        paths: { MUSIC: "", AUDIOBOOK: "", MV: "" },
+        paths: { MUSIC: [""], AUDIOBOOK: [""], MV: [""] },
         expanded: true,
       },
     ]);
   };
 
   const updateSource = (id: string, patch: Partial<EditableSource>) => {
-    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    setSources((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+    );
   };
 
-  const updateSourcePath = (id: string, kind: WebDavPathKind, value: string) => {
+  const updateSourcePath = (
+    id: string,
+    kind: WebDavPathKind,
+    index: number,
+    value: string,
+  ) => {
+    setSources((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const next = normalizePathList(s.paths?.[kind]);
+        next[index] = value;
+        return { ...s, paths: { ...s.paths, [kind]: next } };
+      }),
+    );
+  };
+
+  const addSourcePath = (id: string, kind: WebDavPathKind) => {
     setSources((prev) =>
       prev.map((s) =>
-        s.id === id ? { ...s, paths: { ...s.paths, [kind]: value } } : s,
+        s.id === id
+          ? {
+            ...s,
+            paths: {
+              ...s.paths,
+              [kind]: [...normalizePathList(s.paths?.[kind]), ""],
+            },
+          }
+          : s,
       ),
+    );
+  };
+
+  const removeSourcePath = (
+    id: string,
+    kind: WebDavPathKind,
+    index: number,
+  ) => {
+    setSources((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const next = normalizePathList(s.paths?.[kind]).filter(
+          (_, i) => i !== index,
+        );
+        return {
+          ...s,
+          paths: { ...s.paths, [kind]: next.length > 0 ? next : [""] },
+        };
+      }),
     );
   };
 
@@ -155,8 +223,7 @@ export default function WebDavSourcesScreen() {
       {
         text: t("settings.webdavSourceRemove"),
         style: "destructive",
-        onPress: () =>
-          setSources((prev) => prev.filter((s) => s.id !== id)),
+        onPress: () => setSources((prev) => prev.filter((s) => s.id !== id)),
       },
     ]);
   };
@@ -175,9 +242,9 @@ export default function WebDavSourcesScreen() {
         password: source.password,
         enabled: source.enabled,
         paths: {
-          MUSIC: source.paths?.MUSIC || undefined,
-          AUDIOBOOK: source.paths?.AUDIOBOOK || undefined,
-          MV: source.paths?.MV || undefined,
+          MUSIC: compactPathList(source.paths?.MUSIC),
+          AUDIOBOOK: compactPathList(source.paths?.AUDIOBOOK),
+          MV: compactPathList(source.paths?.MV),
         },
       });
       if (res.code === 200) {
@@ -188,10 +255,11 @@ export default function WebDavSourcesScreen() {
           const detailEntries = result.details
             ? Object.entries(result.details)
             : [];
-          const detailMsg = detailEntries
-            .filter(([, v]) => !(v as { success: boolean }).success)
-            .map(([k, v]) => `${k}: ${(v as { message: string }).message}`)
-            .join("\n") || result.message;
+          const detailMsg =
+            detailEntries
+              .filter(([, v]) => !(v as { success: boolean }).success)
+              .map(([k, v]) => `${k}: ${(v as { message: string }).message}`)
+              .join("\n") || result.message;
           Alert.alert(t("settings.webdavTestFailed"), detailMsg);
         }
       } else {
@@ -210,7 +278,18 @@ export default function WebDavSourcesScreen() {
     for (const s of sources) {
       const name = s.name.trim();
       const url = s.url.trim();
-      if (!name && !url && !s.paths.MUSIC && !s.paths.AUDIOBOOK && !s.paths.MV) {
+      const pathInput = {
+        MUSIC: compactPathList(s.paths?.MUSIC),
+        AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK),
+        MV: compactPathList(s.paths?.MV),
+      };
+      if (
+        !name &&
+        !url &&
+        !pathInput.MUSIC.length &&
+        !pathInput.AUDIOBOOK.length &&
+        !pathInput.MV.length
+      ) {
         continue;
       }
       if (!name || !url) {
@@ -224,34 +303,41 @@ export default function WebDavSourcesScreen() {
         username: s.username?.trim() || undefined,
         password: s.password || undefined,
         enabled: s.enabled,
-        paths: {
-          MUSIC: s.paths?.MUSIC?.trim() || undefined,
-          AUDIOBOOK: s.paths?.AUDIOBOOK?.trim() || undefined,
-          MV: s.paths?.MV?.trim() || undefined,
-        },
+        paths: pathInput,
       });
     }
 
     setSaving(true);
     try {
       const res = await saveWebDavSources(sanitized);
-      const saved = (res.code === 200 ? res.data : []) as WebDavSource[] | undefined;
+      const saved = (res.code === 200 ? res.data : []) as
+        | WebDavSource[]
+        | undefined;
       if (res.code === 200) {
-        const editable: EditableSource[] = (saved || []).map((s: WebDavSource, idx: number) => ({
-          ...s,
-          paths: {
-            MUSIC: s.paths?.MUSIC || "",
-            AUDIOBOOK: s.paths?.AUDIOBOOK || "",
-            MV: s.paths?.MV || "",
-          },
-          expanded: idx === 0,
-        }));
+        const editable: EditableSource[] = (saved || []).map(
+          (s: WebDavSource, idx: number) => ({
+            ...s,
+            paths: {
+              MUSIC: normalizePathList(s.paths?.MUSIC),
+              AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK),
+              MV: normalizePathList(s.paths?.MV),
+            },
+            expanded: idx === 0,
+          }),
+        );
         setSources(editable);
         setLegacyEnvImported(false);
         Alert.alert(t("settings.webdavSaveSuccess"));
-        trackEvent({ feature: "settings", eventName: "webdav_sources_save", metadata: { count: sanitized.length } });
+        trackEvent({
+          feature: "settings",
+          eventName: "webdav_sources_save",
+          metadata: { count: sanitized.length },
+        });
         const hasAnyPath = sanitized.some(
-          (s) => s.paths?.MUSIC || s.paths?.AUDIOBOOK || s.paths?.MV,
+          (s) =>
+            s.paths?.MUSIC?.length ||
+            s.paths?.AUDIOBOOK?.length ||
+            s.paths?.MV?.length,
         );
         if (triggerSync && sanitized.length > 0 && hasAnyPath) {
           await runSync();
@@ -315,11 +401,16 @@ export default function WebDavSourcesScreen() {
   const renderPathTags = (source: EditableSource) => {
     const tags: React.ReactNode[] = [];
     for (const f of PATH_FIELDS) {
-      if (source.paths?.[f.kind]) {
+      const paths = compactPathList(source.paths?.[f.kind]);
+      if (paths.length > 0) {
         tags.push(
-          <View key={f.kind} style={[styles.tag, { borderColor: colors.primary }]}>
+          <View
+            key={f.kind}
+            style={[styles.tag, { borderColor: colors.primary }]}
+          >
             <Text style={[styles.tagText, { color: colors.primary }]}>
-              {t(f.tagKey)}: {source.paths[f.kind]}
+              {t(f.tagKey)}:{" "}
+              {paths.length > 1 ? `${paths[0]} +${paths.length - 1}` : paths[0]}
             </Text>
           </View>,
         );
@@ -387,7 +478,10 @@ export default function WebDavSourcesScreen() {
                   key={source.id}
                   style={[
                     styles.card,
-                    { backgroundColor: colors.card, borderColor: colors.border },
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
                   ]}
                 >
                   <TouchableOpacity
@@ -410,7 +504,9 @@ export default function WebDavSourcesScreen() {
                       >
                         {source.url || "—"}
                       </Text>
-                      <View style={styles.tagsRow}>{renderPathTags(source)}</View>
+                      <View style={styles.tagsRow}>
+                        {renderPathTags(source)}
+                      </View>
                     </View>
                     <Ionicons
                       name={isExpanded ? "chevron-up" : "chevron-down"}
@@ -437,7 +533,9 @@ export default function WebDavSourcesScreen() {
                             },
                           ]}
                           value={source.name}
-                          placeholder={t("settings.webdavSourceNamePlaceholder")}
+                          placeholder={t(
+                            "settings.webdavSourceNamePlaceholder",
+                          )}
                           placeholderTextColor={colors.secondary}
                           onChangeText={(val) =>
                             updateSource(source.id, { name: val })
@@ -538,23 +636,78 @@ export default function WebDavSourcesScreen() {
                           >
                             {t(f.labelKey)}
                           </Text>
-                          <TextInput
+                          {normalizePathList(source.paths?.[f.kind]).map(
+                            (pathValue, index) => (
+                              <View
+                                key={`${f.kind}-${index}`}
+                                style={styles.pathRow}
+                              >
+                                <TextInput
+                                  style={[
+                                    styles.input,
+                                    styles.pathInput,
+                                    {
+                                      color: colors.text,
+                                      borderColor: colors.border,
+                                      backgroundColor: colors.background,
+                                    },
+                                  ]}
+                                  value={pathValue}
+                                  placeholder={t(f.placeholderKey)}
+                                  placeholderTextColor={colors.secondary}
+                                  onChangeText={(val) =>
+                                    updateSourcePath(
+                                      source.id,
+                                      f.kind,
+                                      index,
+                                      val,
+                                    )
+                                  }
+                                  autoCapitalize="none"
+                                />
+                                <TouchableOpacity
+                                  style={[
+                                    styles.pathIconButton,
+                                    { borderColor: colors.border },
+                                  ]}
+                                  onPress={() =>
+                                    removeSourcePath(source.id, f.kind, index)
+                                  }
+                                  disabled={
+                                    normalizePathList(source.paths?.[f.kind])
+                                      .length <= 1
+                                  }
+                                >
+                                  <Ionicons
+                                    name="remove"
+                                    size={18}
+                                    color={colors.secondary}
+                                  />
+                                </TouchableOpacity>
+                              </View>
+                            ),
+                          )}
+                          <TouchableOpacity
                             style={[
-                              styles.input,
-                              {
-                                color: colors.text,
-                                borderColor: colors.border,
-                                backgroundColor: colors.background,
-                              },
+                              styles.addPathButton,
+                              { borderColor: colors.primary },
                             ]}
-                            value={source.paths?.[f.kind] || ""}
-                            placeholder={t(f.placeholderKey)}
-                            placeholderTextColor={colors.secondary}
-                            onChangeText={(val) =>
-                              updateSourcePath(source.id, f.kind, val)
-                            }
-                            autoCapitalize="none"
-                          />
+                            onPress={() => addSourcePath(source.id, f.kind)}
+                          >
+                            <Ionicons
+                              name="add"
+                              size={16}
+                              color={colors.primary}
+                            />
+                            <Text
+                              style={{
+                                color: colors.primary,
+                                fontWeight: "600",
+                              }}
+                            >
+                              {t(f.labelKey)}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                       ))}
 
@@ -565,10 +718,15 @@ export default function WebDavSourcesScreen() {
                             onValueChange={(val) =>
                               updateSource(source.id, { enabled: val })
                             }
-                            trackColor={{ false: "#767577", true: colors.primary }}
+                            trackColor={{
+                              false: "#767577",
+                              true: colors.primary,
+                            }}
                             thumbColor="#f4f3f4"
                           />
-                          <Text style={[styles.switchLabel, { color: colors.text }]}>
+                          <Text
+                            style={[styles.switchLabel, { color: colors.text }]}
+                          >
                             {t("settings.webdavSourceEnabled")}
                           </Text>
                         </View>
@@ -584,14 +742,22 @@ export default function WebDavSourcesScreen() {
                           {testingId === source.id ? (
                             <ActivityIndicator color={colors.primary} />
                           ) : (
-                            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                            <Text
+                              style={{
+                                color: colors.primary,
+                                fontWeight: "600",
+                              }}
+                            >
                               {t("settings.webdavTestConnection")}
                             </Text>
                           )}
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={[styles.removeButton, { borderColor: "#FF3B30" }]}
+                          style={[
+                            styles.removeButton,
+                            { borderColor: "#FF3B30" },
+                          ]}
                           onPress={() => removeSource(source.id)}
                         >
                           <Text style={{ color: "#FF3B30", fontWeight: "600" }}>
@@ -613,7 +779,11 @@ export default function WebDavSourcesScreen() {
             ]}
             onPress={addSource}
           >
-            <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+            <Ionicons
+              name="add-circle-outline"
+              size={18}
+              color={colors.primary}
+            />
             <Text style={[styles.addButtonText, { color: colors.primary }]}>
               {t("settings.webdavAddSource")}
             </Text>
@@ -624,7 +794,8 @@ export default function WebDavSourcesScreen() {
               style={[
                 styles.primaryButton,
                 {
-                  backgroundColor: sources.length === 0 ? colors.border : colors.primary,
+                  backgroundColor:
+                    sources.length === 0 ? colors.border : colors.primary,
                 },
               ]}
               onPress={() => handleSave(true)}
@@ -639,14 +810,13 @@ export default function WebDavSourcesScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.secondaryButton,
-                { borderColor: colors.border },
-              ]}
+              style={[styles.secondaryButton, { borderColor: colors.border }]}
               onPress={() => handleSave(false)}
               disabled={saving || sources.length === 0}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+              <Text
+                style={[styles.secondaryButtonText, { color: colors.text }]}
+              >
                 {t("settings.webdavSaveSuccess")}
               </Text>
             </TouchableOpacity>
@@ -685,9 +855,11 @@ export default function WebDavSourcesScreen() {
                       ]}
                     />
                   </View>
-                  <Text style={[styles.syncProgress, { color: colors.secondary }]}>
-                    {t("settings.webdavProgressCurrent")}: {syncState.current ?? 0} /{" "}
-                    {syncState.total ?? 0}
+                  <Text
+                    style={[styles.syncProgress, { color: colors.secondary }]}
+                  >
+                    {t("settings.webdavProgressCurrent")}:{" "}
+                    {syncState.current ?? 0} / {syncState.total ?? 0}
                   </Text>
                 </>
               )}
@@ -749,6 +921,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   hint: { fontSize: 11 },
+  pathRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  pathInput: { flex: 1 },
+  pathIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addPathButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    gap: 4,
+  },
   actionsRow: {
     flexDirection: "row",
     alignItems: "center",

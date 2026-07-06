@@ -5,6 +5,7 @@ import {
   SOURCEMAP,
 } from "@soundx/services";
 import { useAuthStore } from "../store/auth";
+import { tauriGetDeviceName } from "./platform";
 
 export const getFirstSourceSelection = (
   bundles: { type: string; configs: { internal: string; external: string }[] }[],
@@ -79,9 +80,7 @@ export async function collectDesktopScanLoginPayload(): Promise<ScanLoginClaimPa
 
   let deviceName = window.navigator.userAgent;
   try {
-    if (window.ipcRenderer?.getName) {
-      deviceName = await window.ipcRenderer.getName();
-    }
+    deviceName = await tauriGetDeviceName();
   } catch (error) {
     console.error("Failed to resolve desktop device name", error);
   }

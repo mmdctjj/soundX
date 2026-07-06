@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { FolderOpenOutlined } from "@ant-design/icons";
 import {
   LANGUAGE_STORAGE_KEY,
@@ -24,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { languages } from "../../i18n";
 import { useAuthStore } from "../../store/auth";
 import { useSettingsStore } from "../../store/settings";
+import { isTauri } from "../../utils/platform";
 import AdminSettings from "./AdminSettings";
 import WebDavSourcesSettings from "./WebDavSourcesSettings";
 import styles from "./index.module.less";
@@ -66,12 +68,12 @@ const Settings: React.FC = () => {
   const [clearing, setClearing] = React.useState(false);
 
   const fetchCacheSize = async () => {
-    if (!(window as any).ipcRenderer) {
+    if (!isTauri()) {
       setCacheSize("--");
       return;
     }
     try {
-      const size = await (window as any).ipcRenderer.invoke("cache:get-size");
+      const size = await invoke<number>("cache_get_size");
       setCacheSize(formatSize(size));
     } catch (error) {
       console.warn("Failed to fetch cache size", error);
@@ -90,8 +92,8 @@ const Settings: React.FC = () => {
   const handleClearCache = async () => {
     setClearing(true);
     try {
-      if ((window as any).ipcRenderer) {
-        await (window as any).ipcRenderer.invoke("cache:clear");
+      if (isTauri()) {
+        await invoke("cache_clear");
       }
       // Clear localStorage except login and data source keys
       const keysToPreserve: Record<string, string> = {};
@@ -123,20 +125,25 @@ const Settings: React.FC = () => {
   }, []);
 
   const loadDownloadPath = async () => {
-    if ((window as any).ipcRenderer) {
-      const path = await (window as any).ipcRenderer.invoke("download:get-path");
-      setDownloadPath(path || "");
+    if (isTauri()) {
+      try {
+        const path = await invoke<string>("get_download_path");
+        setDownloadPath(path || "");
+      } catch (e) {
+        console.error("Failed to get download path:", e);
+      }
     }
   };
 
   const handleSelectDirectory = async () => {
-    if (
-      (window as any).ipcRenderer &&
-      (window as any).ipcRenderer.selectDirectory
-    ) {
-      const path = await (window as any).ipcRenderer.selectDirectory();
-      if (path) {
-        updateDownload("downloadPath", path);
+    if (isTauri()) {
+      try {
+        const path = await invoke<string>("select_directory");
+        if (path) {
+          updateDownload("downloadPath", path);
+        }
+      } catch (e) {
+        console.error("Failed to select directory:", e);
       }
     }
   };
@@ -198,7 +205,10 @@ const Settings: React.FC = () => {
             <Space>
               <Switch
                 checked={general.minimizeToTray}
-                onChange={(val) => updateGeneral("minimizeToTray", val)}
+                onChange={(val) => {
+                  updateGeneral("minimizeToTray", val);
+                  invoke("set_minimize_to_tray", { enable: val }).catch(console.error);
+                }}
               />
               <Text className={styles.description}>
                 {t("settings.minimizeToTrayDescription")}

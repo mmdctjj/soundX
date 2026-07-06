@@ -1,5 +1,6 @@
 import { SharedSocketService } from "@soundx/ws";
 import { useAuthStore } from "../store/auth";
+import { tauriGetDeviceName } from "../utils/platform";
 
 class SocketService extends SharedSocketService {
   async connect() {
@@ -14,8 +15,9 @@ class SocketService extends SharedSocketService {
         deviceName = device.name;
     } else {
         try {
-            if (window.ipcRenderer?.getName) {
-                deviceName = await window.ipcRenderer.getName();
+            const tauriName = await tauriGetDeviceName();
+            if (tauriName) {
+                deviceName = tauriName;
             }
         } catch (e) {
             console.error("Failed to get device name", e);
