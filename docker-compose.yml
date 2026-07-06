@@ -26,20 +26,6 @@ services:
       - DISABLE_ASR=${DISABLE_ASR:-false} # 是否禁用 asr 服务，不用语音助手可注释
       - DISABLE_MI=${DISABLE_MI:-false} # 是否禁用 mi 服务，不用小爱音箱功能可注释
       - VOICE_KEYWORDS=小苍小苍 # 语音唤醒关键词，多个用英文逗号分隔，按最长匹配优先
-      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
-      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
-      - LLM_BASE_URL=${LLM_BASE_URL:-}
-      - LLM_TIMEOUT=${LLM_TIMEOUT:-60000}
-      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7}
-      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2048}
-      - LLM_API_KEY=${LLM_API_KEY:-}
-      # TTS 服务商配置
-      - TTS_MIMO_API_TOKEN=${TTS_MIMO_API_TOKEN:-}
-      - TTS_MIMO_MODEL=${TTS_MIMO_MODEL:-speech-01-turbo}
-      - TTS_MINIMAX_API_KEY=${TTS_MINIMAX_API_KEY:-}
-      - TTS_MINIMAX_GROUP_ID=${TTS_MINIMAX_GROUP_ID:-}
-      - TTS_VOLC_API_KEY=${TTS_VOLC_API_KEY:-}
-      - TTS_VOLC_APP_ID=${TTS_VOLC_APP_ID:-}
 
     # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:

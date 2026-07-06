@@ -15,6 +15,7 @@ import { AudiobookController } from './controllers/audiobook';
 import { AudiobookCollectionController } from './controllers/audiobook-collection';
 import { FolderController } from './controllers/folder';
 import { ImportController } from './controllers/import';
+import { LlmConfigController } from './controllers/llm-config.controller';
 import { LlmController } from './controllers/llm.controller';
 import { MvController } from './controllers/mv';
 import { PlaylistController } from './controllers/playlist';
@@ -39,6 +40,7 @@ import { AudiobookService } from './services/audiobook';
 import { AudiobookCollectionService } from './services/audiobook-collection';
 import { FolderService } from './services/folder';
 import { ImportService } from './services/import';
+import { LlmConfigService } from './services/llm-config.service';
 import { LlmService } from './services/llm.service';
 import { MvService } from './services/mv';
 import { PlaylistService } from './services/playlist';
@@ -102,6 +104,7 @@ import { WebDavConfigService } from './services/webdav-config.service';
     SearchRecordController,
     ScanLoginController,
     LlmController,
+    LlmConfigController,
     MvController,
     WebDavSourcesController,
     WebDavSyncController,
@@ -139,6 +142,7 @@ import { WebDavConfigService } from './services/webdav-config.service';
     SearchRecordService,
     ScanLoginService,
     LlmService,
+    LlmConfigService,
     MvService,
     SyncGateway,
     WebDavConfigService,

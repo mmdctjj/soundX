@@ -1,13 +1,17 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { igniteModel, loadModels, Message } from 'multi-llm-ts';
+import { LlmConfigService } from './llm-config.service';
 
 @Injectable()
 export class LlmService implements OnModuleInit {
   private readonly logger = new Logger(LlmService.name);
   private modelInst: any;
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private llmConfig: LlmConfigService,
+  ) {}
 
   async onModuleInit() {
     await this.initLlm();
@@ -15,36 +19,43 @@ export class LlmService implements OnModuleInit {
 
   private async initLlm() {
     try {
-      const provider = this.configService.get<string>('LLM_PROVIDER') || 'deepseek';
-      const modelName = this.configService.get<string>('LLM_MODEL') || 'deepseek-chat';
-      const apiKey = this.configService.get<string>('LLM_API_KEY') || '';
-      const baseURL = this.configService.get<string>('LLM_BASE_URL') || '';
-
-      if (!apiKey) {
-        this.logger.warn(`LLM_API_KEY is not configured for provider ${provider}`);
+      const cfg = await this.llmConfig.getEffective();
+      if (!cfg.apiKey) {
+        this.logger.warn(`LLM_API_KEY is not configured for provider ${cfg.provider}`);
         return;
       }
 
-      const config: any = { apiKey };
-      if (baseURL) {
-        config.baseURL = baseURL;
+      const config: any = { apiKey: cfg.apiKey };
+      if (cfg.baseUrl) {
+        config.baseURL = cfg.baseUrl;
       }
 
-      // Load models from provider
-      const models = await loadModels(provider, config);
+      const models = await loadModels(cfg.provider, config);
       const chatModels = models?.chat || [];
-      const targetModel = chatModels.find(m => m.id === modelName || m.name === modelName) || chatModels[0];
-      
+      const targetModel =
+        chatModels.find((m) => m.id === cfg.model || m.name === cfg.model) ||
+        chatModels[0];
+
       if (!targetModel) {
-        this.logger.error(`Model ${modelName} not found for provider ${provider}`);
+        this.logger.error(`Model ${cfg.model} not found for provider ${cfg.provider}`);
         return;
       }
 
-      this.modelInst = igniteModel(provider, targetModel, config);
-      this.logger.log(`LLM Model initialized with provider: ${provider}, model: ${modelName}`);
+      this.modelInst = igniteModel(cfg.provider, targetModel, config);
+      this.logger.log(
+        `LLM Model initialized with provider: ${cfg.provider}, model: ${cfg.model}`,
+      );
     } catch (e) {
       this.logger.error(`Failed to initialize LLM: ${e.message}`, e.stack);
     }
+  }
+
+  /**
+   * 在配置变更后重新初始化模型 (供 controller / 外部直接调用)。
+   */
+  async reload() {
+    this.modelInst = undefined;
+    await this.initLlm();
   }
 
   public async chat(messages: { role: 'system' | 'user' | 'assistant', content: string }[]): Promise<{prompt: string, text: string}> {
@@ -99,34 +110,31 @@ export class LlmService implements OnModuleInit {
 输出：
 {"prompt": "pause", "text": "好的，已暂停"}
 ====`;
+
+    const cfg = await this.llmConfig.getEffective();
     const payload = [
       new Message('system', systemPrompt),
-      ...messages.map(m => new Message(m.role, m.content)),
+      ...messages.map((m) => new Message(m.role, m.content)),
     ];
-    
-    const timeout = Number(this.configService.get<string>('LLM_TIMEOUT')) || 60000;
-    const temperature = Number(this.configService.get<string>('LLM_TEMPERATURE')) || 0.7;
-    const maxTokens = Number(this.configService.get<string>('LLM_MAX_TOKENS')) || 2048;
 
     const response = await this.modelInst.complete(payload, {
-      timeout,
-      temperature,
-      maxTokens,
+      timeout: cfg.timeout,
+      temperature: cfg.temperature,
+      maxTokens: cfg.maxTokens,
     });
 
     let content = response.content;
     try {
-        // Strip markdown code blocks if the model still outputs them
-        if (content.startsWith('\`\`\`json') && content.endsWith('\`\`\`')) {
-            content = content.substring(7, content.length - 3).trim();
-        } else if (content.startsWith('\`\`\`') && content.endsWith('\`\`\`')) {
-            content = content.substring(3, content.length - 3).trim();
-        }
-        const parsed = JSON.parse(content);
-        return parsed;
+      if (content.startsWith('```json') && content.endsWith('```')) {
+        content = content.substring(7, content.length - 3).trim();
+      } else if (content.startsWith('```') && content.endsWith('```')) {
+        content = content.substring(3, content.length - 3).trim();
+      }
+      const parsed = JSON.parse(content);
+      return parsed;
     } catch (e) {
-        this.logger.error("Failed to parse LLM JSON response", e);
-        return { prompt: "error", text: "意图解析失败：" + content };
+      this.logger.error('Failed to parse LLM JSON response', e);
+      return { prompt: 'error', text: '意图解析失败：' + content };
     }
   }
 }
