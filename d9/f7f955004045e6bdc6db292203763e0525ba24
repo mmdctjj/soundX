@@ -1,0 +1,23 @@
+apps/desktop/src/components/Player/index.module.less
+  s_9f22f985bb1d49::t_ce0d59539c9036 2-5,208,248,256-262
+apps/desktop/src/components/Player/index.tsx
+  s_9f22f985bb1d49::t_afc28ae6bee91f 1113-1114,1117,1604-1941,1943-1945,1947-1949,1951-1965,1967-1969,1971-1991,1993-2014,2016-2019,2021-2038,2040-2082,2084-2085,2087-2104,2107-2129,2131-2138,2140-2143,2145-2159,2161-2167,2169,2171-2175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d9f7f955004045e6bdc6db292203763e0525ba24",
+  "prompts": {},
+  "sessions": {
+    "s_9f22f985bb1d49": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d2772331-e0b8-4aaa-9e6d-f39ceb19d3f2",
+        "model": "unknown"
+      },
+      "human_author": "mmdctjj <984808285@mail.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
