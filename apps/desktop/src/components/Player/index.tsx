@@ -2,10 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { emitTo, listen } from "@tauri-apps/api/event";
 import {
   AimOutlined,
-  BackwardOutlined,
   DeliveredProcedureOutlined,
   DownOutlined,
-  ForwardOutlined,
   HeartFilled,
   HeartOutlined,
   OrderedListOutlined,
@@ -1112,387 +1110,11 @@ const Player: React.FC = () => {
     );
   };
 
-  // Skip forward 15 seconds
-  const skipForward = () => {
-    if (audioRef.current) {
-      trackEvent({
-        feature: "player",
-        eventName: "seek_forward_15",
-        userId: user?.id ? String(user.id) : undefined,
-        deviceId: device?.id ? String(device.id) : undefined,
-        value: 15,
-      });
-      const newTime = Math.min(audioRef.current.currentTime + 15, duration);
-      audioRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-    }
-  };
-
-  // Skip backward 15 seconds
-  const skipBackward = () => {
-    if (audioRef.current) {
-      trackEvent({
-        feature: "player",
-        eventName: "seek_backward_15",
-        userId: user?.id ? String(user.id) : undefined,
-        deviceId: device?.id ? String(device.id) : undefined,
-        value: -15,
-      });
-      const newTime = Math.max(audioRef.current.currentTime - 15, 0);
-      audioRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-    }
-  };
-
-  // Set sleep timer
-  const setSleepTimer = () => {
-    // ... exist logic
-  };
-
-  const handleDesktopLyricToggle = () => {
-    const { enable } = useSettingsStore.getState().desktopLyric;
-    updateDesktopLyric("enable", !enable);
-  };
-
-  useEffect(() => {
-    if (isTauri()) {
-      let unlisten: (() => void) | undefined;
-      listen("lyric:toggle", () => handleDesktopLyricToggle()).then((fn) => {
-        unlisten = fn;
-      });
-      return () => {
-        if (unlisten) unlisten();
-      };
-    }
-  }, []);
-
-  useEffect(() => {
-    // Initial sync of desktop lyric window on mount
-    const { enable } = useSettingsStore.getState().desktopLyric;
-    if (enable && appMode === TrackType.MUSIC && isTauri()) {
-      invoke("create_lyric_window").catch(console.error);
-    }
-  }, []);
-
-  const openAddToPlaylistModal = async (e: React.MouseEvent, track: Track) => {
-    e.stopPropagation();
-    setSelectedTrack(track);
-    setIsAddToPlaylistModalOpen(true);
-    try {
-      const res = await getPlaylists(appMode, user?.id);
-      if (res.code === 200) {
-        setPlaylists(res.data);
-      }
-    } catch (error) {
-      console.error(error);
-      message.error(t("player.getPlaylistsFailed"));
-    }
-  };
-
-  const handleAddToPlaylist = async (playlistId: number | string) => {
-    if (!selectedTrack) return;
-    try {
-      const res = await addTrackToPlaylist(playlistId, selectedTrack.id);
-      if (res.code === 200) {
-        message.success(t("common.addedToPlaylist"));
-        setIsAddToPlaylistModalOpen(false);
-      } else {
-        message.error(t("common.addToPlaylistFailed"));
-      }
-    } catch (error) {
-      message.error(t("common.addToPlaylistFailed"));
-    }
-  };
-
-  const handleDeleteSubTrack = async (track: Track) => {
-    try {
-      const { data: impact } = await getDeletionImpact(track.id);
-
-      modalApi.confirm({
-        title: t("player.confirmDelete"),
-        content: impact?.isLastTrackInAlbum
-          ? t("player.deleteLastTrackInAlbum", { albumName: impact.albumName })
-          : t("player.deleteWarning"),
-        okText: t("common.delete"),
-        okType: "danger",
-        cancelText: t("common.cancel"),
-        onOk: async () => {
-          try {
-            const res = await deleteTrack(track.id, impact?.isLastTrackInAlbum);
-            if (res.code === 200) {
-              message.success(t("player.deleteSuccess"));
-              removeTrack(track.id);
-            } else {
-              message.error(t("player.deleteFailed"));
-            }
-          } catch (error) {
-            message.error(t("player.deleteFailed"));
-          }
-        },
-      });
-    } catch (error) {
-      message.error(t("player.getDeletionImpactFailed"));
-    }
-  };
-
-  const handleLoadMiDevices = async () => {
-    setIsMiDevicesLoading(true);
-    try {
-      // 先检查登录状态
-      const authRes = await getMiAuthStatus();
-      setMiAuthStatus(authRes);
-
-      if (authRes.logged_in) {
-        const res = await getMiDevices();
-        setMiDevices(res.devices || []);
-      } else {
-        // 未登录，获取二维码
-        const qrRes = await getMiQRCode();
-        setMiQRCode(qrRes);
-        if (qrRes.already_logged_in) {
-          // 已登录但状态不同步，重新加载设备
-          const res = await getMiDevices();
-          setMiDevices(res.devices || []);
-        } else if (qrRes.status_url) {
-          // 开始轮询扫码状态
-          startMiQRPolling(qrRes.status_url);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load Mi devices:", error);
-      message.error(t("player.loadMiDevicesFailed"));
-      setMiDevices([]);
-    } finally {
-      setIsMiDevicesLoading(false);
-    }
-  };
-
-  const handleCastToMi = async (deviceId: string, deviceName: string) => {
-    if (!currentTrack) {
-      message.warning(t("player.miCastNoTrack"));
-      return;
-    }
-    setIsCastingToMi(true);
-    try {
-      const url = buildTrackPlaybackUrl(currentTrack, currentAudioQuality);
-      const title = `${currentTrack.name} - ${currentTrack.artist}`;
-      await playMiDeviceByUrl({ device_id: deviceId, url, title });
-      if (isPlaying) {
-        pause();
-      }
-      message.success(t("player.miCastSuccess", { device: deviceName }));
-      setIsMiDevicesPopoverOpen(false);
-    } catch (error) {
-      console.error("Failed to cast to Mi device:", error);
-      message.error(t("player.miCastFailed"));
-    } finally {
-      setIsCastingToMi(false);
-    }
-  };
-
-  const startMiQRPolling = (lpUrl: string) => {
-    // 清除之前的轮询
-    if (miPollingTimerRef.current) {
-      clearInterval(miPollingTimerRef.current);
-      miPollingTimerRef.current = null;
-    }
-
-    // 每 3 秒轮询一次
-    miPollingTimerRef.current = setInterval(async () => {
-      try {
-        const statusRes = await getMiQRCodeStatus(lpUrl);
-        if (statusRes.status === "success") {
-          // 扫码成功，停止轮询，重新加载设备
-          if (miPollingTimerRef.current) {
-            clearInterval(miPollingTimerRef.current);
-            miPollingTimerRef.current = null;
-          }
-          message.success(t("player.miLoginSuccess"));
-          setMiAuthStatus({ logged_in: true });
-          const res = await getMiDevices();
-          setMiDevices(res.devices || []);
-        } else if (statusRes.status === "expired" || statusRes.status === "error") {
-          // 二维码过期或错误，停止轮询
-          if (miPollingTimerRef.current) {
-            clearInterval(miPollingTimerRef.current);
-            miPollingTimerRef.current = null;
-          }
-          setMiQRCode(null);
-        }
-      } catch (error) {
-        console.error("QR polling error:", error);
-      }
-    }, 3000);
-  };
-
-  // 清理轮询定时器
-  useEffect(() => {
-    return () => {
-      if (miPollingTimerRef.current) {
-        clearInterval(miPollingTimerRef.current);
-      }
-    };
-  }, []);
-
-  const renderPlayOrderButton = () => {
-    if (isRadioMode) return null;
-    return (
-      <Popover
-        content={
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "5px",
-              padding: "0px",
-            }}
-          >
-            <div
-              onClick={() => setMode("sequence")}
-              style={{
-                cursor: "pointer",
-                padding: "8px 12px",
-                borderRadius: "4px",
-                backgroundColor:
-                  playMode === "sequence"
-                    ? token.colorFillTertiary
-                    : "transparent",
-              }}
-            >
-              <Flex align="center">
-                <Icon
-                  component={MusiclistOutlined}
-                  style={{ fontSize: "24px", fontWeight: "bold" }}
-                />
-                {t('player.sequencePlay')}
-              </Flex>
-            </div>
-            <div
-              onClick={() => setMode("shuffle")}
-              style={{
-                cursor: "pointer",
-                padding: "8px 12px",
-                borderRadius: "4px",
-                backgroundColor:
-                  playMode === "shuffle"
-                    ? token.colorFillTertiary
-                    : "transparent",
-              }}
-            >
-              <Flex align="center">
-                <Icon
-                  component={RandomOutlined}
-                  style={{ fontSize: "24px", fontWeight: "bold" }}
-                />
-                {t('player.shufflePlay')}
-              </Flex>
-            </div>
-            <div
-              onClick={() => setMode("loop")}
-              style={{
-                cursor: "pointer",
-                padding: "8px 12px",
-                borderRadius: "4px",
-                backgroundColor:
-                  playMode === "loop" ? token.colorFillTertiary : "transparent",
-              }}
-            >
-              <Flex align="center">
-                <Icon
-                  component={LoopOutlined}
-                  style={{ fontSize: "24px", fontWeight: "bold" }}
-                />
-                {t('player.loopList')}
-              </Flex>
-            </div>
-            <div
-              onClick={() => setMode("single")}
-              style={{
-                cursor: "pointer",
-                padding: "8px 12px",
-                borderRadius: "4px",
-                backgroundColor:
-                  playMode === "single"
-                    ? token.colorFillTertiary
-                    : "transparent",
-              }}
-            >
-              <Flex align="center">
-                <Icon
-                  component={SinglecycleOutlined}
-                  style={{ fontSize: "24px", fontWeight: "bold" }}
-                />
-                {t('player.singleLoop')}
-              </Flex>
-            </div>
-          </div>
-        }
-        getPopupContainer={(triggerNode) => triggerNode.parentElement!}
-        trigger="click"
-        placement="top"
-      >
-        <Tooltip title={t("player.playOrder")}>
-          {playMode === "sequence" ? (
-            <Icon
-              component={MusiclistOutlined}
-              style={{ fontSize: "24px", fontWeight: "bold" }}
-            />
-          ) : playMode === "shuffle" ? (
-            <Icon
-              component={RandomOutlined}
-              style={{ fontSize: "24px", fontWeight: "bold" }}
-            />
-          ) : playMode === "loop" ? (
-            <Icon
-              component={LoopOutlined}
-              style={{ fontSize: "24px", fontWeight: "bold" }}
-            />
-          ) : playMode === "single" ? (
-            <Icon
-              component={SinglecycleOutlined}
-              style={{ fontSize: "24px", fontWeight: "bold" }}
-            />
-          ) : null}
-        </Tooltip>
-      </Popover>
-    );
-  };
-
-  const renderPlaylistButton = (className: string) => {
-    if (isRadioMode) return null;
-    return (
-      <Tooltip title={t("player.playlist")}>
-        <OrderedListOutlined
-          onClick={() => setIsPlaylistOpen(true)}
-          className={className}
-        />
-      </Tooltip>
-    );
-  };
-
-  if (!currentTrack?.id) {
-    return <></>;
-  }
-
-  return (
-    <div
-      className={styles.player}
-      style={{ color: token.colorText, borderRightColor: token.colorBorder }}
-    >
-      <audio
-        ref={audioRef}
-        src={resolvedUri}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
-        onWaiting={() => setIsLoading(true)}
-        onPlaying={() => setIsLoading(false)}
-        onCanPlay={() => setIsLoading(false)}
-      />
-
+  const renderMiniPlayer = (expandable: boolean) => (
+    <>
       <div
         className={styles.songInfo}
-        onClick={() => setIsFullPlayerVisible(true)}
+        onClick={() => expandable && setIsFullPlayerVisible(true)}
       >
         <div className={styles.coverWrapper}>
           {currentTrack && (
@@ -1993,310 +1615,564 @@ const Player: React.FC = () => {
         {/* Playlist */}
         {renderPlaylistButton(styles.settingIcon)}
       </div>
+    </>
+  );
 
-      {/* Full Screen Player */}
-      <Drawer
-        placement="bottom"
-        height="100%"
-        open={isFullPlayerVisible}
-        onClose={() => setIsFullPlayerVisible(false)}
-        classNames={{ body: styles.fullPlayerBody }}
-        styles={{
-          header: { display: "none" },
-        }}
-        closeIcon={null}
-      >
-        {/* Close Button */}
-        <div className={styles.fullPlayerClose}>
-          <DownOutlined
-            onClick={() => setIsFullPlayerVisible(false)}
-            className={styles.fullPlayerCloseIcon}
-          />
-        </div>
+  // Set sleep timer
+  const setSleepTimer = () => {
+    // ... exist logic
+  };
 
-        {/* Left Side - Cover (1/3) */}
-        <div className={styles.fullPlayerLeft}>
-          {/* Background Blur Effect */}
-          {/* <div
-            className={styles.fullPlayerBackground}
-            style={{ backgroundImage: drawerBgImage }}
-          /> */}
+  const handleDesktopLyricToggle = () => {
+    const { enable } = useSettingsStore.getState().desktopLyric;
+    updateDesktopLyric("enable", !enable);
+  };
 
-          <Flex vertical align="center" gap={20}>
-            <img
-              src={getCoverUrl(currentTrack)}
-              alt="Current Cover"
-              className={styles.fullPlayerCover}
-              onError={(e) =>
-                console.error(
-                  `[Player] Full Cover Load Error: ${currentTrack?.cover}`,
-                  e,
-                )
-              }
-            />
+  useEffect(() => {
+    if (isTauri()) {
+      let unlisten: (() => void) | undefined;
+      listen("lyric:toggle", () => handleDesktopLyricToggle()).then((fn) => {
+        unlisten = fn;
+      });
+      return () => {
+        if (unlisten) unlisten();
+      };
+    }
+  }, []);
 
-            <Flex
-              justify="space-between"
-              align="center"
-              style={{ width: "250px" }}
-            >
-              <Text type="secondary" style={{ fontSize: "10px" }}>
-                {formatDuration(currentTime)}
-              </Text>
-              <Slider
-                value={currentTime}
-                max={duration || 100}
-                style={{ width: "150px" }}
-                onChange={handleSeek}
-                className={isLoading ? styles.loadingSlider : ""}
-                tooltip={{ open: false }}
-                handleStyle={{ display: isLoading ? "block" : "none" }}
-              />
-              <Text type="secondary" style={{ fontSize: "10px" }}>
-                {formatDuration(duration)}
-              </Text>
-            </Flex>
+  useEffect(() => {
+    // Initial sync of desktop lyric window on mount
+    const { enable } = useSettingsStore.getState().desktopLyric;
+    if (enable && appMode === TrackType.MUSIC && isTauri()) {
+      invoke("create_lyric_window").catch(console.error);
+    }
+  }, []);
 
-            <Flex justify="center" style={{ fontSize: 50 }} gap={30}>
-              {/* MV Icon */}
-              {!isRadioMode &&
-                appMode === TrackType.MUSIC && (
-                  <Tooltip title={hasMv ? t("player.mv") : t("player.noMv")}>
-                    <VideoCameraOutlined
-                      className={styles.controlIcon}
-                      style={{
-                        opacity: hasMv ? 0.8 : 0.3,
-                        cursor: hasMv ? "pointer" : "not-allowed",
-                      }}
-                      onClick={() => {
-                        if (hasMv && currentTrack) {
-                          if (isPlaying) pause();
-                          window.location.href = `#/mv?trackId=${currentTrack.id}`;
-                        }
-                      }}
-                    />
-                  </Tooltip>
-                )}
+  const openAddToPlaylistModal = async (e: React.MouseEvent, track: Track) => {
+    e.stopPropagation();
+    setSelectedTrack(track);
+    setIsAddToPlaylistModalOpen(true);
+    try {
+      const res = await getPlaylists(appMode, user?.id);
+      if (res.code === 200) {
+        setPlaylists(res.data);
+      }
+    } catch (error) {
+      console.error(error);
+      message.error(t("player.getPlaylistsFailed"));
+    }
+  };
 
-              {!isRadioMode &&
-                appMode === TrackType.MUSIC &&
-                renderPlayOrderButton()}
+  const handleAddToPlaylist = async (playlistId: number | string) => {
+    if (!selectedTrack) return;
+    try {
+      const res = await addTrackToPlaylist(playlistId, selectedTrack.id);
+      if (res.code === 200) {
+        message.success(t("common.addedToPlaylist"));
+        setIsAddToPlaylistModalOpen(false);
+      } else {
+        message.error(t("common.addToPlaylistFailed"));
+      }
+    } catch (error) {
+      message.error(t("common.addToPlaylistFailed"));
+    }
+  };
 
-              {/* Skip Backward 15s */}
-              <Tooltip title={t('player.skipBackward')}>
-                <BackwardOutlined
-                  className={styles.controlIcon}
-                  onClick={skipBackward}
-                />
-              </Tooltip>
+  const handleDeleteSubTrack = async (track: Track) => {
+    try {
+      const { data: impact } = await getDeletionImpact(track.id);
 
-              <StepBackwardOutlined
-                className={styles.controlIcon}
-                onClick={prev}
-              />
-              <div onClick={togglePlay} style={{ cursor: "pointer" }}>
-                {isPlaying ? (
-                  <PauseCircleFilled className={styles.playIcon} />
-                ) : (
-                  <PlayCircleFilled className={styles.playIcon} />
-                )}
-              </div>
-              <StepForwardOutlined
-                className={styles.controlIcon}
-                onClick={next}
-              />
+      modalApi.confirm({
+        title: t("player.confirmDelete"),
+        content: impact?.isLastTrackInAlbum
+          ? t("player.deleteLastTrackInAlbum", { albumName: impact.albumName })
+          : t("player.deleteWarning"),
+        okText: t("common.delete"),
+        okType: "danger",
+        cancelText: t("common.cancel"),
+        onOk: async () => {
+          try {
+            const res = await deleteTrack(track.id, impact?.isLastTrackInAlbum);
+            if (res.code === 200) {
+              message.success(t("player.deleteSuccess"));
+              removeTrack(track.id);
+            } else {
+              message.error(t("player.deleteFailed"));
+            }
+          } catch (error) {
+            message.error(t("player.deleteFailed"));
+          }
+        },
+      });
+    } catch (error) {
+      message.error(t("player.getDeletionImpactFailed"));
+    }
+  };
 
-              {/* Skip Forward 15s */}
-              <Tooltip title={t('player.skipForward')}>
-                <ForwardOutlined
-                  className={styles.controlIcon}
-                  onClick={skipForward}
-                />
-              </Tooltip>
+  const handleLoadMiDevices = async () => {
+    setIsMiDevicesLoading(true);
+    try {
+      // 先检查登录状态
+      const authRes = await getMiAuthStatus();
+      setMiAuthStatus(authRes);
 
-              {!isRadioMode &&
-                appMode === TrackType.MUSIC &&
-                renderPlaylistButton(styles.controlIcon)}
+      if (authRes.logged_in) {
+        const res = await getMiDevices();
+        setMiDevices(res.devices || []);
+      } else {
+        // 未登录，获取二维码
+        const qrRes = await getMiQRCode();
+        setMiQRCode(qrRes);
+        if (qrRes.already_logged_in) {
+          // 已登录但状态不同步，重新加载设备
+          const res = await getMiDevices();
+          setMiDevices(res.devices || []);
+        } else if (qrRes.status_url) {
+          // 开始轮询扫码状态
+          startMiQRPolling(qrRes.status_url);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load Mi devices:", error);
+      message.error(t("player.loadMiDevicesFailed"));
+      setMiDevices([]);
+    } finally {
+      setIsMiDevicesLoading(false);
+    }
+  };
 
-              {/* Volume Icon */}
-              <Popover
-                content={
-                  <Flex vertical justify="center">
-                    <Text style={{ fontSize: "12px" }}>{t("player.volume")}: {volume}%</Text>
-                    <Slider
-                      style={{ width: "100px" }}
-                      value={volume}
-                      max={100}
-                      onChange={setVolume}
-                    />
-                  </Flex>
-                }
-                trigger="click"
-                placement="top"
-              >
-                <Tooltip title={t("player.volume")}>
-                  <SoundOutlined className={styles.controlIcon} />
-                </Tooltip>
-              </Popover>
-            </Flex>
-          </Flex>
-        </div>
+  const handleCastToMi = async (deviceId: string, deviceName: string) => {
+    if (!currentTrack) {
+      message.warning(t("player.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const url = buildTrackPlaybackUrl(currentTrack, currentAudioQuality);
+      const title = `${currentTrack.name} - ${currentTrack.artist}`;
+      await playMiDeviceByUrl({ device_id: deviceId, url, title });
+      if (isPlaying) {
+        pause();
+      }
+      message.success(t("player.miCastSuccess", { device: deviceName }));
+      setIsMiDevicesPopoverOpen(false);
+    } catch (error) {
+      console.error("Failed to cast to Mi device:", error);
+      message.error(t("player.miCastFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
 
-        {/* Right Side - Info & Playlist/Lyrics (2/3) */}
-        <div
-          className={styles.fullPlayerRight}
-          style={{ textAlign: appMode !== TrackType.MUSIC ? "left" : "center" }}
-        >
-          {/* Top: Title */}
-          <div style={{ marginBottom: "24px" }}>
-            <Title level={3} style={{ margin: "0 0 10px 0" }}>
-              {currentTrack?.name || "No Track"}
-            </Title>
-            <Text type="secondary">
-              <Flex
-                justify={appMode !== TrackType.MUSIC ? "start" : "center"}
-                gap={16}
-              >
-                <Flex
-                  align="center"
-                  justify={appMode !== TrackType.MUSIC ? "start" : "center"}
-                  gap={8}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    setIsFullPlayerVisible(false);
-                    navigator(`/artist/${currentTrack?.artistEntity?.id}`);
-                  }}
-                >
-                  <img
-                    src={getCoverUrl({
-                      cover: currentTrack?.artistEntity?.avatar,
-                      id: currentTrack?.id,
-                      name: currentTrack?.artist,
-                    } as any)}
-                    alt="Current Cover"
-                    style={{
-                      width: "15px",
-                      height: "15px",
-                      borderRadius: "50%",
-                    }}
-                  />
-                  <Text ellipsis className={styles.artistText}>
-                    {currentTrack?.artist || "Unknown Artist"}
-                  </Text>
-                  {currentTrack?.type !== TrackType.AUDIOBOOK && (
-                    <button
-                      type="button"
-                      className={`${styles.qualityButton} ${
-                        availableAudioQualities.length <= 1
-                          ? styles.qualityButtonDisabled
-                          : ""
-                      }`}
-                      style={{ color: token.colorTextSecondary }}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void cycleAudioQuality();
-                      }}
-                      disabled={availableAudioQualities.length <= 1}
-                    >
-                      {availableAudioQualities.find(
-                        (item) => item.quality === currentAudioQuality,
-                      )?.label || "无损"}
-                    </button>
-                  )}
-                </Flex>
-                <Flex
-                  align="center"
-                  justify={appMode !== TrackType.MUSIC ? "start" : "center"}
-                  gap={8}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    setIsFullPlayerVisible(false);
-                    navigator(`/detail?id=${currentTrack?.albumEntity?.id}`);
-                  }}
-                >
-                  <img
-                    src={getCoverUrl({
-                      cover: currentTrack?.albumEntity?.cover,
-                      id: currentTrack?.id,
-                      name: currentTrack?.album,
-                    } as any)}
-                    alt="Current Cover"
-                    style={{
-                      width: "15px",
-                      height: "15px",
-                      borderRadius: "1px",
-                    }}
-                  />
-                  <Text ellipsis>{currentTrack?.album || "Unknown Album"}</Text>
-                </Flex>
-              </Flex>
-            </Text>
-          </div>
+  const startMiQRPolling = (lpUrl: string) => {
+    // 清除之前的轮询
+    if (miPollingTimerRef.current) {
+      clearInterval(miPollingTimerRef.current);
+      miPollingTimerRef.current = null;
+    }
 
-          {/* Tab Switcher - Only for non-MUSIC mode */}
-          {appMode !== TrackType.MUSIC && (
-            <div className={styles.tabHeader}>
-              <Tabs
-                activeKey={activeTab}
-                onChange={(e) => setActiveTab(e as "playlist" | "lyrics")}
-                tabBarExtraContent={
-                  activeTab === "playlist" ? (
-                    <Button
-                      type="text"
-                      icon={<AimOutlined />}
-                      onClick={handleLocateFullTrack}
-                      title={t('player.locateCurrentTrack')}
-                    />
-                  ) : undefined
-                }
-                items={[
-                  { key: "lyrics", label: t('player.lyrics') },
-                  { key: "playlist", label: t('player.playlistCount', { count: playlist.length }) },
-                ].filter((item) => item.key !== "lyrics")}
-              />
-            </div>
-          )}
+    // 每 3 秒轮询一次
+    miPollingTimerRef.current = setInterval(async () => {
+      try {
+        const statusRes = await getMiQRCodeStatus(lpUrl);
+        if (statusRes.status === "success") {
+          // 扫码成功，停止轮询，重新加载设备
+          if (miPollingTimerRef.current) {
+            clearInterval(miPollingTimerRef.current);
+            miPollingTimerRef.current = null;
+          }
+          message.success(t("player.miLoginSuccess"));
+          setMiAuthStatus({ logged_in: true });
+          const res = await getMiDevices();
+          setMiDevices(res.devices || []);
+        } else if (statusRes.status === "expired" || statusRes.status === "error") {
+          // 二维码过期或错误，停止轮询
+          if (miPollingTimerRef.current) {
+            clearInterval(miPollingTimerRef.current);
+            miPollingTimerRef.current = null;
+          }
+          setMiQRCode(null);
+        }
+      } catch (error) {
+        console.error("QR polling error:", error);
+      }
+    }, 3000);
+  };
 
-          {/* Content */}
+  // 清理轮询定时器
+  useEffect(() => {
+    return () => {
+      if (miPollingTimerRef.current) {
+        clearInterval(miPollingTimerRef.current);
+      }
+    };
+  }, []);
+
+  const renderPlayOrderButton = () => {
+    if (isRadioMode) return null;
+    return (
+      <Popover
+        content={
           <div
             style={{
-              flex: 1,
-              overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              gap: "5px",
+              padding: "0px",
             }}
           >
-            {appMode === TrackType.MUSIC ? (
-              <Lyrics
-                lyrics={currentTrack?.lyrics || null}
-                currentTime={currentTime}
-              />
-            ) : activeTab === "playlist" ? (
-              <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
-                <QueueList
-                  ref={fullQueueListRef}
-                  tracks={playlist}
-                  currentTrack={currentTrack}
-                  isPlaying={isPlaying}
-                  hasMore={playlistSource?.hasMore}
-                  isLoadingMore={isLoadingMore}
-                  onLoadMore={loadMoreSourceTracks}
-                  onPuse={pause}
-                  onPlay={handlePlay}
-                  onAddToPlaylist={openAddToPlaylistModal}
-                  onToggleLike={(_, track, type) => toggleLike(track.id, type)}
-                  onDelete={handleDeleteSubTrack}
+            <div
+              onClick={() => setMode("sequence")}
+              style={{
+                cursor: "pointer",
+                padding: "8px 12px",
+                borderRadius: "4px",
+                backgroundColor:
+                  playMode === "sequence"
+                    ? token.colorFillTertiary
+                    : "transparent",
+              }}
+            >
+              <Flex align="center">
+                <Icon
+                  component={MusiclistOutlined}
+                  style={{ fontSize: "24px", fontWeight: "bold" }}
                 />
-              </div>
-            ) : (
-              <Lyrics
-                lyrics={currentTrack?.lyrics || null}
-                currentTime={currentTime}
-              />
-            )}
+                {t('player.sequencePlay')}
+              </Flex>
+            </div>
+            <div
+              onClick={() => setMode("shuffle")}
+              style={{
+                cursor: "pointer",
+                padding: "8px 12px",
+                borderRadius: "4px",
+                backgroundColor:
+                  playMode === "shuffle"
+                    ? token.colorFillTertiary
+                    : "transparent",
+              }}
+            >
+              <Flex align="center">
+                <Icon
+                  component={RandomOutlined}
+                  style={{ fontSize: "24px", fontWeight: "bold" }}
+                />
+                {t('player.shufflePlay')}
+              </Flex>
+            </div>
+            <div
+              onClick={() => setMode("loop")}
+              style={{
+                cursor: "pointer",
+                padding: "8px 12px",
+                borderRadius: "4px",
+                backgroundColor:
+                  playMode === "loop" ? token.colorFillTertiary : "transparent",
+              }}
+            >
+              <Flex align="center">
+                <Icon
+                  component={LoopOutlined}
+                  style={{ fontSize: "24px", fontWeight: "bold" }}
+                />
+                {t('player.loopList')}
+              </Flex>
+            </div>
+            <div
+              onClick={() => setMode("single")}
+              style={{
+                cursor: "pointer",
+                padding: "8px 12px",
+                borderRadius: "4px",
+                backgroundColor:
+                  playMode === "single"
+                    ? token.colorFillTertiary
+                    : "transparent",
+              }}
+            >
+              <Flex align="center">
+                <Icon
+                  component={SinglecycleOutlined}
+                  style={{ fontSize: "24px", fontWeight: "bold" }}
+                />
+                {t('player.singleLoop')}
+              </Flex>
+            </div>
           </div>
+        }
+        getPopupContainer={(triggerNode) => triggerNode.parentElement!}
+        trigger="click"
+        placement="top"
+      >
+        <Tooltip title={t("player.playOrder")}>
+          {playMode === "sequence" ? (
+            <Icon
+              component={MusiclistOutlined}
+              style={{ fontSize: "24px", fontWeight: "bold" }}
+            />
+          ) : playMode === "shuffle" ? (
+            <Icon
+              component={RandomOutlined}
+              style={{ fontSize: "24px", fontWeight: "bold" }}
+            />
+          ) : playMode === "loop" ? (
+            <Icon
+              component={LoopOutlined}
+              style={{ fontSize: "24px", fontWeight: "bold" }}
+            />
+          ) : playMode === "single" ? (
+            <Icon
+              component={SinglecycleOutlined}
+              style={{ fontSize: "24px", fontWeight: "bold" }}
+            />
+          ) : null}
+        </Tooltip>
+      </Popover>
+    );
+  };
+
+  const renderPlaylistButton = (className: string) => {
+    if (isRadioMode) return null;
+    return (
+      <Tooltip title={t("player.playlist")}>
+        <OrderedListOutlined
+          onClick={() => setIsPlaylistOpen(true)}
+          className={className}
+        />
+      </Tooltip>
+    );
+  };
+
+  if (!currentTrack?.id) {
+    return <></>;
+  }
+
+  return (
+    <div
+      className={styles.player}
+      style={{ color: token.colorText, borderRightColor: token.colorBorder }}
+    >
+      <audio
+        ref={audioRef}
+        src={resolvedUri}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={handleEnded}
+        onWaiting={() => setIsLoading(true)}
+        onPlaying={() => setIsLoading(false)}
+        onCanPlay={() => setIsLoading(false)}
+      />
+
+      {!isFullPlayerVisible && (
+        <div className={styles.miniPlayer}>
+          {renderMiniPlayer(true)}
         </div>
-      </Drawer>
+      )}
+      {isFullPlayerVisible && (
+        <Drawer
+          placement="bottom"
+          height="100%"
+          open={isFullPlayerVisible}
+          onClose={() => setIsFullPlayerVisible(false)}
+          classNames={{ body: styles.fullPlayerBody }}
+          styles={{
+            header: { display: "none" },
+          }}
+          closeIcon={null}
+        >
+          <div className={styles.fullPlayerContent}>
+            {/* Close Button */}
+            <div className={styles.fullPlayerClose}>
+              <DownOutlined
+                onClick={() => setIsFullPlayerVisible(false)}
+                className={styles.fullPlayerCloseIcon}
+              />
+            </div>
+
+            {/* Left Side - Cover (1/3) */}
+            <div className={styles.fullPlayerLeft}>
+              {/* Background Blur Effect */}
+              {/* <div
+                className={styles.fullPlayerBackground}
+                style={{ backgroundImage: drawerBgImage }}
+              /> */}
+
+              <Flex vertical align="center" gap={20}>
+                <img
+                  src={getCoverUrl(currentTrack)}
+                  alt="Current Cover"
+                  className={styles.fullPlayerCover}
+                  onError={(e) =>
+                    console.error(
+                      `[Player] Full Cover Load Error: ${currentTrack?.cover}`,
+                      e,
+                    )
+                  }
+                />
+              </Flex>
+            </div>
+
+            {/* Right Side - Info & Playlist/Lyrics (2/3) */}
+            <div
+              className={styles.fullPlayerRight}
+              style={{ textAlign: appMode !== TrackType.MUSIC ? "left" : "center" }}
+            >
+              {/* Top: Title */}
+              <div style={{ marginBottom: "24px" }}>
+                <Title level={3} style={{ margin: "0 0 10px 0" }}>
+                  {currentTrack?.name || "No Track"}
+                </Title>
+                <Text type="secondary">
+                  <Flex
+                    justify={appMode !== TrackType.MUSIC ? "start" : "center"}
+                    gap={16}
+                  >
+                    <Flex
+                      align="center"
+                      justify={appMode !== TrackType.MUSIC ? "start" : "center"}
+                      gap={8}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => {
+                        setIsFullPlayerVisible(false);
+                        navigator(`/artist/${currentTrack?.artistEntity?.id}`);
+                      }}
+                    >
+                      <img
+                        src={getCoverUrl({
+                          cover: currentTrack?.artistEntity?.avatar,
+                          id: currentTrack?.id,
+                          name: currentTrack?.artist,
+                        } as any)}
+                        alt="Current Cover"
+                        style={{
+                          width: "15px",
+                          height: "15px",
+                          borderRadius: "50%",
+                        }}
+                      />
+                      <Text ellipsis className={styles.artistText}>
+                        {currentTrack?.artist || "Unknown Artist"}
+                      </Text>
+                      {currentTrack?.type !== TrackType.AUDIOBOOK && (
+                        <button
+                          type="button"
+                          className={`${styles.qualityButton} ${
+                            availableAudioQualities.length <= 1
+                              ? styles.qualityButtonDisabled
+                              : ""
+                          }`}
+                          style={{ color: token.colorTextSecondary }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void cycleAudioQuality();
+                          }}
+                          disabled={availableAudioQualities.length <= 1}
+                        >
+                          {availableAudioQualities.find(
+                            (item) => item.quality === currentAudioQuality,
+                          )?.label || "无损"}
+                        </button>
+                      )}
+                    </Flex>
+                    <Flex
+                      align="center"
+                      justify={appMode !== TrackType.MUSIC ? "start" : "center"}
+                      gap={8}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => {
+                        setIsFullPlayerVisible(false);
+                        navigator(`/detail?id=${currentTrack?.albumEntity?.id}`);
+                      }}
+                    >
+                      <img
+                        src={getCoverUrl({
+                          cover: currentTrack?.albumEntity?.cover,
+                          id: currentTrack?.id,
+                          name: currentTrack?.album,
+                        } as any)}
+                        alt="Current Cover"
+                        style={{
+                          width: "15px",
+                          height: "15px",
+                          borderRadius: "1px",
+                        }}
+                      />
+                      <Text ellipsis>{currentTrack?.album || "Unknown Album"}</Text>
+                    </Flex>
+                  </Flex>
+                </Text>
+              </div>
+
+              {/* Tab Switcher - Only for non-MUSIC mode */}
+              {appMode !== TrackType.MUSIC && (
+                <div className={styles.tabHeader}>
+                  <Tabs
+                    activeKey={activeTab}
+                    onChange={(e) => setActiveTab(e as "playlist" | "lyrics")}
+                    tabBarExtraContent={
+                      activeTab === "playlist" ? (
+                        <Button
+                          type="text"
+                          icon={<AimOutlined />}
+                          onClick={handleLocateFullTrack}
+                          title={t('player.locateCurrentTrack')}
+                        />
+                      ) : undefined
+                    }
+                    items={[
+                      { key: "lyrics", label: t('player.lyrics') },
+                      { key: "playlist", label: t('player.playlistCount', { count: playlist.length }) },
+                    ].filter((item) => item.key !== "lyrics")}
+                  />
+                </div>
+              )}
+
+              {/* Content */}
+              <div
+                style={{
+                  flex: 1,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {appMode === TrackType.MUSIC ? (
+                  <Lyrics
+                    lyrics={currentTrack?.lyrics || null}
+                    currentTime={currentTime}
+                  />
+                ) : activeTab === "playlist" ? (
+                  <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
+                    <QueueList
+                      ref={fullQueueListRef}
+                      tracks={playlist}
+                      currentTrack={currentTrack}
+                      isPlaying={isPlaying}
+                      hasMore={playlistSource?.hasMore}
+                      isLoadingMore={isLoadingMore}
+                      onLoadMore={loadMoreSourceTracks}
+                      onPuse={pause}
+                      onPlay={handlePlay}
+                      onAddToPlaylist={openAddToPlaylistModal}
+                      onToggleLike={(_, track, type) => toggleLike(track.id, type)}
+                      onDelete={handleDeleteSubTrack}
+                    />
+                  </div>
+                ) : (
+                  <Lyrics
+                    lyrics={currentTrack?.lyrics || null}
+                    currentTime={currentTime}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+          <div className={styles.miniPlayer}>
+            {renderMiniPlayer(false)}
+          </div>
+        </Drawer>
+      )}
 
       {modalContextHolder}
       {notificationContextHolder}

@@ -81,6 +81,38 @@ export class LlmConfigService implements OnModuleInit {
   }
 
   /**
+   * 用 multi-llm-ts 探测 provider/apiKey/baseUrl 是否可用：
+   * 调 loadModels 列一次模型,这是一次真实 API 调用但不消耗 token。
+   * - input 缺省字段时从 DB/env 当前配置回填
+   * - 不会修改 DB,纯只读探测
+   */
+  async testConnection(input: Partial<LlmConfig>): Promise<{ ok: true; provider: string; modelCount: number } | { ok: false; error: string }> {
+    const current = await this.get();
+    const provider = (input.provider?.trim() || current.provider || DEFAULTS.provider).toLowerCase();
+    const apiKey = input.apiKey?.trim() || current.apiKey;
+    const baseUrl = input.baseUrl?.trim() || current.baseUrl;
+
+    if (!apiKey) {
+      return { ok: false, error: 'API Key 不能为空' };
+    }
+    if (!provider) {
+      return { ok: false, error: 'Provider 不能为空' };
+    }
+
+    const config: any = { apiKey };
+    if (baseUrl) config.baseURL = baseUrl;
+
+    try {
+      const { loadModels } = await import('multi-llm-ts');
+      const models = await loadModels(provider, config);
+      const chatCount = models?.chat?.length ?? 0;
+      return { ok: true, provider, modelCount: chatCount };
+    } catch (e: any) {
+      return { ok: false, error: e?.message || String(e) };
+    }
+  }
+
+  /**
    * Public: for LlmService 等业务侧读取当前生效配置。
    */
   async getEffective(): Promise<{

@@ -8,6 +8,7 @@ import {
   getTtsProviderConfigs,
   getTtsSupportedProviders,
   saveTtsProviderConfig,
+  testTtsProviderConfig,
   type TtsProviderOption,
 } from '../../services/tts-config';
 import './index.scss';
@@ -145,6 +146,29 @@ export default function TtsConfig() {
     }
   };
 
+  const handleTest = async () => {
+    if (!selected || !schema) return;
+    Taro.showLoading({ title: t('common.loading') });
+    try {
+      const payload: Record<string, string> = {};
+      for (const field of schema.fields) {
+        const v = (draft[field] ?? '').trim();
+        if (v) payload[FIELD_TO_CONFIG_KEY[field]] = v;
+      }
+      await testTtsProviderConfig(selected, payload as any);
+      Taro.hideLoading();
+      Taro.showToast({ title: t('settings.testConnectionSuccess'), icon: 'success' });
+    } catch (error: any) {
+      Taro.hideLoading();
+      const detail =
+        error?.data?.detail ||
+        error?.data?.message ||
+        error?.message ||
+        t('settings.testConnectionFailed');
+      Taro.showToast({ title: String(detail), icon: 'none' });
+    }
+  };
+
   const handleDelete = () => {
     if (!selected) return;
     Taro.showModal({
@@ -242,6 +266,15 @@ export default function TtsConfig() {
                 onClick={saving ? undefined : handleSave}
               >
                 <Text className='save-btn-text'>{t('common.save')}</Text>
+              </View>
+              <View
+                className='secondary-btn'
+                style={{ borderColor: colors.border }}
+                onClick={handleTest}
+              >
+                <Text className='secondary-btn-text' style={{ color: colors.text }}>
+                  {t('settings.testConnection')}
+                </Text>
               </View>
               {isConfigured && (
                 <View

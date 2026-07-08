@@ -13,6 +13,7 @@ import {
   getTtsSupportedProviders,
   saveTtsProviderConfig,
   deleteTtsProviderConfig,
+  testTtsProviderConfig,
   type TtsProviderConfig,
   type TtsProviderOption,
 } from "@soundx/services";
@@ -76,6 +77,7 @@ const TtsConfigSettings: React.FC = () => {
   const [configs, setConfigs] = useState<Record<string, TtsProviderConfig>>({});
   const [draft, setDraft] = useState<ProviderDraft>(emptyDraft());
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const schema = useMemo<ProviderSchema | null>(() => {
@@ -145,6 +147,30 @@ const TtsConfigSettings: React.FC = () => {
     }
   };
 
+  const handleTest = async () => {
+    if (!selectedProvider || !schema) return;
+    setTesting(true);
+    try {
+      const payload: TtsProviderConfig = {};
+      for (const f of schema.fields) {
+        const value = draft[f].trim();
+        const cfgKey = CONFIG_FIELD_KEYS[f];
+        if (value) payload[cfgKey] = value;
+      }
+      await testTtsProviderConfig(selectedProvider, payload);
+      message.success(t("settings.testConnectionSuccess"));
+    } catch (error: any) {
+      const detail =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        error?.message ||
+        t("settings.testConnectionFailed");
+      message.error(typeof detail === "string" ? detail : t("settings.testConnectionFailed"));
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!selectedProvider) return;
     try {
@@ -209,6 +235,9 @@ const TtsConfigSettings: React.FC = () => {
             <Space>
               <Button type="primary" loading={saving} onClick={handleSave}>
                 {t("common.save")}
+              </Button>
+              <Button loading={testing} onClick={handleTest}>
+                {t("settings.testConnection")}
               </Button>
               {configuredIds.includes(selectedProvider ?? "") && (
                 <Popconfirm

@@ -1173,6 +1173,16 @@ export function PlayerDetailView({
                 </TouchableOpacity>
               )}
             </View>
+            <View style={styles.landscapeMoreBtn}>
+              {!embedded && (
+                <TouchableOpacity
+                  onPress={handleOpenMore}
+                  style={styles.landscapeMoreBtn}
+                >
+                  <Ionicons name="ellipsis-vertical" size={26} color={colors.text} />
+                </TouchableOpacity>
+              )}
+            </View>
             <TouchableOpacity
               onPress={() => {
                 if (needsAutoHide) {
@@ -1646,6 +1656,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 20,
     left: 20,
+    zIndex: 10,
+  },
+  landscapeMoreBtn: {
+    position: "absolute",
+    top: 20,
+    right: 20,
     zIndex: 10,
   },
   playlistContainer: {

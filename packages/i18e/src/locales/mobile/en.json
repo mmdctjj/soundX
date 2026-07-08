@@ -212,7 +212,10 @@
     "llmBaseUrl": "Base URL (optional, leave empty for default)",
     "llmConfigSaveSuccess": "LLM configuration saved",
     "llmConfigSaveFailed": "Failed to save",
-    "llmConfigKeyHint": "Keys are stored encrypted server-side."
+    "llmConfigKeyHint": "Keys are stored encrypted server-side.",
+    "testConnection": "Test Connection",
+    "testConnectionSuccess": "Connection successful",
+    "testConnectionFailed": "Connection failed"
   },
   "player": {
     "notPlaying": "Not playing",

@@ -4,6 +4,8 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  HttpException,
+  HttpStatus,
   Post,
   Req,
 } from '@nestjs/common';
@@ -51,6 +53,23 @@ export class LlmConfigController {
       const message = error instanceof Error ? error.message : String(error);
       return { code: 500, message };
     }
+  }
+
+  @Post('test')
+  @LogMethod()
+  async test(
+    @Req() req: any,
+    @Body() body: Partial<LlmConfig> = {},
+  ): Promise<ISuccessResponse<{ provider: string; modelCount: number }>> {
+    await this.checkAdmin(req.user.userId);
+    const result = await this.llmConfig.testConnection(body || {});
+    if (result.ok) {
+      return { code: 200, message: 'success', data: { provider: result.provider, modelCount: result.modelCount } };
+    }
+    throw new HttpException(
+      { code: 400, message: result.error },
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   /**

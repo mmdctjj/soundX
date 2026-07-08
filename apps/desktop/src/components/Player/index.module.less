@@ -1,4 +1,8 @@
 .player {
+  color: inherit;
+}
+
+.miniPlayer {
   height: 70px;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
@@ -201,7 +205,7 @@
 }
 
 .fullPlayerLeft {
-  flex: 1.5;
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -228,7 +232,6 @@
   border-radius: 20px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   z-index: 1;
-  margin-bottom: 20px;
 }
 
 .fullPlayerRight {
@@ -242,11 +245,19 @@
 .fullPlayerBody {
   padding: 0 !important; // Antd overrides might be needed
   display: flex;
+  flex-direction: column;
   overflow: hidden;
   background-size: cover;
   background-position: center;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+}
+
+.fullPlayerContent {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
 }
 
 .playlistItem {

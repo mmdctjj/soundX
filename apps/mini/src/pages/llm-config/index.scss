@@ -81,3 +81,28 @@
   font-size: 30rpx;
   font-weight: 600;
 }
+
+.action-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 60rpx;
+}
+
+.action-row .save-btn {
+  margin-top: 0;
+  flex: 1;
+}
+
+.secondary-btn {
+  margin-left: 20rpx;
+  padding: 24rpx 32rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #ddd;
+  text-align: center;
+}
+
+.secondary-btn-text {
+  font-size: 30rpx;
+  font-weight: 600;
+}

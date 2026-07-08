@@ -87,6 +87,7 @@ const WebDavSourcesSettings: React.FC = () => {
   const [testingId, setTestingId] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [legacyEnvImported, setLegacyEnvImported] = useState(false);
+  const [activeKey, setActiveKey] = useState<string[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -131,10 +132,11 @@ const WebDavSourcesSettings: React.FC = () => {
   };
 
   const addSource = () => {
+    const id = generateId();
     setSources((prev) => [
       ...prev,
       {
-        id: generateId(),
+        id,
         name: "",
         url: "",
         username: "",
@@ -143,6 +145,7 @@ const WebDavSourcesSettings: React.FC = () => {
         paths: emptyPaths() as any,
       },
     ]);
+    setActiveKey((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
   const updateSource = (id: string, patch: Partial<WebDavSource>) => {
@@ -204,6 +207,7 @@ const WebDavSourcesSettings: React.FC = () => {
 
   const removeSource = (id: string) => {
     setSources((prev) => prev.filter((s) => s.id !== id));
+    setActiveKey((prev) => prev.filter((k) => k !== id));
   };
 
   const handleTest = async (source: WebDavSource) => {
@@ -428,7 +432,8 @@ const WebDavSourcesSettings: React.FC = () => {
       ) : (
         <Collapse
           accordion={false}
-          activeKey={sources.map((s) => s.id)}
+          activeKey={activeKey}
+          onChange={(keys) => setActiveKey(Array.isArray(keys) ? keys : [keys])}
           items={sources.map((source) => ({
             key: source.id,
             label: (

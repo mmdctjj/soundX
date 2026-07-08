@@ -3,6 +3,7 @@ import {
   LLM_PROVIDER_OPTIONS,
   getLlmConfig,
   saveLlmConfig,
+  testLlmConfig,
 } from "@soundx/services";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +17,7 @@ const LlmConfigSettings: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>("");
   const [baseUrl, setBaseUrl] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -56,6 +58,26 @@ const LlmConfigSettings: React.FC = () => {
       message.error(t("settings.llmConfigSaveFailed"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    setTesting(true);
+    try {
+      const res = await testLlmConfig({ provider, model, apiKey, baseUrl });
+      if (res.code === 200) {
+        message.success(t("settings.testConnectionSuccess"));
+      } else {
+        message.error(res.message || t("settings.testConnectionFailed"));
+      }
+    } catch (error: any) {
+      const detail =
+        error?.response?.data?.message ||
+        error?.message ||
+        t("settings.testConnectionFailed");
+      message.error(typeof detail === "string" ? detail : t("settings.testConnectionFailed"));
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -103,6 +125,9 @@ const LlmConfigSettings: React.FC = () => {
         <Space>
           <Button type="primary" loading={saving} onClick={handleSave}>
             {t("common.save")}
+          </Button>
+          <Button loading={testing} onClick={handleTest}>
+            {t("settings.testConnection")}
           </Button>
         </Space>
       </Form>

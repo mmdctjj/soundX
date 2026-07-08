@@ -41,6 +41,13 @@ export const saveTtsProviderConfig = (
   return request.post(`${TTS_BASE_URL}/configs/${provider}`, { config });
 };
 
+export const testTtsProviderConfig = (
+  provider: string,
+  config?: TtsProviderConfig,
+): Promise<{ provider: string; ok: true }> => {
+  return request.post(`${TTS_BASE_URL}/configs/${provider}/test`, config ? { config } : {});
+};
+
 export const deleteTtsProviderConfig = (provider: string) => {
   return request.delete(`${TTS_BASE_URL}/configs/${provider}`);
 };
