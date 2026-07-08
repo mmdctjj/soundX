@@ -32,3 +32,9 @@ export const getLlmConfig = async () => {
 export const saveLlmConfig = async (payload: Partial<LlmConfig>) => {
   return request.post<ISuccessResponse<LlmConfig>>("/admin/llm-config", payload);
 };
+
+export const testLlmConfig = async (payload: Partial<LlmConfig>) => {
+  return request.post<
+    ISuccessResponse<{ provider: string; modelCount: number }>
+  >("/admin/llm-config/test", payload);
+};

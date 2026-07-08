@@ -220,7 +220,10 @@
     "llmBaseUrl": "Base URL（可选，留空使用默认）",
     "llmConfigSaveSuccess": "LLM 配置已保存",
     "llmConfigSaveFailed": "保存失败",
-    "llmConfigKeyHint": "Key 已加密保存于服务端"
+    "llmConfigKeyHint": "Key 已加密保存于服务端",
+    "testConnection": "测试连接",
+    "testConnectionSuccess": "连接成功",
+    "testConnectionFailed": "连接失败"
   },
   "player": {
     "notPlaying": "未在播放",

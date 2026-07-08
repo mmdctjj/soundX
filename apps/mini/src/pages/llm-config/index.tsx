@@ -7,6 +7,7 @@ import {
   LLM_PROVIDER_OPTIONS,
   getLlmConfig,
   saveLlmConfig,
+  testLlmConfig,
 } from '../../services/llm-config';
 import './index.scss';
 
@@ -74,6 +75,29 @@ export default function LlmConfig() {
       Taro.hideLoading();
       Taro.showToast({
         title: error?.message || t('settings.llmConfigSaveFailed'),
+        icon: 'none',
+      });
+    }
+  };
+
+  const handleTest = async () => {
+    if (!apiKey) {
+      Taro.showToast({ title: t('settings.testConnectionFailed'), icon: 'none' });
+      return;
+    }
+    Taro.showLoading({ title: t('common.loading') });
+    try {
+      const res = await testLlmConfig({ provider, model, apiKey, baseUrl });
+      Taro.hideLoading();
+      if (res.code === 200) {
+        Taro.showToast({ title: t('settings.testConnectionSuccess'), icon: 'success' });
+      } else {
+        Taro.showToast({ title: res.message || t('settings.testConnectionFailed'), icon: 'none' });
+      }
+    } catch (error: any) {
+      Taro.hideLoading();
+      Taro.showToast({
+        title: error?.message || t('settings.testConnectionFailed'),
         icon: 'none',
       });
     }
@@ -163,12 +187,23 @@ export default function LlmConfig() {
             />
           </View>
 
-          <View
-            className='save-btn'
-            style={{ backgroundColor: colors.primary }}
-            onClick={handleSave}
-          >
-            <Text className='save-btn-text'>{t('common.save')}</Text>
+          <View className='action-row'>
+            <View
+              className='save-btn'
+              style={{ backgroundColor: colors.primary }}
+              onClick={handleSave}
+            >
+              <Text className='save-btn-text'>{t('common.save')}</Text>
+            </View>
+            <View
+              className='secondary-btn'
+              style={{ borderColor: colors.border }}
+              onClick={handleTest}
+            >
+              <Text className='secondary-btn-text' style={{ color: colors.text }}>
+                {t('settings.testConnection')}
+              </Text>
+            </View>
           </View>
         </View>
       )}

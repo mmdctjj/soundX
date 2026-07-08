@@ -3,6 +3,7 @@ import {
   LLM_PROVIDER_OPTIONS,
   getLlmConfig,
   saveLlmConfig,
+  testLlmConfig,
 } from "@soundx/services";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -31,6 +32,7 @@ export default function LlmConfigScreen() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [provider, setProvider] = useState<string>(LLM_PROVIDER_OPTIONS[0].id);
   const [model, setModel] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -75,6 +77,29 @@ export default function LlmConfigScreen() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!provider || !apiKey) {
+      Alert.alert(t("common.error"), t("settings.llmProvider") + " / API Key");
+      return;
+    }
+    setTesting(true);
+    try {
+      const res = await testLlmConfig({ provider, model, apiKey, baseUrl });
+      if (res.code === 200) {
+        Alert.alert(t("settings.testConnectionSuccess"));
+      } else {
+        Alert.alert(t("settings.testConnectionFailed"), res.message);
+      }
+    } catch (error) {
+      Alert.alert(
+        t("settings.testConnectionFailed"),
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -152,20 +177,38 @@ export default function LlmConfigScreen() {
                 placeholder="https://api.deepseek.com/v1"
               />
 
-              <TouchableOpacity
-                style={[
-                  styles.saveButton,
-                  { backgroundColor: colors.primary, marginTop: 24 },
-                ]}
-                disabled={saving}
-                onPress={handleSave}
-              >
-                {saving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.saveButtonText}>{t("common.save")}</Text>
-                )}
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", marginTop: 24 }}>
+                <TouchableOpacity
+                  style={[
+                    styles.saveButton,
+                    { backgroundColor: colors.primary, flex: 1 },
+                  ]}
+                  disabled={saving || testing}
+                  onPress={handleSave}
+                >
+                  {saving ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>{t("common.save")}</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.deleteButton,
+                    { borderColor: colors.border, marginLeft: 12 },
+                  ]}
+                  disabled={saving || testing}
+                  onPress={handleTest}
+                >
+                  {testing ? (
+                    <ActivityIndicator color={colors.text} />
+                  ) : (
+                    <Text style={{ color: colors.text, fontWeight: "600" }}>
+                      {t("settings.testConnection")}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </ScrollView>
@@ -262,4 +305,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   saveButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  deleteButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

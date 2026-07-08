@@ -217,7 +217,10 @@
     "llmBaseUrl": "Base URL (optional, leave empty for default)",
     "llmConfigSaveSuccess": "LLM configuration saved",
     "llmConfigSaveFailed": "Failed to save",
-    "llmConfigKeyHint": "Keys are stored encrypted server-side. The input does not echo back the full secret."
+    "llmConfigKeyHint": "Keys are stored encrypted server-side. The input does not echo back the full secret.",
+    "testConnection": "Test Connection",
+    "testConnectionSuccess": "Connection successful",
+    "testConnectionFailed": "Connection failed"
   },
   "header": {
     "pleaseLoginMemberFirst": "Please login to member account first",

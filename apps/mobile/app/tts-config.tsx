@@ -4,6 +4,7 @@ import {
   getTtsProviderConfigs,
   getTtsSupportedProviders,
   saveTtsProviderConfig,
+  testTtsProviderConfig,
   type TtsProviderConfig,
   type TtsProviderOption,
 } from "@soundx/services";
@@ -72,6 +73,7 @@ const TtsConfigScreen: React.FC = () => {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   const schema = useMemo<ProviderSchema | null>(() => {
     if (!selected) return null;
@@ -136,6 +138,28 @@ const TtsConfigScreen: React.FC = () => {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!selected || !schema) return;
+    setTesting(true);
+    try {
+      const payload: TtsProviderConfig = {};
+      for (const field of schema.fields) {
+        const v = (draft[field] ?? "").trim();
+        if (v) payload[FIELD_TO_CONFIG_KEY[field]] = v;
+      }
+      await testTtsProviderConfig(selected, payload);
+      Alert.alert(t("settings.testConnectionSuccess"));
+    } catch (error: any) {
+      const detail =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        (error instanceof Error ? error.message : String(error));
+      Alert.alert(t("settings.testConnectionFailed"), String(detail));
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -240,13 +264,29 @@ const TtsConfigScreen: React.FC = () => {
                     styles.saveButton,
                     { backgroundColor: colors.primary, flex: 1 },
                   ]}
-                  disabled={saving}
+                  disabled={saving || testing}
                   onPress={handleSave}
                 >
                   {saving ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <Text style={styles.saveButtonText}>{t("common.save")}</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.deleteButton,
+                    { borderColor: colors.border, marginLeft: 12 },
+                  ]}
+                  disabled={saving || testing}
+                  onPress={handleTest}
+                >
+                  {testing ? (
+                    <ActivityIndicator color={colors.text} />
+                  ) : (
+                    <Text style={{ color: colors.text, fontWeight: "600" }}>
+                      {t("settings.testConnection")}
+                    </Text>
                   )}
                 </TouchableOpacity>
                 {isConfigured && (
