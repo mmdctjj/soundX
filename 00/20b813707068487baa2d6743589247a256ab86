@@ -1,0 +1,31 @@
+packages/db/prisma/schema.prisma
+  s_5dd601928030c1::t_5a914612fe1f4c 25-30,58-61,89,93-96,117-120,389-406
+services/api/.gitignore
+  s_5dd601928030c1::t_af7093d2f29c20 58-60
+services/api/plugins/ximalaya-cover-plugin.js
+  s_5dd601928030c1::t_02640b451a4517 1-71
+services/api/src/app.module.ts
+  s_5dd601928030c1::t_d19434a675921e 59,150
+services/api/src/services/import.ts
+  s_5dd601928030c1::t_dd18e6236c0a8a 2,14,75,371-373,952-957,986-987,989,994-995,997-1001,1007-1008,1774-1776,1797-1799,1861-1873,1910-1912,1937-1939,1978-1980,2024,2026-2027,2062-2063
+services/api/src/services/metadata-plugin.service.ts
+  s_5dd601928030c1::t_14a48000cfc6d1 1-430
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "0020b813707068487baa2d6743589247a256ab86",
+  "prompts": {},
+  "sessions": {
+    "s_5dd601928030c1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "610bb9cc-a772-4b02-a9f4-5cb4c17de245",
+        "model": "unknown"
+      },
+      "human_author": "mmdctjj <984808285@mail.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
