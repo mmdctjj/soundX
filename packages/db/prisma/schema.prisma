@@ -22,6 +22,12 @@ enum FileStatus {
   TRASHED
 }
 
+enum MetadataSource {
+  EMBEDDED
+  PLUGIN
+  USER_EDITED
+}
+
 model Track {
   id        Int      @id @default(autoincrement())
   name      String
@@ -48,6 +54,10 @@ model Track {
 
   // Transcoding
   transcodedPath String?
+
+  // Metadata source tracking
+  metadataSource MetadataSource @default(EMBEDDED)
+  metadataProvider String?
 
   // Relations to entity tables (Optional for compatibility with existing string fields)
   artistId  Int?
@@ -76,9 +86,13 @@ model Album {
   cover  String?
   year   String?
   type   TrackType @default(MUSIC)
-  
+
   status    FileStatus @default(ACTIVE)
   trashedAt DateTime?
+
+  // Metadata source tracking
+  metadataSource MetadataSource @default(EMBEDDED)
+  metadataProvider String?
 
   tracks Track[] 
   mvs    Mv[]
@@ -99,6 +113,10 @@ model Artist {
 
   status    FileStatus @default(ACTIVE)
   trashedAt DateTime?
+
+  // Metadata source tracking
+  metadataSource MetadataSource @default(EMBEDDED)
+  metadataProvider String?
 
   tracks Track[]
   mvs    Mv[]
@@ -367,4 +385,22 @@ model TtsChapterTask {
   outputPath String? @map("output_path")
 
   @@map("tts_chapter_task")
+}
+
+model PluginLog {
+  id          Int      @id @default(autoincrement())
+  pluginId    String
+  pluginName  String?
+  targetPath  String
+  targetType  String
+  input       String
+  output      String?
+  status      String
+  durationMs  Int?
+  message     String?
+  createdAt   DateTime @default(now())
+
+  @@index([targetPath])
+  @@index([pluginId])
+  @@index([createdAt])
 }

@@ -56,6 +56,7 @@ import { DatabaseSchemaService } from './services/database-schema.service';
 import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
 import { WebDavConfigService } from './services/webdav-config.service';
+import { MetadataPluginService } from './services/metadata-plugin.service';
 
 @Module({
   imports: [
@@ -146,6 +147,7 @@ import { WebDavConfigService } from './services/webdav-config.service';
     MvService,
     SyncGateway,
     WebDavConfigService,
+    MetadataPluginService,
   ],
 })
 export class AppModule { }
