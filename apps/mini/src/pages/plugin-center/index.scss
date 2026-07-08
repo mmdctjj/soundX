@@ -85,6 +85,13 @@
 }
 
 .field-input,
+.field-hint {
+  font-size: 24rpx;
+  line-height: 32rpx;
+  margin-top: 8rpx;
+  opacity: 0.7;
+}
+
 .field-pick {
   border: 1rpx solid #ddd;
   border-radius: 12rpx;

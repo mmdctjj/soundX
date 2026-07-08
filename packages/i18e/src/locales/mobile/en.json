@@ -218,7 +218,7 @@
     "testConnectionFailed": "Connection failed",
     "pluginCenter": "Plugin Center",
     "pluginCenterDescription": "Manage metadata enrichment plugins. Outputs are merged in priority order during import. (Data plugins only)",
-    "pluginCenterHint": "HTTP plugins receive a POST JSON request during import; the response shape follows PluginOutput in metadata-plugin.service.ts.",
+    "pluginCenterHint": "HTTP plugins receive a POST JSON request during import.",
     "pluginId": "Plugin ID",
     "pluginName": "Plugin name",
     "pluginType": "Plugin type",
@@ -228,7 +228,6 @@
     "pluginTimeout": "Timeout",
     "pluginRetry": "Retries",
     "pluginFilterTypes": "Apply to types",
-    "pluginFilterPathPattern": "Path regex (optional)",
     "pluginUnnamed": "Unnamed plugin",
     "pluginAdd": "Add plugin",
     "pluginSaveSuccess": "Plugins saved",
@@ -243,7 +242,14 @@
     "pluginNameRequired": "Plugin name is required",
     "pluginTypeInvalid": "Invalid plugin type",
     "pluginEndpointRequired": "HTTP plugins require an endpoint",
-    "pluginCommandRequired": "Executable plugins require a command"
+    "pluginCommandRequired": "Executable plugins require a command",
+    "pluginTypeHttp": "HTTP endpoint",
+    "pluginFilterTypesPlaceholder": "Empty = all types",
+    "pluginRemove": "Delete plugin",
+    "pluginSave": "Save",
+    "pluginTypeFixedHint": "Only HTTP plugins are supported for now",
+    "pluginIdFixedHint": "Plugin ID is used for internal identification and cannot be modified",
+    "pluginIndex": "Plugin {{index}}"
   },
   "player": {
     "notPlaying": "Not playing",

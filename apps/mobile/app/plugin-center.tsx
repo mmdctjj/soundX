@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../src/context/ThemeContext";
 import { goBackOrReplace } from "../src/utils/navigation";
 
-const TYPE_OPTIONS: MetadataPluginType[] = ["http", "executable", "builtin"];
+const TYPE_OPTIONS: MetadataPluginType[] = ["http"];
 const TRACK_TYPE_OPTIONS: MetadataPluginTrackType[] = [
   "music",
   "audiobook",
@@ -44,13 +44,13 @@ const newPlugin = (): MetadataPluginConfig => ({
   endpoint: "",
   timeout: 30000,
   retry: 0,
-  filter: { types: [], pathPattern: "" },
+  filter: { types: [] },
 });
 
 const cleanPlugin = (p: MetadataPluginConfig): MetadataPluginConfig => {
   const cleaned: MetadataPluginConfig = {
     id: p.id,
-    name: p.name,
+    name: p.name?.trim() || p.id,
     enabled: p.enabled !== false,
     priority: p.priority ?? 0,
     type: p.type,
@@ -63,11 +63,8 @@ const cleanPlugin = (p: MetadataPluginConfig): MetadataPluginConfig => {
   if (p.timeout !== undefined && p.timeout !== 30000) cleaned.timeout = p.timeout;
   if (p.retry !== undefined && p.retry !== 0) cleaned.retry = p.retry;
   const types = (p.filter?.types || []).filter(Boolean);
-  const pathPattern = p.filter?.pathPattern?.trim();
-  if (types.length > 0 || pathPattern) {
-    cleaned.filter = {};
-    if (types.length > 0) cleaned.filter.types = types;
-    if (pathPattern) cleaned.filter.pathPattern = pathPattern;
+  if (types.length > 0) {
+    cleaned.filter = { types };
   }
   return cleaned;
 };
@@ -137,7 +134,6 @@ export default function PluginCenterScreen() {
   const validate = (p: MetadataPluginConfig): string | null => {
     if (!p.id?.trim()) return t("settings.pluginIdRequired");
     if (!/^[A-Za-z0-9_-]+$/.test(p.id)) return t("settings.pluginIdInvalid");
-    if (!p.name?.trim()) return t("settings.pluginNameRequired");
     if (!TYPE_OPTIONS.includes(p.type)) return t("settings.pluginTypeInvalid");
     if (p.type === "http" && !p.endpoint?.trim())
       return t("settings.pluginEndpointRequired");
@@ -199,18 +195,6 @@ export default function PluginCenterScreen() {
     }
   };
 
-  const handlePickType = (id: string, current: MetadataPluginType) => {
-    Alert.alert(
-      t("settings.pluginType"),
-      undefined,
-      TYPE_OPTIONS.map((tp) => ({
-        text: tp,
-        onPress: () => updatePlugin(id, { type: tp }),
-      })),
-    );
-    void current;
-  };
-
   const handleToggleType = (
     id: string,
     tp: MetadataPluginTrackType,
@@ -269,17 +253,17 @@ export default function PluginCenterScreen() {
                   {t("settings.pluginEmpty")}
                 </Text>
               ) : (
-                plugins.map((plugin) => (
+                plugins.map((plugin, index) => (
                   <PluginCard
                     key={plugin.id}
                     plugin={plugin}
                     onUpdate={(patch) => updatePlugin(plugin.id, patch)}
                     onUpdateFilter={(patch) => updateFilter(plugin.id, patch)}
-                    onPickType={() => handlePickType(plugin.id, plugin.type)}
                     onToggleType={(tp, on) => handleToggleType(plugin.id, tp, on)}
                     onRemove={() => handleRemove(plugin.id)}
                     colors={colors}
                     t={t}
+                    index={index}
                   />
                 ))
               )}
@@ -349,22 +333,22 @@ interface PluginCardProps {
   onUpdateFilter: (
     patch: Partial<NonNullable<MetadataPluginConfig["filter"]>>,
   ) => void;
-  onPickType: () => void;
   onToggleType: (tp: MetadataPluginTrackType, on: boolean) => void;
   onRemove: () => void;
   colors: any;
-  t: (k: string) => string;
+  t: (k: string, params?: Record<string, unknown>) => string;
+  index: number;
 }
 
 const PluginCard: React.FC<PluginCardProps> = ({
   plugin,
   onUpdate,
   onUpdateFilter,
-  onPickType,
   onToggleType,
   onRemove,
   colors,
   t,
+  index,
 }) => {
   return (
     <View
@@ -375,7 +359,7 @@ const PluginCard: React.FC<PluginCardProps> = ({
     >
       <View style={styles.cardHeader}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>
-          {plugin.name || t("settings.pluginUnnamed")}
+          {t("settings.pluginIndex", { index: index + 1 })}
         </Text>
         <View style={styles.cardHeaderRight}>
           <Switch
@@ -389,22 +373,10 @@ const PluginCard: React.FC<PluginCardProps> = ({
       </View>
 
       <Field
-        label={t("settings.pluginId")}
-        value={plugin.id}
-        onChangeText={(v) => onUpdate({ id: v })}
-        colors={colors}
-      />
-      <Field
-        label={t("settings.pluginName")}
-        value={plugin.name}
-        onChangeText={(v) => onUpdate({ name: v })}
-        colors={colors}
-      />
-      <Field
         label={t("settings.pluginType")}
         value={plugin.type}
-        onPress={onPickType}
         colors={colors}
+        hint={t("settings.pluginTypeFixedHint")}
       />
       {plugin.type === "http" && (
         <Field
@@ -491,13 +463,6 @@ const PluginCard: React.FC<PluginCardProps> = ({
         })}
       </View>
 
-      <Field
-        label={t("settings.pluginFilterPathPattern")}
-        value={plugin.filter?.pathPattern || ""}
-        onChangeText={(v) => onUpdateFilter({ pathPattern: v })}
-        colors={colors}
-        placeholder=".*audiobook.*"
-      />
     </View>
   );
 };
@@ -510,6 +475,7 @@ interface FieldProps {
   colors: any;
   placeholder?: string;
   keyboardType?: "default" | "number-pad";
+  hint?: string;
 }
 
 const Field: React.FC<FieldProps> = ({
@@ -520,9 +486,13 @@ const Field: React.FC<FieldProps> = ({
   colors,
   placeholder,
   keyboardType,
+  hint,
 }) => (
   <View style={{ marginBottom: 12 }}>
     <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+    {hint && (
+      <Text style={[styles.fieldHint, { color: colors.secondary }]}>{hint}</Text>
+    )}
     {onPress ? (
       <TouchableOpacity
         style={[
@@ -573,6 +543,8 @@ const styles = StyleSheet.create({
   description: { fontSize: 14, lineHeight: 20, marginTop: 8 },
   hint: { fontSize: 12, lineHeight: 18, marginTop: 6, opacity: 0.8 },
   label: { fontSize: 14, marginBottom: 6, fontWeight: "600" },
+  fieldHint: { fontSize: 12, marginBottom: 6, opacity: 0.75 },
+  idText: { fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 14, paddingHorizontal: 14, paddingVertical: 12, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, marginBottom: 6 },
   subLabel: { fontSize: 14, marginBottom: 6, marginTop: 4, fontWeight: "600" },
   input: {
     borderWidth: StyleSheet.hairlineWidth,

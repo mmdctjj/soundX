@@ -192,8 +192,6 @@
     "pluginCenterDescription": "Manage metadata enrichment plugins. Outputs are merged in priority order during import. (Data plugins only)",
     "pluginCenterHint": "HTTP plugins receive a POST JSON request during import; the response shape follows PluginOutput in metadata-plugin.service.ts.",
     "pluginTypeHttp": "HTTP endpoint",
-    "pluginTypeExecutable": "Executable command",
-    "pluginTypeBuiltin": "Built-in plugin",
     "pluginId": "Plugin ID",
     "pluginName": "Plugin name",
     "pluginType": "Plugin type",
@@ -204,7 +202,6 @@
     "pluginRetry": "Retries",
     "pluginFilterTypes": "Apply to types",
     "pluginFilterTypesPlaceholder": "Empty = all types",
-    "pluginFilterPathPattern": "Path regex (optional)",
     "pluginEnabled": "Enabled",
     "pluginUnnamed": "Unnamed plugin",
     "pluginAdd": "Add plugin",
@@ -225,7 +222,15 @@
     "pluginNameRequired": "Plugin name is required",
     "pluginTypeInvalid": "Invalid plugin type",
     "pluginEndpointRequired": "HTTP plugins require an endpoint",
-    "pluginCommandRequired": "Executable plugins require a command"
+    "pluginCommandRequired": "Executable plugins require a command",
+    "pluginTypeFixedHint": "Only HTTP plugins are supported for now",
+    "pluginIdFixedHint": "Plugin ID is used for internal identification and cannot be modified",
+    "pluginIndex": "Plugin {{index}}",
+    "tabGeneral": "General",
+    "tabSources": "Data sources",
+    "tabTts": "TTS settings",
+    "tabPlugins": "Plugin center",
+    "tabLlm": "LLM settings"
   },
   "header": {
     "pleaseLoginMemberFirst": "Please login to member account first",

@@ -226,7 +226,7 @@
     "testConnectionFailed": "连接失败",
     "pluginCenter": "插件中心",
     "pluginCenterDescription": "管理元数据增强插件，在导入阶段按顺序合并插件输出（仅数据插件）",
-    "pluginCenterHint": "HTTP 插件在导入时向 endpoint 发送 POST JSON 请求，响应字段与 metadata-plugin.service.ts 中的 PluginOutput 保持一致。",
+    "pluginCenterHint": "HTTP 插件在导入时向 endpoint 发送 POST JSON 请求。",
     "pluginId": "插件 ID",
     "pluginName": "插件名称",
     "pluginType": "插件类型",
@@ -236,7 +236,6 @@
     "pluginTimeout": "超时时间",
     "pluginRetry": "失败重试",
     "pluginFilterTypes": "生效资源类型",
-    "pluginFilterPathPattern": "路径正则 (可选)",
     "pluginUnnamed": "未命名插件",
     "pluginAdd": "新增插件",
     "pluginSaveSuccess": "插件配置已保存",
@@ -251,7 +250,14 @@
     "pluginNameRequired": "插件名称必填",
     "pluginTypeInvalid": "插件类型无效",
     "pluginEndpointRequired": "HTTP 类型插件必须填写接口地址",
-    "pluginCommandRequired": "可执行类型插件必须填写启动命令"
+    "pluginCommandRequired": "可执行类型插件必须填写启动命令",
+    "pluginTypeHttp": "HTTP 接口",
+    "pluginFilterTypesPlaceholder": "不选表示所有类型",
+    "pluginRemove": "删除插件",
+    "pluginSave": "保存配置",
+    "pluginTypeFixedHint": "当前仅支持 HTTP 类型",
+    "pluginIdFixedHint": "插件 ID 用于内部识别，不可修改",
+    "pluginIndex": "插件 {{index}}"
   },
   "player": {
     "notPlaying": "未在播放",

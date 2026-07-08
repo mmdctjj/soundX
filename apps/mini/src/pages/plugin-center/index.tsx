@@ -13,7 +13,7 @@ import {
 } from '../../services/metadata-plugins';
 import './index.scss';
 
-const TYPE_OPTIONS: MetadataPluginType[] = ['http', 'executable', 'builtin'];
+const TYPE_OPTIONS: MetadataPluginType[] = ['http'];
 const TRACK_TYPE_OPTIONS: MetadataPluginTrackType[] = [
   'music',
   'audiobook',
@@ -29,13 +29,13 @@ const newPlugin = (): MetadataPluginConfig => ({
   endpoint: '',
   timeout: 30000,
   retry: 0,
-  filter: { types: [], pathPattern: '' },
+  filter: { types: [] },
 });
 
 const cleanPlugin = (p: MetadataPluginConfig): MetadataPluginConfig => {
   const cleaned: MetadataPluginConfig = {
     id: p.id,
-    name: p.name,
+    name: p.name?.trim() || p.id,
     enabled: p.enabled !== false,
     priority: p.priority ?? 0,
     type: p.type,
@@ -48,11 +48,8 @@ const cleanPlugin = (p: MetadataPluginConfig): MetadataPluginConfig => {
   if (p.timeout !== undefined && p.timeout !== 30000) cleaned.timeout = p.timeout;
   if (p.retry !== undefined && p.retry !== 0) cleaned.retry = p.retry;
   const types = (p.filter?.types || []).filter(Boolean);
-  const pathPattern = p.filter?.pathPattern?.trim();
-  if (types.length > 0 || pathPattern) {
-    cleaned.filter = {};
-    if (types.length > 0) cleaned.filter.types = types;
-    if (pathPattern) cleaned.filter.pathPattern = pathPattern;
+  if (types.length > 0) {
+    cleaned.filter = { types };
   }
   return cleaned;
 };
@@ -95,17 +92,6 @@ export default function PluginCenter() {
     );
   };
 
-  const updateFilter = (
-    id: string,
-    patch: Partial<NonNullable<MetadataPluginConfig['filter']>>,
-  ) => {
-    setPlugins((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, filter: { ...(p.filter || {}), ...patch } } : p,
-      ),
-    );
-  };
-
   const handleAdd = () => {
     setPlugins((prev) => [...prev, newPlugin()]);
   };
@@ -117,16 +103,6 @@ export default function PluginCenter() {
         if (res.confirm) {
           setPlugins((prev) => prev.filter((p) => p.id !== id));
         }
-      },
-    });
-  };
-
-  const handlePickType = (id: string) => {
-    Taro.showActionSheet({
-      itemList: TYPE_OPTIONS,
-      success: (res) => {
-        const opt = TYPE_OPTIONS[res.tapIndex];
-        if (opt) updatePlugin(id, { type: opt });
       },
     });
   };
@@ -151,7 +127,6 @@ export default function PluginCenter() {
   const validate = (p: MetadataPluginConfig): string | null => {
     if (!p.id?.trim()) return t('settings.pluginIdRequired');
     if (!/^[A-Za-z0-9_-]+$/.test(p.id)) return t('settings.pluginIdInvalid');
-    if (!p.name?.trim()) return t('settings.pluginNameRequired');
     if (!TYPE_OPTIONS.includes(p.type)) return t('settings.pluginTypeInvalid');
     if (p.type === 'http' && !p.endpoint?.trim())
       return t('settings.pluginEndpointRequired');
@@ -239,7 +214,7 @@ export default function PluginCenter() {
             {t('settings.pluginEmpty')}
           </Text>
         ) : (
-          plugins.map((plugin) => (
+          plugins.map((plugin, index) => (
             <View
               key={plugin.id}
               className='card'
@@ -247,7 +222,7 @@ export default function PluginCenter() {
             >
               <View className='card-header'>
                 <Text className='card-title' style={{ color: colors.text }}>
-                  {plugin.name || t('settings.pluginUnnamed')}
+                  {t('settings.pluginIndex', { index: index + 1 })}
                 </Text>
                 <View className='card-header-right'>
                   <Switch
@@ -268,40 +243,17 @@ export default function PluginCenter() {
 
               <View className='field'>
                 <Text className='field-label' style={{ color: colors.text }}>
-                  {t('settings.pluginId')}
-                </Text>
-                <Textarea
-                  className='field-input'
-                  style={{ backgroundColor: colors.card, color: colors.text, borderColor: colors.border }}
-                  value={plugin.id}
-                  onInput={(e) => updatePlugin(plugin.id, { id: e.detail.value })}
-                />
-              </View>
-
-              <View className='field'>
-                <Text className='field-label' style={{ color: colors.text }}>
-                  {t('settings.pluginName')}
-                </Text>
-                <Textarea
-                  className='field-input'
-                  style={{ backgroundColor: colors.card, color: colors.text, borderColor: colors.border }}
-                  value={plugin.name}
-                  onInput={(e) => updatePlugin(plugin.id, { name: e.detail.value })}
-                />
-              </View>
-
-              <View className='field'>
-                <Text className='field-label' style={{ color: colors.text }}>
                   {t('settings.pluginType')}
                 </Text>
                 <View
                   className='field-pick'
                   style={{ backgroundColor: colors.card, borderColor: colors.border, color: colors.text }}
-                  onClick={() => handlePickType(plugin.id)}
                 >
                   <Text style={{ color: colors.text }}>{plugin.type}</Text>
-                  <Text style={{ color: colors.secondary }}>&gt;</Text>
                 </View>
+                <Text className='field-hint' style={{ color: colors.secondary }}>
+                  {t('settings.pluginTypeFixedHint')}
+                </Text>
               </View>
 
               {plugin.type === 'http' && (
@@ -413,20 +365,6 @@ export default function PluginCenter() {
                 </View>
               </View>
 
-              <View className='field'>
-                <Text className='field-label' style={{ color: colors.text }}>
-                  {t('settings.pluginFilterPathPattern')}
-                </Text>
-                <Textarea
-                  className='field-input'
-                  style={{ backgroundColor: colors.card, color: colors.text, borderColor: colors.border }}
-                  value={plugin.filter?.pathPattern || ''}
-                  onInput={(e) => updateFilter(plugin.id, { pathPattern: e.detail.value })}
-                  placeholder='.*audiobook.*'
-                  placeholderStyle={colors.secondary}
-                  autoHeight
-                />
-              </View>
             </View>
           ))
         )}

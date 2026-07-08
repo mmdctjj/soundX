@@ -33,8 +33,6 @@ const { Text, Paragraph } = Typography;
 
 const TYPE_OPTIONS: { value: MetadataPluginType; labelKey: string }[] = [
   { value: "http", labelKey: "settings.pluginTypeHttp" },
-  { value: "executable", labelKey: "settings.pluginTypeExecutable" },
-  { value: "builtin", labelKey: "settings.pluginTypeBuiltin" },
 ];
 
 const TRACK_TYPE_OPTIONS: MetadataPluginTrackType[] = ["music", "audiobook", "mv"];
@@ -48,13 +46,13 @@ const newPlugin = (): MetadataPluginConfig => ({
   endpoint: "",
   timeout: 30000,
   retry: 0,
-  filter: { types: [], pathPattern: "" },
+  filter: { types: [] },
 });
 
 const cleanPlugin = (p: MetadataPluginConfig): MetadataPluginConfig => {
   const cleaned: MetadataPluginConfig = {
     id: p.id,
-    name: p.name,
+    name: p.name?.trim() || p.id,
     enabled: p.enabled !== false,
     priority: p.priority ?? 0,
     type: p.type,
@@ -67,11 +65,8 @@ const cleanPlugin = (p: MetadataPluginConfig): MetadataPluginConfig => {
   if (p.timeout !== undefined && p.timeout !== 30000) cleaned.timeout = p.timeout;
   if (p.retry !== undefined && p.retry !== 0) cleaned.retry = p.retry;
   const types = (p.filter?.types || []).filter(Boolean);
-  const pathPattern = p.filter?.pathPattern?.trim();
-  if (types.length > 0 || pathPattern) {
-    cleaned.filter = {};
-    if (types.length > 0) cleaned.filter.types = types;
-    if (pathPattern) cleaned.filter.pathPattern = pathPattern;
+  if (types.length > 0) {
+    cleaned.filter = { types };
   }
   return cleaned;
 };
@@ -157,7 +152,6 @@ const PluginCenterSettings: React.FC = () => {
     if (!p.id?.trim()) return t("settings.pluginIdRequired");
     if (!/^[A-Za-z0-9_-]+$/.test(p.id))
       return t("settings.pluginIdInvalid");
-    if (!p.name?.trim()) return t("settings.pluginNameRequired");
     if (!TYPE_OPTIONS.find((opt) => opt.value === p.type))
       return t("settings.pluginTypeInvalid");
     if (p.type === "http" && !p.endpoint?.trim())
@@ -245,17 +239,14 @@ const PluginCenterSettings: React.FC = () => {
           accordion={false}
           activeKey={activeKey}
           onChange={(keys) => setActiveKey(Array.isArray(keys) ? keys : [keys])}
-          items={plugins.map((plugin) => {
+          items={plugins.map((plugin, index) => {
             const types = plugin.filter?.types || [];
             return {
               key: plugin.id,
               label: (
                 <Space size={4} wrap>
                   <Text strong>
-                    {plugin.name || t("settings.pluginUnnamed")}
-                  </Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {plugin.id}
+                    {t("settings.pluginIndex", { index: index + 1 })}
                   </Text>
                   <Tag color="blue">{plugin.type}</Tag>
                   {types.map((tp) => (
@@ -272,33 +263,11 @@ const PluginCenterSettings: React.FC = () => {
               ),
               children: (
                 <Form layout="vertical" size="middle">
-                  <Form.Item label={t("settings.pluginId")}>
-                    <Input
-                      value={plugin.id}
-                      onChange={(e) =>
-                        updatePlugin(plugin.id, { id: e.target.value })
-                      }
-                    />
-                  </Form.Item>
-                  <Form.Item label={t("settings.pluginName")}>
-                    <Input
-                      value={plugin.name}
-                      onChange={(e) =>
-                        updatePlugin(plugin.id, { name: e.target.value })
-                      }
-                    />
-                  </Form.Item>
                   <Form.Item label={t("settings.pluginType")}>
-                    <Select
-                      value={plugin.type}
-                      options={TYPE_OPTIONS.map((opt) => ({
-                        value: opt.value,
-                        label: t(opt.labelKey),
-                      }))}
-                      onChange={(val) =>
-                        updatePlugin(plugin.id, { type: val })
-                      }
-                    />
+                    <Tag color="blue">{plugin.type}</Tag>
+                    <Text type="secondary" style={{ marginLeft: 8 }}>
+                      {t("settings.pluginTypeFixedHint")}
+                    </Text>
                   </Form.Item>
                   {plugin.type === "http" && (
                     <Form.Item label={t("settings.pluginEndpoint")}>
@@ -383,17 +352,6 @@ const PluginCenterSettings: React.FC = () => {
                         })
                       }
                       style={{ maxWidth: 360 }}
-                    />
-                  </Form.Item>
-                  <Form.Item label={t("settings.pluginFilterPathPattern")}>
-                    <Input
-                      value={plugin.filter?.pathPattern || ""}
-                      placeholder=".*audiobook.*"
-                      onChange={(e) =>
-                        updateFilter(plugin.id, {
-                          pathPattern: e.target.value,
-                        })
-                      }
                     />
                   </Form.Item>
                   <Form.Item>
