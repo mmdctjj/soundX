@@ -532,6 +532,32 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           )}
 
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/plugin-center" as any)}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  {t("settings.pluginCenter")}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("settings.pluginCenterDescription")}
+                </Text>
+              </View>
+              <Ionicons
+                name="extension-puzzle-outline"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
+
           <Text
             style={[
               styles.sectionTitle,

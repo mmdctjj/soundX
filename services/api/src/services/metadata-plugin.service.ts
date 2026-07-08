@@ -1,5 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { FileStatus, MetadataSource, PrismaClient, TrackType } from '@soundx/db';
+import {
+  FileStatus,
+  MetadataSource,
+  PrismaClient,
+  TrackType,
+} from '@soundx/db';
 import { ScanResult } from '@soundx/utils';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -126,7 +131,11 @@ export class MetadataPluginService implements OnModuleInit {
         const durationMs = Date.now() - startTime;
 
         if (output) {
-          enriched = await this.mergeOutput(enriched, output, context.cachePath);
+          enriched = await this.mergeOutput(
+            enriched,
+            output,
+            context.cachePath,
+          );
           appliedPluginIds.push(plugin.id);
           await this.logPluginCall(
             plugin,
@@ -143,7 +152,14 @@ export class MetadataPluginService implements OnModuleInit {
         this.logger.warn(
           `Plugin ${plugin.id} failed for ${input.path}: ${message}`,
         );
-        await this.logPluginCall(plugin, input, null, status, durationMs, message);
+        await this.logPluginCall(
+          plugin,
+          input,
+          null,
+          status,
+          durationMs,
+          message,
+        );
       }
     }
 
@@ -328,7 +344,9 @@ export class MetadataPluginService implements OnModuleInit {
     if (output.duration !== undefined) merged.duration = output.duration;
     if (output.year !== undefined)
       merged.year =
-        typeof output.year === 'number' ? output.year : parseInt(output.year, 10) || undefined;
+        typeof output.year === 'number'
+          ? output.year
+          : parseInt(output.year, 10) || undefined;
     if (output.trackNo !== undefined) {
       merged.track = { ...(merged.track || {}), no: output.trackNo };
     }
@@ -415,6 +433,78 @@ export class MetadataPluginService implements OnModuleInit {
     } catch (error) {
       this.logger.error('Failed to write plugin log:', error);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // CRUD helpers used by the admin "plugin center" page on the three clients.
+  // ---------------------------------------------------------------------------
+
+  getConfigPath(): string {
+    return this.configPath;
+  }
+
+  list(): PluginConfig[] {
+    return this.configs.map((c) => ({ ...c }));
+  }
+
+  async saveAll(plugins: PluginConfig[]): Promise<PluginConfig[]> {
+    const normalized = (plugins || []).map((p) => this.normalizeConfig(p));
+    await this.writeConfigFile(normalized);
+    this.configs = normalized;
+    this.logger.log(
+      `Saved ${this.configs.length} metadata plugin config(s) to ${this.configPath}`,
+    );
+    return this.list();
+  }
+
+  async create(input: PluginConfig): Promise<PluginConfig> {
+    if (!input || !input.id || !input.name) {
+      throw new Error('插件 id 和 name 必填');
+    }
+    if (this.configs.some((c) => c.id === input.id)) {
+      throw new Error(`插件 id 已存在: ${input.id}`);
+    }
+    const next = [...this.configs, this.normalizeConfig(input)];
+    await this.writeConfigFile(next);
+    this.configs = next;
+    this.logger.log(`Added metadata plugin ${input.id}`);
+    return this.normalizeConfig(input);
+  }
+
+  async update(
+    id: string,
+    patch: Partial<PluginConfig>,
+  ): Promise<PluginConfig> {
+    const idx = this.configs.findIndex((c) => c.id === id);
+    if (idx === -1) {
+      throw new Error(`插件不存在: ${id}`);
+    }
+    if (patch.id && patch.id !== id) {
+      throw new Error('不允许修改插件 id，请删除后重新创建');
+    }
+    const merged = this.normalizeConfig({ ...this.configs[idx], ...patch, id });
+    const next = [...this.configs];
+    next[idx] = merged;
+    await this.writeConfigFile(next);
+    this.configs = next;
+    this.logger.log(`Updated metadata plugin ${id}`);
+    return merged;
+  }
+
+  async remove(id: string): Promise<void> {
+    const next = this.configs.filter((c) => c.id !== id);
+    if (next.length === this.configs.length) {
+      throw new Error(`插件不存在: ${id}`);
+    }
+    await this.writeConfigFile(next);
+    this.configs = next;
+    this.logger.log(`Removed metadata plugin ${id}`);
+  }
+
+  private async writeConfigFile(plugins: PluginConfig[]): Promise<void> {
+    const payload: PluginConfigFile = { plugins };
+    const json = JSON.stringify(payload, null, 2);
+    await fs.promises.writeFile(this.configPath, json, 'utf-8');
   }
 
   private isTimeoutError(error: unknown): boolean {

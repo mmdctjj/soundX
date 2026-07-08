@@ -256,6 +256,11 @@ export default function Settings() {
             t('settings.ttsConfigDescription'),
             () => Taro.navigateTo({ url: '/pages/tts-config/index' })
           )}
+          {user?.is_admin && renderActionRow(
+            t('settings.pluginCenter'),
+            t('settings.pluginCenterDescription'),
+            () => Taro.navigateTo({ url: '/pages/plugin-center/index' })
+          )}
         </View>
 
         <View className='section'>

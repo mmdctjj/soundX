@@ -30,6 +30,7 @@ import AdminSettings from "./AdminSettings";
 import WebDavSourcesSettings from "./WebDavSourcesSettings";
 import LlmConfigSettings from "./LlmConfigSettings";
 import TtsConfigSettings from "./TtsConfigSettings";
+import PluginCenterSettings from "./PluginCenterSettings";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -201,6 +202,18 @@ const Settings: React.FC = () => {
               {t("settings.ttsConfig")}
             </Title>
             <TtsConfigSettings />
+          </section>
+          <Divider className={styles.divider} />
+        </>
+      )}
+
+      {user?.is_admin && (
+        <>
+          <section className={styles.section}>
+            <Title level={4} className={styles.sectionTitle}>
+              {t("settings.pluginCenter")}
+            </Title>
+            <PluginCenterSettings />
           </section>
           <Divider className={styles.divider} />
         </>

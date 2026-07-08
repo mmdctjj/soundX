@@ -30,6 +30,7 @@ import { UserAudiobookLikeController } from './controllers/user-audiobook-like';
 import { UserTrackHistoryController } from './controllers/user-track-history';
 import { UserTrackLikeController } from './controllers/user-track-like';
 import { WebDavSourcesController } from './controllers/webdav-sources.controller';
+import { MetadataPluginsController } from './controllers/metadata-plugins.controller';
 import { WebDavSyncController } from './controllers/webdav-sync.controller';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { SyncGateway } from './gateways/sync.gateway';
@@ -108,6 +109,7 @@ import { MetadataPluginService } from './services/metadata-plugin.service';
     LlmConfigController,
     MvController,
     WebDavSourcesController,
+    MetadataPluginsController,
     WebDavSyncController,
   ],
   providers: [
