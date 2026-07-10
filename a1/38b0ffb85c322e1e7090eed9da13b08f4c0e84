@@ -1,0 +1,29 @@
+apps/desktop/src/components/Player/index.tsx
+  s_19aa60127c57db::t_146af98841d81b 182-185,187,189-196,279-280,298-302,304,306,1969
+apps/mini/src/context/PlayerContext.tsx
+  s_19aa60127c57db::t_39a3f6adb5e4cb 408-416,421-422,438-440,446-447,453-468
+apps/mobile/src/context/PlayerContext.tsx
+  s_19aa60127c57db::t_f7eab26bf46a08 54,1408-1422,1424-1430,1432-1434,1436,1440,1444,1491-1530,1559-1574,1578-1579,1597-1606,1608-1620,1627-1637
+packages/db/generated/edge.js
+  s_19aa60127c57db::t_392b2159f2f6f5 383,401
+packages/db/generated/index.js
+  s_19aa60127c57db::t_9e069c6667b255 384,402
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "a138b0ffb85c322e1e7090eed9da13b08f4c0e84",
+  "prompts": {},
+  "sessions": {
+    "s_19aa60127c57db": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ffeb60dc-e2aa-49aa-a264-94eaad967611",
+        "model": "unknown"
+      },
+      "human_author": "mmdctjj <984808285@mail.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
