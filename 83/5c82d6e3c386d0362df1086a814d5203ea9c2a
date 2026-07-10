@@ -1,0 +1,21 @@
+apps/mobile/app/_layout.tsx
+  s_19aa60127c57db::t_c06e97631ebf6a 97-98,418,434
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "835c82d6e3c386d0362df1086a814d5203ea9c2a",
+  "prompts": {},
+  "sessions": {
+    "s_19aa60127c57db": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ffeb60dc-e2aa-49aa-a264-94eaad967611",
+        "model": "unknown"
+      },
+      "human_author": "mmdctjj <984808285@mail.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
