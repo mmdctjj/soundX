@@ -179,16 +179,21 @@ const Player: React.FC = () => {
         return;
       }
 
-      const profile = await getTrackAudioQualityProfile(currentTrack);
+      // Pick the user's preferred quality synchronously so the very first
+      // URL build uses the right bitrate and we don't re-buffer after the
+      // profile resolves in the background.
+      const preferred = getCurrentPlaybackQualityPreference(general);
       if (!cancelled) {
-        setAvailableAudioQualities(profile.options);
-        setCurrentAudioQuality(
-          resolveTrackAudioQuality(
-            profile,
-            getCurrentPlaybackQualityPreference(general),
-          ),
-        );
+        setCurrentAudioQuality((prev) => (prev === preferred ? prev : preferred));
       }
+
+      const profile = await getTrackAudioQualityProfile(currentTrack);
+      if (cancelled) return;
+      const resolved = resolveTrackAudioQuality(profile, preferred);
+      // Only swap if it would actually change the audio src — avoids a
+      // re-buffer when the user's preferred quality is already available.
+      setAvailableAudioQualities(profile.options);
+      setCurrentAudioQuality((prev) => (prev === resolved ? prev : resolved));
     };
 
     syncTrackQuality();
@@ -271,7 +276,8 @@ const Player: React.FC = () => {
       return;
     }
 
-    // 1. Determine initial URI synchronously to avoid playing previous song
+    // 1. Determine initial URI synchronously so audio starts streaming on the
+    //    very next render — never block playback on async cache or profile work.
     let initialUri = "";
     if (currentTrack.type !== TrackType.AUDIOBOOK) {
       initialUri = buildTrackPlaybackUrl(currentTrack, currentAudioQuality);
@@ -289,11 +295,15 @@ const Player: React.FC = () => {
 
     setResolvedUri(initialUri || undefined);
 
-    // 2. Resolve for cache (will upgrade to media:// if cached)
-    if (currentTrack.type === TrackType.AUDIOBOOK) {
+    // 2. Resolve for cache (will upgrade to media:// if cached). This runs in
+    //    the background and only swaps the URI when a local cached copy is
+    //    available — playback has already started on the remote stream, so the
+    //    user does not wait on this.
+    if (cacheEnabled && isTauri()) {
       resolveTrackUri(currentTrack, { cacheEnabled }).then((uri) => {
+        if (!uri || uri === initialUri) return;
         const state = usePlayerStore.getState();
-        if (uri && state.currentTrack?.id === currentTrack.id) {
+        if (state.currentTrack?.id === currentTrack.id) {
           setResolvedUri(uri);
         }
       });
@@ -1956,6 +1966,7 @@ const Player: React.FC = () => {
       <audio
         ref={audioRef}
         src={resolvedUri}
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
