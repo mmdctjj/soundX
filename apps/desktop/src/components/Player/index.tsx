@@ -1,6 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
-import { emitTo, listen } from "@tauri-apps/api/event";
-import {
+import Icon, {
   AimOutlined,
   DeliveredProcedureOutlined,
   DownOutlined,
@@ -15,7 +13,6 @@ import {
   TeamOutlined,
   VideoCameraOutlined,
 } from "@ant-design/icons";
-import Icon from "@ant-design/icons";
 import {
   addToHistory,
   addTrackToPlaylist,
@@ -25,14 +22,16 @@ import {
   getMiAuthStatus,
   getMiDevices,
   getMiQRCode,
-  playMiDeviceByUrl,
   getMiQRCodeStatus,
   getMvByTrackId,
   getPlaylists,
   type MiDevice,
   type MiQRCodeResponse,
   type Playlist,
+  playMiDeviceByUrl,
 } from "@soundx/services";
+import { invoke } from "@tauri-apps/api/core";
+import { emitTo, listen } from "@tauri-apps/api/event";
 import {
   Avatar,
   Button,
@@ -51,8 +50,8 @@ import {
   Typography,
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import ClockOutlined from "../../assets/clock.svg?react";
 import LoopOutlined from "../../assets/loop.svg?react";
 import MusiclistOutlined from "../../assets/musiclist.svg?react";
@@ -66,24 +65,24 @@ import { type Album, type Track, TrackType } from "../../models";
 import { socketService } from "../../services/socket";
 import { trackEvent } from "../../services/tracking";
 import {
-  resolveArtworkUri,
-  resolveTrackUri,
-} from "../../services/trackResolver";
-import {
   type AudioQuality,
   type AudioQualityOption,
   buildTrackPlaybackUrl,
   getTrackAudioQualityProfile,
   resolveTrackAudioQuality,
 } from "../../services/trackQuality";
+import {
+  resolveArtworkUri,
+  resolveTrackUri,
+} from "../../services/trackResolver";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { useSettingsStore } from "../../store/settings";
 import { useSyncStore } from "../../store/sync";
 import { formatDuration } from "../../utils/formatDuration";
+import { isTauri, tauriGetDeviceName } from "../../utils/platform";
 import { getCurrentPlaybackQualityPreference } from "../../utils/playbackQuality";
 import { usePlayMode } from "../../utils/playMode";
-import { tauriGetDeviceName, isTauri } from "../../utils/platform";
 import PlayingIndicator from "../PlayingIndicator";
 import UserSelectModal from "../UserSelectModal";
 import styles from "./index.module.less";
@@ -179,16 +178,23 @@ const Player: React.FC = () => {
         return;
       }
 
-      const profile = await getTrackAudioQualityProfile(currentTrack);
+      // Pick the user's preferred quality synchronously so the very first
+      // URL build uses the right bitrate and we don't re-buffer after the
+      // profile resolves in the background.
+      const preferred = getCurrentPlaybackQualityPreference(general);
       if (!cancelled) {
-        setAvailableAudioQualities(profile.options);
-        setCurrentAudioQuality(
-          resolveTrackAudioQuality(
-            profile,
-            getCurrentPlaybackQualityPreference(general),
-          ),
+        setCurrentAudioQuality((prev) =>
+          prev === preferred ? prev : preferred,
         );
       }
+
+      const profile = await getTrackAudioQualityProfile(currentTrack);
+      if (cancelled) return;
+      const resolved = resolveTrackAudioQuality(profile, preferred);
+      // Only swap if it would actually change the audio src — avoids a
+      // re-buffer when the user's preferred quality is already available.
+      setAvailableAudioQualities(profile.options);
+      setCurrentAudioQuality((prev) => (prev === resolved ? prev : resolved));
     };
 
     syncTrackQuality();
@@ -196,7 +202,12 @@ const Player: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [currentTrack?.id, currentTrack?.type, general.internalPlaybackQuality, general.externalPlaybackQuality]);
+  }, [
+    currentTrack?.id,
+    currentTrack?.type,
+    general.internalPlaybackQuality,
+    general.externalPlaybackQuality,
+  ]);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const ignoreTimeUpdate = useRef(false);
@@ -271,7 +282,8 @@ const Player: React.FC = () => {
       return;
     }
 
-    // 1. Determine initial URI synchronously to avoid playing previous song
+    // 1. Determine initial URI synchronously so audio starts streaming on the
+    //    very next render — never block playback on async cache or profile work.
     let initialUri = "";
     if (currentTrack.type !== TrackType.AUDIOBOOK) {
       initialUri = buildTrackPlaybackUrl(currentTrack, currentAudioQuality);
@@ -289,11 +301,15 @@ const Player: React.FC = () => {
 
     setResolvedUri(initialUri || undefined);
 
-    // 2. Resolve for cache (will upgrade to media:// if cached)
-    if (currentTrack.type === TrackType.AUDIOBOOK) {
+    // 2. Resolve for cache (will upgrade to media:// if cached). This runs in
+    //    the background and only swaps the URI when a local cached copy is
+    //    available — playback has already started on the remote stream, so the
+    //    user does not wait on this.
+    if (cacheEnabled && isTauri()) {
       resolveTrackUri(currentTrack, { cacheEnabled }).then((uri) => {
+        if (!uri || uri === initialUri) return;
         const state = usePlayerStore.getState();
-        if (uri && state.currentTrack?.id === currentTrack.id) {
+        if (state.currentTrack?.id === currentTrack.id) {
           setResolvedUri(uri);
         }
       });
@@ -360,7 +376,9 @@ const Player: React.FC = () => {
   const [miDevices, setMiDevices] = useState<MiDevice[]>([]);
   const [isMiDevicesLoading, setIsMiDevicesLoading] = useState(false);
   const [isMiDevicesPopoverOpen, setIsMiDevicesPopoverOpen] = useState(false);
-  const [miAuthStatus, setMiAuthStatus] = useState<{ logged_in: boolean } | null>(null);
+  const [miAuthStatus, setMiAuthStatus] = useState<{
+    logged_in: boolean;
+  } | null>(null);
   const [miQRCode, setMiQRCode] = useState<MiQRCodeResponse | null>(null);
   const [isCastingToMi, setIsCastingToMi] = useState(false);
   const miPollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -455,7 +473,11 @@ const Player: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  <p>{t("player.resumePromptResume", { time: formatDuration(history.progress) })}</p>
+                  <p>
+                    {t("player.resumePromptResume", {
+                      time: formatDuration(history.progress),
+                    })}
+                  </p>
                 </div>
               ),
               key,
@@ -743,7 +765,10 @@ const Player: React.FC = () => {
   }, [volume]);
 
   useEffect(() => {
-    localStorage.setItem(isRadioMode ? "radioPlayOrder" : "playOrder", playMode);
+    localStorage.setItem(
+      isRadioMode ? "radioPlayOrder" : "playOrder",
+      playMode,
+    );
   }, [isRadioMode, playMode]);
 
   useEffect(() => {
@@ -807,10 +832,7 @@ const Player: React.FC = () => {
 
       // IPC Broadcast for Mini Player (throttled ~250ms)
       const now = Date.now();
-      if (
-        isTauri() &&
-        now - lastTimeUpdateRef.current > 250
-      ) {
+      if (isTauri() && now - lastTimeUpdateRef.current > 250) {
         invoke("update_player_state", {
           state: {
             isPlaying: !audioRef.current.paused,
@@ -1035,7 +1057,9 @@ const Player: React.FC = () => {
 
     const currentLineText = index >= 0 ? parsedLyrics[index].text : "";
 
-    invoke("update_lyric", { currentLyric: currentLineText }).catch(console.error);
+    invoke("update_lyric", { currentLyric: currentLineText }).catch(
+      console.error,
+    );
     const lyricPayload = { currentLyric: currentLineText };
     emitTo("mini", "lyric:update", lyricPayload).catch(console.error);
     emitTo("lyric", "lyric:update", lyricPayload).catch(console.error);
@@ -1056,10 +1080,16 @@ const Player: React.FC = () => {
       } else {
         state.play();
       }
-    }).then((fn) => { unlistenToggle = fn; });
+    }).then((fn) => {
+      unlistenToggle = fn;
+    });
 
-    listen("player:next", () => usePlayerStore.getState().next()).then((fn) => { unlistenNext = fn; });
-    listen("player:prev", () => usePlayerStore.getState().prev()).then((fn) => { unlistenPrev = fn; });
+    listen("player:next", () => usePlayerStore.getState().next()).then((fn) => {
+      unlistenNext = fn;
+    });
+    listen("player:prev", () => usePlayerStore.getState().prev()).then((fn) => {
+      unlistenPrev = fn;
+    });
 
     return () => {
       if (unlistenToggle) unlistenToggle();
@@ -1349,7 +1379,9 @@ const Player: React.FC = () => {
                         setSleepTimerMode("off");
                       }
                     }}
-                    tooltip={{ formatter: (val) => `${val} ${t("player.minutes")}` }}
+                    tooltip={{
+                      formatter: (val) => `${val} ${t("player.minutes")}`,
+                    }}
                   />
                 </Flex>
 
@@ -1430,7 +1462,10 @@ const Player: React.FC = () => {
             placement="top"
           >
             <Tooltip title={t("player.playbackSpeed")}>
-              <div className={styles.playbackRateIcon}>{playbackRate}{t("common.times")}</div>
+              <div className={styles.playbackRateIcon}>
+                {playbackRate}
+                {t("common.times")}
+              </div>
             </Tooltip>
           </Popover>
         )}
@@ -1441,7 +1476,9 @@ const Player: React.FC = () => {
               className={`${styles.lyricButton} ${
                 desktopLyricEnable ? styles.activeLyricButton : ""
               }`}
-              style={{ color: desktopLyricEnable ? token.colorPrimary : "inherit" }}
+              style={{
+                color: desktopLyricEnable ? token.colorPrimary : "inherit",
+              }}
               onClick={handleDesktopLyricToggle}
             >
               词
@@ -1452,7 +1489,10 @@ const Player: React.FC = () => {
         {/* Mi Speaker (XiaoAi) Devices */}
         <Popover
           content={
-            <Flex vertical style={{ width: 280, maxHeight: 320, overflow: "auto" }}>
+            <Flex
+              vertical
+              style={{ width: 280, maxHeight: 320, overflow: "auto" }}
+            >
               <Text strong style={{ marginBottom: 8 }}>
                 {t("player.miSpeakerTitle")}
               </Text>
@@ -1469,7 +1509,12 @@ const Player: React.FC = () => {
                       dataSource={miDevices}
                       renderItem={(device) => (
                         <List.Item
-                          style={{ cursor: currentTrack && !isCastingToMi ? "pointer" : "not-allowed" }}
+                          style={{
+                            cursor:
+                              currentTrack && !isCastingToMi
+                                ? "pointer"
+                                : "not-allowed",
+                          }}
                           onClick={() => {
                             if (!currentTrack || isCastingToMi) return;
                             handleCastToMi(device.device_id, device.name);
@@ -1480,7 +1525,15 @@ const Player: React.FC = () => {
                               <Avatar
                                 size={32}
                                 style={{ backgroundColor: token.colorPrimary }}
-                                icon={<XiaoAiOutlined style={{ width: 20, height: 20, color: token.colorTextLightSolid }} />}
+                                icon={
+                                  <XiaoAiOutlined
+                                    style={{
+                                      width: 20,
+                                      height: 20,
+                                      color: token.colorTextLightSolid,
+                                    }}
+                                  />
+                                }
                               />
                             }
                             title={device.name}
@@ -1526,7 +1579,10 @@ const Player: React.FC = () => {
           }}
         >
           <Tooltip title={t("player.miSpeaker")}>
-            <XiaoAiOutlined className={styles.settingIcon} style={{ width: 18, height: 18 }} />
+            <XiaoAiOutlined
+              className={styles.settingIcon}
+              style={{ width: 18, height: 18 }}
+            />
           </Tooltip>
         </Popover>
 
@@ -1534,7 +1590,9 @@ const Player: React.FC = () => {
         <Popover
           content={
             <Flex vertical justify="center">
-              <Text style={{ fontSize: "12px" }}>{t("player.volume")}: {volume}%</Text>
+              <Text style={{ fontSize: "12px" }}>
+                {t("player.volume")}: {volume}%
+              </Text>
               <Slider
                 style={{ width: "100px" }}
                 value={volume}
@@ -1564,7 +1622,9 @@ const Player: React.FC = () => {
                       marginBottom: "5px",
                     }}
                   >
-                    <span>{t("player.skipIntro")}: {skipStart}s</span>
+                    <span>
+                      {t("player.skipIntro")}: {skipStart}s
+                    </span>
                   </div>
                   <Slider
                     value={skipStart}
@@ -1581,7 +1641,9 @@ const Player: React.FC = () => {
                       marginBottom: "5px",
                     }}
                   >
-                    <span>{t("player.skipOutro")}: {skipEnd}s</span>
+                    <span>
+                      {t("player.skipOutro")}: {skipEnd}s
+                    </span>
                   </div>
                   <Slider
                     value={skipEnd}
@@ -1785,7 +1847,10 @@ const Player: React.FC = () => {
           setMiAuthStatus({ logged_in: true });
           const res = await getMiDevices();
           setMiDevices(res.devices || []);
-        } else if (statusRes.status === "expired" || statusRes.status === "error") {
+        } else if (
+          statusRes.status === "expired" ||
+          statusRes.status === "error"
+        ) {
           // 二维码过期或错误，停止轮询
           if (miPollingTimerRef.current) {
             clearInterval(miPollingTimerRef.current);
@@ -1838,7 +1903,7 @@ const Player: React.FC = () => {
                   component={MusiclistOutlined}
                   style={{ fontSize: "24px", fontWeight: "bold" }}
                 />
-                {t('player.sequencePlay')}
+                {t("player.sequencePlay")}
               </Flex>
             </div>
             <div
@@ -1858,7 +1923,7 @@ const Player: React.FC = () => {
                   component={RandomOutlined}
                   style={{ fontSize: "24px", fontWeight: "bold" }}
                 />
-                {t('player.shufflePlay')}
+                {t("player.shufflePlay")}
               </Flex>
             </div>
             <div
@@ -1876,7 +1941,7 @@ const Player: React.FC = () => {
                   component={LoopOutlined}
                   style={{ fontSize: "24px", fontWeight: "bold" }}
                 />
-                {t('player.loopList')}
+                {t("player.loopList")}
               </Flex>
             </div>
             <div
@@ -1896,7 +1961,7 @@ const Player: React.FC = () => {
                   component={SinglecycleOutlined}
                   style={{ fontSize: "24px", fontWeight: "bold" }}
                 />
-                {t('player.singleLoop')}
+                {t("player.singleLoop")}
               </Flex>
             </div>
           </div>
@@ -1956,6 +2021,7 @@ const Player: React.FC = () => {
       <audio
         ref={audioRef}
         src={resolvedUri}
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
@@ -1965,9 +2031,7 @@ const Player: React.FC = () => {
       />
 
       {!isFullPlayerVisible && (
-        <div className={styles.miniPlayer}>
-          {renderMiniPlayer(true)}
-        </div>
+        <div className={styles.miniPlayer}>{renderMiniPlayer(true)}</div>
       )}
       {isFullPlayerVisible && (
         <Drawer
@@ -2016,7 +2080,9 @@ const Player: React.FC = () => {
             {/* Right Side - Info & Playlist/Lyrics (2/3) */}
             <div
               className={styles.fullPlayerRight}
-              style={{ textAlign: appMode !== TrackType.MUSIC ? "left" : "center" }}
+              style={{
+                textAlign: appMode !== TrackType.MUSIC ? "left" : "center",
+              }}
             >
               {/* Top: Title */}
               <div style={{ marginBottom: "24px" }}>
@@ -2082,7 +2148,9 @@ const Player: React.FC = () => {
                       style={{ cursor: "pointer" }}
                       onClick={() => {
                         setIsFullPlayerVisible(false);
-                        navigator(`/detail?id=${currentTrack?.albumEntity?.id}`);
+                        navigator(
+                          `/detail?id=${currentTrack?.albumEntity?.id}`,
+                        );
                       }}
                     >
                       <img
@@ -2098,7 +2166,9 @@ const Player: React.FC = () => {
                           borderRadius: "1px",
                         }}
                       />
-                      <Text ellipsis>{currentTrack?.album || "Unknown Album"}</Text>
+                      <Text ellipsis>
+                        {currentTrack?.album || "Unknown Album"}
+                      </Text>
                     </Flex>
                   </Flex>
                 </Text>
@@ -2116,13 +2186,18 @@ const Player: React.FC = () => {
                           type="text"
                           icon={<AimOutlined />}
                           onClick={handleLocateFullTrack}
-                          title={t('player.locateCurrentTrack')}
+                          title={t("player.locateCurrentTrack")}
                         />
                       ) : undefined
                     }
                     items={[
-                      { key: "lyrics", label: t('player.lyrics') },
-                      { key: "playlist", label: t('player.playlistCount', { count: playlist.length }) },
+                      { key: "lyrics", label: t("player.lyrics") },
+                      {
+                        key: "playlist",
+                        label: t("player.playlistCount", {
+                          count: playlist.length,
+                        }),
+                      },
                     ].filter((item) => item.key !== "lyrics")}
                   />
                 </div>
@@ -2143,7 +2218,9 @@ const Player: React.FC = () => {
                     currentTime={currentTime}
                   />
                 ) : activeTab === "playlist" ? (
-                  <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
+                  <div
+                    style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}
+                  >
                     <QueueList
                       ref={fullQueueListRef}
                       tracks={playlist}
@@ -2155,7 +2232,9 @@ const Player: React.FC = () => {
                       onPuse={pause}
                       onPlay={handlePlay}
                       onAddToPlaylist={openAddToPlaylistModal}
-                      onToggleLike={(_, track, type) => toggleLike(track.id, type)}
+                      onToggleLike={(_, track, type) =>
+                        toggleLike(track.id, type)
+                      }
                       onDelete={handleDeleteSubTrack}
                     />
                   </div>
@@ -2168,9 +2247,7 @@ const Player: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className={styles.miniPlayer}>
-            {renderMiniPlayer(false)}
-          </div>
+          <div className={styles.miniPlayer}>{renderMiniPlayer(false)}</div>
         </Drawer>
       )}
 
@@ -2178,7 +2255,7 @@ const Player: React.FC = () => {
       {notificationContextHolder}
 
       <Drawer
-        title={t('player.playlistTitle', { count: playlist.length })}
+        title={t("player.playlistTitle", { count: playlist.length })}
         placement="right"
         open={isPlaylistOpen}
         width={"50%"}
@@ -2188,7 +2265,7 @@ const Player: React.FC = () => {
             type="text"
             icon={<AimOutlined />}
             onClick={handleLocateTrack}
-            title={t('player.locateCurrentTrack')}
+            title={t("player.locateCurrentTrack")}
           />
         }
       >
@@ -2210,28 +2287,28 @@ const Player: React.FC = () => {
 
       {/* Timer Modal */}
       <Modal
-        title={t('player.sleepTimer')}
+        title={t("player.sleepTimer")}
         open={isTimerModalOpen}
         onCancel={() => setIsTimerModalOpen(false)}
         onOk={setSleepTimer}
-        okText={t('common.confirm')}
-        cancelText={t('common.cancel')}
+        okText={t("common.confirm")}
+        cancelText={t("common.cancel")}
       >
         <Flex vertical gap={16} style={{ padding: "20px 0" }}>
-          <Text>{t('player.setTimerPrompt')}</Text>
+          <Text>{t("player.setTimerPrompt")}</Text>
           <InputNumber
             min={1}
             max={180}
             value={timerMinutes}
             onChange={(value: number | null) => setTimerMinutes(value || 30)}
-            addonAfter={t('player.minutes')}
+            addonAfter={t("player.minutes")}
             style={{ width: "100%" }}
           />
         </Flex>
       </Modal>
 
       <Modal
-        title={t('player.addToPlaylist')}
+        title={t("player.addToPlaylist")}
         open={isAddToPlaylistModalOpen}
         onCancel={() => setIsAddToPlaylistModalOpen(false)}
         footer={null}
@@ -2245,7 +2322,9 @@ const Player: React.FC = () => {
               className={styles.playlistItem}
             >
               <Text>{item.name}</Text>
-              <Text type="secondary">{t('player.trackCount', { count: item._count?.tracks || 0 })}</Text>
+              <Text type="secondary">
+                {t("player.trackCount", { count: item._count?.tracks || 0 })}
+              </Text>
             </List.Item>
           )}
         />

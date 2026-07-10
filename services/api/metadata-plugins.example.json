@@ -1,0 +1,20 @@
+{
+  "plugins": [
+    {
+      "id": "ximalaya-cover",
+      "name": "喜马拉雅有声书封面插件",
+      "enabled": true,
+      "priority": 5,
+      "type": "http",
+      "endpoint": "http://localhost:18081/scrape",
+      "timeout": 30000,
+      "retry": 0,
+      "filter": {
+        "types": [
+          "audiobook"
+        ],
+        "pathPattern": ".*"
+      }
+    }
+  ]
+}

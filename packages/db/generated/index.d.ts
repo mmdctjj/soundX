@@ -118,6 +118,11 @@ export type Mv = $Result.DefaultSelection<Prisma.$MvPayload>
  * 
  */
 export type TtsChapterTask = $Result.DefaultSelection<Prisma.$TtsChapterTaskPayload>
+/**
+ * Model PluginLog
+ * 
+ */
+export type PluginLog = $Result.DefaultSelection<Prisma.$PluginLogPayload>
 
 /**
  * Enums
@@ -138,6 +143,15 @@ export const FileStatus: {
 
 export type FileStatus = (typeof FileStatus)[keyof typeof FileStatus]
 
+
+export const MetadataSource: {
+  EMBEDDED: 'EMBEDDED',
+  PLUGIN: 'PLUGIN',
+  USER_EDITED: 'USER_EDITED'
+};
+
+export type MetadataSource = (typeof MetadataSource)[keyof typeof MetadataSource]
+
 }
 
 export type TrackType = $Enums.TrackType
@@ -147,6 +161,10 @@ export const TrackType: typeof $Enums.TrackType
 export type FileStatus = $Enums.FileStatus
 
 export const FileStatus: typeof $Enums.FileStatus
+
+export type MetadataSource = $Enums.MetadataSource
+
+export const MetadataSource: typeof $Enums.MetadataSource
 
 /**
  * ##  Prisma Client ʲˢ
@@ -482,6 +500,16 @@ export class PrismaClient<
     * ```
     */
   get ttsChapterTask(): Prisma.TtsChapterTaskDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.pluginLog`: Exposes CRUD operations for the **PluginLog** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PluginLogs
+    * const pluginLogs = await prisma.pluginLog.findMany()
+    * ```
+    */
+  get pluginLog(): Prisma.PluginLogDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -942,7 +970,8 @@ export namespace Prisma {
     TtsUserConfig: 'TtsUserConfig',
     TtsTask: 'TtsTask',
     Mv: 'Mv',
-    TtsChapterTask: 'TtsChapterTask'
+    TtsChapterTask: 'TtsChapterTask',
+    PluginLog: 'PluginLog'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -961,7 +990,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "track" | "album" | "artist" | "audiobookCollection" | "audiobookCollectionAlbum" | "userTrackLike" | "userTrackHistory" | "userAlbumLike" | "userAlbumHistory" | "userAudiobookLike" | "userAudiobookHistory" | "user" | "systemSetting" | "searchRecord" | "device" | "playlist" | "folder" | "ttsUserConfig" | "ttsTask" | "mv" | "ttsChapterTask"
+      modelProps: "track" | "album" | "artist" | "audiobookCollection" | "audiobookCollectionAlbum" | "userTrackLike" | "userTrackHistory" | "userAlbumLike" | "userAlbumHistory" | "userAudiobookLike" | "userAudiobookHistory" | "user" | "systemSetting" | "searchRecord" | "device" | "playlist" | "folder" | "ttsUserConfig" | "ttsTask" | "mv" | "ttsChapterTask" | "pluginLog"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2519,6 +2548,80 @@ export namespace Prisma {
           }
         }
       }
+      PluginLog: {
+        payload: Prisma.$PluginLogPayload<ExtArgs>
+        fields: Prisma.PluginLogFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PluginLogFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PluginLogFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload>
+          }
+          findFirst: {
+            args: Prisma.PluginLogFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PluginLogFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload>
+          }
+          findMany: {
+            args: Prisma.PluginLogFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload>[]
+          }
+          create: {
+            args: Prisma.PluginLogCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload>
+          }
+          createMany: {
+            args: Prisma.PluginLogCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PluginLogCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload>[]
+          }
+          delete: {
+            args: Prisma.PluginLogDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload>
+          }
+          update: {
+            args: Prisma.PluginLogUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload>
+          }
+          deleteMany: {
+            args: Prisma.PluginLogDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PluginLogUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PluginLogUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload>[]
+          }
+          upsert: {
+            args: Prisma.PluginLogUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PluginLogPayload>
+          }
+          aggregate: {
+            args: Prisma.PluginLogAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePluginLog>
+          }
+          groupBy: {
+            args: Prisma.PluginLogGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PluginLogGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PluginLogCountArgs<ExtArgs>
+            result: $Utils.Optional<PluginLogCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -2624,6 +2727,7 @@ export namespace Prisma {
     ttsTask?: TtsTaskOmit
     mv?: MvOmit
     ttsChapterTask?: TtsChapterTaskOmit
+    pluginLog?: PluginLogOmit
   }
 
   /* Types for Logging */
@@ -3232,6 +3336,8 @@ export namespace Prisma {
     status: $Enums.FileStatus | null
     trashedAt: Date | null
     transcodedPath: string | null
+    metadataSource: $Enums.MetadataSource | null
+    metadataProvider: string | null
     artistId: number | null
     albumId: number | null
     folderId: number | null
@@ -3259,6 +3365,8 @@ export namespace Prisma {
     status: $Enums.FileStatus | null
     trashedAt: Date | null
     transcodedPath: string | null
+    metadataSource: $Enums.MetadataSource | null
+    metadataProvider: string | null
     artistId: number | null
     albumId: number | null
     folderId: number | null
@@ -3286,6 +3394,8 @@ export namespace Prisma {
     status: number
     trashedAt: number
     transcodedPath: number
+    metadataSource: number
+    metadataProvider: number
     artistId: number
     albumId: number
     folderId: number
@@ -3337,6 +3447,8 @@ export namespace Prisma {
     status?: true
     trashedAt?: true
     transcodedPath?: true
+    metadataSource?: true
+    metadataProvider?: true
     artistId?: true
     albumId?: true
     folderId?: true
@@ -3364,6 +3476,8 @@ export namespace Prisma {
     status?: true
     trashedAt?: true
     transcodedPath?: true
+    metadataSource?: true
+    metadataProvider?: true
     artistId?: true
     albumId?: true
     folderId?: true
@@ -3391,6 +3505,8 @@ export namespace Prisma {
     status?: true
     trashedAt?: true
     transcodedPath?: true
+    metadataSource?: true
+    metadataProvider?: true
     artistId?: true
     albumId?: true
     folderId?: true
@@ -3505,6 +3621,8 @@ export namespace Prisma {
     status: $Enums.FileStatus
     trashedAt: Date | null
     transcodedPath: string | null
+    metadataSource: $Enums.MetadataSource
+    metadataProvider: string | null
     artistId: number | null
     albumId: number | null
     folderId: number | null
@@ -3551,6 +3669,8 @@ export namespace Prisma {
     status?: boolean
     trashedAt?: boolean
     transcodedPath?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
     artistId?: boolean
     albumId?: boolean
     folderId?: boolean
@@ -3588,6 +3708,8 @@ export namespace Prisma {
     status?: boolean
     trashedAt?: boolean
     transcodedPath?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
     artistId?: boolean
     albumId?: boolean
     folderId?: boolean
@@ -3618,6 +3740,8 @@ export namespace Prisma {
     status?: boolean
     trashedAt?: boolean
     transcodedPath?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
     artistId?: boolean
     albumId?: boolean
     folderId?: boolean
@@ -3648,12 +3772,14 @@ export namespace Prisma {
     status?: boolean
     trashedAt?: boolean
     transcodedPath?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
     artistId?: boolean
     albumId?: boolean
     folderId?: boolean
   }
 
-  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "fileName" | "relativePath" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileCreatedAt" | "fileModifiedAt" | "scanOrder" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "transcodedPath" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
+  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "fileName" | "relativePath" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileCreatedAt" | "fileModifiedAt" | "scanOrder" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "transcodedPath" | "metadataSource" | "metadataProvider" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
   export type TrackInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     artistEntity?: boolean | Track$artistEntityArgs<ExtArgs>
     albumEntity?: boolean | Track$albumEntityArgs<ExtArgs>
@@ -3715,6 +3841,8 @@ export namespace Prisma {
       status: $Enums.FileStatus
       trashedAt: Date | null
       transcodedPath: string | null
+      metadataSource: $Enums.MetadataSource
+      metadataProvider: string | null
       artistId: number | null
       albumId: number | null
       folderId: number | null
@@ -4171,6 +4299,8 @@ export namespace Prisma {
     readonly status: FieldRef<"Track", 'FileStatus'>
     readonly trashedAt: FieldRef<"Track", 'DateTime'>
     readonly transcodedPath: FieldRef<"Track", 'String'>
+    readonly metadataSource: FieldRef<"Track", 'MetadataSource'>
+    readonly metadataProvider: FieldRef<"Track", 'String'>
     readonly artistId: FieldRef<"Track", 'Int'>
     readonly albumId: FieldRef<"Track", 'Int'>
     readonly folderId: FieldRef<"Track", 'Int'>
@@ -4816,6 +4946,8 @@ export namespace Prisma {
     type: $Enums.TrackType | null
     status: $Enums.FileStatus | null
     trashedAt: Date | null
+    metadataSource: $Enums.MetadataSource | null
+    metadataProvider: string | null
   }
 
   export type AlbumMaxAggregateOutputType = {
@@ -4827,6 +4959,8 @@ export namespace Prisma {
     type: $Enums.TrackType | null
     status: $Enums.FileStatus | null
     trashedAt: Date | null
+    metadataSource: $Enums.MetadataSource | null
+    metadataProvider: string | null
   }
 
   export type AlbumCountAggregateOutputType = {
@@ -4838,6 +4972,8 @@ export namespace Prisma {
     type: number
     status: number
     trashedAt: number
+    metadataSource: number
+    metadataProvider: number
     _all: number
   }
 
@@ -4859,6 +4995,8 @@ export namespace Prisma {
     type?: true
     status?: true
     trashedAt?: true
+    metadataSource?: true
+    metadataProvider?: true
   }
 
   export type AlbumMaxAggregateInputType = {
@@ -4870,6 +5008,8 @@ export namespace Prisma {
     type?: true
     status?: true
     trashedAt?: true
+    metadataSource?: true
+    metadataProvider?: true
   }
 
   export type AlbumCountAggregateInputType = {
@@ -4881,6 +5021,8 @@ export namespace Prisma {
     type?: true
     status?: true
     trashedAt?: true
+    metadataSource?: true
+    metadataProvider?: true
     _all?: true
   }
 
@@ -4979,6 +5121,8 @@ export namespace Prisma {
     type: $Enums.TrackType
     status: $Enums.FileStatus
     trashedAt: Date | null
+    metadataSource: $Enums.MetadataSource
+    metadataProvider: string | null
     _count: AlbumCountAggregateOutputType | null
     _avg: AlbumAvgAggregateOutputType | null
     _sum: AlbumSumAggregateOutputType | null
@@ -5009,6 +5153,8 @@ export namespace Prisma {
     type?: boolean
     status?: boolean
     trashedAt?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
     tracks?: boolean | Album$tracksArgs<ExtArgs>
     mvs?: boolean | Album$mvsArgs<ExtArgs>
     likedByUsers?: boolean | Album$likedByUsersArgs<ExtArgs>
@@ -5026,6 +5172,8 @@ export namespace Prisma {
     type?: boolean
     status?: boolean
     trashedAt?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
   }, ExtArgs["result"]["album"]>
 
   export type AlbumSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -5037,6 +5185,8 @@ export namespace Prisma {
     type?: boolean
     status?: boolean
     trashedAt?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
   }, ExtArgs["result"]["album"]>
 
   export type AlbumSelectScalar = {
@@ -5048,9 +5198,11 @@ export namespace Prisma {
     type?: boolean
     status?: boolean
     trashedAt?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
   }
 
-  export type AlbumOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "artist" | "cover" | "year" | "type" | "status" | "trashedAt", ExtArgs["result"]["album"]>
+  export type AlbumOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "artist" | "cover" | "year" | "type" | "status" | "trashedAt" | "metadataSource" | "metadataProvider", ExtArgs["result"]["album"]>
   export type AlbumInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tracks?: boolean | Album$tracksArgs<ExtArgs>
     mvs?: boolean | Album$mvsArgs<ExtArgs>
@@ -5083,6 +5235,8 @@ export namespace Prisma {
       type: $Enums.TrackType
       status: $Enums.FileStatus
       trashedAt: Date | null
+      metadataSource: $Enums.MetadataSource
+      metadataProvider: string | null
     }, ExtArgs["result"]["album"]>
     composites: {}
   }
@@ -5519,6 +5673,8 @@ export namespace Prisma {
     readonly type: FieldRef<"Album", 'TrackType'>
     readonly status: FieldRef<"Album", 'FileStatus'>
     readonly trashedAt: FieldRef<"Album", 'DateTime'>
+    readonly metadataSource: FieldRef<"Album", 'MetadataSource'>
+    readonly metadataProvider: FieldRef<"Album", 'String'>
   }
     
 
@@ -6070,6 +6226,8 @@ export namespace Prisma {
     type: $Enums.TrackType | null
     status: $Enums.FileStatus | null
     trashedAt: Date | null
+    metadataSource: $Enums.MetadataSource | null
+    metadataProvider: string | null
   }
 
   export type ArtistMaxAggregateOutputType = {
@@ -6079,6 +6237,8 @@ export namespace Prisma {
     type: $Enums.TrackType | null
     status: $Enums.FileStatus | null
     trashedAt: Date | null
+    metadataSource: $Enums.MetadataSource | null
+    metadataProvider: string | null
   }
 
   export type ArtistCountAggregateOutputType = {
@@ -6088,6 +6248,8 @@ export namespace Prisma {
     type: number
     status: number
     trashedAt: number
+    metadataSource: number
+    metadataProvider: number
     _all: number
   }
 
@@ -6107,6 +6269,8 @@ export namespace Prisma {
     type?: true
     status?: true
     trashedAt?: true
+    metadataSource?: true
+    metadataProvider?: true
   }
 
   export type ArtistMaxAggregateInputType = {
@@ -6116,6 +6280,8 @@ export namespace Prisma {
     type?: true
     status?: true
     trashedAt?: true
+    metadataSource?: true
+    metadataProvider?: true
   }
 
   export type ArtistCountAggregateInputType = {
@@ -6125,6 +6291,8 @@ export namespace Prisma {
     type?: true
     status?: true
     trashedAt?: true
+    metadataSource?: true
+    metadataProvider?: true
     _all?: true
   }
 
@@ -6221,6 +6389,8 @@ export namespace Prisma {
     type: $Enums.TrackType
     status: $Enums.FileStatus
     trashedAt: Date | null
+    metadataSource: $Enums.MetadataSource
+    metadataProvider: string | null
     _count: ArtistCountAggregateOutputType | null
     _avg: ArtistAvgAggregateOutputType | null
     _sum: ArtistSumAggregateOutputType | null
@@ -6249,6 +6419,8 @@ export namespace Prisma {
     type?: boolean
     status?: boolean
     trashedAt?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
     tracks?: boolean | Artist$tracksArgs<ExtArgs>
     mvs?: boolean | Artist$mvsArgs<ExtArgs>
     _count?: boolean | ArtistCountOutputTypeDefaultArgs<ExtArgs>
@@ -6261,6 +6433,8 @@ export namespace Prisma {
     type?: boolean
     status?: boolean
     trashedAt?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
   }, ExtArgs["result"]["artist"]>
 
   export type ArtistSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -6270,6 +6444,8 @@ export namespace Prisma {
     type?: boolean
     status?: boolean
     trashedAt?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
   }, ExtArgs["result"]["artist"]>
 
   export type ArtistSelectScalar = {
@@ -6279,9 +6455,11 @@ export namespace Prisma {
     type?: boolean
     status?: boolean
     trashedAt?: boolean
+    metadataSource?: boolean
+    metadataProvider?: boolean
   }
 
-  export type ArtistOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "avatar" | "type" | "status" | "trashedAt", ExtArgs["result"]["artist"]>
+  export type ArtistOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "avatar" | "type" | "status" | "trashedAt" | "metadataSource" | "metadataProvider", ExtArgs["result"]["artist"]>
   export type ArtistInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tracks?: boolean | Artist$tracksArgs<ExtArgs>
     mvs?: boolean | Artist$mvsArgs<ExtArgs>
@@ -6303,6 +6481,8 @@ export namespace Prisma {
       type: $Enums.TrackType
       status: $Enums.FileStatus
       trashedAt: Date | null
+      metadataSource: $Enums.MetadataSource
+      metadataProvider: string | null
     }, ExtArgs["result"]["artist"]>
     composites: {}
   }
@@ -6734,6 +6914,8 @@ export namespace Prisma {
     readonly type: FieldRef<"Artist", 'TrackType'>
     readonly status: FieldRef<"Artist", 'FileStatus'>
     readonly trashedAt: FieldRef<"Artist", 'DateTime'>
+    readonly metadataSource: FieldRef<"Artist", 'MetadataSource'>
+    readonly metadataProvider: FieldRef<"Artist", 'String'>
   }
     
 
@@ -27740,6 +27922,1115 @@ export namespace Prisma {
 
 
   /**
+   * Model PluginLog
+   */
+
+  export type AggregatePluginLog = {
+    _count: PluginLogCountAggregateOutputType | null
+    _avg: PluginLogAvgAggregateOutputType | null
+    _sum: PluginLogSumAggregateOutputType | null
+    _min: PluginLogMinAggregateOutputType | null
+    _max: PluginLogMaxAggregateOutputType | null
+  }
+
+  export type PluginLogAvgAggregateOutputType = {
+    id: number | null
+    durationMs: number | null
+  }
+
+  export type PluginLogSumAggregateOutputType = {
+    id: number | null
+    durationMs: number | null
+  }
+
+  export type PluginLogMinAggregateOutputType = {
+    id: number | null
+    pluginId: string | null
+    pluginName: string | null
+    targetPath: string | null
+    targetType: string | null
+    input: string | null
+    output: string | null
+    status: string | null
+    durationMs: number | null
+    message: string | null
+    createdAt: Date | null
+  }
+
+  export type PluginLogMaxAggregateOutputType = {
+    id: number | null
+    pluginId: string | null
+    pluginName: string | null
+    targetPath: string | null
+    targetType: string | null
+    input: string | null
+    output: string | null
+    status: string | null
+    durationMs: number | null
+    message: string | null
+    createdAt: Date | null
+  }
+
+  export type PluginLogCountAggregateOutputType = {
+    id: number
+    pluginId: number
+    pluginName: number
+    targetPath: number
+    targetType: number
+    input: number
+    output: number
+    status: number
+    durationMs: number
+    message: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PluginLogAvgAggregateInputType = {
+    id?: true
+    durationMs?: true
+  }
+
+  export type PluginLogSumAggregateInputType = {
+    id?: true
+    durationMs?: true
+  }
+
+  export type PluginLogMinAggregateInputType = {
+    id?: true
+    pluginId?: true
+    pluginName?: true
+    targetPath?: true
+    targetType?: true
+    input?: true
+    output?: true
+    status?: true
+    durationMs?: true
+    message?: true
+    createdAt?: true
+  }
+
+  export type PluginLogMaxAggregateInputType = {
+    id?: true
+    pluginId?: true
+    pluginName?: true
+    targetPath?: true
+    targetType?: true
+    input?: true
+    output?: true
+    status?: true
+    durationMs?: true
+    message?: true
+    createdAt?: true
+  }
+
+  export type PluginLogCountAggregateInputType = {
+    id?: true
+    pluginId?: true
+    pluginName?: true
+    targetPath?: true
+    targetType?: true
+    input?: true
+    output?: true
+    status?: true
+    durationMs?: true
+    message?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PluginLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PluginLog to aggregate.
+     */
+    where?: PluginLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PluginLogs to fetch.
+     */
+    orderBy?: PluginLogOrderByWithRelationInput | PluginLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PluginLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PluginLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PluginLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PluginLogs
+    **/
+    _count?: true | PluginLogCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PluginLogAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PluginLogSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PluginLogMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PluginLogMaxAggregateInputType
+  }
+
+  export type GetPluginLogAggregateType<T extends PluginLogAggregateArgs> = {
+        [P in keyof T & keyof AggregatePluginLog]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePluginLog[P]>
+      : GetScalarType<T[P], AggregatePluginLog[P]>
+  }
+
+
+
+
+  export type PluginLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PluginLogWhereInput
+    orderBy?: PluginLogOrderByWithAggregationInput | PluginLogOrderByWithAggregationInput[]
+    by: PluginLogScalarFieldEnum[] | PluginLogScalarFieldEnum
+    having?: PluginLogScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PluginLogCountAggregateInputType | true
+    _avg?: PluginLogAvgAggregateInputType
+    _sum?: PluginLogSumAggregateInputType
+    _min?: PluginLogMinAggregateInputType
+    _max?: PluginLogMaxAggregateInputType
+  }
+
+  export type PluginLogGroupByOutputType = {
+    id: number
+    pluginId: string
+    pluginName: string | null
+    targetPath: string
+    targetType: string
+    input: string
+    output: string | null
+    status: string
+    durationMs: number | null
+    message: string | null
+    createdAt: Date
+    _count: PluginLogCountAggregateOutputType | null
+    _avg: PluginLogAvgAggregateOutputType | null
+    _sum: PluginLogSumAggregateOutputType | null
+    _min: PluginLogMinAggregateOutputType | null
+    _max: PluginLogMaxAggregateOutputType | null
+  }
+
+  type GetPluginLogGroupByPayload<T extends PluginLogGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PluginLogGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PluginLogGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PluginLogGroupByOutputType[P]>
+            : GetScalarType<T[P], PluginLogGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PluginLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    pluginId?: boolean
+    pluginName?: boolean
+    targetPath?: boolean
+    targetType?: boolean
+    input?: boolean
+    output?: boolean
+    status?: boolean
+    durationMs?: boolean
+    message?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["pluginLog"]>
+
+  export type PluginLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    pluginId?: boolean
+    pluginName?: boolean
+    targetPath?: boolean
+    targetType?: boolean
+    input?: boolean
+    output?: boolean
+    status?: boolean
+    durationMs?: boolean
+    message?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["pluginLog"]>
+
+  export type PluginLogSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    pluginId?: boolean
+    pluginName?: boolean
+    targetPath?: boolean
+    targetType?: boolean
+    input?: boolean
+    output?: boolean
+    status?: boolean
+    durationMs?: boolean
+    message?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["pluginLog"]>
+
+  export type PluginLogSelectScalar = {
+    id?: boolean
+    pluginId?: boolean
+    pluginName?: boolean
+    targetPath?: boolean
+    targetType?: boolean
+    input?: boolean
+    output?: boolean
+    status?: boolean
+    durationMs?: boolean
+    message?: boolean
+    createdAt?: boolean
+  }
+
+  export type PluginLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pluginId" | "pluginName" | "targetPath" | "targetType" | "input" | "output" | "status" | "durationMs" | "message" | "createdAt", ExtArgs["result"]["pluginLog"]>
+
+  export type $PluginLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PluginLog"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      pluginId: string
+      pluginName: string | null
+      targetPath: string
+      targetType: string
+      input: string
+      output: string | null
+      status: string
+      durationMs: number | null
+      message: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["pluginLog"]>
+    composites: {}
+  }
+
+  type PluginLogGetPayload<S extends boolean | null | undefined | PluginLogDefaultArgs> = $Result.GetResult<Prisma.$PluginLogPayload, S>
+
+  type PluginLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PluginLogFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PluginLogCountAggregateInputType | true
+    }
+
+  export interface PluginLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PluginLog'], meta: { name: 'PluginLog' } }
+    /**
+     * Find zero or one PluginLog that matches the filter.
+     * @param {PluginLogFindUniqueArgs} args - Arguments to find a PluginLog
+     * @example
+     * // Get one PluginLog
+     * const pluginLog = await prisma.pluginLog.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PluginLogFindUniqueArgs>(args: SelectSubset<T, PluginLogFindUniqueArgs<ExtArgs>>): Prisma__PluginLogClient<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PluginLog that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PluginLogFindUniqueOrThrowArgs} args - Arguments to find a PluginLog
+     * @example
+     * // Get one PluginLog
+     * const pluginLog = await prisma.pluginLog.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PluginLogFindUniqueOrThrowArgs>(args: SelectSubset<T, PluginLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PluginLogClient<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PluginLog that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PluginLogFindFirstArgs} args - Arguments to find a PluginLog
+     * @example
+     * // Get one PluginLog
+     * const pluginLog = await prisma.pluginLog.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PluginLogFindFirstArgs>(args?: SelectSubset<T, PluginLogFindFirstArgs<ExtArgs>>): Prisma__PluginLogClient<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PluginLog that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PluginLogFindFirstOrThrowArgs} args - Arguments to find a PluginLog
+     * @example
+     * // Get one PluginLog
+     * const pluginLog = await prisma.pluginLog.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PluginLogFindFirstOrThrowArgs>(args?: SelectSubset<T, PluginLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__PluginLogClient<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PluginLogs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PluginLogFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PluginLogs
+     * const pluginLogs = await prisma.pluginLog.findMany()
+     * 
+     * // Get first 10 PluginLogs
+     * const pluginLogs = await prisma.pluginLog.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const pluginLogWithIdOnly = await prisma.pluginLog.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PluginLogFindManyArgs>(args?: SelectSubset<T, PluginLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PluginLog.
+     * @param {PluginLogCreateArgs} args - Arguments to create a PluginLog.
+     * @example
+     * // Create one PluginLog
+     * const PluginLog = await prisma.pluginLog.create({
+     *   data: {
+     *     // ... data to create a PluginLog
+     *   }
+     * })
+     * 
+     */
+    create<T extends PluginLogCreateArgs>(args: SelectSubset<T, PluginLogCreateArgs<ExtArgs>>): Prisma__PluginLogClient<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PluginLogs.
+     * @param {PluginLogCreateManyArgs} args - Arguments to create many PluginLogs.
+     * @example
+     * // Create many PluginLogs
+     * const pluginLog = await prisma.pluginLog.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PluginLogCreateManyArgs>(args?: SelectSubset<T, PluginLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PluginLogs and returns the data saved in the database.
+     * @param {PluginLogCreateManyAndReturnArgs} args - Arguments to create many PluginLogs.
+     * @example
+     * // Create many PluginLogs
+     * const pluginLog = await prisma.pluginLog.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PluginLogs and only return the `id`
+     * const pluginLogWithIdOnly = await prisma.pluginLog.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PluginLogCreateManyAndReturnArgs>(args?: SelectSubset<T, PluginLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PluginLog.
+     * @param {PluginLogDeleteArgs} args - Arguments to delete one PluginLog.
+     * @example
+     * // Delete one PluginLog
+     * const PluginLog = await prisma.pluginLog.delete({
+     *   where: {
+     *     // ... filter to delete one PluginLog
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PluginLogDeleteArgs>(args: SelectSubset<T, PluginLogDeleteArgs<ExtArgs>>): Prisma__PluginLogClient<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PluginLog.
+     * @param {PluginLogUpdateArgs} args - Arguments to update one PluginLog.
+     * @example
+     * // Update one PluginLog
+     * const pluginLog = await prisma.pluginLog.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PluginLogUpdateArgs>(args: SelectSubset<T, PluginLogUpdateArgs<ExtArgs>>): Prisma__PluginLogClient<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PluginLogs.
+     * @param {PluginLogDeleteManyArgs} args - Arguments to filter PluginLogs to delete.
+     * @example
+     * // Delete a few PluginLogs
+     * const { count } = await prisma.pluginLog.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PluginLogDeleteManyArgs>(args?: SelectSubset<T, PluginLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PluginLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PluginLogUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PluginLogs
+     * const pluginLog = await prisma.pluginLog.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PluginLogUpdateManyArgs>(args: SelectSubset<T, PluginLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PluginLogs and returns the data updated in the database.
+     * @param {PluginLogUpdateManyAndReturnArgs} args - Arguments to update many PluginLogs.
+     * @example
+     * // Update many PluginLogs
+     * const pluginLog = await prisma.pluginLog.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PluginLogs and only return the `id`
+     * const pluginLogWithIdOnly = await prisma.pluginLog.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PluginLogUpdateManyAndReturnArgs>(args: SelectSubset<T, PluginLogUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PluginLog.
+     * @param {PluginLogUpsertArgs} args - Arguments to update or create a PluginLog.
+     * @example
+     * // Update or create a PluginLog
+     * const pluginLog = await prisma.pluginLog.upsert({
+     *   create: {
+     *     // ... data to create a PluginLog
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PluginLog we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PluginLogUpsertArgs>(args: SelectSubset<T, PluginLogUpsertArgs<ExtArgs>>): Prisma__PluginLogClient<$Result.GetResult<Prisma.$PluginLogPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PluginLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PluginLogCountArgs} args - Arguments to filter PluginLogs to count.
+     * @example
+     * // Count the number of PluginLogs
+     * const count = await prisma.pluginLog.count({
+     *   where: {
+     *     // ... the filter for the PluginLogs we want to count
+     *   }
+     * })
+    **/
+    count<T extends PluginLogCountArgs>(
+      args?: Subset<T, PluginLogCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PluginLogCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PluginLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PluginLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PluginLogAggregateArgs>(args: Subset<T, PluginLogAggregateArgs>): Prisma.PrismaPromise<GetPluginLogAggregateType<T>>
+
+    /**
+     * Group by PluginLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PluginLogGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PluginLogGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PluginLogGroupByArgs['orderBy'] }
+        : { orderBy?: PluginLogGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PluginLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPluginLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PluginLog model
+   */
+  readonly fields: PluginLogFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PluginLog.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PluginLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PluginLog model
+   */
+  interface PluginLogFieldRefs {
+    readonly id: FieldRef<"PluginLog", 'Int'>
+    readonly pluginId: FieldRef<"PluginLog", 'String'>
+    readonly pluginName: FieldRef<"PluginLog", 'String'>
+    readonly targetPath: FieldRef<"PluginLog", 'String'>
+    readonly targetType: FieldRef<"PluginLog", 'String'>
+    readonly input: FieldRef<"PluginLog", 'String'>
+    readonly output: FieldRef<"PluginLog", 'String'>
+    readonly status: FieldRef<"PluginLog", 'String'>
+    readonly durationMs: FieldRef<"PluginLog", 'Int'>
+    readonly message: FieldRef<"PluginLog", 'String'>
+    readonly createdAt: FieldRef<"PluginLog", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PluginLog findUnique
+   */
+  export type PluginLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * Filter, which PluginLog to fetch.
+     */
+    where: PluginLogWhereUniqueInput
+  }
+
+  /**
+   * PluginLog findUniqueOrThrow
+   */
+  export type PluginLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * Filter, which PluginLog to fetch.
+     */
+    where: PluginLogWhereUniqueInput
+  }
+
+  /**
+   * PluginLog findFirst
+   */
+  export type PluginLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * Filter, which PluginLog to fetch.
+     */
+    where?: PluginLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PluginLogs to fetch.
+     */
+    orderBy?: PluginLogOrderByWithRelationInput | PluginLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PluginLogs.
+     */
+    cursor?: PluginLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PluginLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PluginLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PluginLogs.
+     */
+    distinct?: PluginLogScalarFieldEnum | PluginLogScalarFieldEnum[]
+  }
+
+  /**
+   * PluginLog findFirstOrThrow
+   */
+  export type PluginLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * Filter, which PluginLog to fetch.
+     */
+    where?: PluginLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PluginLogs to fetch.
+     */
+    orderBy?: PluginLogOrderByWithRelationInput | PluginLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PluginLogs.
+     */
+    cursor?: PluginLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PluginLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PluginLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PluginLogs.
+     */
+    distinct?: PluginLogScalarFieldEnum | PluginLogScalarFieldEnum[]
+  }
+
+  /**
+   * PluginLog findMany
+   */
+  export type PluginLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * Filter, which PluginLogs to fetch.
+     */
+    where?: PluginLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PluginLogs to fetch.
+     */
+    orderBy?: PluginLogOrderByWithRelationInput | PluginLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PluginLogs.
+     */
+    cursor?: PluginLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PluginLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PluginLogs.
+     */
+    skip?: number
+    distinct?: PluginLogScalarFieldEnum | PluginLogScalarFieldEnum[]
+  }
+
+  /**
+   * PluginLog create
+   */
+  export type PluginLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * The data needed to create a PluginLog.
+     */
+    data: XOR<PluginLogCreateInput, PluginLogUncheckedCreateInput>
+  }
+
+  /**
+   * PluginLog createMany
+   */
+  export type PluginLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PluginLogs.
+     */
+    data: PluginLogCreateManyInput | PluginLogCreateManyInput[]
+  }
+
+  /**
+   * PluginLog createManyAndReturn
+   */
+  export type PluginLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * The data used to create many PluginLogs.
+     */
+    data: PluginLogCreateManyInput | PluginLogCreateManyInput[]
+  }
+
+  /**
+   * PluginLog update
+   */
+  export type PluginLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * The data needed to update a PluginLog.
+     */
+    data: XOR<PluginLogUpdateInput, PluginLogUncheckedUpdateInput>
+    /**
+     * Choose, which PluginLog to update.
+     */
+    where: PluginLogWhereUniqueInput
+  }
+
+  /**
+   * PluginLog updateMany
+   */
+  export type PluginLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PluginLogs.
+     */
+    data: XOR<PluginLogUpdateManyMutationInput, PluginLogUncheckedUpdateManyInput>
+    /**
+     * Filter which PluginLogs to update
+     */
+    where?: PluginLogWhereInput
+    /**
+     * Limit how many PluginLogs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PluginLog updateManyAndReturn
+   */
+  export type PluginLogUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * The data used to update PluginLogs.
+     */
+    data: XOR<PluginLogUpdateManyMutationInput, PluginLogUncheckedUpdateManyInput>
+    /**
+     * Filter which PluginLogs to update
+     */
+    where?: PluginLogWhereInput
+    /**
+     * Limit how many PluginLogs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PluginLog upsert
+   */
+  export type PluginLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * The filter to search for the PluginLog to update in case it exists.
+     */
+    where: PluginLogWhereUniqueInput
+    /**
+     * In case the PluginLog found by the `where` argument doesn't exist, create a new PluginLog with this data.
+     */
+    create: XOR<PluginLogCreateInput, PluginLogUncheckedCreateInput>
+    /**
+     * In case the PluginLog was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PluginLogUpdateInput, PluginLogUncheckedUpdateInput>
+  }
+
+  /**
+   * PluginLog delete
+   */
+  export type PluginLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+    /**
+     * Filter which PluginLog to delete.
+     */
+    where: PluginLogWhereUniqueInput
+  }
+
+  /**
+   * PluginLog deleteMany
+   */
+  export type PluginLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PluginLogs to delete
+     */
+    where?: PluginLogWhereInput
+    /**
+     * Limit how many PluginLogs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PluginLog without action
+   */
+  export type PluginLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PluginLog
+     */
+    select?: PluginLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PluginLog
+     */
+    omit?: PluginLogOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -27772,6 +29063,8 @@ export namespace Prisma {
     status: 'status',
     trashedAt: 'trashedAt',
     transcodedPath: 'transcodedPath',
+    metadataSource: 'metadataSource',
+    metadataProvider: 'metadataProvider',
     artistId: 'artistId',
     albumId: 'albumId',
     folderId: 'folderId'
@@ -27788,7 +29081,9 @@ export namespace Prisma {
     year: 'year',
     type: 'type',
     status: 'status',
-    trashedAt: 'trashedAt'
+    trashedAt: 'trashedAt',
+    metadataSource: 'metadataSource',
+    metadataProvider: 'metadataProvider'
   };
 
   export type AlbumScalarFieldEnum = (typeof AlbumScalarFieldEnum)[keyof typeof AlbumScalarFieldEnum]
@@ -27800,7 +29095,9 @@ export namespace Prisma {
     avatar: 'avatar',
     type: 'type',
     status: 'status',
-    trashedAt: 'trashedAt'
+    trashedAt: 'trashedAt',
+    metadataSource: 'metadataSource',
+    metadataProvider: 'metadataProvider'
   };
 
   export type ArtistScalarFieldEnum = (typeof ArtistScalarFieldEnum)[keyof typeof ArtistScalarFieldEnum]
@@ -28024,6 +29321,23 @@ export namespace Prisma {
   export type TtsChapterTaskScalarFieldEnum = (typeof TtsChapterTaskScalarFieldEnum)[keyof typeof TtsChapterTaskScalarFieldEnum]
 
 
+  export const PluginLogScalarFieldEnum: {
+    id: 'id',
+    pluginId: 'pluginId',
+    pluginName: 'pluginName',
+    targetPath: 'targetPath',
+    targetType: 'targetType',
+    input: 'input',
+    output: 'output',
+    status: 'status',
+    durationMs: 'durationMs',
+    message: 'message',
+    createdAt: 'createdAt'
+  };
+
+  export type PluginLogScalarFieldEnum = (typeof PluginLogScalarFieldEnum)[keyof typeof PluginLogScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -28081,6 +29395,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'MetadataSource'
+   */
+  export type EnumMetadataSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MetadataSource'>
+    
+
+
+  /**
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
@@ -28122,6 +29443,8 @@ export namespace Prisma {
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
     transcodedPath?: StringNullableFilter<"Track"> | string | null
+    metadataSource?: EnumMetadataSourceFilter<"Track"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableFilter<"Track"> | string | null
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
     folderId?: IntNullableFilter<"Track"> | number | null
@@ -28158,6 +29481,8 @@ export namespace Prisma {
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
     transcodedPath?: SortOrderInput | SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrderInput | SortOrder
     artistId?: SortOrderInput | SortOrder
     albumId?: SortOrderInput | SortOrder
     folderId?: SortOrderInput | SortOrder
@@ -28197,6 +29522,8 @@ export namespace Prisma {
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
     transcodedPath?: StringNullableFilter<"Track"> | string | null
+    metadataSource?: EnumMetadataSourceFilter<"Track"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableFilter<"Track"> | string | null
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
     folderId?: IntNullableFilter<"Track"> | number | null
@@ -28233,6 +29560,8 @@ export namespace Prisma {
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
     transcodedPath?: SortOrderInput | SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrderInput | SortOrder
     artistId?: SortOrderInput | SortOrder
     albumId?: SortOrderInput | SortOrder
     folderId?: SortOrderInput | SortOrder
@@ -28268,6 +29597,8 @@ export namespace Prisma {
     status?: EnumFileStatusWithAggregatesFilter<"Track"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableWithAggregatesFilter<"Track"> | Date | string | null
     transcodedPath?: StringNullableWithAggregatesFilter<"Track"> | string | null
+    metadataSource?: EnumMetadataSourceWithAggregatesFilter<"Track"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableWithAggregatesFilter<"Track"> | string | null
     artistId?: IntNullableWithAggregatesFilter<"Track"> | number | null
     albumId?: IntNullableWithAggregatesFilter<"Track"> | number | null
     folderId?: IntNullableWithAggregatesFilter<"Track"> | number | null
@@ -28285,6 +29616,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFilter<"Album"> | $Enums.TrackType
     status?: EnumFileStatusFilter<"Album"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Album"> | Date | string | null
+    metadataSource?: EnumMetadataSourceFilter<"Album"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableFilter<"Album"> | string | null
     tracks?: TrackListRelationFilter
     mvs?: MvListRelationFilter
     likedByUsers?: UserAlbumLikeListRelationFilter
@@ -28301,6 +29634,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrderInput | SortOrder
     tracks?: TrackOrderByRelationAggregateInput
     mvs?: MvOrderByRelationAggregateInput
     likedByUsers?: UserAlbumLikeOrderByRelationAggregateInput
@@ -28320,6 +29655,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFilter<"Album"> | $Enums.TrackType
     status?: EnumFileStatusFilter<"Album"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Album"> | Date | string | null
+    metadataSource?: EnumMetadataSourceFilter<"Album"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableFilter<"Album"> | string | null
     tracks?: TrackListRelationFilter
     mvs?: MvListRelationFilter
     likedByUsers?: UserAlbumLikeListRelationFilter
@@ -28336,6 +29673,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrderInput | SortOrder
     _count?: AlbumCountOrderByAggregateInput
     _avg?: AlbumAvgOrderByAggregateInput
     _max?: AlbumMaxOrderByAggregateInput
@@ -28355,6 +29694,8 @@ export namespace Prisma {
     type?: EnumTrackTypeWithAggregatesFilter<"Album"> | $Enums.TrackType
     status?: EnumFileStatusWithAggregatesFilter<"Album"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableWithAggregatesFilter<"Album"> | Date | string | null
+    metadataSource?: EnumMetadataSourceWithAggregatesFilter<"Album"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableWithAggregatesFilter<"Album"> | string | null
   }
 
   export type ArtistWhereInput = {
@@ -28367,6 +29708,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFilter<"Artist"> | $Enums.TrackType
     status?: EnumFileStatusFilter<"Artist"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Artist"> | Date | string | null
+    metadataSource?: EnumMetadataSourceFilter<"Artist"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableFilter<"Artist"> | string | null
     tracks?: TrackListRelationFilter
     mvs?: MvListRelationFilter
   }
@@ -28378,6 +29721,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrderInput | SortOrder
     tracks?: TrackOrderByRelationAggregateInput
     mvs?: MvOrderByRelationAggregateInput
   }
@@ -28392,6 +29737,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFilter<"Artist"> | $Enums.TrackType
     status?: EnumFileStatusFilter<"Artist"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Artist"> | Date | string | null
+    metadataSource?: EnumMetadataSourceFilter<"Artist"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableFilter<"Artist"> | string | null
     tracks?: TrackListRelationFilter
     mvs?: MvListRelationFilter
   }, "id">
@@ -28403,6 +29750,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrderInput | SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrderInput | SortOrder
     _count?: ArtistCountOrderByAggregateInput
     _avg?: ArtistAvgOrderByAggregateInput
     _max?: ArtistMaxOrderByAggregateInput
@@ -28420,6 +29769,8 @@ export namespace Prisma {
     type?: EnumTrackTypeWithAggregatesFilter<"Artist"> | $Enums.TrackType
     status?: EnumFileStatusWithAggregatesFilter<"Artist"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableWithAggregatesFilter<"Artist"> | Date | string | null
+    metadataSource?: EnumMetadataSourceWithAggregatesFilter<"Artist"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableWithAggregatesFilter<"Artist"> | string | null
   }
 
   export type AudiobookCollectionWhereInput = {
@@ -29616,6 +30967,90 @@ export namespace Prisma {
     outputPath?: StringNullableWithAggregatesFilter<"TtsChapterTask"> | string | null
   }
 
+  export type PluginLogWhereInput = {
+    AND?: PluginLogWhereInput | PluginLogWhereInput[]
+    OR?: PluginLogWhereInput[]
+    NOT?: PluginLogWhereInput | PluginLogWhereInput[]
+    id?: IntFilter<"PluginLog"> | number
+    pluginId?: StringFilter<"PluginLog"> | string
+    pluginName?: StringNullableFilter<"PluginLog"> | string | null
+    targetPath?: StringFilter<"PluginLog"> | string
+    targetType?: StringFilter<"PluginLog"> | string
+    input?: StringFilter<"PluginLog"> | string
+    output?: StringNullableFilter<"PluginLog"> | string | null
+    status?: StringFilter<"PluginLog"> | string
+    durationMs?: IntNullableFilter<"PluginLog"> | number | null
+    message?: StringNullableFilter<"PluginLog"> | string | null
+    createdAt?: DateTimeFilter<"PluginLog"> | Date | string
+  }
+
+  export type PluginLogOrderByWithRelationInput = {
+    id?: SortOrder
+    pluginId?: SortOrder
+    pluginName?: SortOrderInput | SortOrder
+    targetPath?: SortOrder
+    targetType?: SortOrder
+    input?: SortOrder
+    output?: SortOrderInput | SortOrder
+    status?: SortOrder
+    durationMs?: SortOrderInput | SortOrder
+    message?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PluginLogWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: PluginLogWhereInput | PluginLogWhereInput[]
+    OR?: PluginLogWhereInput[]
+    NOT?: PluginLogWhereInput | PluginLogWhereInput[]
+    pluginId?: StringFilter<"PluginLog"> | string
+    pluginName?: StringNullableFilter<"PluginLog"> | string | null
+    targetPath?: StringFilter<"PluginLog"> | string
+    targetType?: StringFilter<"PluginLog"> | string
+    input?: StringFilter<"PluginLog"> | string
+    output?: StringNullableFilter<"PluginLog"> | string | null
+    status?: StringFilter<"PluginLog"> | string
+    durationMs?: IntNullableFilter<"PluginLog"> | number | null
+    message?: StringNullableFilter<"PluginLog"> | string | null
+    createdAt?: DateTimeFilter<"PluginLog"> | Date | string
+  }, "id">
+
+  export type PluginLogOrderByWithAggregationInput = {
+    id?: SortOrder
+    pluginId?: SortOrder
+    pluginName?: SortOrderInput | SortOrder
+    targetPath?: SortOrder
+    targetType?: SortOrder
+    input?: SortOrder
+    output?: SortOrderInput | SortOrder
+    status?: SortOrder
+    durationMs?: SortOrderInput | SortOrder
+    message?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PluginLogCountOrderByAggregateInput
+    _avg?: PluginLogAvgOrderByAggregateInput
+    _max?: PluginLogMaxOrderByAggregateInput
+    _min?: PluginLogMinOrderByAggregateInput
+    _sum?: PluginLogSumOrderByAggregateInput
+  }
+
+  export type PluginLogScalarWhereWithAggregatesInput = {
+    AND?: PluginLogScalarWhereWithAggregatesInput | PluginLogScalarWhereWithAggregatesInput[]
+    OR?: PluginLogScalarWhereWithAggregatesInput[]
+    NOT?: PluginLogScalarWhereWithAggregatesInput | PluginLogScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"PluginLog"> | number
+    pluginId?: StringWithAggregatesFilter<"PluginLog"> | string
+    pluginName?: StringNullableWithAggregatesFilter<"PluginLog"> | string | null
+    targetPath?: StringWithAggregatesFilter<"PluginLog"> | string
+    targetType?: StringWithAggregatesFilter<"PluginLog"> | string
+    input?: StringWithAggregatesFilter<"PluginLog"> | string
+    output?: StringNullableWithAggregatesFilter<"PluginLog"> | string | null
+    status?: StringWithAggregatesFilter<"PluginLog"> | string
+    durationMs?: IntNullableWithAggregatesFilter<"PluginLog"> | number | null
+    message?: StringNullableWithAggregatesFilter<"PluginLog"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PluginLog"> | Date | string
+  }
+
   export type TrackCreateInput = {
     name: string
     fileName?: string | null
@@ -29637,6 +31072,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -29670,6 +31107,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -29702,6 +31141,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -29735,6 +31176,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -29768,6 +31211,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -29794,6 +31239,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type TrackUncheckedUpdateManyInput = {
@@ -29818,6 +31265,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -29831,6 +31280,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
     mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
@@ -29847,6 +31298,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
     mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
@@ -29862,6 +31315,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
     mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
@@ -29878,6 +31333,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
     mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
@@ -29894,6 +31351,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
   }
 
   export type AlbumUpdateManyMutationInput = {
@@ -29904,6 +31363,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AlbumUncheckedUpdateManyInput = {
@@ -29915,6 +31376,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ArtistCreateInput = {
@@ -29923,6 +31386,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackCreateNestedManyWithoutArtistEntityInput
     mvs?: MvCreateNestedManyWithoutArtistEntityInput
   }
@@ -29934,6 +31399,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutArtistEntityInput
     mvs?: MvUncheckedCreateNestedManyWithoutArtistEntityInput
   }
@@ -29944,6 +31411,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUpdateManyWithoutArtistEntityNestedInput
     mvs?: MvUpdateManyWithoutArtistEntityNestedInput
   }
@@ -29955,6 +31424,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUncheckedUpdateManyWithoutArtistEntityNestedInput
     mvs?: MvUncheckedUpdateManyWithoutArtistEntityNestedInput
   }
@@ -29966,6 +31437,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
   }
 
   export type ArtistUpdateManyMutationInput = {
@@ -29974,6 +31447,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ArtistUncheckedUpdateManyInput = {
@@ -29983,6 +31458,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type AudiobookCollectionCreateInput = {
@@ -31122,6 +32599,101 @@ export namespace Prisma {
     outputPath?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
+  export type PluginLogCreateInput = {
+    pluginId: string
+    pluginName?: string | null
+    targetPath: string
+    targetType: string
+    input: string
+    output?: string | null
+    status: string
+    durationMs?: number | null
+    message?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PluginLogUncheckedCreateInput = {
+    id?: number
+    pluginId: string
+    pluginName?: string | null
+    targetPath: string
+    targetType: string
+    input: string
+    output?: string | null
+    status: string
+    durationMs?: number | null
+    message?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PluginLogUpdateInput = {
+    pluginId?: StringFieldUpdateOperationsInput | string
+    pluginName?: NullableStringFieldUpdateOperationsInput | string | null
+    targetPath?: StringFieldUpdateOperationsInput | string
+    targetType?: StringFieldUpdateOperationsInput | string
+    input?: StringFieldUpdateOperationsInput | string
+    output?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PluginLogUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    pluginId?: StringFieldUpdateOperationsInput | string
+    pluginName?: NullableStringFieldUpdateOperationsInput | string | null
+    targetPath?: StringFieldUpdateOperationsInput | string
+    targetType?: StringFieldUpdateOperationsInput | string
+    input?: StringFieldUpdateOperationsInput | string
+    output?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PluginLogCreateManyInput = {
+    id?: number
+    pluginId: string
+    pluginName?: string | null
+    targetPath: string
+    targetType: string
+    input: string
+    output?: string | null
+    status: string
+    durationMs?: number | null
+    message?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PluginLogUpdateManyMutationInput = {
+    pluginId?: StringFieldUpdateOperationsInput | string
+    pluginName?: NullableStringFieldUpdateOperationsInput | string | null
+    targetPath?: StringFieldUpdateOperationsInput | string
+    targetType?: StringFieldUpdateOperationsInput | string
+    input?: StringFieldUpdateOperationsInput | string
+    output?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PluginLogUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    pluginId?: StringFieldUpdateOperationsInput | string
+    pluginName?: NullableStringFieldUpdateOperationsInput | string | null
+    targetPath?: StringFieldUpdateOperationsInput | string
+    targetType?: StringFieldUpdateOperationsInput | string
+    input?: StringFieldUpdateOperationsInput | string
+    output?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type IntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[]
@@ -31206,6 +32778,13 @@ export namespace Prisma {
     in?: $Enums.FileStatus[]
     notIn?: $Enums.FileStatus[]
     not?: NestedEnumFileStatusFilter<$PrismaModel> | $Enums.FileStatus
+  }
+
+  export type EnumMetadataSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.MetadataSource | EnumMetadataSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.MetadataSource[]
+    notIn?: $Enums.MetadataSource[]
+    not?: NestedEnumMetadataSourceFilter<$PrismaModel> | $Enums.MetadataSource
   }
 
   export type ArtistNullableScalarRelationFilter = {
@@ -31310,6 +32889,8 @@ export namespace Prisma {
     status?: SortOrder
     trashedAt?: SortOrder
     transcodedPath?: SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
     folderId?: SortOrder
@@ -31348,6 +32929,8 @@ export namespace Prisma {
     status?: SortOrder
     trashedAt?: SortOrder
     transcodedPath?: SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
     folderId?: SortOrder
@@ -31375,6 +32958,8 @@ export namespace Prisma {
     status?: SortOrder
     trashedAt?: SortOrder
     transcodedPath?: SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
     folderId?: SortOrder
@@ -31505,6 +33090,16 @@ export namespace Prisma {
     _max?: NestedEnumFileStatusFilter<$PrismaModel>
   }
 
+  export type EnumMetadataSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.MetadataSource | EnumMetadataSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.MetadataSource[]
+    notIn?: $Enums.MetadataSource[]
+    not?: NestedEnumMetadataSourceWithAggregatesFilter<$PrismaModel> | $Enums.MetadataSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMetadataSourceFilter<$PrismaModel>
+    _max?: NestedEnumMetadataSourceFilter<$PrismaModel>
+  }
+
   export type TrackListRelationFilter = {
     every?: TrackWhereInput
     some?: TrackWhereInput
@@ -31554,6 +33149,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrder
   }
 
   export type AlbumAvgOrderByAggregateInput = {
@@ -31569,6 +33166,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrder
   }
 
   export type AlbumMinOrderByAggregateInput = {
@@ -31580,6 +33179,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrder
   }
 
   export type AlbumSumOrderByAggregateInput = {
@@ -31593,6 +33194,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrder
   }
 
   export type ArtistAvgOrderByAggregateInput = {
@@ -31606,6 +33209,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrder
   }
 
   export type ArtistMinOrderByAggregateInput = {
@@ -31615,6 +33220,8 @@ export namespace Prisma {
     type?: SortOrder
     status?: SortOrder
     trashedAt?: SortOrder
+    metadataSource?: SortOrder
+    metadataProvider?: SortOrder
   }
 
   export type ArtistSumOrderByAggregateInput = {
@@ -32452,6 +34059,58 @@ export namespace Prisma {
     index?: SortOrder
   }
 
+  export type PluginLogCountOrderByAggregateInput = {
+    id?: SortOrder
+    pluginId?: SortOrder
+    pluginName?: SortOrder
+    targetPath?: SortOrder
+    targetType?: SortOrder
+    input?: SortOrder
+    output?: SortOrder
+    status?: SortOrder
+    durationMs?: SortOrder
+    message?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PluginLogAvgOrderByAggregateInput = {
+    id?: SortOrder
+    durationMs?: SortOrder
+  }
+
+  export type PluginLogMaxOrderByAggregateInput = {
+    id?: SortOrder
+    pluginId?: SortOrder
+    pluginName?: SortOrder
+    targetPath?: SortOrder
+    targetType?: SortOrder
+    input?: SortOrder
+    output?: SortOrder
+    status?: SortOrder
+    durationMs?: SortOrder
+    message?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PluginLogMinOrderByAggregateInput = {
+    id?: SortOrder
+    pluginId?: SortOrder
+    pluginName?: SortOrder
+    targetPath?: SortOrder
+    targetType?: SortOrder
+    input?: SortOrder
+    output?: SortOrder
+    status?: SortOrder
+    durationMs?: SortOrder
+    message?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PluginLogSumOrderByAggregateInput = {
+    id?: SortOrder
+    durationMs?: SortOrder
+  }
+
   export type ArtistCreateNestedOneWithoutTracksInput = {
     create?: XOR<ArtistCreateWithoutTracksInput, ArtistUncheckedCreateWithoutTracksInput>
     connectOrCreate?: ArtistCreateOrConnectWithoutTracksInput
@@ -32582,6 +34241,10 @@ export namespace Prisma {
 
   export type EnumFileStatusFieldUpdateOperationsInput = {
     set?: $Enums.FileStatus
+  }
+
+  export type EnumMetadataSourceFieldUpdateOperationsInput = {
+    set?: $Enums.MetadataSource
   }
 
   export type ArtistUpdateOneWithoutTracksNestedInput = {
@@ -34192,6 +35855,13 @@ export namespace Prisma {
     not?: NestedEnumFileStatusFilter<$PrismaModel> | $Enums.FileStatus
   }
 
+  export type NestedEnumMetadataSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.MetadataSource | EnumMetadataSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.MetadataSource[]
+    notIn?: $Enums.MetadataSource[]
+    not?: NestedEnumMetadataSourceFilter<$PrismaModel> | $Enums.MetadataSource
+  }
+
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[]
@@ -34328,6 +35998,16 @@ export namespace Prisma {
     _max?: NestedEnumFileStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumMetadataSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.MetadataSource | EnumMetadataSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.MetadataSource[]
+    notIn?: $Enums.MetadataSource[]
+    not?: NestedEnumMetadataSourceWithAggregatesFilter<$PrismaModel> | $Enums.MetadataSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMetadataSourceFilter<$PrismaModel>
+    _max?: NestedEnumMetadataSourceFilter<$PrismaModel>
+  }
+
   export type NestedBoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
@@ -34363,6 +36043,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     mvs?: MvCreateNestedManyWithoutArtistEntityInput
   }
 
@@ -34373,6 +36055,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     mvs?: MvUncheckedCreateNestedManyWithoutArtistEntityInput
   }
 
@@ -34389,6 +36073,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryCreateNestedManyWithoutAlbumInput
@@ -34404,6 +36090,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryUncheckedCreateNestedManyWithoutAlbumInput
@@ -34608,6 +36296,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     mvs?: MvUpdateManyWithoutArtistEntityNestedInput
   }
 
@@ -34618,6 +36308,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     mvs?: MvUncheckedUpdateManyWithoutArtistEntityNestedInput
   }
 
@@ -34640,6 +36332,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUpdateManyWithoutAlbumNestedInput
@@ -34655,6 +36349,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUncheckedUpdateManyWithoutAlbumNestedInput
@@ -34884,6 +36580,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
     listenedByUsers?: UserTrackHistoryCreateNestedManyWithoutTrackInput
@@ -34916,6 +36614,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     folderId?: number | null
     likedByUsers?: UserTrackLikeUncheckedCreateNestedManyWithoutTrackInput
@@ -35080,6 +36780,8 @@ export namespace Prisma {
     status?: EnumFileStatusFilter<"Track"> | $Enums.FileStatus
     trashedAt?: DateTimeNullableFilter<"Track"> | Date | string | null
     transcodedPath?: StringNullableFilter<"Track"> | string | null
+    metadataSource?: EnumMetadataSourceFilter<"Track"> | $Enums.MetadataSource
+    metadataProvider?: StringNullableFilter<"Track"> | string | null
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
     folderId?: IntNullableFilter<"Track"> | number | null
@@ -35201,6 +36903,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
     listenedByUsers?: UserTrackHistoryCreateNestedManyWithoutTrackInput
@@ -35233,6 +36937,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     albumId?: number | null
     folderId?: number | null
     likedByUsers?: UserTrackLikeUncheckedCreateNestedManyWithoutTrackInput
@@ -35486,6 +37192,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
     mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
@@ -35501,6 +37209,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
     mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
@@ -35561,6 +37271,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
     mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
@@ -35576,6 +37288,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
     mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
@@ -35645,6 +37359,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     listenedByUsers?: UserTrackHistoryCreateNestedManyWithoutTrackInput
@@ -35677,6 +37393,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -35772,6 +37490,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     listenedByUsers?: UserTrackHistoryUpdateManyWithoutTrackNestedInput
@@ -35804,6 +37524,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -35877,6 +37599,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -35909,6 +37633,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -36026,6 +37752,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -36058,6 +37786,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -36146,6 +37876,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
     mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     listenedByUsers?: UserAlbumHistoryCreateNestedManyWithoutAlbumInput
@@ -36161,6 +37893,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
     mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     listenedByUsers?: UserAlbumHistoryUncheckedCreateNestedManyWithoutAlbumInput
@@ -36239,6 +37973,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
     mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     listenedByUsers?: UserAlbumHistoryUpdateManyWithoutAlbumNestedInput
@@ -36254,6 +37990,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
     mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     listenedByUsers?: UserAlbumHistoryUncheckedUpdateManyWithoutAlbumNestedInput
@@ -36310,6 +38048,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
     mvs?: MvCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
@@ -36325,6 +38065,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
     mvs?: MvUncheckedCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
@@ -36403,6 +38145,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
     mvs?: MvUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
@@ -36418,6 +38162,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
     mvs?: MvUncheckedUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
@@ -36487,6 +38233,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -36519,6 +38267,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -36614,6 +38364,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -36646,6 +38398,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -36719,6 +38473,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -36751,6 +38507,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -36846,6 +38604,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -36878,6 +38638,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -37600,6 +39362,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -37632,6 +39396,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -37780,6 +39546,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -37812,6 +39580,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
     likedByUsers?: UserTrackLikeUncheckedCreateNestedManyWithoutTrackInput
@@ -37963,6 +39733,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackCreateNestedManyWithoutArtistEntityInput
   }
 
@@ -37973,6 +39745,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutArtistEntityInput
   }
 
@@ -37989,6 +39763,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryCreateNestedManyWithoutAlbumInput
@@ -38004,6 +39780,8 @@ export namespace Prisma {
     type?: $Enums.TrackType
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     tracks?: TrackUncheckedCreateNestedManyWithoutAlbumEntityInput
     likedByUsers?: UserAlbumLikeUncheckedCreateNestedManyWithoutAlbumInput
     listenedByUsers?: UserAlbumHistoryUncheckedCreateNestedManyWithoutAlbumInput
@@ -38036,6 +39814,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -38068,6 +39848,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
     folderId?: number | null
@@ -38100,6 +39882,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUpdateManyWithoutArtistEntityNestedInput
   }
 
@@ -38110,6 +39894,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUncheckedUpdateManyWithoutArtistEntityNestedInput
   }
 
@@ -38132,6 +39918,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUpdateManyWithoutAlbumNestedInput
@@ -38147,6 +39935,8 @@ export namespace Prisma {
     type?: EnumTrackTypeFieldUpdateOperationsInput | $Enums.TrackType
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     tracks?: TrackUncheckedUpdateManyWithoutAlbumEntityNestedInput
     likedByUsers?: UserAlbumLikeUncheckedUpdateManyWithoutAlbumNestedInput
     listenedByUsers?: UserAlbumHistoryUncheckedUpdateManyWithoutAlbumNestedInput
@@ -38185,6 +39975,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -38217,6 +40009,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -38530,6 +40324,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     folderId?: number | null
   }
@@ -38591,6 +40387,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
     listenedByUsers?: UserTrackHistoryUpdateManyWithoutTrackNestedInput
@@ -38623,6 +40421,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
     likedByUsers?: UserTrackLikeUncheckedUpdateManyWithoutTrackNestedInput
@@ -38655,6 +40455,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
   }
@@ -38785,6 +40587,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     albumId?: number | null
     folderId?: number | null
   }
@@ -38827,6 +40631,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
     listenedByUsers?: UserTrackHistoryUpdateManyWithoutTrackNestedInput
@@ -38859,6 +40665,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
     likedByUsers?: UserTrackLikeUncheckedUpdateManyWithoutTrackNestedInput
@@ -38891,6 +40699,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
   }
@@ -39316,6 +41126,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -39348,6 +41160,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -39380,6 +41194,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -39414,6 +41230,8 @@ export namespace Prisma {
     status?: $Enums.FileStatus
     trashedAt?: Date | string | null
     transcodedPath?: string | null
+    metadataSource?: $Enums.MetadataSource
+    metadataProvider?: string | null
     artistId?: number | null
     albumId?: number | null
   }
@@ -39463,6 +41281,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -39495,6 +41315,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     likedByUsers?: UserTrackLikeUncheckedUpdateManyWithoutTrackNestedInput
@@ -39527,6 +41349,8 @@ export namespace Prisma {
     status?: EnumFileStatusFieldUpdateOperationsInput | $Enums.FileStatus
     trashedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
+    metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
+    metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
   }

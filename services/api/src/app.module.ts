@@ -30,6 +30,7 @@ import { UserAudiobookLikeController } from './controllers/user-audiobook-like';
 import { UserTrackHistoryController } from './controllers/user-track-history';
 import { UserTrackLikeController } from './controllers/user-track-like';
 import { WebDavSourcesController } from './controllers/webdav-sources.controller';
+import { MetadataPluginsController } from './controllers/metadata-plugins.controller';
 import { WebDavSyncController } from './controllers/webdav-sync.controller';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { SyncGateway } from './gateways/sync.gateway';
@@ -56,6 +57,7 @@ import { DatabaseSchemaService } from './services/database-schema.service';
 import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
 import { WebDavConfigService } from './services/webdav-config.service';
+import { MetadataPluginService } from './services/metadata-plugin.service';
 
 @Module({
   imports: [
@@ -107,6 +109,7 @@ import { WebDavConfigService } from './services/webdav-config.service';
     LlmConfigController,
     MvController,
     WebDavSourcesController,
+    MetadataPluginsController,
     WebDavSyncController,
   ],
   providers: [
@@ -146,6 +149,7 @@ import { WebDavConfigService } from './services/webdav-config.service';
     MvService,
     SyncGateway,
     WebDavConfigService,
+    MetadataPluginService,
   ],
 })
 export class AppModule { }

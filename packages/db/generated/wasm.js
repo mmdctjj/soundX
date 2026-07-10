@@ -139,6 +139,8 @@ exports.Prisma.TrackScalarFieldEnum = {
   status: 'status',
   trashedAt: 'trashedAt',
   transcodedPath: 'transcodedPath',
+  metadataSource: 'metadataSource',
+  metadataProvider: 'metadataProvider',
   artistId: 'artistId',
   albumId: 'albumId',
   folderId: 'folderId'
@@ -152,7 +154,9 @@ exports.Prisma.AlbumScalarFieldEnum = {
   year: 'year',
   type: 'type',
   status: 'status',
-  trashedAt: 'trashedAt'
+  trashedAt: 'trashedAt',
+  metadataSource: 'metadataSource',
+  metadataProvider: 'metadataProvider'
 };
 
 exports.Prisma.ArtistScalarFieldEnum = {
@@ -161,7 +165,9 @@ exports.Prisma.ArtistScalarFieldEnum = {
   avatar: 'avatar',
   type: 'type',
   status: 'status',
-  trashedAt: 'trashedAt'
+  trashedAt: 'trashedAt',
+  metadataSource: 'metadataSource',
+  metadataProvider: 'metadataProvider'
 };
 
 exports.Prisma.AudiobookCollectionScalarFieldEnum = {
@@ -328,6 +334,20 @@ exports.Prisma.TtsChapterTaskScalarFieldEnum = {
   outputPath: 'outputPath'
 };
 
+exports.Prisma.PluginLogScalarFieldEnum = {
+  id: 'id',
+  pluginId: 'pluginId',
+  pluginName: 'pluginName',
+  targetPath: 'targetPath',
+  targetType: 'targetType',
+  input: 'input',
+  output: 'output',
+  status: 'status',
+  durationMs: 'durationMs',
+  message: 'message',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -345,6 +365,12 @@ exports.TrackType = exports.$Enums.TrackType = {
 exports.FileStatus = exports.$Enums.FileStatus = {
   ACTIVE: 'ACTIVE',
   TRASHED: 'TRASHED'
+};
+
+exports.MetadataSource = exports.$Enums.MetadataSource = {
+  EMBEDDED: 'EMBEDDED',
+  PLUGIN: 'PLUGIN',
+  USER_EDITED: 'USER_EDITED'
 };
 
 exports.Prisma.ModelName = {
@@ -368,7 +394,8 @@ exports.Prisma.ModelName = {
   TtsUserConfig: 'TtsUserConfig',
   TtsTask: 'TtsTask',
   Mv: 'Mv',
-  TtsChapterTask: 'TtsChapterTask'
+  TtsChapterTask: 'TtsChapterTask',
+  PluginLog: 'PluginLog'
 };
 
 /**

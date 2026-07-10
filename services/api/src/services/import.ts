@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Album, FileStatus, PrismaClient, TrackType } from '@soundx/db';
+import { Album, FileStatus, MetadataSource, PrismaClient, TrackType } from '@soundx/db';
 import { LocalMusicScanner, readLyricsFile, ScanResult, WebDAVScanner } from '@soundx/utils';
 import { spawn } from 'child_process';
 import * as chokidar from 'chokidar';
@@ -11,6 +11,7 @@ import { LogMethod } from '../common/log-method.decorator';
 import { resolvePathList } from '../common/path-list';
 import { AlbumService } from './album';
 import { ArtistService } from './artist';
+import { MetadataPluginService } from './metadata-plugin.service';
 import { TrackService } from './track';
 import { WebDavConfigService, WebDavPathKind, WebDavSource } from './webdav-config.service';
 
@@ -71,6 +72,7 @@ export class ImportService implements OnModuleInit {
     private readonly albumService: AlbumService,
     private readonly artistService: ArtistService,
     private readonly webDavConfig: WebDavConfigService,
+    private readonly metadataPluginService: MetadataPluginService,
   ) {
     this.prisma = new PrismaClient();
   }
@@ -366,8 +368,9 @@ export class ImportService implements OnModuleInit {
   private convertToHttpUrl(localPath: string, type: 'cover' | 'audio' | 'music', basePath: string): string {
     const relativePath = path.relative(basePath, localPath);
     if (type === 'cover') {
-      const filename = path.basename(localPath);
-      return `/covers/${filename}`;
+      // Preserve subdirectories (e.g. plugin-covers/hash.jpg) so static server can find the file
+      const normalizedRelativePath = relativePath.replace(/\\/g, '/');
+      return `/covers/${normalizedRelativePath}`;
     } else {
       return `/${type}/${relativePath}`;
     }
@@ -946,7 +949,12 @@ export class ImportService implements OnModuleInit {
           return;
         }
 
-        let audioUrl = metadata.path.startsWith('http') ? metadata.path : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
+        // Enrich metadata via user-configured plugins
+        const enriched = await this.metadataPluginService.enrich(metadata, type, { cachePath });
+        const metadataSource = (enriched as any).__metadataSource || MetadataSource.EMBEDDED;
+        const metadataProvider = (enriched as any).__metadataProvider || null;
+
+        let audioUrl = enriched.path.startsWith('http') ? enriched.path : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
         this.logger.log(`[Watcher] Audio URL: ${audioUrl}`);
 
         // Audio transcode for incompatible formats on change
@@ -975,27 +983,29 @@ export class ImportService implements OnModuleInit {
         const targetTrack = track || await this.trackService.findByPath(audioUrl);
 
         if (targetTrack) {
-          const coverUrl = metadata.coverPath ? this.convertToHttpUrl(metadata.coverPath, 'cover', cachePath) : null;
-          const sortFields = this.getTrackSortFields(metadata.originalPath || filePath, basePath);
+          const coverUrl = enriched.coverPath ? this.convertToHttpUrl(enriched.coverPath, 'cover', cachePath) : null;
+          const sortFields = this.getTrackSortFields(enriched.originalPath || filePath, basePath);
 
-          this.logger.log(`[Watcher] Updating track ${targetTrack.id} - cover: ${coverUrl}, lyrics: ${!!metadata.lyrics}`);
+          this.logger.log(`[Watcher] Updating track ${targetTrack.id} - cover: ${coverUrl}, lyrics: ${!!enriched.lyrics}`);
 
           await this.prisma.track.update({
             where: { id: targetTrack.id },
             data: {
-              name: metadata.title || path.basename(filePath),
-              duration: Math.round(metadata.duration || 0),
+              name: enriched.title || path.basename(filePath),
+              duration: Math.round(enriched.duration || 0),
               fileHash: hash,
-              fileModifiedAt: metadata?.mtime ? new Date(metadata.mtime) : fs.statSync(filePath).mtime,
-              cover: coverUrl,
-              lyrics: metadata.lyrics || null,
-              artist: metadata.artist || targetTrack.artist,
-              album: metadata.album || targetTrack.album,
+              fileModifiedAt: enriched?.mtime ? new Date(enriched.mtime) : fs.statSync(filePath).mtime,
+              cover: metadataSource === MetadataSource.PLUGIN && coverUrl ? coverUrl : targetTrack.cover,
+              lyrics: enriched.lyrics || null,
+              artist: enriched.artist || targetTrack.artist,
+              album: enriched.album || targetTrack.album,
               fileName: sortFields.fileName,
               relativePath: sortFields.relativePath,
               fileCreatedAt: sortFields.fileCreatedAt,
               path: finalAudioUrl,
               transcodedPath: transcodedPath || targetTrack.transcodedPath,
+              metadataSource,
+              metadataProvider,
             }
           });
 
@@ -1761,7 +1771,9 @@ export class ImportService implements OnModuleInit {
           avatar: finalCoverUrl,
           type: TrackType.MUSIC,
           status: FileStatus.ACTIVE,
-          trashedAt: null
+          trashedAt: null,
+          metadataSource: MetadataSource.EMBEDDED,
+          metadataProvider: null,
         });
       } else if (art.status === FileStatus.TRASHED) {
         await this.artistService.updateArtist(art.id, { status: FileStatus.ACTIVE, trashedAt: null });
@@ -1782,7 +1794,9 @@ export class ImportService implements OnModuleInit {
         year: item.year ? String(item.year) : null,
         type: TrackType.MUSIC,
         status: FileStatus.ACTIVE,
-        trashedAt: null
+        trashedAt: null,
+        metadataSource: MetadataSource.EMBEDDED,
+        metadataProvider: null,
       });
     } else if (album.status === FileStatus.TRASHED) {
       await this.albumService.updateAlbum(album.id, { status: FileStatus.ACTIVE, trashedAt: null });
@@ -1844,6 +1858,19 @@ export class ImportService implements OnModuleInit {
       return null;
     }
 
+    // Enrich metadata via user-configured plugins
+    item = await this.metadataPluginService.enrich(item, type, {
+      cachePath,
+      audioBasePath,
+      audioUrl,
+      folderId,
+      hash,
+    });
+
+    // Determine metadata source for database records
+    const metadataSource = (item as any).__metadataSource || MetadataSource.EMBEDDED;
+    const metadataProvider = (item as any).__metadataProvider || null;
+
     // Audio transcode for incompatible formats
     let finalAudioUrl = audioUrl;
     let transcodedPath: string | null = null;
@@ -1880,7 +1907,9 @@ export class ImportService implements OnModuleInit {
           avatar: coverUrl, // Use current cover for now
           type: type,
           status: FileStatus.ACTIVE,
-          trashedAt: null
+          trashedAt: null,
+          metadataSource,
+          metadataProvider,
         });
       } else if (art.status === FileStatus.TRASHED) {
         await this.artistService.updateArtist(art.id, { status: FileStatus.ACTIVE, trashedAt: null });
@@ -1905,7 +1934,9 @@ export class ImportService implements OnModuleInit {
             avatar: coverUrl,
             type: type,
             status: FileStatus.ACTIVE,
-            trashedAt: null
+            trashedAt: null,
+            metadataSource,
+            metadataProvider,
           });
         } else if (albumArtistEntity.status === FileStatus.TRASHED) {
           await this.artistService.updateArtist(albumArtistEntity.id, { status: FileStatus.ACTIVE, trashedAt: null });
@@ -1944,7 +1975,9 @@ export class ImportService implements OnModuleInit {
           year: item.year ? String(item.year) : null,
           type: type,
           status: FileStatus.ACTIVE,
-          trashedAt: null
+          trashedAt: null,
+          metadataSource,
+          metadataProvider,
         });
       } else if (album.status === FileStatus.TRASHED) {
         await this.albumService.updateAlbum(album.id, { status: FileStatus.ACTIVE, trashedAt: null });
@@ -1988,8 +2021,10 @@ export class ImportService implements OnModuleInit {
           // artist: artistName, // Optional: Update denormalized artist name if needed, but schema says it's string
           albumId: album.id,
           // album: albumName,   // Optional: Update denormalized album name
-          cover: coverUrl || existingTrack.cover,
+          cover: metadataSource === MetadataSource.PLUGIN && coverUrl ? coverUrl : existingTrack.cover,
           transcodedPath: transcodedPath || existingTrack.transcodedPath,
+          metadataSource,
+          metadataProvider,
         }
       });
 
@@ -2024,6 +2059,8 @@ export class ImportService implements OnModuleInit {
         status: FileStatus.ACTIVE,
         trashedAt: null,
         transcodedPath: transcodedPath,
+        metadataSource,
+        metadataProvider,
       } as any);
       return createdTrack.id;
     }
