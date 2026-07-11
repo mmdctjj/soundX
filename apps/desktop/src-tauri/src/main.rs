@@ -1,3 +1,5 @@
+#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
+
 use std::sync::{Arc, Mutex};
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
