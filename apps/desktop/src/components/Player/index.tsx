@@ -2033,18 +2033,18 @@ const Player: React.FC = () => {
       {!isFullPlayerVisible && (
         <div className={styles.miniPlayer}>{renderMiniPlayer(true)}</div>
       )}
-      {isFullPlayerVisible && (
-        <Drawer
-          placement="bottom"
-          height="100%"
-          open={isFullPlayerVisible}
-          onClose={() => setIsFullPlayerVisible(false)}
-          classNames={{ body: styles.fullPlayerBody }}
-          styles={{
-            header: { display: "none" },
-          }}
-          closeIcon={null}
-        >
+      <Drawer
+        placement="bottom"
+        height="100%"
+        open={isFullPlayerVisible}
+        onClose={() => setIsFullPlayerVisible(false)}
+        classNames={{ body: styles.fullPlayerBody }}
+        styles={{
+          header: { display: "none" },
+        }}
+        closeIcon={null}
+        destroyOnClose={false}
+      >
           <div className={styles.fullPlayerContent}>
             {/* Close Button */}
             <div className={styles.fullPlayerClose}>
@@ -2249,7 +2249,6 @@ const Player: React.FC = () => {
           </div>
           <div className={styles.miniPlayer}>{renderMiniPlayer(false)}</div>
         </Drawer>
-      )}
 
       {modalContextHolder}
       {notificationContextHolder}

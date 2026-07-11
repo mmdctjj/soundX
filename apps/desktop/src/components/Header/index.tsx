@@ -79,7 +79,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { isEmbySource, isSubsonicSource } from "../../utils";
-import { isWeb, isWindows, isTauri, tauriOpenExternal } from "../../utils/platform";
+import { isWeb, isWindows, tauriCloseWindow, tauriMaximizeWindow, tauriMinimizeWindow, tauriOpenExternal } from "../../utils/platform";
 import { usePlayMode } from "../../utils/playMode";
 import SearchResults from "../SearchResults";
 import styles from "./index.module.less";
@@ -1355,31 +1355,19 @@ const Header: React.FC = () => {
           <Flex className={styles.winControls}>
             <div
               className={styles.winControlBtn}
-              onClick={() => {
-                if (isTauri()) {
-                  invoke("minimize_window").catch(console.error);
-                }
-              }}
+              onClick={() => { tauriMinimizeWindow(); }}
             >
               <MinusOutlined />
             </div>
             <div
               className={styles.winControlBtn}
-              onClick={() => {
-                if (isTauri()) {
-                  invoke("maximize_window").catch(console.error);
-                }
-              }}
+              onClick={() => { tauriMaximizeWindow(); }}
             >
               <BorderOutlined />
             </div>
             <div
               className={`${styles.winControlBtn} ${styles.winCloseBtn}`}
-              onClick={() => {
-                if (isTauri()) {
-                  invoke("close_window").catch(console.error);
-                }
-              }}
+              onClick={() => { tauriCloseWindow(); }}
             >
               <CloseOutlined />
             </div>

@@ -21,12 +21,14 @@
         "transparent": true,
         "decorations": true,
         "titleBarStyle": "Overlay",
-        "windowEffects": {
-          "effects": ["popover"],
-          "state": "active"
-        },
         "center": true,
-        "visible": true
+        "visible": true,
+        "windowEffects": {
+          "effects": [
+            "popover"
+          ],
+          "state": "active"
+        }
       }
     ],
     "security": {
@@ -34,7 +36,11 @@
       "assetProtocol": {
         "enable": true,
         "scope": {
-          "allow": ["$APPDATA/**", "$HOME/**", "$DOWNLOAD/**"],
+          "allow": [
+            "$APPDATA/**",
+            "$HOME/**",
+            "$DOWNLOAD/**"
+          ],
           "requirePathLiteral": true,
           "deny": []
         }
@@ -43,7 +49,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "nsis", "appimage", "deb"],
+    "targets": [
+      "dmg",
+      "nsis",
+      "appimage",
+      "deb"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -69,7 +80,10 @@
     },
     "linux": {
       "deb": {
-        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0"
+        ]
       }
     }
   },
