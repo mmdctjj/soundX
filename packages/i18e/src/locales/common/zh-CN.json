@@ -77,7 +77,9 @@
     "noFilePath": "暂无文件路径",
     "loadingCount": "共加载 {{count}}",
     "and": "和",
-    "property": "属性"
+    "property": "属性",
+    "tags": "标签",
+    "description": "简介"
   },
   "nav": {
     "library": "音乐库",
@@ -1806,10 +1808,12 @@
     "title": "专辑",
     "artist": "艺术家",
     "tracks": "曲目",
-    "description": "简介",
+    "description": "专辑简介",
     "publishDate": "发行日期",
     "albumDetail": "专辑详情",
-    "playAll": "播放全部"
+    "playAll": "播放全部",
+    "tags": "专辑标签",
+    "noDescription": "暂无专辑简介"
   },
   "artist": {
     "title": "艺术家",
@@ -1818,7 +1822,10 @@
     "bio": "简介",
     "allAlbums": "所有专辑",
     "collabAlbums": "合作专辑",
-    "allTracks": "所有单曲"
+    "allTracks": "所有单曲",
+    "description": "艺术家简介",
+    "tags": "艺术家标签",
+    "noDescription": "暂无艺术家简介"
   },
   "tts": {
     "title": "TTS有声书",

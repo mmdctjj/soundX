@@ -50,6 +50,7 @@ export interface PluginInput {
 }
 
 export interface PluginOutput {
+  // Track-level
   title?: string;
   artist?: string;
   album?: string;
@@ -58,10 +59,19 @@ export interface PluginOutput {
   year?: string | number;
   trackNo?: number;
   lyrics?: string;
+  tags?: string[];
   cover?: { source: 'url' | 'local'; value: string };
   provider?: string;
   confidence?: number;
   raw?: Record<string, any>;
+
+  // Album-level (enriches Album row when persisted via ImportService)
+  albumDescription?: string;
+  albumTags?: string[];
+
+  // Artist-level (enriches Artist row when persisted via ImportService)
+  artistDescription?: string;
+  artistTags?: string[];
 }
 
 export interface EnrichContext {
@@ -351,13 +361,21 @@ export class MetadataPluginService implements OnModuleInit {
       merged.track = { ...(merged.track || {}), no: output.trackNo };
     }
     if (output.lyrics !== undefined) merged.lyrics = output.lyrics;
+    if (output.tags !== undefined && output.tags.length > 0) {
+      (merged as any).__trackTags = this.mergeTagLists(
+        (merged as any).__trackTags,
+        output.tags,
+      );
+    }
 
     if (output.cover) {
+      this.logger.log(`[plugin] cover source=${output.cover.source} url=${output.cover.value.slice(0, 60)}... cachePath=${cachePath}`);
       if (output.cover.source === 'url') {
         const downloadedPath = await this.downloadCover(
           output.cover.value,
           cachePath,
         );
+        this.logger.log(`[plugin] cover download result: ${downloadedPath ?? 'null'}`);
         if (downloadedPath) {
           merged.coverPath = downloadedPath;
         }
@@ -365,8 +383,49 @@ export class MetadataPluginService implements OnModuleInit {
         merged.coverPath = output.cover.value;
       }
     }
+    this.logger.log(`[plugin] merged.coverPath=${merged.coverPath ?? 'undefined'}`);
+
+    // Album-level enrichment: first plugin wins for description, tags are union-merged
+    if (output.albumDescription !== undefined) {
+      if (!(merged as any).__albumDescription) {
+        (merged as any).__albumDescription = output.albumDescription;
+      }
+    }
+    if (output.albumTags !== undefined && output.albumTags.length > 0) {
+      (merged as any).__albumTags = this.mergeTagLists(
+        (merged as any).__albumTags,
+        output.albumTags,
+      );
+    }
+
+    // Artist-level enrichment
+    if (output.artistDescription !== undefined) {
+      if (!(merged as any).__artistDescription) {
+        (merged as any).__artistDescription = output.artistDescription;
+      }
+    }
+    if (output.artistTags !== undefined && output.artistTags.length > 0) {
+      (merged as any).__artistTags = this.mergeTagLists(
+        (merged as any).__artistTags,
+        output.artistTags,
+      );
+    }
 
     return merged;
+  }
+
+  private mergeTagLists(existing: string[] | undefined, incoming: string[]): string[] {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const t of [...(existing ?? []), ...incoming]) {
+      const v = (t ?? '').trim();
+      if (!v) continue;
+      const key = v.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(v);
+    }
+    return result;
   }
 
   private async downloadCover(
@@ -374,30 +433,41 @@ export class MetadataPluginService implements OnModuleInit {
     cachePath: string,
   ): Promise<string | null> {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type') || '';
-      const ext = this.mimeToExt(contentType) || 'jpg';
+      // Handle data: URLs (e.g. data:image/png;base64,XXX) emitted by mock
+      // or in-process generators. Node's global fetch does not accept them.
+      const dataMatch = url.match(/^data:([^;,]+);base64,(.+)$/);
+      const buffer = dataMatch
+        ? Buffer.from(dataMatch[2], 'base64')
+        : await this.fetchAsBuffer(url);
+      const mime = dataMatch ? dataMatch[1] : '';
+      const ext = this.mimeToExt(mime) || 'jpg';
       const hash = crypto.createHash('md5').update(url).digest('hex');
-      const coverDir = path.join(cachePath, 'plugin-covers');
-      if (!fs.existsSync(coverDir)) {
-        fs.mkdirSync(coverDir, { recursive: true });
+      // Save directly into the cache root (flat, alongside embedded covers) so the static
+      // server exposes it at /covers/<hash>.<ext> without an extra subdirectory.
+      if (!fs.existsSync(cachePath)) {
+        fs.mkdirSync(cachePath, { recursive: true });
       }
-      const savePath = path.join(coverDir, `${hash}.${ext}`);
+      const savePath = path.join(cachePath, `${hash}.${ext}`);
 
-      const buffer = Buffer.from(await response.arrayBuffer());
       fs.writeFileSync(savePath, buffer);
       return savePath;
     } catch (error) {
       this.logger.warn(`Failed to download cover from ${url}: ${error}`);
       return null;
+    }
+  }
+
+  private async fetchAsBuffer(url: string): Promise<Buffer> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return Buffer.from(await response.arrayBuffer());
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

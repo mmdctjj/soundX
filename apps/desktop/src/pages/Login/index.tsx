@@ -102,6 +102,18 @@ const Login: React.FC = () => {
     return rest;
   };
 
+  // Server response shape: { code, message, data }. Treat any non-200 code as failure
+  // so the outer catch handler can surface the message to the user via messageApi.error.
+  // Declared as a function (not a const arrow) so the `asserts` signature is recognized
+  // at call sites - arrow consts with asserts trip TS2775 in .tsx builds.
+  function ensureSuccess<T extends { code?: number; message?: string }>(
+    res: T,
+  ): asserts res is T & { code: 200; message: string } {
+    if (res?.code !== 200) {
+      throw new Error(res?.message || t("common.operationFailed"));
+    }
+  }
+
   const getSourceHistoryKey = (type: string) => `serverHistory_${type}`;
   const getSourceAddressKey = (type: string) => `serverAddress_${type}`;
 
@@ -459,6 +471,7 @@ const Login: React.FC = () => {
 
       if (isLogin) {
         const res = await login({ username, password });
+        ensureSuccess(res);
         if (res.data) {
           const { token: newToken, device } = res.data;
           const userData = normalizeLoginUser(res.data);
@@ -480,6 +493,7 @@ const Login: React.FC = () => {
         }
       } else {
         const res = await register({ username, password });
+        ensureSuccess(res);
         if (res.data) {
           const { token: newToken, device } = res.data;
           const userData = normalizeLoginUser(res.data);

@@ -79,7 +79,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { isEmbySource, isSubsonicSource } from "../../utils";
-import { isWeb, isWindows, tauriCloseWindow, tauriMaximizeWindow, tauriMinimizeWindow, tauriOpenExternal } from "../../utils/platform";
+import { isTauri, isWeb, isWindows, tauriCloseWindow, tauriMaximizeWindow, tauriMinimizeWindow, tauriOpenExternal } from "../../utils/platform";
 import { usePlayMode } from "../../utils/playMode";
 import SearchResults from "../SearchResults";
 import styles from "./index.module.less";

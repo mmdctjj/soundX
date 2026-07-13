@@ -48,9 +48,12 @@ const ForgotPassword: React.FC = () => {
       } else {
         messageApi.error(res.message || t('forgotPassword.verifyFailed'));
       }
-    } catch (e) {
+    } catch (e: any) {
       setLoading(false);
-      // Validation error
+      // Form validation errors have type 'object' but no .message; skip those
+      if (e?.message && !e?.errorFields) {
+        messageApi.error(e.message || t('forgotPassword.verifyFailed'));
+      }
     }
   };
 
@@ -81,8 +84,11 @@ const ForgotPassword: React.FC = () => {
       } else {
         messageApi.error(res.message || t('forgotPassword.resetFailed'));
       }
-    } catch (e) {
+    } catch (e: any) {
       setLoading(false);
+      if (e?.message && !e?.errorFields) {
+        messageApi.error(e.message || t('forgotPassword.resetFailed'));
+      }
     }
   };
 

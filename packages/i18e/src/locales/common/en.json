@@ -69,7 +69,9 @@
     "noFilePath": "No file path",
     "loadingCount": "Loaded {{count}}",
     "and": "and",
-    "property": "Property"
+    "property": "Property",
+    "tags": "Tags",
+    "description": "Description"
   },
   "nav": {
     "library": "Library",
@@ -1799,10 +1801,12 @@
     "title": "Album",
     "artist": "Artist",
     "tracks": "Tracks",
-    "description": "Description",
+    "description": "Album Description",
     "publishDate": "Publish Date",
     "albumDetail": "Album Detail",
-    "playAll": "Play All"
+    "playAll": "Play All",
+    "tags": "Album Tags",
+    "noDescription": "No album description"
   },
   "artist": {
     "title": "Artist",
@@ -1811,7 +1815,10 @@
     "bio": "Bio",
     "allAlbums": "All Albums",
     "collabAlbums": "Collaborative Albums",
-    "allTracks": "All Tracks"
+    "allTracks": "All Tracks",
+    "description": "Artist Description",
+    "tags": "Artist Tags",
+    "noDescription": "No artist description"
   },
   "tts": {
     "title": "TTS Audiobook",

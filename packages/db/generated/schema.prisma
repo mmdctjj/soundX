@@ -59,6 +59,9 @@ model Track {
   metadataSource   MetadataSource @default(EMBEDDED)
   metadataProvider String?
 
+  // Plugin-driven tags (JSON-serialized string array)
+  tags String?
+
   // Relations to entity tables (Optional for compatibility with existing string fields)
   artistId     Int?
   artistEntity Artist? @relation(fields: [artistId], references: [id])
@@ -94,6 +97,10 @@ model Album {
   metadataSource   MetadataSource @default(EMBEDDED)
   metadataProvider String?
 
+  // Plugin-driven enrichment (JSON-serialized)
+  description String?
+  tags        String?
+
   tracks Track[]
   mvs    Mv[]
 
@@ -117,6 +124,10 @@ model Artist {
   // Metadata source tracking
   metadataSource   MetadataSource @default(EMBEDDED)
   metadataProvider String?
+
+  // Plugin-driven enrichment (JSON-serialized)
+  description String?
+  tags        String?
 
   tracks Track[]
   mvs    Mv[]
