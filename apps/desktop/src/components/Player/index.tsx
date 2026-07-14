@@ -2038,6 +2038,7 @@ const Player: React.FC = () => {
         height="100%"
         open={isFullPlayerVisible}
         onClose={() => setIsFullPlayerVisible(false)}
+        zIndex={1100}
         classNames={{ body: styles.fullPlayerBody }}
         styles={{
           header: { display: "none" },
@@ -2258,6 +2259,7 @@ const Player: React.FC = () => {
         placement="right"
         open={isPlaylistOpen}
         width={"50%"}
+        zIndex={1200}
         onClose={() => setIsPlaylistOpen(false)}
         extra={
           <Button
@@ -2288,6 +2290,7 @@ const Player: React.FC = () => {
       <Modal
         title={t("player.sleepTimer")}
         open={isTimerModalOpen}
+        zIndex={1300}
         onCancel={() => setIsTimerModalOpen(false)}
         onOk={setSleepTimer}
         okText={t("common.confirm")}
@@ -2309,6 +2312,7 @@ const Player: React.FC = () => {
       <Modal
         title={t("player.addToPlaylist")}
         open={isAddToPlaylistModalOpen}
+        zIndex={1400}
         onCancel={() => setIsAddToPlaylistModalOpen(false)}
         footer={null}
       >
