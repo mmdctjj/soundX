@@ -84,9 +84,26 @@ export interface EnrichContext {
 
 interface PluginConfigFile {
   plugins?: PluginConfig[];
+  /**
+   * Global policy for resolving conflicts between embedded file metadata and
+   * plugin-returned metadata.
+   * - 'plugin'   (default): plugin values overwrite embedded values for the
+   *   conflicting fields (title/artist/album/cover/...).
+   * - 'embedded': embedded values are kept; the plugin only fills fields that
+   *   are missing/unknown. Tags are still union-merged and descriptions are
+   *   still first-wins in both modes (they are additive, not conflicting).
+   */
+  metadataPriority?: MetadataPriority;
 }
 
 const DEFAULT_TIMEOUT = 30000;
+
+/**
+ * Metadata priority policy. Exported so the controller / clients share one type.
+ */
+export type MetadataPriority = 'plugin' | 'embedded';
+
+export const DEFAULT_METADATA_PRIORITY: MetadataPriority = 'plugin';
 
 @Injectable()
 export class MetadataPluginService implements OnModuleInit {
@@ -94,6 +111,7 @@ export class MetadataPluginService implements OnModuleInit {
   private readonly prisma = new PrismaClient();
   private configs: PluginConfig[] = [];
   private configPath: string;
+  private metadataPriority: MetadataPriority = DEFAULT_METADATA_PRIORITY;
 
   constructor() {
     this.configPath = path.resolve(
@@ -107,6 +125,22 @@ export class MetadataPluginService implements OnModuleInit {
 
   async reload(): Promise<void> {
     await this.loadConfig();
+  }
+
+  getMetadataPriority(): MetadataPriority {
+    return this.metadataPriority;
+  }
+
+  async setMetadataPriority(priority: MetadataPriority): Promise<MetadataPriority> {
+    if (priority !== 'plugin' && priority !== 'embedded') {
+      throw new Error(`Invalid metadata priority: ${priority}`);
+    }
+    if (this.metadataPriority === priority) return priority;
+    this.metadataPriority = priority;
+    // Persist the new policy alongside the current plugin list.
+    await this.writeConfigFile(this.configs);
+    this.logger.log(`Metadata priority set to '${priority}'`);
+    return priority;
   }
 
   listConfigs(): PluginConfig[] {
@@ -195,8 +229,10 @@ export class MetadataPluginService implements OnModuleInit {
       const raw = fs.readFileSync(this.configPath, 'utf-8');
       const parsed: PluginConfigFile = JSON.parse(raw);
       this.configs = (parsed.plugins || []).map((p) => this.normalizeConfig(p));
+      this.metadataPriority =
+        parsed.metadataPriority === 'embedded' ? 'embedded' : 'plugin';
       this.logger.log(
-        `Loaded ${this.configs.length} metadata plugin config(s) from ${this.configPath}`,
+        `Loaded ${this.configs.length} metadata plugin config(s) from ${this.configPath} (priority: ${this.metadataPriority})`,
       );
     } catch (error) {
       this.logger.error(
@@ -345,22 +381,39 @@ export class MetadataPluginService implements OnModuleInit {
     cachePath: string,
   ): Promise<ScanResult> {
     const merged: ScanResult = { ...item };
+    const pluginMode = this.metadataPriority === 'plugin';
 
-    if (output.title !== undefined) merged.title = output.title;
-    if (output.artist !== undefined) merged.artist = output.artist;
-    if (output.album !== undefined) merged.album = output.album;
-    if (output.albumArtist !== undefined)
+    // Scalar fields. 'plugin' mode overwrites embedded values; 'embedded' mode
+    // only fills fields that are missing/unknown so the file's metadata wins.
+    if (output.title !== undefined && (pluginMode || this.isMissing(merged.title)))
+      merged.title = output.title;
+    if (output.artist !== undefined && (pluginMode || this.isMissing(merged.artist)))
+      merged.artist = output.artist;
+    if (output.album !== undefined && (pluginMode || this.isMissing(merged.album)))
+      merged.album = output.album;
+    if (
+      output.albumArtist !== undefined &&
+      (pluginMode || this.isMissing(merged.albumArtist))
+    )
       merged.albumArtist = output.albumArtist;
-    if (output.duration !== undefined) merged.duration = output.duration;
-    if (output.year !== undefined)
+    if (
+      output.duration !== undefined &&
+      (pluginMode || this.isMissing(merged.duration))
+    )
+      merged.duration = output.duration;
+    if (output.year !== undefined && (pluginMode || this.isMissing(merged.year)))
       merged.year =
         typeof output.year === 'number'
           ? output.year
           : parseInt(output.year, 10) || undefined;
-    if (output.trackNo !== undefined) {
+    if (
+      output.trackNo !== undefined &&
+      (pluginMode || this.isMissing(merged.track?.no))
+    ) {
       merged.track = { ...(merged.track || {}), no: output.trackNo };
     }
-    if (output.lyrics !== undefined) merged.lyrics = output.lyrics;
+    if (output.lyrics !== undefined && (pluginMode || this.isMissing(merged.lyrics)))
+      merged.lyrics = output.lyrics;
     if (output.tags !== undefined && output.tags.length > 0) {
       (merged as any).__trackTags = this.mergeTagLists(
         (merged as any).__trackTags,
@@ -368,8 +421,12 @@ export class MetadataPluginService implements OnModuleInit {
       );
     }
 
-    if (output.cover) {
-      this.logger.log(`[plugin] cover source=${output.cover.source} url=${output.cover.value.slice(0, 60)}... cachePath=${cachePath}`);
+    // Cover. 'plugin' mode overwrites; 'embedded' mode only fills when the file
+    // has no cover of its own.
+    if (output.cover && (pluginMode || this.isMissing(merged.coverPath))) {
+      this.logger.log(
+        `[plugin] cover source=${output.cover.source} url=${output.cover.value.slice(0, 60)}... cachePath=${cachePath} mode=${this.metadataPriority}`,
+      );
       if (output.cover.source === 'url') {
         const downloadedPath = await this.downloadCover(
           output.cover.value,
@@ -426,6 +483,23 @@ export class MetadataPluginService implements OnModuleInit {
       result.push(v);
     }
     return result;
+  }
+
+  /**
+   * Whether a metadata field should be considered "missing" and thus eligible
+   * for plugin gap-fill in 'embedded' mode. Treats null/undefined/empty as
+   * missing, plus the localized "未知"/"unknown" placeholders for text fields.
+   */
+  private isMissing(value: unknown): boolean {
+    if (value === null || value === undefined) return true;
+    if (typeof value === 'string') {
+      const v = value.trim().toLowerCase();
+      return v === '' || v === '未知' || v === 'unknown';
+    }
+    if (typeof value === 'number') {
+      return !Number.isFinite(value) || value <= 0;
+    }
+    return false;
   }
 
   private async downloadCover(
@@ -572,7 +646,10 @@ export class MetadataPluginService implements OnModuleInit {
   }
 
   private async writeConfigFile(plugins: PluginConfig[]): Promise<void> {
-    const payload: PluginConfigFile = { plugins };
+    const payload: PluginConfigFile = {
+      plugins,
+      metadataPriority: this.metadataPriority,
+    };
     const json = JSON.stringify(payload, null, 2);
     await fs.promises.writeFile(this.configPath, json, 'utf-8');
   }

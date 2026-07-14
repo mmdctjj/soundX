@@ -1,12 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
   deleteMetadataPlugin,
+  getMetadataPluginPriority,
   getMetadataPlugins,
   reloadMetadataPlugins,
   saveMetadataPlugins,
+  setMetadataPluginPriority,
   type MetadataPluginConfig,
   type MetadataPluginTrackType,
   type MetadataPluginType,
+  type MetadataPriority,
 } from "@soundx/services";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -79,6 +82,8 @@ export default function PluginCenterScreen() {
   const [saving, setSaving] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [plugins, setPlugins] = useState<MetadataPluginConfig[]>([]);
+  const [priority, setPriority] = useState<MetadataPriority>("plugin");
+  const [prioritySaving, setPrioritySaving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -94,8 +99,40 @@ export default function PluginCenterScreen() {
       } finally {
         setLoading(false);
       }
+      // Best-effort: load the global metadata-priority policy.
+      try {
+        const pr = await getMetadataPluginPriority();
+        if (pr.code === 200 && pr.data) setPriority(pr.data);
+      } catch (error) {
+        console.warn("Failed to load metadata priority", error);
+      }
     })();
   }, [t]);
+
+  const handlePriorityChange = async (next: MetadataPriority) => {
+    if (prioritySaving || next === priority) return;
+    setPriority(next);
+    setPrioritySaving(true);
+    try {
+      const res = await setMetadataPluginPriority(next);
+      if (res.code === 200) {
+        Alert.alert(t("settings.metadataPrioritySaved"));
+      } else {
+        Alert.alert(t("settings.metadataPrioritySaveFailed"), res.message || "");
+        const prev = await getMetadataPluginPriority();
+        if (prev.code === 200 && prev.data) setPriority(prev.data);
+      }
+    } catch (error) {
+      Alert.alert(
+        t("settings.metadataPrioritySaveFailed"),
+        error instanceof Error ? error.message : String(error),
+      );
+      const prev = await getMetadataPluginPriority();
+      if (prev.code === 200 && prev.data) setPriority(prev.data);
+    } finally {
+      setPrioritySaving(false);
+    }
+  };
 
   const updatePlugin = (id: string, patch: Partial<MetadataPluginConfig>) => {
     setPlugins((prev) =>
@@ -243,6 +280,57 @@ export default function PluginCenterScreen() {
           <Text style={[styles.hint, { color: colors.secondary }]}>
             {t("settings.pluginCenterHint")}
           </Text>
+
+          <View
+            style={[
+              styles.priorityCard,
+              { borderColor: colors.border, backgroundColor: colors.card },
+            ]}
+          >
+            <Text style={[styles.priorityTitle, { color: colors.text }]}>
+              {t("settings.metadataPriorityTitle")}
+            </Text>
+            {(["plugin", "embedded"] as MetadataPriority[]).map((opt) => {
+              const selected = priority === opt;
+              const labelKey =
+                opt === "plugin"
+                  ? "settings.metadataPriorityPlugin"
+                  : "settings.metadataPriorityEmbedded";
+              const descKey =
+                opt === "plugin"
+                  ? "settings.metadataPriorityPluginDesc"
+                  : "settings.metadataPriorityEmbeddedDesc";
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  disabled={prioritySaving}
+                  onPress={() => handlePriorityChange(opt)}
+                  style={styles.priorityRow}
+                >
+                  <Ionicons
+                    name={selected ? "radio-button-on" : "radio-button-off"}
+                    size={22}
+                    color={selected ? colors.primary : colors.secondary}
+                  />
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text
+                      style={[styles.priorityLabel, { color: colors.text }]}
+                    >
+                      {t(labelKey)}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.priorityDesc,
+                        { color: colors.secondary },
+                      ]}
+                    >
+                      {t(descKey)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           {loading ? (
             <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />
@@ -542,6 +630,20 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
   description: { fontSize: 14, lineHeight: 20, marginTop: 8 },
   hint: { fontSize: 12, lineHeight: 18, marginTop: 6, opacity: 0.8 },
+  priorityCard: {
+    marginTop: 16,
+    padding: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+  },
+  priorityTitle: { fontSize: 14, fontWeight: "600", marginBottom: 10 },
+  priorityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  priorityLabel: { fontSize: 14, fontWeight: "500" },
+  priorityDesc: { fontSize: 12, lineHeight: 17, marginTop: 2, opacity: 0.8 },
   label: { fontSize: 14, marginBottom: 6, fontWeight: "600" },
   fieldHint: { fontSize: 12, marginBottom: 6, opacity: 0.75 },
   idText: { fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 14, paddingHorizontal: 14, paddingVertical: 12, borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, marginBottom: 6 },

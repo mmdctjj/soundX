@@ -22,6 +22,14 @@ export interface MetadataPluginConfig {
 
 export interface MetadataPluginInput extends Partial<MetadataPluginConfig> {}
 
+/**
+ * Global policy for resolving conflicts between embedded file metadata and
+ * plugin-returned metadata.
+ * - "plugin": plugin values overwrite embedded values (default).
+ * - "embedded": embedded values are kept; the plugin only fills missing fields.
+ */
+export type MetadataPriority = "plugin" | "embedded";
+
 export const getMetadataPlugins = async () => {
   return request.get<ISuccessResponse<MetadataPluginConfig[]>>(
     "/admin/metadata-plugins",
@@ -61,5 +69,20 @@ export const deleteMetadataPlugin = async (id: string) => {
 export const reloadMetadataPlugins = async () => {
   return request.post<ISuccessResponse<MetadataPluginConfig[]>>(
     "/admin/metadata-plugins/reload",
+  );
+};
+
+export const getMetadataPluginPriority = async () => {
+  return request.get<ISuccessResponse<MetadataPriority>>(
+    "/admin/metadata-plugins/priority",
+  );
+};
+
+export const setMetadataPluginPriority = async (
+  metadataPriority: MetadataPriority,
+) => {
+  return request.put<ISuccessResponse<MetadataPriority>>(
+    "/admin/metadata-plugins/priority",
+    { metadataPriority },
   );
 };

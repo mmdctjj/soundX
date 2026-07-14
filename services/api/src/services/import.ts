@@ -403,6 +403,29 @@ export class ImportService implements OnModuleInit {
     }
   }
 
+  /**
+   * Resolve the cover to persist on a track update, honoring the global
+   * metadata-priority policy from MetadataPluginService.
+   * - 'plugin' mode: overwrite with the plugin cover only when a plugin ran and
+   *   returned one; otherwise keep the stored cover (legacy behavior).
+   * - 'embedded' mode: prefer the file's (gap-filled) cover, fall back to the
+   *   stored cover - the plugin only filled it if the file had none.
+   */
+  private resolveCoverForUpdate(
+    metadataSource: MetadataSource,
+    coverUrl: string | null,
+    existingCover: string | null,
+  ): string | null {
+    const pluginMode =
+      this.metadataPluginService.getMetadataPriority() === 'plugin';
+    if (pluginMode) {
+      return metadataSource === MetadataSource.PLUGIN && coverUrl
+        ? coverUrl
+        : existingCover;
+    }
+    return coverUrl || existingCover;
+  }
+
   private isMvFile(filePath: string): boolean {
     return /\.(mp4|mkv|avi|webm)$/i.test(filePath);
   }
@@ -1022,7 +1045,7 @@ export class ImportService implements OnModuleInit {
               duration: Math.round(enriched.duration || 0),
               fileHash: hash,
               fileModifiedAt: enriched?.mtime ? new Date(enriched.mtime) : fs.statSync(filePath).mtime,
-              cover: metadataSource === MetadataSource.PLUGIN && coverUrl ? coverUrl : targetTrack.cover,
+              cover: this.resolveCoverForUpdate(metadataSource, coverUrl, targetTrack.cover),
               lyrics: enriched.lyrics || null,
               artist: enriched.artist || targetTrack.artist,
               album: enriched.album || targetTrack.album,
@@ -2110,7 +2133,7 @@ export class ImportService implements OnModuleInit {
           // artist: artistName, // Optional: Update denormalized artist name if needed, but schema says it's string
           albumId: album.id,
           // album: albumName,   // Optional: Update denormalized album name
-          cover: metadataSource === MetadataSource.PLUGIN && coverUrl ? coverUrl : existingTrack.cover,
+          cover: this.resolveCoverForUpdate(metadataSource, coverUrl, existingTrack.cover),
           transcodedPath: transcodedPath || existingTrack.transcodedPath,
           metadataSource,
           metadataProvider,

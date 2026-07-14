@@ -1,15 +1,18 @@
-import { Switch, Text, Textarea, View } from '@tarojs/components';
+import { Radio, RadioGroup, Switch, Text, Textarea, View } from '@tarojs/components';
 import Taro, { useLoad } from '@tarojs/taro';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import {
+  getMetadataPluginPriority,
   getMetadataPlugins,
   reloadMetadataPlugins,
   saveMetadataPlugins,
+  setMetadataPluginPriority,
   type MetadataPluginConfig,
   type MetadataPluginTrackType,
   type MetadataPluginType,
+  type MetadataPriority,
 } from '../../services/metadata-plugins';
 import './index.scss';
 
@@ -61,6 +64,8 @@ export default function PluginCenter() {
   const [plugins, setPlugins] = useState<MetadataPluginConfig[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [priority, setPriority] = useState<MetadataPriority>('plugin');
+  const [prioritySaving, setPrioritySaving] = useState(false);
 
   useLoad(() => {
     Taro.setNavigationBarTitle({ title: t('settings.pluginCenter') });
@@ -83,6 +88,40 @@ export default function PluginCenter() {
       Taro.showToast({ title: error?.message || t('common.error'), icon: 'none' });
     } finally {
       setLoaded(true);
+    }
+    // Load the global metadata-priority policy in parallel (best-effort).
+    try {
+      const pr = await getMetadataPluginPriority();
+      if (pr.code === 200 && pr.data) setPriority(pr.data);
+    } catch {
+      /* non-fatal */
+    }
+  };
+
+  const handlePriorityChange = async (next: MetadataPriority) => {
+    setPriority(next);
+    setPrioritySaving(true);
+    try {
+      const res = await setMetadataPluginPriority(next);
+      if (res.code === 200) {
+        Taro.showToast({ title: t('settings.metadataPrioritySaved'), icon: 'success' });
+      } else {
+        Taro.showToast({
+          title: res.message || t('settings.metadataPrioritySaveFailed'),
+          icon: 'none',
+        });
+        const prev = await getMetadataPluginPriority();
+        if (prev.code === 200 && prev.data) setPriority(prev.data);
+      }
+    } catch (error: any) {
+      Taro.showToast({
+        title: error?.message || t('settings.metadataPrioritySaveFailed'),
+        icon: 'none',
+      });
+      const prev = await getMetadataPluginPriority();
+      if (prev.code === 200 && prev.data) setPriority(prev.data);
+    } finally {
+      setPrioritySaving(false);
     }
   };
 
@@ -207,6 +246,70 @@ export default function PluginCenter() {
       <Text className='hint' style={{ color: colors.secondary }}>
         {t('settings.pluginCenterHint')}
       </Text>
+
+      <View
+        className='card'
+        style={{
+          borderColor: colors.border,
+          backgroundColor: colors.card,
+          marginBottom: '24rpx',
+        }}
+      >
+        <Text
+          className='card-title'
+          style={{ color: colors.text, display: 'block', marginBottom: '12rpx' }}
+        >
+          {t('settings.metadataPriorityTitle')}
+        </Text>
+        <RadioGroup
+          onChange={(e) => handlePriorityChange(e.detail.value as MetadataPriority)}
+        >
+          <View style={{ marginBottom: '16rpx' }}>
+            <Radio
+              value='plugin'
+              checked={priority === 'plugin'}
+              color={colors.primary}
+              disabled={prioritySaving}
+            >
+              <Text style={{ color: colors.text }}>
+                {t('settings.metadataPriorityPlugin')}
+              </Text>
+            </Radio>
+            <Text
+              style={{
+                color: colors.secondary,
+                fontSize: '24rpx',
+                display: 'block',
+                marginLeft: '52rpx',
+              }}
+            >
+              {t('settings.metadataPriorityPluginDesc')}
+            </Text>
+          </View>
+          <View>
+            <Radio
+              value='embedded'
+              checked={priority === 'embedded'}
+              color={colors.primary}
+              disabled={prioritySaving}
+            >
+              <Text style={{ color: colors.text }}>
+                {t('settings.metadataPriorityEmbedded')}
+              </Text>
+            </Radio>
+            <Text
+              style={{
+                color: colors.secondary,
+                fontSize: '24rpx',
+                display: 'block',
+                marginLeft: '52rpx',
+              }}
+            >
+              {t('settings.metadataPriorityEmbeddedDesc')}
+            </Text>
+          </View>
+        </RadioGroup>
+      </View>
 
       <View className='list'>
         {!loaded ? null : plugins.length === 0 ? (

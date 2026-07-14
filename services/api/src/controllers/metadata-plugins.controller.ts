@@ -15,6 +15,7 @@ import { IErrorResponse, ISuccessResponse } from '../common/const';
 import { LogMethod } from '../common/log-method.decorator';
 import {
   MetadataPluginService,
+  MetadataPriority,
   PluginConfig,
 } from '../services/metadata-plugin.service';
 import { UserService } from '../services/user';
@@ -164,5 +165,40 @@ export class MetadataPluginsController {
     await this.checkAdmin(req.user.userId);
     await this.pluginService.reload();
     return { code: 200, message: 'success', data: this.pluginService.list() };
+  }
+
+  @Get('priority')
+  @LogMethod()
+  async getPriority(
+    @Req() req: any,
+  ): Promise<ISuccessResponse<MetadataPriority> | IErrorResponse> {
+    await this.checkAdmin(req.user.userId);
+    return {
+      code: 200,
+      message: 'success',
+      data: this.pluginService.getMetadataPriority(),
+    };
+  }
+
+  @Put('priority')
+  @LogMethod()
+  async setPriority(
+    @Req() req: any,
+    @Body() body: { metadataPriority?: MetadataPriority },
+  ): Promise<ISuccessResponse<MetadataPriority> | IErrorResponse> {
+    await this.checkAdmin(req.user.userId);
+    const priority = body?.metadataPriority;
+    if (priority !== 'plugin' && priority !== 'embedded') {
+      throw new BadRequestException(
+        'metadataPriority 必须是 plugin 或 embedded',
+      );
+    }
+    try {
+      const saved = await this.pluginService.setMetadataPriority(priority);
+      return { code: 200, message: 'success', data: saved };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { code: 500, message };
+    }
   }
 }
