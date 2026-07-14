@@ -92,7 +92,7 @@
   },
   "settings": {
     "title": "Settings",
-    "account": "Account",
+    "server": "Server",
     "general": "General",
     "storage": "Storage",
     "about": "About",

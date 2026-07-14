@@ -425,7 +425,7 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-            {t("settings.account")}
+            {t("settings.server")}
           </Text>
 
           {user?.is_admin && (

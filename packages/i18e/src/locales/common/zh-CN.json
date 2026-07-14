@@ -100,7 +100,7 @@
   },
   "settings": {
     "title": "设置",
-    "account": "账户",
+    "server": "服务器",
     "general": "通用",
     "storage": "存储管理",
     "about": "关于",
