@@ -2046,216 +2046,214 @@ const Player: React.FC = () => {
         closeIcon={null}
         destroyOnClose={false}
       >
-          <div className={styles.fullPlayerContent}>
-            {/* Close Button */}
-            <div className={styles.fullPlayerClose}>
-              <DownOutlined
-                onClick={() => setIsFullPlayerVisible(false)}
-                className={styles.fullPlayerCloseIcon}
-              />
-            </div>
+        <div className={styles.fullPlayerContent}>
+          {/* Close Button */}
+          <div className={styles.fullPlayerClose}>
+            <DownOutlined
+              onClick={() => setIsFullPlayerVisible(false)}
+              className={styles.fullPlayerCloseIcon}
+            />
+          </div>
 
-            {/* Left Side - Cover (1/3) */}
-            <div className={styles.fullPlayerLeft}>
-              {/* Background Blur Effect */}
-              {/* <div
+          {/* Left Side - Cover (1/3) */}
+          <div className={styles.fullPlayerLeft}>
+            {/* Background Blur Effect */}
+            {/* <div
                 className={styles.fullPlayerBackground}
                 style={{ backgroundImage: drawerBgImage }}
               /> */}
 
-              <Flex vertical align="center" gap={20}>
-                <img
-                  src={getCoverUrl(currentTrack)}
-                  alt="Current Cover"
-                  className={styles.fullPlayerCover}
-                  onError={(e) =>
-                    console.error(
-                      `[Player] Full Cover Load Error: ${currentTrack?.cover}`,
-                      e,
-                    )
-                  }
-                />
-              </Flex>
+            <Flex vertical align="center" gap={20}>
+              <img
+                src={getCoverUrl(currentTrack)}
+                alt="Current Cover"
+                className={styles.fullPlayerCover}
+                onError={(e) =>
+                  console.error(
+                    `[Player] Full Cover Load Error: ${currentTrack?.cover}`,
+                    e,
+                  )
+                }
+              />
+            </Flex>
+          </div>
+
+          {/* Right Side - Info & Playlist/Lyrics (2/3) */}
+          <div
+            className={styles.fullPlayerRight}
+            style={{
+              textAlign: appMode !== TrackType.MUSIC ? "left" : "center",
+            }}
+          >
+            {/* Top: Title */}
+            <div style={{ marginBottom: "24px" }}>
+              <Title level={3} style={{ margin: "0 0 10px 0" }}>
+                {currentTrack?.name || "No Track"}
+              </Title>
+              <Text type="secondary">
+                <Flex
+                  justify={appMode !== TrackType.MUSIC ? "start" : "center"}
+                  gap={16}
+                >
+                  <Flex
+                    align="center"
+                    justify={appMode !== TrackType.MUSIC ? "start" : "center"}
+                    gap={8}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => {
+                      setIsFullPlayerVisible(false);
+                      navigator(`/artist/${currentTrack?.artistEntity?.id}`);
+                    }}
+                  >
+                    <img
+                      src={getCoverUrl({
+                        cover: currentTrack?.artistEntity?.avatar,
+                        id: currentTrack?.id,
+                        name: currentTrack?.artist,
+                      } as any)}
+                      alt="Current Cover"
+                      style={{
+                        width: "15px",
+                        height: "15px",
+                        borderRadius: "50%",
+                      }}
+                    />
+                    <Text ellipsis className={styles.artistText}>
+                      {currentTrack?.artist || "Unknown Artist"}
+                    </Text>
+                    {currentTrack?.type !== TrackType.AUDIOBOOK && (
+                      <button
+                        type="button"
+                        className={`${styles.qualityButton} ${
+                          availableAudioQualities.length <= 1
+                            ? styles.qualityButtonDisabled
+                            : ""
+                        }`}
+                        style={{ color: token.colorTextSecondary }}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void cycleAudioQuality();
+                        }}
+                        disabled={availableAudioQualities.length <= 1}
+                      >
+                        {availableAudioQualities.find(
+                          (item) => item.quality === currentAudioQuality,
+                        )?.label || "无损"}
+                      </button>
+                    )}
+                  </Flex>
+                  <Flex
+                    align="center"
+                    justify={appMode !== TrackType.MUSIC ? "start" : "center"}
+                    gap={8}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => {
+                      setIsFullPlayerVisible(false);
+                      navigator(`/detail?id=${currentTrack?.albumEntity?.id}`);
+                    }}
+                  >
+                    <img
+                      src={getCoverUrl({
+                        cover: currentTrack?.albumEntity?.cover,
+                        id: currentTrack?.id,
+                        name: currentTrack?.album,
+                      } as any)}
+                      alt="Current Cover"
+                      style={{
+                        width: "15px",
+                        height: "15px",
+                        borderRadius: "1px",
+                      }}
+                    />
+                    <Text ellipsis>
+                      {currentTrack?.album || "Unknown Album"}
+                    </Text>
+                  </Flex>
+                </Flex>
+              </Text>
             </div>
 
-            {/* Right Side - Info & Playlist/Lyrics (2/3) */}
+            {/* Tab Switcher - Only for non-MUSIC mode */}
+            {appMode !== TrackType.MUSIC && (
+              <div className={styles.tabHeader}>
+                <Tabs
+                  activeKey={activeTab}
+                  onChange={(e) => setActiveTab(e as "playlist" | "lyrics")}
+                  tabBarExtraContent={
+                    activeTab === "playlist" ? (
+                      <Button
+                        type="text"
+                        icon={<AimOutlined />}
+                        onClick={handleLocateFullTrack}
+                        title={t("player.locateCurrentTrack")}
+                      />
+                    ) : undefined
+                  }
+                  items={[
+                    { key: "lyrics", label: t("player.lyrics") },
+                    {
+                      key: "playlist",
+                      label: t("player.playlistCount", {
+                        count: playlist.length,
+                      }),
+                    },
+                  ].filter((item) => item.key !== "lyrics")}
+                />
+              </div>
+            )}
+
+            {/* Content */}
             <div
-              className={styles.fullPlayerRight}
               style={{
-                textAlign: appMode !== TrackType.MUSIC ? "left" : "center",
+                flex: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
-              {/* Top: Title */}
-              <div style={{ marginBottom: "24px" }}>
-                <Title level={3} style={{ margin: "0 0 10px 0" }}>
-                  {currentTrack?.name || "No Track"}
-                </Title>
-                <Text type="secondary">
-                  <Flex
-                    justify={appMode !== TrackType.MUSIC ? "start" : "center"}
-                    gap={16}
-                  >
-                    <Flex
-                      align="center"
-                      justify={appMode !== TrackType.MUSIC ? "start" : "center"}
-                      gap={8}
-                      style={{ cursor: "pointer" }}
-                      onClick={() => {
-                        setIsFullPlayerVisible(false);
-                        navigator(`/artist/${currentTrack?.artistEntity?.id}`);
-                      }}
-                    >
-                      <img
-                        src={getCoverUrl({
-                          cover: currentTrack?.artistEntity?.avatar,
-                          id: currentTrack?.id,
-                          name: currentTrack?.artist,
-                        } as any)}
-                        alt="Current Cover"
-                        style={{
-                          width: "15px",
-                          height: "15px",
-                          borderRadius: "50%",
-                        }}
-                      />
-                      <Text ellipsis className={styles.artistText}>
-                        {currentTrack?.artist || "Unknown Artist"}
-                      </Text>
-                      {currentTrack?.type !== TrackType.AUDIOBOOK && (
-                        <button
-                          type="button"
-                          className={`${styles.qualityButton} ${
-                            availableAudioQualities.length <= 1
-                              ? styles.qualityButtonDisabled
-                              : ""
-                          }`}
-                          style={{ color: token.colorTextSecondary }}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void cycleAudioQuality();
-                          }}
-                          disabled={availableAudioQualities.length <= 1}
-                        >
-                          {availableAudioQualities.find(
-                            (item) => item.quality === currentAudioQuality,
-                          )?.label || "无损"}
-                        </button>
-                      )}
-                    </Flex>
-                    <Flex
-                      align="center"
-                      justify={appMode !== TrackType.MUSIC ? "start" : "center"}
-                      gap={8}
-                      style={{ cursor: "pointer" }}
-                      onClick={() => {
-                        setIsFullPlayerVisible(false);
-                        navigator(
-                          `/detail?id=${currentTrack?.albumEntity?.id}`,
-                        );
-                      }}
-                    >
-                      <img
-                        src={getCoverUrl({
-                          cover: currentTrack?.albumEntity?.cover,
-                          id: currentTrack?.id,
-                          name: currentTrack?.album,
-                        } as any)}
-                        alt="Current Cover"
-                        style={{
-                          width: "15px",
-                          height: "15px",
-                          borderRadius: "1px",
-                        }}
-                      />
-                      <Text ellipsis>
-                        {currentTrack?.album || "Unknown Album"}
-                      </Text>
-                    </Flex>
-                  </Flex>
-                </Text>
-              </div>
-
-              {/* Tab Switcher - Only for non-MUSIC mode */}
-              {appMode !== TrackType.MUSIC && (
-                <div className={styles.tabHeader}>
-                  <Tabs
-                    activeKey={activeTab}
-                    onChange={(e) => setActiveTab(e as "playlist" | "lyrics")}
-                    tabBarExtraContent={
-                      activeTab === "playlist" ? (
-                        <Button
-                          type="text"
-                          icon={<AimOutlined />}
-                          onClick={handleLocateFullTrack}
-                          title={t("player.locateCurrentTrack")}
-                        />
-                      ) : undefined
+              {appMode === TrackType.MUSIC ? (
+                <Lyrics
+                  lyrics={currentTrack?.lyrics || null}
+                  currentTime={currentTime}
+                />
+              ) : activeTab === "playlist" ? (
+                <div
+                  style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}
+                >
+                  <QueueList
+                    ref={fullQueueListRef}
+                    tracks={playlist}
+                    currentTrack={currentTrack}
+                    isPlaying={isPlaying}
+                    hasMore={playlistSource?.hasMore}
+                    isLoadingMore={isLoadingMore}
+                    onLoadMore={loadMoreSourceTracks}
+                    onPuse={pause}
+                    onPlay={handlePlay}
+                    onAddToPlaylist={openAddToPlaylistModal}
+                    onToggleLike={(_, track, type) =>
+                      toggleLike(track.id, type)
                     }
-                    items={[
-                      { key: "lyrics", label: t("player.lyrics") },
-                      {
-                        key: "playlist",
-                        label: t("player.playlistCount", {
-                          count: playlist.length,
-                        }),
-                      },
-                    ].filter((item) => item.key !== "lyrics")}
+                    onDelete={handleDeleteSubTrack}
                   />
                 </div>
+              ) : (
+                <Lyrics
+                  lyrics={currentTrack?.lyrics || null}
+                  currentTime={currentTime}
+                />
               )}
-
-              {/* Content */}
-              <div
-                style={{
-                  flex: 1,
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {appMode === TrackType.MUSIC ? (
-                  <Lyrics
-                    lyrics={currentTrack?.lyrics || null}
-                    currentTime={currentTime}
-                  />
-                ) : activeTab === "playlist" ? (
-                  <div
-                    style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}
-                  >
-                    <QueueList
-                      ref={fullQueueListRef}
-                      tracks={playlist}
-                      currentTrack={currentTrack}
-                      isPlaying={isPlaying}
-                      hasMore={playlistSource?.hasMore}
-                      isLoadingMore={isLoadingMore}
-                      onLoadMore={loadMoreSourceTracks}
-                      onPuse={pause}
-                      onPlay={handlePlay}
-                      onAddToPlaylist={openAddToPlaylistModal}
-                      onToggleLike={(_, track, type) =>
-                        toggleLike(track.id, type)
-                      }
-                      onDelete={handleDeleteSubTrack}
-                    />
-                  </div>
-                ) : (
-                  <Lyrics
-                    lyrics={currentTrack?.lyrics || null}
-                    currentTime={currentTime}
-                  />
-                )}
-              </div>
             </div>
           </div>
-          <div className={styles.miniPlayer}>{renderMiniPlayer(false)}</div>
-        </Drawer>
+        </div>
+        <div className={styles.miniPlayer}>{renderMiniPlayer(false)}</div>
+      </Drawer>
 
       {modalContextHolder}
       {notificationContextHolder}
 
       <Drawer
-        title={t("player.playlistTitle", { count: playlist.length })}
+        title={t("player.playlistTitle")}
         placement="right"
         open={isPlaylistOpen}
         width={"50%"}
