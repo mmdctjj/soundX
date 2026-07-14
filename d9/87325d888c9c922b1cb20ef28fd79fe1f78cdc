@@ -1,0 +1,25 @@
+apps/desktop/src/components/Player/index.tsx
+  s_78bf188cd33d17::t_408d25a2fecd36 2041,2262,2293,2315
+packages/i18e/src/locales/common/en.json
+  s_78bf188cd33d17::t_4d0cba3cec5189 517
+packages/i18e/src/locales/common/zh-CN.json
+  s_78bf188cd33d17::t_e8abdfd9db35a9 418
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d987325d888c9c922b1cb20ef28fd79fe1f78cdc",
+  "prompts": {},
+  "sessions": {
+    "s_78bf188cd33d17": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "97f91a2a-1ed5-46a6-9d5d-8d61b7804f16",
+        "model": "unknown"
+      },
+      "human_author": "mmdctjj <984808285@mail.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
