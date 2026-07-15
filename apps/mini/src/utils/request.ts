@@ -2,7 +2,14 @@ import { setRequestInstance, plusRequest } from '@soundx/services';
 import Taro from '@tarojs/taro';
 import axios, { AxiosAdapter, AxiosError, AxiosResponse } from 'axios';
 
-let activeBaseURL = "http://localhost:3000";
+// H5 同源部署时默认指向 nginx 代理的 /api（与 Docker 里的后端同源）；
+// 小程序端保持 localhost:3000，由用户在登录页填写实际服务端地址。
+const DEFAULT_BASE_URL =
+  process.env.TARO_ENV === "h5" && typeof window !== "undefined" && window.location
+    ? `${window.location.origin}/api`
+    : "http://localhost:3000";
+
+let activeBaseURL = DEFAULT_BASE_URL;
 
 // Custom Adapter to ensure headers are handled correctly
 const taroAdapter: AxiosAdapter = (config) => {

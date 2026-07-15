@@ -50,8 +50,9 @@ RUN cd packages/db && pnpm run generate
 # 7. 构建后端 API
 RUN cd services/api && pnpm run build
 
-# 8. 构建前端 Web
+# 8. 构建前端 Web（desktop web + mini H5）
 RUN cd apps/desktop && pnpm run build:web
+RUN cd apps/mini && pnpm run build:h5
 
 # ==========================================
 # Stage 2: Unified Runner (All-in-one image)
@@ -96,7 +97,8 @@ COPY --from=builder /app/packages/services/dist     ./packages/services/dist
 COPY --from=builder /app/packages/services/package.json ./packages/services/package.json
 COPY --from=builder /app/services/api/dist          ./services/api/dist
 COPY --from=builder /app/services/api/package.json  ./services/api/package.json
-COPY --from=builder /app/apps/desktop/dist          /usr/share/nginx/html
+COPY --from=builder /app/apps/desktop/dist          /usr/share/nginx/html/desktop
+COPY --from=builder /app/apps/mini/dist             /usr/share/nginx/html/mini
 
 # 4. 复制并安装 TTS、ASR 和 MI 服务 (Python)
 COPY services/tts /app/services/tts
