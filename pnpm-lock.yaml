@@ -6,7 +6,6 @@ settings:
 
 overrides:
   esbuild: 0.21.4
-  '@tarojs/taro-rn': 3.6.34
 
 importers:
 
@@ -13591,7 +13590,7 @@ packages:
       '@tarojs/plugin-platform-weapp': '>=3'
       '@tarojs/react': '>=3'
       '@tarojs/taro': '>=3'
-      '@tarojs/taro-rn': 3.6.34
+      '@tarojs/taro-rn': '>=3'
       react: '>=16.13.0'
       react-dom: '>=16.13.0'
       react-native: '>=0.62.0'
