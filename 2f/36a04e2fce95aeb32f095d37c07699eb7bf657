@@ -1,0 +1,41 @@
+apps/desktop/src-tauri/src/cache.rs
+  s_87443ff1335ffa::t_0a87df14b6bc3d 10,21-22,42-47,54-59,188-193,195,197-201,209-227,235,243-282,291-336
+apps/desktop/src-tauri/src/commands.rs
+  s_87443ff1335ffa::t_0782d6a37a510d 48,153-172,209-212,214,218-221,223
+apps/desktop/src-tauri/src/main.rs
+  s_87443ff1335ffa::t_bebbf84abfd706 3,30-32,39-40,44,86,110-119
+apps/desktop/src-tauri/src/protocol.rs
+  s_87443ff1335ffa::t_c09f7bfc18b121 1-172
+apps/desktop/src/App.tsx
+  s_87443ff1335ffa::t_516d33478a94b6 135-144
+apps/desktop/src/components/Header/index.tsx
+  s_87443ff1335ffa::t_4a0b70ebce520c 81,1277-1280
+apps/desktop/src/components/Player/index.tsx
+  s_87443ff1335ffa::t_705ab6cb4eca1f 299-302
+apps/desktop/src/pages/Downloads/index.tsx
+  s_87443ff1335ffa::t_466e0616b67458 43-44
+apps/desktop/src/pages/Settings/index.tsx
+  s_87443ff1335ffa::t_6a9bc6bd15a1d5 80-82,102
+apps/desktop/src/services/trackResolver.ts
+  s_87443ff1335ffa::t_656f4face1d90a 12-37,72,96
+apps/desktop/src/store/settings.ts
+  s_87443ff1335ffa::t_edcfd19143e45b 118,120-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "2f36a04e2fce95aeb32f095d37c07699eb7bf657",
+  "prompts": {},
+  "sessions": {
+    "s_87443ff1335ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "583d9615-cd78-4391-b1db-1c76db8e05f1",
+        "model": "unknown"
+      },
+      "human_author": "mmdctjj <984808285@mail.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
