@@ -1,0 +1,21 @@
+apps/mini/config/index.ts
+  s_689fac055507c8::t_25cbbbb4993de8 59-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "a7ad34db3c828fa978c1bc9a7a1a936a10bc9a76",
+  "prompts": {},
+  "sessions": {
+    "s_689fac055507c8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f168e579-eb0a-4669-871f-a6e607a35694",
+        "model": "unknown"
+      },
+      "human_author": "mmdctjj <984808285@mail.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
