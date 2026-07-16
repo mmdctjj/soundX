@@ -26,6 +26,8 @@ futures-util = "0.3"
 dirs = "5"
 percent-encoding = "2"
 tauri-plugin-opener = "2"
+axum = "0.8"
+tokio-util = { version = "0.7", features = ["io"] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

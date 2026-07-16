@@ -10,29 +10,19 @@ interface ResolveOptions {
 }
 
 /**
- * AVPlayer (WKWebView's `<audio>`/`<video>` engine) does not load custom
- * `media://` URLs - only the WKURLSchemeHandler does, which AVPlayer bypasses.
- * So a cached `media://audio/...` URI cannot be set directly on an `<audio>`
- * element. Fetch the bytes through the registered `media://` protocol (fetch
- * *does* use the scheme handler) and hand the element a `blob:` URL, which
- * AVPlayer plays normally. The previous blob is revoked to avoid leaks.
+ * The origin of the backend's local streaming media server (e.g.
+ * `http://127.0.0.1:39571`). Cached audio is served from `<origin>/audio/<rel>`,
+ * which AVPlayer streams progressively with range requests. Cached once.
  */
-let activeBlobUrl: string | null = null;
-const toPlayableUrl = async (uri: string): Promise<string> => {
-  if (!uri.startsWith("media://audio/")) return uri;
+let mediaOrigin: string | null = null;
+const getMediaOrigin = async (): Promise<string> => {
+  if (mediaOrigin) return mediaOrigin;
   try {
-    const res = await fetch(uri);
-    if (!res.ok) return uri;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    if (activeBlobUrl && activeBlobUrl !== url) {
-      URL.revokeObjectURL(activeBlobUrl);
-    }
-    activeBlobUrl = url;
-    return url;
+    mediaOrigin = await invoke<string>("get_media_origin");
   } catch {
-    return uri;
+    mediaOrigin = "";
   }
+  return mediaOrigin || "";
 };
 
 interface TrackMetadata {
@@ -69,7 +59,7 @@ export const resolveTrackUri = async (
   // Support playback from local list even if path is missing (for legacy or offline tracks)
   const localPath = (track as any).localPath;
   if (!track.path && localPath) {
-    return toPlayableUrl(`media://audio/${localPath}`);
+    return `${await getMediaOrigin()}/audio/${localPath}`;
   }
 
   if (!track.path) {
@@ -93,7 +83,8 @@ export const resolveTrackUri = async (
       }) as string | null;
       
       if (cachedPath) {
-        return toPlayableUrl(cachedPath);
+        // cache_check returns a streaming http:// URL for the cached file.
+        return cachedPath;
       }
 
       // 3. If not cached, trigger background download

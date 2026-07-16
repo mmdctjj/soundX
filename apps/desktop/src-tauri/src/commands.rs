@@ -45,7 +45,8 @@ pub struct LyricSettingsPayload {
 pub struct AppState {
     pub cache_manager: Arc<CacheManager>,
     pub player_state: Mutex<PlayerState>,
-    pub download_path: Mutex<String>,
+    pub download_path: Arc<Mutex<String>>,
+    pub media_origin: String,
 }
 
 #[tauri::command]
@@ -141,13 +142,15 @@ pub async fn cache_check(
     album_name: String,
 ) -> Result<Option<String>, String> {
     let cache_manager = state.cache_manager.clone();
-    cache_manager.check_cache(
+    let origin = state.media_origin.clone();
+    let rel = cache_manager.check_cache(
         track_id,
         &original_path,
         &download_path,
         &track_type,
         &album_name,
-    )
+    )?;
+    Ok(rel.map(|p| format!("{}/audio/{}", origin, p)))
 }
 
 /// Keeps the backend's notion of the current download path in sync with the
@@ -182,7 +185,8 @@ pub async fn cache_download(
     token: Option<String>,
 ) -> Result<Option<String>, String> {
     let cache_manager = state.cache_manager.clone();
-    cache_manager
+    let origin = state.media_origin.clone();
+    let rel = cache_manager
         .download_track(
             track_id,
             &url,
@@ -192,7 +196,13 @@ pub async fn cache_download(
             metadata,
             token.as_deref(),
         )
-        .await
+        .await?;
+    Ok(rel.map(|p| format!("{}/audio/{}", origin, p)))
+}
+
+#[tauri::command]
+pub fn get_media_origin(state: State<'_, AppState>) -> String {
+    state.media_origin.clone()
 }
 
 #[tauri::command]

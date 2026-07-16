@@ -117,8 +117,8 @@ export const useSettingsStore = create<SettingsState>()(
         }));
 
         if (key === 'downloadPath' && isTauri()) {
-          // Keep the backend in sync: the `media://audio` protocol handler
-          // resolves cached files relative to this path.
+          // Keep the backend in sync: the local media streaming server resolves
+          // cached audio files relative to this path.
           invoke('update_download_path', { path: value }).catch(console.error);
         }
       },

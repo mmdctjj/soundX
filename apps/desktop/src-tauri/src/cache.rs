@@ -80,7 +80,7 @@ impl CacheManager {
             let full_path = Path::new(&expanded_download).join(local_path);
             match full_path.metadata() {
                 Ok(m) if m.len() > 0 => {
-                    return Ok(Some(format!("media://audio/{}", local_path)));
+                    return Ok(Some(local_path.clone()));
                 }
                 _ => {}
             }
@@ -378,7 +378,7 @@ async fn download_track_internal(
         )
         .await
         .map_err(|e| format!("write meta: {}", e))?;
-        return Ok(Some(format!("media://audio/{}", rel_path)));
+        return Ok(Some(rel_path.clone()));
     }
 
     let client = reqwest::Client::new();
@@ -449,7 +449,7 @@ async fn download_track_internal(
     .await
     .map_err(|e| format!("write meta: {}", e))?;
 
-    Ok(Some(format!("media://audio/{}", rel_path)))
+    Ok(Some(rel_path.clone()))
 }
 
 fn percent_decode(s: &str) -> String {

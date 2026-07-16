@@ -10,6 +10,7 @@ mod tray;
 mod window;
 mod cache;
 mod protocol;
+mod media_server;
 
 use commands::{AppState, MinimizeToTrayFlag};
 use cache::CacheManager;
@@ -37,11 +38,15 @@ pub fn run() {
                 .app_data_dir()
                 .unwrap_or_else(|_| std::env::temp_dir().join("audiodock"));
             let cache_manager = Arc::new(CacheManager::new(app_data_dir.clone()));
-            let download_path = load_download_path(&app_data_dir);
+            let download_path = Arc::new(Mutex::new(load_download_path(&app_data_dir)));
+            // Local streaming HTTP server for cached audio (AVPlayer can't stream
+            // from the `media://` custom protocol).
+            let media_origin = media_server::start(download_path.clone())?;
             app.manage(AppState {
                 cache_manager,
                 player_state: Mutex::new(PlayerState::default()),
-                download_path: Mutex::new(download_path),
+                download_path,
+                media_origin,
             });
             app.manage(MinimizeToTrayFlag(true));
 
@@ -84,6 +89,7 @@ pub fn run() {
             commands::cache_get_size,
             commands::cache_clear,
             commands::update_download_path,
+            commands::get_media_origin,
             commands::minimize_window,
             commands::maximize_window,
             commands::close_window,

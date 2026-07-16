@@ -83,13 +83,13 @@ fn serve_file(file_path: &Path, range: Option<&str>) -> Response<Vec<u8>> {
     build_response(StatusCode::OK, Some(mime), body, None)
 }
 
-struct ByteSpan {
-    start: u64,
-    length: u64,
+pub(crate) struct ByteSpan {
+    pub(crate) start: u64,
+    pub(crate) length: u64,
 }
 
 /// Parses a single-range `bytes=START-END` header (END optional).
-fn parse_range(header: &str, total: u64) -> Option<ByteSpan> {
+pub(crate) fn parse_range(header: &str, total: u64) -> Option<ByteSpan> {
     let spec = header.strip_prefix("bytes=")?;
     let mut parts = spec.splitn(2, '-');
     let start_str = parts.next()?;
@@ -151,7 +151,7 @@ fn build_response(
     builder.body(body).unwrap_or_else(|_| Response::new(Vec::new()))
 }
 
-fn mime_for(path: &Path) -> &'static str {
+pub(crate) fn mime_for(path: &Path) -> &'static str {
     match path
         .extension()
         .and_then(|e| e.to_str())
