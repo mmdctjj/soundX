@@ -115,9 +115,10 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => ({
           download: { ...state.download, [key]: value },
         }));
-        
+
         if (key === 'downloadPath' && isTauri()) {
-          // Update download path in Tauri backend
+          // Keep the backend in sync: the `media://audio` protocol handler
+          // resolves cached files relative to this path.
           invoke('update_download_path', { path: value }).catch(console.error);
         }
       },

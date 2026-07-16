@@ -45,6 +45,7 @@ pub struct LyricSettingsPayload {
 pub struct AppState {
     pub cache_manager: Arc<CacheManager>,
     pub player_state: Mutex<PlayerState>,
+    pub download_path: Mutex<String>,
 }
 
 #[tauri::command]
@@ -149,6 +150,26 @@ pub async fn cache_check(
     )
 }
 
+/// Keeps the backend's notion of the current download path in sync with the
+/// renderer. The `media://audio` protocol handler needs it to resolve cached
+/// audio files to absolute paths. Persisted to disk so it is known before the
+/// renderer has a chance to send it on startup.
+#[tauri::command]
+pub async fn update_download_path(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    path: String,
+) -> Result<(), String> {
+    {
+        let mut current = state.download_path.lock().map_err(|e| e.to_string())?;
+        *current = path.clone();
+    }
+    if let Ok(app_data_dir) = app.path().app_data_dir() {
+        let _ = std::fs::write(app_data_dir.join("download_path.txt"), &path);
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn cache_download(
     state: State<'_, AppState>,
@@ -185,15 +206,21 @@ pub async fn cache_list(
 }
 
 #[tauri::command]
-pub async fn cache_get_size(state: State<'_, AppState>) -> Result<u64, String> {
+pub async fn cache_get_size(
+    state: State<'_, AppState>,
+    download_path: String,
+) -> Result<u64, String> {
     let cache_manager = state.cache_manager.clone();
-    cache_manager.get_total_size()
+    cache_manager.get_total_size(&download_path)
 }
 
 #[tauri::command]
-pub async fn cache_clear(state: State<'_, AppState>) -> Result<bool, String> {
+pub async fn cache_clear(
+    state: State<'_, AppState>,
+    download_path: String,
+) -> Result<bool, String> {
     let cache_manager = state.cache_manager.clone();
-    cache_manager.clear_cache()?;
+    cache_manager.clear_cache(&download_path)?;
     Ok(true)
 }
 

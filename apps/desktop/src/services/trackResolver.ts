@@ -9,6 +9,32 @@ interface ResolveOptions {
   cacheEnabled: boolean;
 }
 
+/**
+ * AVPlayer (WKWebView's `<audio>`/`<video>` engine) does not load custom
+ * `media://` URLs - only the WKURLSchemeHandler does, which AVPlayer bypasses.
+ * So a cached `media://audio/...` URI cannot be set directly on an `<audio>`
+ * element. Fetch the bytes through the registered `media://` protocol (fetch
+ * *does* use the scheme handler) and hand the element a `blob:` URL, which
+ * AVPlayer plays normally. The previous blob is revoked to avoid leaks.
+ */
+let activeBlobUrl: string | null = null;
+const toPlayableUrl = async (uri: string): Promise<string> => {
+  if (!uri.startsWith("media://audio/")) return uri;
+  try {
+    const res = await fetch(uri);
+    if (!res.ok) return uri;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    if (activeBlobUrl && activeBlobUrl !== url) {
+      URL.revokeObjectURL(activeBlobUrl);
+    }
+    activeBlobUrl = url;
+    return url;
+  } catch {
+    return uri;
+  }
+};
+
 interface TrackMetadata {
   id: number | string;
   path: string;
@@ -43,7 +69,7 @@ export const resolveTrackUri = async (
   // Support playback from local list even if path is missing (for legacy or offline tracks)
   const localPath = (track as any).localPath;
   if (!track.path && localPath) {
-    return `media://audio/${localPath}`;
+    return toPlayableUrl(`media://audio/${localPath}`);
   }
 
   if (!track.path) {
@@ -67,7 +93,7 @@ export const resolveTrackUri = async (
       }) as string | null;
       
       if (cachedPath) {
-        return cachedPath;
+        return toPlayableUrl(cachedPath);
       }
 
       // 3. If not cached, trigger background download

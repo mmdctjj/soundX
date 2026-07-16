@@ -1,5 +1,6 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
@@ -26,19 +27,21 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
+        .register_uri_scheme_protocol("media", |ctx, request| {
+            protocol::handle_media(ctx, request)
+        })
         .setup(|app| {
-            // Register custom protocol for media://
-            protocol::register()?;
-
             // Initialize app state
             let app_data_dir = app
                 .path()
                 .app_data_dir()
                 .unwrap_or_else(|_| std::env::temp_dir().join("audiodock"));
-            let cache_manager = Arc::new(CacheManager::new(app_data_dir));
+            let cache_manager = Arc::new(CacheManager::new(app_data_dir.clone()));
+            let download_path = load_download_path(&app_data_dir);
             app.manage(AppState {
                 cache_manager,
                 player_state: Mutex::new(PlayerState::default()),
+                download_path: Mutex::new(download_path),
             });
             app.manage(MinimizeToTrayFlag(true));
 
@@ -80,6 +83,7 @@ pub fn run() {
             commands::cache_list,
             commands::cache_get_size,
             commands::cache_clear,
+            commands::update_download_path,
             commands::minimize_window,
             commands::maximize_window,
             commands::close_window,
@@ -102,4 +106,14 @@ pub fn run() {
 
 fn main() {
     run();
+}
+
+/// Loads the last-known download path so the `media://audio` protocol handler
+/// can resolve cached files before the renderer has sent the current value.
+fn load_download_path(app_data_dir: &Path) -> String {
+    let file = app_data_dir.join("download_path.txt");
+    std::fs::read_to_string(&file)
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| "~/Music/Downloads".to_string())
 }

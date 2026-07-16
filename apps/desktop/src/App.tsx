@@ -132,6 +132,16 @@ const AppContent = () => {
     }
   }, []);
 
+  useEffect(() => {
+    // Sync the persisted download path to the backend early so the
+    // `media://audio` protocol handler can resolve cached files from the start.
+    if (isTauri()) {
+      invoke("update_download_path", {
+        path: useSettingsStore.getState().download.downloadPath,
+      }).catch(console.error);
+    }
+  }, []);
+
   const isLyricWindow = window.location.hash.includes("/lyric");
   const isMiniPlayer = window.location.hash.includes("/mini");
 

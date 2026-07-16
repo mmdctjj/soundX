@@ -296,7 +296,10 @@ const Player: React.FC = () => {
         initialUri = `${window.location.origin}${initialUri}`;
       }
     } else if ((currentTrack as any).localPath) {
-      initialUri = `media://audio/${(currentTrack as any).localPath}`;
+      // Offline audiobook track with no remote URL: resolveTrackUri() below will
+      // serve the cached copy as a playable blob URL. Don't set a `media://`
+      // URI here - AVPlayer cannot load custom schemes.
+      initialUri = "";
     }
 
     setResolvedUri(initialUri || undefined);

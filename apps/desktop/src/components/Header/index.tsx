@@ -78,6 +78,7 @@ import { trackEvent } from "../../services/tracking";
 import { invoke } from "@tauri-apps/api/core";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
+import { useSettingsStore } from "../../store/settings";
 import { isEmbySource, isSubsonicSource } from "../../utils";
 import { isTauri, isWeb, isWindows, tauriCloseWindow, tauriMaximizeWindow, tauriMinimizeWindow, tauriOpenExternal } from "../../utils/platform";
 import { usePlayMode } from "../../utils/playMode";
@@ -1273,7 +1274,10 @@ const Header: React.FC = () => {
                     onOk: async () => {
                       try {
                         if (isTauri()) {
-                          await invoke("cache_clear");
+                          await invoke("cache_clear", {
+                            downloadPath:
+                              useSettingsStore.getState().download.downloadPath,
+                          });
                         }
                         const PRESERVED_KEYS = new Set([
                           "serverAddress",

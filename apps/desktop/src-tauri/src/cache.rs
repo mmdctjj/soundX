@@ -7,6 +7,7 @@ use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct TrackMetadata {
     pub id: i64,
     pub path: String,
@@ -17,6 +18,8 @@ pub struct TrackMetadata {
     pub album_id: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration: Option<f64>,
+    // JS side (and the legacy Electron cache JSON) use the key `type`, not `trackType`.
+    #[serde(rename = "type")]
     pub track_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cover: Option<String>,
@@ -36,10 +39,22 @@ impl CacheManager {
         let cache_dir = app_data_dir.join("audio_cache");
         std::fs::create_dir_all(&cache_dir).ok();
 
+        // The Electron build stored cache metadata under `<config_dir>/AudioDock/...`
+        // (derived from the product name), while Tauri uses `<config_dir>/<identifier>/...`.
+        // Migrate the legacy metadata into the new location once, so existing downloads
+        // still show up after the switch to Tauri.
+        migrate_legacy_cache(&app_data_dir, &cache_dir);
+
         Self {
             cache_dir,
             active_downloads: Mutex::new(HashMap::new()),
         }
+    }
+
+    /// The directory holding cache metadata + cover thumbnails. Used by the
+    /// `media://cover` / `media://metadata` protocol handler.
+    pub fn cache_dir(&self) -> &Path {
+        &self.cache_dir
     }
 
     pub fn check_cache(
@@ -170,16 +185,20 @@ impl CacheManager {
         Ok(results)
     }
 
-    pub fn get_total_size(&self) -> Result<u64, String> {
+    /// Total size of the downloaded audio files referenced by the cached metadata.
+    ///
+    /// Mirrors the legacy Electron `cache:get-size`, which summed the sizes of the
+    /// actual audio files in the user's download folder (not the tiny metadata JSON
+    /// / cover thumbnails living in the cache dir).
+    pub fn get_total_size(&self, download_path: &str) -> Result<u64, String> {
         let mut total_size = 0u64;
+        let expanded_download = expand_tilde(download_path)?;
 
-        if self.cache_dir.exists() {
-            for entry in std::fs::read_dir(&self.cache_dir)
-                .map_err(|e| format!("read_dir: {}", e))?
-            {
-                let entry = entry.map_err(|e| format!("entry: {}", e))?;
-                if let Ok(meta) = entry.metadata() {
-                    total_size += meta.len();
+        for meta in read_all_metadata(&self.cache_dir) {
+            if let Some(local_path) = &meta.local_path {
+                let full_path = Path::new(&expanded_download).join(local_path);
+                if let Ok(m) = full_path.metadata() {
+                    total_size += m.len();
                 }
             }
         }
@@ -187,7 +206,25 @@ impl CacheManager {
         Ok(total_size)
     }
 
-    pub fn clear_cache(&self) -> Result<(), String> {
+    /// Removes every downloaded audio file referenced by the cached metadata, then
+    /// wipes the cache dir (metadata + cover thumbnails). Mirrors the legacy
+    /// Electron `cache:clear`, which freed the disk space taken by the downloads
+    /// themselves - not just the metadata.
+    pub fn clear_cache(&self, download_path: &str) -> Result<(), String> {
+        let expanded_download = expand_tilde(download_path)?;
+
+        // 1. Delete the downloaded audio files and prune the empty folders left behind.
+        for meta in read_all_metadata(&self.cache_dir) {
+            if let Some(local_path) = &meta.local_path {
+                let full_path = Path::new(&expanded_download).join(local_path);
+                if full_path.exists() {
+                    let _ = std::fs::remove_file(&full_path);
+                    remove_empty_parent_dirs(&full_path, &expanded_download);
+                }
+            }
+        }
+
+        // 2. Wipe the cache dir (metadata JSON + cover thumbnails).
         if self.cache_dir.exists() {
             for entry in std::fs::read_dir(&self.cache_dir)
                 .map_err(|e| format!("read_dir: {}", e))?
@@ -195,7 +232,7 @@ impl CacheManager {
                 let entry = entry.map_err(|e| format!("entry: {}", e))?;
                 let path = entry.path();
                 if path.is_file() {
-                    std::fs::remove_file(&path).map_err(|e| format!("remove: {}", e))?;
+                    let _ = std::fs::remove_file(&path);
                 }
             }
         }
@@ -203,12 +240,97 @@ impl CacheManager {
     }
 }
 
-fn expand_tilde(path: &str) -> Result<String, String> {
+/// Reads and parses every `*.json` metadata file in `cache_dir`. Files that fail
+/// to parse are silently skipped, matching the legacy Electron behaviour.
+fn read_all_metadata(cache_dir: &Path) -> Vec<TrackMetadata> {
+    let mut out = Vec::new();
+    let Ok(entries) = std::fs::read_dir(cache_dir) else {
+        return out;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("json") {
+            continue;
+        }
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if let Ok(data) = serde_json::from_str::<TrackMetadata>(&content) {
+                out.push(data);
+            }
+        }
+    }
+    out
+}
+
+/// Removes empty parent directories of `file_path` up to (but not including)
+/// `download_root`, so clearing the cache doesn't leave empty `music/` or
+/// `audio/<album>/` folders behind.
+fn remove_empty_parent_dirs(file_path: &Path, download_root: &str) {
+    let root = Path::new(download_root);
+    let mut current = file_path.parent();
+    while let Some(dir) = current {
+        if dir == root || !dir.starts_with(root) {
+            break;
+        }
+        // remove_dir only succeeds when the directory is empty.
+        match std::fs::remove_dir(dir) {
+            Ok(_) => current = dir.parent(),
+            Err(_) => break,
+        }
+    }
+}
+
+pub(crate) fn expand_tilde(path: &str) -> Result<String, String> {
     if path.starts_with("~") {
         let home = dirs::home_dir().ok_or("Failed to get home dir")?;
         Ok(path.replacen("~", &home.to_string_lossy(), 1))
     } else {
         Ok(path.to_string())
+    }
+}
+
+/// One-time migration of cache metadata written by the legacy Electron build.
+///
+/// Electron kept its `audio_cache` under `<config_dir>/AudioDock/` (product name),
+/// whereas Tauri keeps it under `<config_dir>/<identifier>/`. Both share the same
+/// platform `<config_dir>` (e.g. `~/Library/Application Support` on macOS), so the
+/// legacy dir is a sibling of the current app data dir. We copy its contents the
+/// first time the new cache dir is empty, then never again.
+fn migrate_legacy_cache(app_data_dir: &Path, cache_dir: &Path) {
+    // Skip if the new cache dir already has metadata — migration already happened
+    // (or the user has downloaded something fresh).
+    let has_metadata = std::fs::read_dir(cache_dir)
+        .map(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .any(|e| e.path().extension().and_then(|s| s.to_str()) == Some("json"))
+        })
+        .unwrap_or(false);
+    if has_metadata {
+        return;
+    }
+
+    let legacy_dir = app_data_dir
+        .parent() // <config_dir>
+        .map(|config_dir| config_dir.join("AudioDock").join("audio_cache"));
+
+    let Some(legacy_dir) = legacy_dir else { return };
+    if !legacy_dir.exists() || legacy_dir == *cache_dir {
+        return;
+    }
+
+    let Ok(entries) = std::fs::read_dir(&legacy_dir) else {
+        return;
+    };
+
+    for entry in entries.flatten() {
+        let src = entry.path();
+        if src.is_file() {
+            let dest = cache_dir.join(entry.file_name());
+            // Don't clobber anything that somehow already exists.
+            if !dest.exists() {
+                let _ = std::fs::copy(&src, &dest);
+            }
+        }
     }
 }
 
