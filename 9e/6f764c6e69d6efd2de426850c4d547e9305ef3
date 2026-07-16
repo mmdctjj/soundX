@@ -1,0 +1,39 @@
+apps/desktop/src-tauri/Cargo.lock
+  s_87443ff1335ffa::t_2383031b2fd136 227-278,1704-1709,1724,2227-2232,3582-3592,3784,3800,4686,4725
+apps/desktop/src-tauri/Cargo.toml
+  s_87443ff1335ffa::t_deade70c3d5d6e 29-30
+apps/desktop/src-tauri/src/cache.rs
+  s_87443ff1335ffa::t_40bc2829eb0e54 83,381,452
+apps/desktop/src-tauri/src/commands.rs
+  s_87443ff1335ffa::t_1fe2c6b85ddce7 48-49,145-146,152-153,188-189,199-205
+apps/desktop/src-tauri/src/main.rs
+  s_87443ff1335ffa::t_29c6b8ecd9b2a2 13,41-44,48-49,92
+apps/desktop/src-tauri/src/media_server.rs
+  s_87443ff1335ffa::t_66bb703c03c644 1-130
+apps/desktop/src-tauri/src/protocol.rs
+  s_87443ff1335ffa::t_1befc6d3ea7241 86-88,92,154
+apps/desktop/src/App.tsx
+  s_87443ff1335ffa::t_338febcad7424c 136-137
+apps/desktop/src/services/trackResolver.ts
+  s_87443ff1335ffa::t_75300ca1b0badd 13-15,17-19,21,23,25,62,86-87
+apps/desktop/src/store/settings.ts
+  s_87443ff1335ffa::t_bf023fed3e351c 120-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9e6f764c6e69d6efd2de426850c4d547e9305ef3",
+  "prompts": {},
+  "sessions": {
+    "s_87443ff1335ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "583d9615-cd78-4391-b1db-1c76db8e05f1",
+        "model": "unknown"
+      },
+      "human_author": "mmdctjj <984808285@mail.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
