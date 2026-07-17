@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState } from 'react';
 import { Alert, Platform } from 'react-native';
-import { checkLocalApkExists, compareVersions, downloadAndInstallApk, getLocalApkUri, getLocalVersion, installApk } from '../src/utils/updateUtils';
+import { compareVersions, downloadAndInstallApk, getLocalVersion } from '../src/utils/updateUtils';
 // 配置常量
 const GITHUB_USER = 'mmdctjj';
 const GITHUB_REPO = 'AudioDock';
@@ -69,13 +69,7 @@ export const useCheckUpdate = () => {
           downloadUrl: downloadUrl
         });
 
-        // 5. 检查本地是否已经下载过
-        const exists = await checkLocalApkExists(downloadUrl);
-        if (exists) {
-          setProgress(1); // 如果已存在，直接标记进度为完成
-        } else {
-          setProgress(0);
-        }
+        setProgress(0);
       }
     } catch (error) {
       console.error('检查更新失败', error);
@@ -104,17 +98,6 @@ export const useCheckUpdate = () => {
     setUpdateInfo(null);
   };
 
-  const installLocalUpdate = async () => {
-    if (updateInfo) {
-      const localUri = getLocalApkUri(updateInfo.downloadUrl);
-      try {
-        await installApk(localUri);
-      } catch (e) {
-        Alert.alert('安装失败', '无法打开安装程序');
-      }
-    }
-  };
-
   // 内部函数：处理下载流程
   const startDownload = async (url: string) => {
     setIsUpdating(true);
@@ -125,7 +108,7 @@ export const useCheckUpdate = () => {
         setProgress(p); // 实时更新进度条
       });
     } catch (e) {
-      Alert.alert('更新失败', '网络连接错误，请重试');
+      Alert.alert('更新失败', '无法创建系统下载任务，请重试');
     } finally {
       setIsUpdating(false);
     }
@@ -140,6 +123,5 @@ export const useCheckUpdate = () => {
     startUpdate,
     ignoreUpdate,
     cancelUpdate,
-    installLocalUpdate
   };
 };

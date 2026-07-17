@@ -198,7 +198,6 @@ export default function PersonalScreen() {
     startUpdate,
     ignoreUpdate,
     cancelUpdate,
-    installLocalUpdate,
   } = useCheckUpdate();
 
   const [isModalVisible, setModalVisible] = useState(false);
@@ -974,13 +973,7 @@ export default function PersonalScreen() {
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           {progress > 0 && (
             <TouchableOpacity
-              onPress={() => {
-                if (progress === 1) {
-                  installLocalUpdate();
-                } else {
-                  setModalVisible(true);
-                }
-              }}
+              onPress={() => setModalVisible(true)}
               style={[styles.iconBtn, { marginRight: 10 }]}
             >
               <Ionicons name="download-outline" size={22} color={colors.text} />

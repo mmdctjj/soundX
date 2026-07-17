@@ -45,7 +45,7 @@ export const UpdateModal = ({
           {isDownloading ? (
             <>
               <Text style={[styles.title, { color: colors.text }]}>
-                {progress > 0 ? t('update.updating') : t('update.preparing')}
+                {progress > 0 ? t('update.systemDownloadStarted') : t('update.preparing')}
               </Text>
               
               {/* 进度条区域 */}
@@ -55,7 +55,7 @@ export const UpdateModal = ({
                 </View>
               </View>
               <Text style={styles.percentText}>
-                {progress > 0 ? `${(progress * 100).toFixed(0)}%` : t('update.requestingLink')}
+                {progress > 0 ? t('update.systemDownloadDescription') : t('update.requestingLink')}
               </Text>
               
               {(isUpdating || progress < 1) && (

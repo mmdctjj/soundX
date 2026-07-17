@@ -1581,7 +1581,9 @@
     "foundNewVersion": "New Version Found",
     "ignoreThisVersion": "Ignore This Version",
     "preparing2": "Preparing...",
-    "updateNow": "Update Now"
+    "updateNow": "Update Now",
+    "systemDownloadStarted": "System downloader started",
+    "systemDownloadDescription": "The APK will install automatically after download. Check the notification shade for progress."
   },
   "playerMore": {
     "moreOptions": "More Options",
