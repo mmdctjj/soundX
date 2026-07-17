@@ -1,0 +1,25 @@
+.github/workflows/android-release.yml
+  s_87443ff1335ffa::t_e1f29de2ebcdad 14-19,116-132
+.github/workflows/electron-release.yml
+  s_87443ff1335ffa::t_dbe0d0e3cc53b0 49-54,190-214
+.github/workflows/feat-test-release.yml
+  s_87443ff1335ffa::t_c071ea78090750 49-54,139-162,168-173,254-271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9982e536b61ee981632587a9d297d7567e812107",
+  "prompts": {},
+  "sessions": {
+    "s_87443ff1335ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "583d9615-cd78-4391-b1db-1c76db8e05f1",
+        "model": "unknown"
+      },
+      "human_author": "mmdctjj <984808285@mail.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
