@@ -69,7 +69,9 @@
     "noFilePath": "No file path",
     "loadingCount": "Loaded {{count}}",
     "and": "and",
-    "property": "Property"
+    "property": "Property",
+    "tags": "Tags",
+    "description": "Description"
   },
   "nav": {
     "library": "Library",
@@ -90,7 +92,7 @@
   },
   "settings": {
     "title": "Settings",
-    "account": "Account",
+    "server": "Server",
     "general": "General",
     "storage": "Storage",
     "about": "About",
@@ -290,6 +292,13 @@
     "pluginEndpoint": "Endpoint",
     "pluginCommand": "Command",
     "pluginPriority": "Priority",
+    "metadataPriorityTitle": "Metadata Priority",
+    "metadataPriorityPlugin": "Plugin first",
+    "metadataPriorityPluginDesc": "Plugin metadata overwrites embedded file metadata (title, artist, cover, etc.)",
+    "metadataPriorityEmbedded": "Metadata first",
+    "metadataPriorityEmbeddedDesc": "Keep embedded file metadata; the plugin only fills missing fields",
+    "metadataPrioritySaved": "Metadata priority updated",
+    "metadataPrioritySaveFailed": "Failed to update metadata priority",
     "pluginTimeout": "Timeout",
     "pluginRetry": "Retries",
     "pluginFilterTypes": "Apply to types",
@@ -512,6 +521,7 @@
     "skipForward": "Skip Forward",
     "locateTrack": "Locate current track",
     "playlist": "Playlist",
+    "playlistTitle": "Playlist",
     "desktopLyrics": "Desktop Lyrics",
     "noTrack": "No Track",
     "unknownArtist": "Unknown Artist",
@@ -1799,10 +1809,12 @@
     "title": "Album",
     "artist": "Artist",
     "tracks": "Tracks",
-    "description": "Description",
+    "description": "Album Description",
     "publishDate": "Publish Date",
     "albumDetail": "Album Detail",
-    "playAll": "Play All"
+    "playAll": "Play All",
+    "tags": "Album Tags",
+    "noDescription": "No album description"
   },
   "artist": {
     "title": "Artist",
@@ -1811,7 +1823,10 @@
     "bio": "Bio",
     "allAlbums": "All Albums",
     "collabAlbums": "Collaborative Albums",
-    "allTracks": "All Tracks"
+    "allTracks": "All Tracks",
+    "description": "Artist Description",
+    "tags": "Artist Tags",
+    "noDescription": "No artist description"
   },
   "tts": {
     "title": "TTS Audiobook",

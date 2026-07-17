@@ -77,7 +77,9 @@ const Settings: React.FC = () => {
       return;
     }
     try {
-      const size = await invoke<number>("cache_get_size");
+      const size = await invoke<number>("cache_get_size", {
+        downloadPath: download.downloadPath,
+      });
       setCacheSize(formatSize(size));
     } catch (error) {
       console.warn("Failed to fetch cache size", error);
@@ -97,7 +99,7 @@ const Settings: React.FC = () => {
     setClearing(true);
     try {
       if (isTauri()) {
-        await invoke("cache_clear");
+        await invoke("cache_clear", { downloadPath: download.downloadPath });
       }
       // Clear localStorage except login and data source keys
       const keysToPreserve: Record<string, string> = {};
@@ -121,23 +123,9 @@ const Settings: React.FC = () => {
     }
   };
 
-  const [, setDownloadPath] = React.useState<string>("");
-
   React.useEffect(() => {
     fetchCacheSize();
-    loadDownloadPath();
   }, []);
-
-  const loadDownloadPath = async () => {
-    if (isTauri()) {
-      try {
-        const path = await invoke<string>("get_download_path");
-        setDownloadPath(path || "");
-      } catch (e) {
-        console.error("Failed to get download path:", e);
-      }
-    }
-  };
 
   const handleSelectDirectory = async () => {
     if (isTauri()) {

@@ -50,6 +50,7 @@ export interface PluginInput {
 }
 
 export interface PluginOutput {
+  // Track-level
   title?: string;
   artist?: string;
   album?: string;
@@ -58,10 +59,19 @@ export interface PluginOutput {
   year?: string | number;
   trackNo?: number;
   lyrics?: string;
+  tags?: string[];
   cover?: { source: 'url' | 'local'; value: string };
   provider?: string;
   confidence?: number;
   raw?: Record<string, any>;
+
+  // Album-level (enriches Album row when persisted via ImportService)
+  albumDescription?: string;
+  albumTags?: string[];
+
+  // Artist-level (enriches Artist row when persisted via ImportService)
+  artistDescription?: string;
+  artistTags?: string[];
 }
 
 export interface EnrichContext {
@@ -74,9 +84,26 @@ export interface EnrichContext {
 
 interface PluginConfigFile {
   plugins?: PluginConfig[];
+  /**
+   * Global policy for resolving conflicts between embedded file metadata and
+   * plugin-returned metadata.
+   * - 'plugin'   (default): plugin values overwrite embedded values for the
+   *   conflicting fields (title/artist/album/cover/...).
+   * - 'embedded': embedded values are kept; the plugin only fills fields that
+   *   are missing/unknown. Tags are still union-merged and descriptions are
+   *   still first-wins in both modes (they are additive, not conflicting).
+   */
+  metadataPriority?: MetadataPriority;
 }
 
 const DEFAULT_TIMEOUT = 30000;
+
+/**
+ * Metadata priority policy. Exported so the controller / clients share one type.
+ */
+export type MetadataPriority = 'plugin' | 'embedded';
+
+export const DEFAULT_METADATA_PRIORITY: MetadataPriority = 'plugin';
 
 @Injectable()
 export class MetadataPluginService implements OnModuleInit {
@@ -84,6 +111,7 @@ export class MetadataPluginService implements OnModuleInit {
   private readonly prisma = new PrismaClient();
   private configs: PluginConfig[] = [];
   private configPath: string;
+  private metadataPriority: MetadataPriority = DEFAULT_METADATA_PRIORITY;
 
   constructor() {
     this.configPath = path.resolve(
@@ -97,6 +125,22 @@ export class MetadataPluginService implements OnModuleInit {
 
   async reload(): Promise<void> {
     await this.loadConfig();
+  }
+
+  getMetadataPriority(): MetadataPriority {
+    return this.metadataPriority;
+  }
+
+  async setMetadataPriority(priority: MetadataPriority): Promise<MetadataPriority> {
+    if (priority !== 'plugin' && priority !== 'embedded') {
+      throw new Error(`Invalid metadata priority: ${priority}`);
+    }
+    if (this.metadataPriority === priority) return priority;
+    this.metadataPriority = priority;
+    // Persist the new policy alongside the current plugin list.
+    await this.writeConfigFile(this.configs);
+    this.logger.log(`Metadata priority set to '${priority}'`);
+    return priority;
   }
 
   listConfigs(): PluginConfig[] {
@@ -185,8 +229,10 @@ export class MetadataPluginService implements OnModuleInit {
       const raw = fs.readFileSync(this.configPath, 'utf-8');
       const parsed: PluginConfigFile = JSON.parse(raw);
       this.configs = (parsed.plugins || []).map((p) => this.normalizeConfig(p));
+      this.metadataPriority =
+        parsed.metadataPriority === 'embedded' ? 'embedded' : 'plugin';
       this.logger.log(
-        `Loaded ${this.configs.length} metadata plugin config(s) from ${this.configPath}`,
+        `Loaded ${this.configs.length} metadata plugin config(s) from ${this.configPath} (priority: ${this.metadataPriority})`,
       );
     } catch (error) {
       this.logger.error(
@@ -335,29 +381,58 @@ export class MetadataPluginService implements OnModuleInit {
     cachePath: string,
   ): Promise<ScanResult> {
     const merged: ScanResult = { ...item };
+    const pluginMode = this.metadataPriority === 'plugin';
 
-    if (output.title !== undefined) merged.title = output.title;
-    if (output.artist !== undefined) merged.artist = output.artist;
-    if (output.album !== undefined) merged.album = output.album;
-    if (output.albumArtist !== undefined)
+    // Scalar fields. 'plugin' mode overwrites embedded values; 'embedded' mode
+    // only fills fields that are missing/unknown so the file's metadata wins.
+    if (output.title !== undefined && (pluginMode || this.isMissing(merged.title)))
+      merged.title = output.title;
+    if (output.artist !== undefined && (pluginMode || this.isMissing(merged.artist)))
+      merged.artist = output.artist;
+    if (output.album !== undefined && (pluginMode || this.isMissing(merged.album)))
+      merged.album = output.album;
+    if (
+      output.albumArtist !== undefined &&
+      (pluginMode || this.isMissing(merged.albumArtist))
+    )
       merged.albumArtist = output.albumArtist;
-    if (output.duration !== undefined) merged.duration = output.duration;
-    if (output.year !== undefined)
+    if (
+      output.duration !== undefined &&
+      (pluginMode || this.isMissing(merged.duration))
+    )
+      merged.duration = output.duration;
+    if (output.year !== undefined && (pluginMode || this.isMissing(merged.year)))
       merged.year =
         typeof output.year === 'number'
           ? output.year
           : parseInt(output.year, 10) || undefined;
-    if (output.trackNo !== undefined) {
+    if (
+      output.trackNo !== undefined &&
+      (pluginMode || this.isMissing(merged.track?.no))
+    ) {
       merged.track = { ...(merged.track || {}), no: output.trackNo };
     }
-    if (output.lyrics !== undefined) merged.lyrics = output.lyrics;
+    if (output.lyrics !== undefined && (pluginMode || this.isMissing(merged.lyrics)))
+      merged.lyrics = output.lyrics;
+    if (output.tags !== undefined && output.tags.length > 0) {
+      (merged as any).__trackTags = this.mergeTagLists(
+        (merged as any).__trackTags,
+        output.tags,
+      );
+    }
 
-    if (output.cover) {
+    // Cover. 'plugin' mode overwrites; 'embedded' mode only fills when the file
+    // has no cover of its own.
+    if (output.cover && (pluginMode || this.isMissing(merged.coverPath))) {
+      this.logger.log(
+        `[plugin] cover source=${output.cover.source} url=${output.cover.value.slice(0, 60)}... cachePath=${cachePath} mode=${this.metadataPriority}`,
+      );
       if (output.cover.source === 'url') {
         const downloadedPath = await this.downloadCover(
           output.cover.value,
           cachePath,
         );
+        this.logger.log(`[plugin] cover download result: ${downloadedPath ?? 'null'}`);
         if (downloadedPath) {
           merged.coverPath = downloadedPath;
         }
@@ -365,8 +440,66 @@ export class MetadataPluginService implements OnModuleInit {
         merged.coverPath = output.cover.value;
       }
     }
+    this.logger.log(`[plugin] merged.coverPath=${merged.coverPath ?? 'undefined'}`);
+
+    // Album-level enrichment: first plugin wins for description, tags are union-merged
+    if (output.albumDescription !== undefined) {
+      if (!(merged as any).__albumDescription) {
+        (merged as any).__albumDescription = output.albumDescription;
+      }
+    }
+    if (output.albumTags !== undefined && output.albumTags.length > 0) {
+      (merged as any).__albumTags = this.mergeTagLists(
+        (merged as any).__albumTags,
+        output.albumTags,
+      );
+    }
+
+    // Artist-level enrichment
+    if (output.artistDescription !== undefined) {
+      if (!(merged as any).__artistDescription) {
+        (merged as any).__artistDescription = output.artistDescription;
+      }
+    }
+    if (output.artistTags !== undefined && output.artistTags.length > 0) {
+      (merged as any).__artistTags = this.mergeTagLists(
+        (merged as any).__artistTags,
+        output.artistTags,
+      );
+    }
 
     return merged;
+  }
+
+  private mergeTagLists(existing: string[] | undefined, incoming: string[]): string[] {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const t of [...(existing ?? []), ...incoming]) {
+      const v = (t ?? '').trim();
+      if (!v) continue;
+      const key = v.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(v);
+    }
+    return result;
+  }
+
+  /**
+   * Whether a metadata field should be considered "missing" and thus eligible
+   * for plugin gap-fill in 'embedded' mode. Treats null/undefined/empty as
+   * missing, plus the localized "未知"/"unknown" placeholders for text fields.
+   */
+  private isMissing(value: unknown): boolean {
+    if (value === null || value === undefined) return true;
+    if (typeof value === 'string') {
+      const v = value.trim().toLowerCase();
+      return v === '' || v === '未知' || v === 'unknown';
+    }
+    if (typeof value === 'number') {
+      return !Number.isFinite(value) || value <= 0;
+    }
+    return false;
   }
 
   private async downloadCover(
@@ -374,30 +507,41 @@ export class MetadataPluginService implements OnModuleInit {
     cachePath: string,
   ): Promise<string | null> {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type') || '';
-      const ext = this.mimeToExt(contentType) || 'jpg';
+      // Handle data: URLs (e.g. data:image/png;base64,XXX) emitted by mock
+      // or in-process generators. Node's global fetch does not accept them.
+      const dataMatch = url.match(/^data:([^;,]+);base64,(.+)$/);
+      const buffer = dataMatch
+        ? Buffer.from(dataMatch[2], 'base64')
+        : await this.fetchAsBuffer(url);
+      const mime = dataMatch ? dataMatch[1] : '';
+      const ext = this.mimeToExt(mime) || 'jpg';
       const hash = crypto.createHash('md5').update(url).digest('hex');
-      const coverDir = path.join(cachePath, 'plugin-covers');
-      if (!fs.existsSync(coverDir)) {
-        fs.mkdirSync(coverDir, { recursive: true });
+      // Save directly into the cache root (flat, alongside embedded covers) so the static
+      // server exposes it at /covers/<hash>.<ext> without an extra subdirectory.
+      if (!fs.existsSync(cachePath)) {
+        fs.mkdirSync(cachePath, { recursive: true });
       }
-      const savePath = path.join(coverDir, `${hash}.${ext}`);
+      const savePath = path.join(cachePath, `${hash}.${ext}`);
 
-      const buffer = Buffer.from(await response.arrayBuffer());
       fs.writeFileSync(savePath, buffer);
       return savePath;
     } catch (error) {
       this.logger.warn(`Failed to download cover from ${url}: ${error}`);
       return null;
+    }
+  }
+
+  private async fetchAsBuffer(url: string): Promise<Buffer> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return Buffer.from(await response.arrayBuffer());
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -502,7 +646,10 @@ export class MetadataPluginService implements OnModuleInit {
   }
 
   private async writeConfigFile(plugins: PluginConfig[]): Promise<void> {
-    const payload: PluginConfigFile = { plugins };
+    const payload: PluginConfigFile = {
+      plugins,
+      metadataPriority: this.metadataPriority,
+    };
     const json = JSON.stringify(payload, null, 2);
     await fs.promises.writeFile(this.configPath, json, 'utf-8');
   }

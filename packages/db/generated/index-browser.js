@@ -141,6 +141,7 @@ exports.Prisma.TrackScalarFieldEnum = {
   transcodedPath: 'transcodedPath',
   metadataSource: 'metadataSource',
   metadataProvider: 'metadataProvider',
+  tags: 'tags',
   artistId: 'artistId',
   albumId: 'albumId',
   folderId: 'folderId'
@@ -156,7 +157,9 @@ exports.Prisma.AlbumScalarFieldEnum = {
   status: 'status',
   trashedAt: 'trashedAt',
   metadataSource: 'metadataSource',
-  metadataProvider: 'metadataProvider'
+  metadataProvider: 'metadataProvider',
+  description: 'description',
+  tags: 'tags'
 };
 
 exports.Prisma.ArtistScalarFieldEnum = {
@@ -167,7 +170,9 @@ exports.Prisma.ArtistScalarFieldEnum = {
   status: 'status',
   trashedAt: 'trashedAt',
   metadataSource: 'metadataSource',
-  metadataProvider: 'metadataProvider'
+  metadataProvider: 'metadataProvider',
+  description: 'description',
+  tags: 'tags'
 };
 
 exports.Prisma.AudiobookCollectionScalarFieldEnum = {

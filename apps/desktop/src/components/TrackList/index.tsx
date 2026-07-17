@@ -1,29 +1,22 @@
 import {
-    CloudDownloadOutlined,
-    DeleteOutlined,
-    HeartFilled,
-    HeartOutlined,
-    MoreOutlined,
-    PauseCircleFilled,
-    PlayCircleFilled,
-    PlayCircleOutlined,
-    PlusOutlined,
+  CloudDownloadOutlined,
+  DeleteOutlined,
+  HeartFilled,
+  HeartOutlined,
+  MoreOutlined,
+  PauseCircleFilled,
+  PlayCircleFilled,
+  PlayCircleOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import {
-    addTrackToPlaylist,
-    deleteTrack,
-    getDeletionImpact,
-    getPlaylists,
-    type Playlist,
+  addTrackToPlaylist,
+  deleteTrack,
+  getDeletionImpact,
+  getPlaylists,
+  type Playlist,
 } from "@soundx/services";
-import {
-    Dropdown,
-    List,
-    type MenuProps,
-    Modal,
-    Table,
-    Typography,
-} from "antd";
+import { Dropdown, List, type MenuProps, Modal, Table, Typography } from "antd";
 import type { ColumnProps } from "antd/es/table";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -76,8 +69,15 @@ const TrackList: React.FC<TrackListProps> = ({
   const message = useMessage();
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { play, setPlaylist, currentTrack, isPlaying, pause, removeTrack, toggleLike } =
-    usePlayerStore();
+  const {
+    play,
+    setPlaylist,
+    currentTrack,
+    isPlaying,
+    pause,
+    removeTrack,
+    toggleLike,
+  } = usePlayerStore();
   const { mode } = usePlayMode();
 
   // Modal states
@@ -103,7 +103,7 @@ const TrackList: React.FC<TrackListProps> = ({
       (type === TrackType.AUDIOBOOK || track.type === TrackType.AUDIOBOOK) &&
       track.progress &&
       track.progress > 0;
-    
+
     // Attempt to use albumId from track if available, though Detail component passed the context albumId.
     // Ideally tracks in the list have albumId populated.
     play(track, albumId, shouldResume ? track.progress : 0);
@@ -112,7 +112,7 @@ const TrackList: React.FC<TrackListProps> = ({
   const handleToggleLike = async (
     e: React.MouseEvent,
     track: Track,
-    actionType: "like" | "unlike"
+    actionType: "like" | "unlike",
   ) => {
     e.stopPropagation();
     try {
@@ -121,15 +121,15 @@ const TrackList: React.FC<TrackListProps> = ({
       // For now, we rely on parent to refresh or we just update local state if we had it.
       // But tracks are props. We can call onRefresh.
       if (onRefresh) onRefresh();
-      
-      // Since we can't easily mutate the props 'tracks', we rely on the component using this to re-fetch 
-      // OR we could update a local state, but keeping it simple for now. 
+
+      // Since we can't easily mutate the props 'tracks', we rely on the component using this to re-fetch
+      // OR we could update a local state, but keeping it simple for now.
       // NOTE: Detail page re-fetches or updates state. toggleLike is a promise.
       // We might need a way to update the track 'likedByUsers' in the UI immediately.
       // Modifying the track object in place is dirty but works for display if valid React update triggers.
       // Better: The parent handles data.
     } catch (error) {
-      message.error(t('common.error'));
+      message.error(t("common.error"));
     }
   };
 
@@ -143,7 +143,7 @@ const TrackList: React.FC<TrackListProps> = ({
         setPlaylists(res.data);
       }
     } catch (error) {
-      message.error(t('trackList.getPlaylistsFailed'));
+      message.error(t("trackList.getPlaylistsFailed"));
     }
   };
 
@@ -152,13 +152,13 @@ const TrackList: React.FC<TrackListProps> = ({
     try {
       const res = await addTrackToPlaylist(playlistId, selectedTrack.id);
       if (res.code === 200) {
-        message.success(t('common.success'));
+        message.success(t("common.success"));
         setIsAddToPlaylistModalOpen(false);
       } else {
-        message.error(t('common.error'));
+        message.error(t("common.error"));
       }
     } catch (error) {
-      message.error(t('common.error'));
+      message.error(t("common.error"));
     }
   };
 
@@ -167,30 +167,30 @@ const TrackList: React.FC<TrackListProps> = ({
       const { data: impact } = await getDeletionImpact(track.id);
 
       modalApi.confirm({
-        title: t('trackList.confirmDelete'),
+        title: t("trackList.confirmDelete"),
         content: impact?.isLastTrackInAlbum
           ? `这是专辑《${impact.albumName}》的最后一个音频，删除后该专辑也将被同步删除。`
           : "删除后将无法恢复，且会同步删除本地原文件。",
-        okText: t('common.delete'),
+        okText: t("common.delete"),
         okType: "danger",
-        cancelText: t('common.cancel'),
+        cancelText: t("common.cancel"),
         onOk: async () => {
           try {
             const res = await deleteTrack(track.id, impact?.isLastTrackInAlbum);
             if (res.code === 200) {
-              message.success(t('common.success'));
+              message.success(t("common.success"));
               removeTrack(track.id);
               if (onRefresh) onRefresh();
             } else {
-              message.error(t('common.error'));
+              message.error(t("common.error"));
             }
           } catch (error) {
-            message.error(t('common.error'));
+            message.error(t("common.error"));
           }
         },
       });
     } catch (error) {
-      message.error(t('trackList.getDeletionImpactFailed'));
+      message.error(t("trackList.getDeletionImpactFailed"));
     }
   };
 
@@ -210,9 +210,9 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showCover
       ? [
           {
-            title: t('trackList.cover'),
+            title: t("trackList.cover"),
             key: "cover",
-            width: 60,
+            width: 80,
             render: (_: any, record: Track) => (
               <div
                 style={{ position: "relative" }}
@@ -246,7 +246,7 @@ const TrackList: React.FC<TrackListProps> = ({
         ]
       : []),
     {
-      title: t('trackList.title'),
+      title: t("trackList.title"),
       dataIndex: "name",
       key: "name",
       ellipsis: true,
@@ -254,7 +254,8 @@ const TrackList: React.FC<TrackListProps> = ({
         <Text
           type={
             // If it's audiobook context OR track itself says it is audiobook
-            (type === TrackType.AUDIOBOOK || record.type === TrackType.AUDIOBOOK) &&
+            (type === TrackType.AUDIOBOOK ||
+              record.type === TrackType.AUDIOBOOK) &&
             Number(record?.progress) > 0
               ? "secondary"
               : undefined
@@ -268,7 +269,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showArtist
       ? [
           {
-            title: t('trackList.artist'),
+            title: t("trackList.artist"),
             dataIndex: "artist",
             key: "artist",
             ellipsis: true,
@@ -279,22 +280,25 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showAlbum
       ? [
           {
-            title: t('trackList.album'),
+            title: t("trackList.album"),
             dataIndex: ["album", "name"] as any, // Handle object or string based on backend?
             key: "album",
             ellipsis: true,
             render: (_: string, record: any) => {
-               const albumName = typeof record.album === 'object' ? record.album?.name : record.album;
-               return <Text type="secondary">{albumName}</Text>;
+              const albumName =
+                typeof record.album === "object"
+                  ? record.album?.name
+                  : record.album;
+              return <Text type="secondary">{albumName}</Text>;
             },
           } as ColumnProps<Track>,
         ]
       : []),
     // Progress column for audiobook
-    ...((type === TrackType.AUDIOBOOK)
+    ...(type === TrackType.AUDIOBOOK
       ? [
           {
-            title: t('trackList.progress'),
+            title: t("trackList.progress"),
             dataIndex: "progress",
             key: "progress",
             width: 70,
@@ -316,7 +320,7 @@ const TrackList: React.FC<TrackListProps> = ({
     ...(showDuration
       ? [
           {
-            title: t('trackList.duration'),
+            title: t("trackList.duration"),
             dataIndex: "duration",
             key: "duration",
             width: 80,
@@ -336,7 +340,7 @@ const TrackList: React.FC<TrackListProps> = ({
               const items: MenuProps["items"] = [
                 {
                   key: "play",
-                  label: t('player.play'),
+                  label: t("player.play"),
                   icon: <PlayCircleOutlined />,
                   onClick: (info) => {
                     info.domEvent.stopPropagation();
@@ -346,12 +350,12 @@ const TrackList: React.FC<TrackListProps> = ({
                 {
                   key: "like",
                   label: (record as any).likedByUsers?.some(
-                    (like: any) => like.userId === user?.id
+                    (like: any) => like.userId === user?.id,
                   )
-                    ? t('player.unlike')
-                    : t('player.like'),
+                    ? t("player.unlike")
+                    : t("player.like"),
                   icon: (record as any).likedByUsers?.some(
-                    (like: any) => like.userId === user?.id
+                    (like: any) => like.userId === user?.id,
                   ) ? (
                     <HeartFilled style={{ color: "#ff4d4f" }} />
                   ) : (
@@ -363,16 +367,16 @@ const TrackList: React.FC<TrackListProps> = ({
                       info.domEvent as any,
                       record,
                       (record as any).likedByUsers?.some(
-                        (like: any) => like.userId === user?.id
+                        (like: any) => like.userId === user?.id,
                       )
                         ? "unlike"
-                        : "like"
+                        : "like",
                     );
                   },
                 },
                 {
                   key: "add",
-                  label: t('player.addToPlaylist'),
+                  label: t("player.addToPlaylist"),
                   icon: <PlusOutlined />,
                   onClick: (info) => {
                     info.domEvent.stopPropagation();
@@ -380,21 +384,29 @@ const TrackList: React.FC<TrackListProps> = ({
                   },
                 },
                 {
-                   key: "download",
-                   label: t('common.download'),
-                   icon: <CloudDownloadOutlined />,
-                   onClick: (info) => {
-                     info.domEvent.stopPropagation();
-                     message.info(t('common.downloading', { name: record.name }));
-                     downloadTrack(record).then(success => {
-                       if (success) message.success(t('common.downloadSuccess', { name: record.name }));
-                       else message.error(t('common.downloadFailed', { name: record.name }));
-                     });
-                   }
+                  key: "download",
+                  label: t("common.download"),
+                  icon: <CloudDownloadOutlined />,
+                  onClick: (info) => {
+                    info.domEvent.stopPropagation();
+                    message.info(
+                      t("common.downloading", { name: record.name }),
+                    );
+                    downloadTrack(record).then((success) => {
+                      if (success)
+                        message.success(
+                          t("common.downloadSuccess", { name: record.name }),
+                        );
+                      else
+                        message.error(
+                          t("common.downloadFailed", { name: record.name }),
+                        );
+                    });
+                  },
                 },
                 {
                   key: "delete",
-                  label: t('common.delete'),
+                  label: t("common.delete"),
                   icon: <DeleteOutlined />,
                   danger: true,
                   onClick: (info) => {
@@ -432,12 +444,12 @@ const TrackList: React.FC<TrackListProps> = ({
         onRow={(record) => ({
           onClick: () => handlePlayTrack(record),
           style: { cursor: "pointer" },
-          id: `track-${record.id}`
+          id: `track-${record.id}`,
         })}
       />
 
       <Modal
-        title={t('addToPlaylistModal.title')}
+        title={t("addToPlaylistModal.title")}
         open={isAddToPlaylistModalOpen}
         onCancel={() => setIsAddToPlaylistModalOpen(false)}
         footer={null}
@@ -451,7 +463,9 @@ const TrackList: React.FC<TrackListProps> = ({
               className={styles.playlistItem}
             >
               <Text>{item.name}</Text>
-              <Text type="secondary">{item._count?.tracks || 0} {t('trackList.tracks')}</Text>
+              <Text type="secondary">
+                {item._count?.tracks || 0} {t("trackList.tracks")}
+              </Text>
             </List.Item>
           )}
         />

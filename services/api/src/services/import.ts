@@ -1,5 +1,31 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Album, FileStatus, MetadataSource, PrismaClient, TrackType } from '@soundx/db';
+
+// Merge plugin-supplied tags into an existing JSON-string tag field.
+// Returns the new JSON string, or undefined if nothing to write.
+function mergeTagJson(existing: string | null | undefined, incoming: string[] | undefined): string | undefined {
+  if (!incoming || incoming.length === 0) return undefined;
+  const seen = new Set<string>();
+  const result: string[] = [];
+  const push = (v: string) => {
+    const trimmed = (v ?? '').trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(trimmed);
+  };
+  if (existing) {
+    try {
+      const parsed = JSON.parse(existing);
+      if (Array.isArray(parsed)) for (const t of parsed) if (typeof t === 'string') push(t);
+    } catch {
+      // ignore malformed JSON
+    }
+  }
+  for (const t of incoming) push(t);
+  return result.length > 0 ? JSON.stringify(result) : undefined;
+}
 import { LocalMusicScanner, readLyricsFile, ScanResult, WebDAVScanner } from '@soundx/utils';
 import { spawn } from 'child_process';
 import * as chokidar from 'chokidar';
@@ -368,12 +394,36 @@ export class ImportService implements OnModuleInit {
   private convertToHttpUrl(localPath: string, type: 'cover' | 'audio' | 'music', basePath: string): string {
     const relativePath = path.relative(basePath, localPath);
     if (type === 'cover') {
-      // Preserve subdirectories (e.g. plugin-covers/hash.jpg) so static server can find the file
+      // Map the on-disk cover path to its /covers/ URL: resolve relative to cacheDir and
+      // normalize backslashes so the static server can locate the file.
       const normalizedRelativePath = relativePath.replace(/\\/g, '/');
       return `/covers/${normalizedRelativePath}`;
     } else {
       return `/${type}/${relativePath}`;
     }
+  }
+
+  /**
+   * Resolve the cover to persist on a track update, honoring the global
+   * metadata-priority policy from MetadataPluginService.
+   * - 'plugin' mode: overwrite with the plugin cover only when a plugin ran and
+   *   returned one; otherwise keep the stored cover (legacy behavior).
+   * - 'embedded' mode: prefer the file's (gap-filled) cover, fall back to the
+   *   stored cover - the plugin only filled it if the file had none.
+   */
+  private resolveCoverForUpdate(
+    metadataSource: MetadataSource,
+    coverUrl: string | null,
+    existingCover: string | null,
+  ): string | null {
+    const pluginMode =
+      this.metadataPluginService.getMetadataPriority() === 'plugin';
+    if (pluginMode) {
+      return metadataSource === MetadataSource.PLUGIN && coverUrl
+        ? coverUrl
+        : existingCover;
+    }
+    return coverUrl || existingCover;
   }
 
   private isMvFile(filePath: string): boolean {
@@ -995,7 +1045,7 @@ export class ImportService implements OnModuleInit {
               duration: Math.round(enriched.duration || 0),
               fileHash: hash,
               fileModifiedAt: enriched?.mtime ? new Date(enriched.mtime) : fs.statSync(filePath).mtime,
-              cover: metadataSource === MetadataSource.PLUGIN && coverUrl ? coverUrl : targetTrack.cover,
+              cover: this.resolveCoverForUpdate(metadataSource, coverUrl, targetTrack.cover),
               lyrics: enriched.lyrics || null,
               artist: enriched.artist || targetTrack.artist,
               album: enriched.album || targetTrack.album,
@@ -1774,7 +1824,7 @@ export class ImportService implements OnModuleInit {
           trashedAt: null,
           metadataSource: MetadataSource.EMBEDDED,
           metadataProvider: null,
-        });
+        } as any);
       } else if (art.status === FileStatus.TRASHED) {
         await this.artistService.updateArtist(art.id, { status: FileStatus.ACTIVE, trashedAt: null });
       }
@@ -1797,7 +1847,7 @@ export class ImportService implements OnModuleInit {
         trashedAt: null,
         metadataSource: MetadataSource.EMBEDDED,
         metadataProvider: null,
-      });
+      } as any);
     } else if (album.status === FileStatus.TRASHED) {
       await this.albumService.updateAlbum(album.id, { status: FileStatus.ACTIVE, trashedAt: null });
     }
@@ -1899,20 +1949,45 @@ export class ImportService implements OnModuleInit {
     // Fallback if split results in empty (should not happen if artistName is valid)
     if (individualArtists.length === 0) individualArtists.push(artistName);
 
+    // Pull plugin-driven artist meta once (applied to every artist in the split list)
+    const pluginArtistDescription = (item as any).__artistDescription as string | undefined;
+    const pluginArtistTags = (item as any).__artistTags as string[] | undefined;
+    const pluginArtistTagsJson = pluginArtistTags && pluginArtistTags.length > 0
+      ? JSON.stringify(pluginArtistTags)
+      : undefined;
+
     for (const name of individualArtists) {
       let art = await this.artistService.findByName(name, type, true);
       if (!art) {
         art = await this.artistService.createArtist({
           name: name,
-          avatar: coverUrl, // Use current cover for now
+          avatar: coverUrl,
           type: type,
           status: FileStatus.ACTIVE,
           trashedAt: null,
           metadataSource,
           metadataProvider,
-        });
+          ...(metadataSource === MetadataSource.PLUGIN
+            ? { description: pluginArtistDescription, tags: pluginArtistTagsJson }
+            : {}),
+        } as any);
       } else if (art.status === FileStatus.TRASHED) {
         await this.artistService.updateArtist(art.id, { status: FileStatus.ACTIVE, trashedAt: null });
+      }
+
+      // For existing artists, only enrich from plugin and never overwrite existing fields
+      if (art && metadataSource === MetadataSource.PLUGIN) {
+        const artistUpdate: Record<string, any> = {};
+        if (pluginArtistDescription && !art.description) {
+          artistUpdate.description = pluginArtistDescription;
+        }
+        if (pluginArtistTagsJson) {
+          const merged = mergeTagJson(art.tags, pluginArtistTags);
+          if (merged) artistUpdate.tags = merged;
+        }
+        if (Object.keys(artistUpdate).length > 0) {
+          art = await this.artistService.updateArtist(art.id, artistUpdate as any);
+        }
       }
 
       if (!trackPrimaryArtist) trackPrimaryArtist = art;
@@ -1937,7 +2012,7 @@ export class ImportService implements OnModuleInit {
             trashedAt: null,
             metadataSource,
             metadataProvider,
-          });
+          } as any);
         } else if (albumArtistEntity.status === FileStatus.TRASHED) {
           await this.artistService.updateArtist(albumArtistEntity.id, { status: FileStatus.ACTIVE, trashedAt: null });
         }
@@ -1946,6 +2021,14 @@ export class ImportService implements OnModuleInit {
 
     // 3. Resolve Album
     let album: Album | null = null;
+    let albumWasCreated = false;
+
+    // Plugin-driven album enrichment values (used for both create and existing-album update)
+    const pluginAlbumDescription = (item as any).__albumDescription as string | undefined;
+    const pluginAlbumTags = (item as any).__albumTags as string[] | undefined;
+    const pluginAlbumTagsJson = pluginAlbumTags && pluginAlbumTags.length > 0
+      ? JSON.stringify(pluginAlbumTags)
+      : undefined;
 
     // Heuristic: If no explicit Album Artist, try to merge with existing album in the same folder
     if (!item.albumArtist && folderId && albumName !== '未知') {
@@ -1978,9 +2061,38 @@ export class ImportService implements OnModuleInit {
           trashedAt: null,
           metadataSource,
           metadataProvider,
-        });
-      } else if (album.status === FileStatus.TRASHED) {
-        await this.albumService.updateAlbum(album.id, { status: FileStatus.ACTIVE, trashedAt: null });
+          ...(metadataSource === MetadataSource.PLUGIN
+            ? { description: pluginAlbumDescription, tags: pluginAlbumTagsJson }
+            : {}),
+        } as any);
+        albumWasCreated = true;
+      }
+    }
+
+    // Enrich an already-existing album (found via the sibling heuristic or by name). Cover is
+    // overwritten when the plugin supplied one so full re-scans actually refresh stale covers,
+    // but the write is skipped when the URL is unchanged to avoid redundant updates on every
+    // full scan. Description stays first-wins and tags are union-merged, matching Track behavior.
+    if (album && !albumWasCreated) {
+      const albumUpdate: Record<string, any> = {};
+      if (album.status === FileStatus.TRASHED) {
+        albumUpdate.status = FileStatus.ACTIVE;
+        albumUpdate.trashedAt = null;
+      }
+      if (metadataSource === MetadataSource.PLUGIN) {
+        if (coverUrl && album.cover !== coverUrl) {
+          albumUpdate.cover = coverUrl;
+        }
+        if (pluginAlbumDescription && !album.description) {
+          albumUpdate.description = pluginAlbumDescription;
+        }
+        if (pluginAlbumTagsJson) {
+          const merged = mergeTagJson(album.tags, pluginAlbumTags);
+          if (merged) albumUpdate.tags = merged;
+        }
+      }
+      if (Object.keys(albumUpdate).length > 0) {
+        album = await this.albumService.updateAlbum(album.id, albumUpdate as any);
       }
     }
 
@@ -2021,10 +2133,13 @@ export class ImportService implements OnModuleInit {
           // artist: artistName, // Optional: Update denormalized artist name if needed, but schema says it's string
           albumId: album.id,
           // album: albumName,   // Optional: Update denormalized album name
-          cover: metadataSource === MetadataSource.PLUGIN && coverUrl ? coverUrl : existingTrack.cover,
+          cover: this.resolveCoverForUpdate(metadataSource, coverUrl, existingTrack.cover),
           transcodedPath: transcodedPath || existingTrack.transcodedPath,
           metadataSource,
           metadataProvider,
+          tags: metadataSource === MetadataSource.PLUGIN
+            ? mergeTagJson(existingTrack.tags, (item as any).__trackTags) ?? existingTrack.tags
+            : existingTrack.tags,
         }
       });
 
@@ -2061,6 +2176,11 @@ export class ImportService implements OnModuleInit {
         transcodedPath: transcodedPath,
         metadataSource,
         metadataProvider,
+        tags: metadataSource === MetadataSource.PLUGIN
+          ? ((item as any).__trackTags && (item as any).__trackTags.length > 0
+              ? JSON.stringify((item as any).__trackTags)
+              : null)
+          : null,
       } as any);
       return createdTrack.id;
     }

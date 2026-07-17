@@ -44,3 +44,24 @@ export const reloadMetadataPlugins = () => {
     '/admin/metadata-plugins/reload',
   );
 };
+
+/**
+ * Global policy for resolving conflicts between embedded file metadata and
+ * plugin-returned metadata.
+ * - 'plugin': plugin values overwrite embedded values (default).
+ * - 'embedded': embedded values are kept; the plugin only fills missing fields.
+ */
+export type MetadataPriority = 'plugin' | 'embedded';
+
+export const getMetadataPluginPriority = () => {
+  return request.get<any, ISuccessResponse<MetadataPriority>>(
+    '/admin/metadata-plugins/priority',
+  );
+};
+
+export const setMetadataPluginPriority = (metadataPriority: MetadataPriority) => {
+  return request.put<any, ISuccessResponse<MetadataPriority>>(
+    '/admin/metadata-plugins/priority',
+    { metadataPriority },
+  );
+};

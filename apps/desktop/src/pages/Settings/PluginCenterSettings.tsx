@@ -6,6 +6,7 @@ import {
   Input,
   InputNumber,
   Popconfirm,
+  Radio,
   Select,
   Space,
   Switch,
@@ -15,14 +16,17 @@ import {
 import {
   createMetadataPlugin,
   deleteMetadataPlugin,
+  getMetadataPluginPriority,
   getMetadataPlugins,
   reloadMetadataPlugins,
   saveMetadataPlugins,
+  setMetadataPluginPriority,
   updateMetadataPlugin,
   type MetadataPluginConfig,
   type MetadataPluginInput,
   type MetadataPluginTrackType,
   type MetadataPluginType,
+  type MetadataPriority,
 } from "@soundx/services";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -79,9 +83,12 @@ const PluginCenterSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [activeKey, setActiveKey] = useState<string[]>([]);
+  const [priority, setPriority] = useState<MetadataPriority>("plugin");
+  const [prioritySaving, setPrioritySaving] = useState(false);
 
   useEffect(() => {
     void load();
+    void loadPriority();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -98,6 +105,40 @@ const PluginCenterSettings: React.FC = () => {
       message.error(t("common.error"));
     } finally {
       setLoaded(true);
+    }
+  };
+
+  const loadPriority = async () => {
+    try {
+      const res = await getMetadataPluginPriority();
+      if (res.code === 200 && res.data) {
+        setPriority(res.data);
+      }
+    } catch (error) {
+      console.error("Failed to load metadata priority", error);
+    }
+  };
+
+  const handlePriorityChange = async (next: MetadataPriority) => {
+    setPriority(next);
+    setPrioritySaving(true);
+    try {
+      const res = await setMetadataPluginPriority(next);
+      if (res.code === 200) {
+        message.success(t("settings.metadataPrioritySaved"));
+      } else {
+        message.error(res.message || t("settings.metadataPrioritySaveFailed"));
+        // restore previous on failure
+        const prev = await getMetadataPluginPriority();
+        if (prev.code === 200 && prev.data) setPriority(prev.data);
+      }
+    } catch (error) {
+      console.error("Failed to save metadata priority", error);
+      message.error(t("settings.metadataPrioritySaveFailed"));
+      const prev = await getMetadataPluginPriority();
+      if (prev.code === 200 && prev.data) setPriority(prev.data);
+    } finally {
+      setPrioritySaving(false);
     }
   };
 
@@ -227,6 +268,41 @@ const PluginCenterSettings: React.FC = () => {
       <Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
         {t("settings.pluginCenterHint")}
       </Paragraph>
+
+      <div
+        style={{
+          marginBottom: 16,
+          padding: "12px 16px",
+          border: "1px solid var(--ant-color-border, #d9d9d9)",
+          borderRadius: 8,
+        }}
+      >
+        <Text strong style={{ display: "block", marginBottom: 8 }}>
+          {t("settings.metadataPriorityTitle")}
+        </Text>
+        <Radio.Group
+          value={priority}
+          disabled={prioritySaving}
+          onChange={(e) => handlePriorityChange(e.target.value as MetadataPriority)}
+        >
+          <Space direction="vertical">
+            <Radio value="plugin">
+              <Text strong>{t("settings.metadataPriorityPlugin")}</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {t("settings.metadataPriorityPluginDesc")}
+              </Text>
+            </Radio>
+            <Radio value="embedded">
+              <Text strong>{t("settings.metadataPriorityEmbedded")}</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {t("settings.metadataPriorityEmbeddedDesc")}
+              </Text>
+            </Radio>
+          </Space>
+        </Radio.Group>
+      </div>
 
       {loaded && plugins.length === 0 ? (
         <Empty

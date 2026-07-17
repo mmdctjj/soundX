@@ -9,6 +9,22 @@ interface ResolveOptions {
   cacheEnabled: boolean;
 }
 
+/**
+ * The origin of the backend's local streaming media server (e.g.
+ * `http://127.0.0.1:39571`). Cached audio is served from `<origin>/audio/<rel>`,
+ * which AVPlayer streams progressively with range requests. Cached once.
+ */
+let mediaOrigin: string | null = null;
+const getMediaOrigin = async (): Promise<string> => {
+  if (mediaOrigin) return mediaOrigin;
+  try {
+    mediaOrigin = await invoke<string>("get_media_origin");
+  } catch {
+    mediaOrigin = "";
+  }
+  return mediaOrigin || "";
+};
+
 interface TrackMetadata {
   id: number | string;
   path: string;
@@ -43,7 +59,7 @@ export const resolveTrackUri = async (
   // Support playback from local list even if path is missing (for legacy or offline tracks)
   const localPath = (track as any).localPath;
   if (!track.path && localPath) {
-    return `media://audio/${localPath}`;
+    return `${await getMediaOrigin()}/audio/${localPath}`;
   }
 
   if (!track.path) {
@@ -67,6 +83,7 @@ export const resolveTrackUri = async (
       }) as string | null;
       
       if (cachedPath) {
+        // cache_check returns a streaming http:// URL for the cached file.
         return cachedPath;
       }
 

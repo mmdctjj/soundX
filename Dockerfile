@@ -50,8 +50,52 @@ RUN cd packages/db && pnpm run generate
 # 7. 构建后端 API
 RUN cd services/api && pnpm run build
 
-# 8. 构建前端 Web
+# 8. 构建前端 Web (desktop)
+# 注: mini H5 构建在独立的 mini-builder 阶段（固定 linux/amd64），见下方。
 RUN cd apps/desktop && pnpm run build:web
+
+# ==========================================
+# Stage 1b: Mini H5 Builder (固定 linux/amd64)
+# Taro 3.6.34 的 @tarojs/binding 未发布 linux/arm64 原生包（npm 上仅 4.x），
+# taro CLI 启动即需该原生绑定，故 mini H5 构建固定在 amd64 执行；
+# 产物为纯静态文件，arm64 镜像可直接复用，不影响最终运行。
+# ==========================================
+FROM --platform=linux/amd64 node:22-bullseye AS mini-builder
+
+ARG PNPM_VERSION=10.28.1
+
+RUN apt-get update \
+  && apt-get install -y openssl \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN npm config set registry https://registry.npmmirror.com \
+  && npm install -g pnpm@${PNPM_VERSION} \
+  && pnpm config set registry https://registry.npmmirror.com
+WORKDIR /app
+
+# 复制 lock + workspace 配置及所有子包 package.json（保持 workspace 结构以通过 --frozen-lockfile 校验）
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/db/package.json ./packages/db/
+COPY packages/utils/package.json ./packages/utils/
+COPY packages/i18e/package.json ./packages/i18e/
+COPY packages/ws/package.json ./packages/ws/
+COPY packages/services/package.json ./packages/services/
+COPY services/api/package.json ./services/api/
+COPY apps/desktop/package.json ./apps/desktop/
+COPY apps/mini/package.json ./apps/mini/
+COPY apps/mobile/package.json ./apps/mobile/
+COPY packages/test/package.json ./packages/test/
+COPY packages/ui/package.json ./packages/ui/
+
+RUN pnpm install --frozen-lockfile
+
+# 复制完整源码
+COPY . .
+
+# mini 仅依赖 @soundx/i18e 与 @soundx/services（两者均不依赖其他 workspace 包）
+RUN cd packages/i18e && pnpm run build
+RUN cd packages/services && pnpm run build
+RUN cd apps/mini && pnpm run build:h5
 
 # ==========================================
 # Stage 2: Unified Runner (All-in-one image)
@@ -96,7 +140,8 @@ COPY --from=builder /app/packages/services/dist     ./packages/services/dist
 COPY --from=builder /app/packages/services/package.json ./packages/services/package.json
 COPY --from=builder /app/services/api/dist          ./services/api/dist
 COPY --from=builder /app/services/api/package.json  ./services/api/package.json
-COPY --from=builder /app/apps/desktop/dist          /usr/share/nginx/html
+COPY --from=builder /app/apps/desktop/dist          /usr/share/nginx/html/desktop
+COPY --from=mini-builder /app/apps/mini/dist        /usr/share/nginx/html/mini
 
 # 4. 复制并安装 TTS、ASR 和 MI 服务 (Python)
 COPY services/tts /app/services/tts

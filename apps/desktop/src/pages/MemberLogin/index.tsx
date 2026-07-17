@@ -171,7 +171,7 @@ const MemberLogin: React.FC = () => {
         messageApi.success("验证码已发送");
         setCountdown(60);
       } else {
-        messageApi.error(res.data.message || "获取验证码失败");
+        messageApi.error(res.data?.message || "获取验证码失败");
       }
     } catch (e: unknown) {
       const messageText =
@@ -217,7 +217,7 @@ const MemberLogin: React.FC = () => {
           navigate("/", { replace: true });
         }, 500);
       } else {
-        messageApi.error(res.data.message || "登录失败");
+        messageApi.error(res.data?.message || "登录失败");
       }
     } catch (e: unknown) {
       setLoading(false);

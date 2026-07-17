@@ -40,8 +40,8 @@ const Downloads: React.FC = () => {
     setLoading(true);
     try {
       const results = await invoke<any[]>("cache_list", {
-        path: downloadPath,
-        mode,
+        downloadPath,
+        trackType: mode,
       });
       setLocalItems(results);
     } catch (error) {

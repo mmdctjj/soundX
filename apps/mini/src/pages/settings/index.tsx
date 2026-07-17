@@ -230,7 +230,7 @@ export default function Settings() {
 
       <ScrollView scrollY className='content'>
         <View className='section'>
-          <Text className='section-title'>{t('settings.account')}</Text>
+          <Text className='section-title'>{t('settings.server')}</Text>
           {user?.is_admin && renderActionRow(
             t('settings.admin'),
             t('settings.adminDescription'),
