@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import { plusRequest, ISuccessResponse } from '@soundx/services';
 import { compareVersions, downloadAndInstallApk, getLocalVersion } from '../src/utils/updateUtils';
+// 配置常量
+const GITHUB_USER = 'mmdctjj';
+const GITHUB_REPO = 'AudioDock';
 
 export interface UpdateInfo {
   version: string;
@@ -65,9 +68,23 @@ export const useCheckUpdate = () => {
 
         console.log(`Found Android APK: ${apkAsset.url}`);
 
+        // 从 GitHub release 获取更新说明
+        let releaseBody = '建议立即更新体验新功能';
+        try {
+          const githubRes = await fetch(
+            `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/tags/v${remoteVersion}`
+          );
+          const githubData = await githubRes.json();
+          if (githubData?.body) {
+            releaseBody = githubData.body;
+          }
+        } catch (e) {
+          console.log('获取 GitHub release 说明失败:', e);
+        }
+
         const info: UpdateInfo = {
           version: remoteVersion,
-          body: `${apkAsset.label} ${apkAsset.filename}`,
+          body: releaseBody,
           downloadUrl: apkAsset.url
         };
 

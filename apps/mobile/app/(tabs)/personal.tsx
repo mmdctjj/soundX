@@ -972,23 +972,11 @@ export default function PersonalScreen() {
         >
           <Ionicons name="add" size={28} color={colors.text} />
         </TouchableOpacity>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          {progress > 0 && (
-            <TouchableOpacity
-              onPress={() => setModalVisible(true)}
-              style={[styles.iconBtn, { marginRight: 10 }]}
-            >
-              <Ionicons name="download-outline" size={22} color={colors.text} />
-              <Text style={{ color: colors.text }}>
-                {(progress * 100).toFixed(0)}%
-              </Text>
-            </TouchableOpacity>
-          )}
-
+       <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
-            onPress={handleOpenScanEntry}
-            style={[styles.iconBtn, { marginRight: 10 }]}
-          >
+           onPress={handleOpenScanEntry}
+           style={[styles.iconBtn, { marginRight: 10 }]}
+         >
             <AntDesign name="scan" size={22} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
