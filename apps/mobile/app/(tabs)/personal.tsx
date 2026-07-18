@@ -338,7 +338,9 @@ export default function PersonalScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    checkUpdate();
+    checkUpdate().then((info) => {
+      if (info) setModalVisible(true);
+    });
   }, []);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);

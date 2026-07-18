@@ -341,7 +341,9 @@
     "pluginRemove": "删除插件",
     "pluginDeleteSuccess": "插件已删除",
     "pluginDeleteFailed": "插件删除失败",
-    "pluginIndex": "插件 {{index}}"
+    "pluginIndex": "插件 {{index}}",
+    "checkUpdate": "检查更新",
+    "checkUpdateDescription": "检测是否有新版本"
   },
   "login": {
     "title": "登录",

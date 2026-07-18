@@ -28,8 +28,8 @@ export const useCheckUpdate = () => {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const checkUpdate = async () => {
-    if (Platform.OS !== 'android') return;
+  const checkUpdate = async (): Promise<UpdateInfo | null> => {
+    if (Platform.OS !== 'android') return null;
 
     try {
       const response = await plusRequest.get<ISuccessResponse<DownloadLatestData>>(
@@ -40,11 +40,11 @@ export const useCheckUpdate = () => {
 
       if (result.code !== 200 || !result.data) {
         console.log('检查更新接口返回异常:', result);
-        return;
+        return null;
       }
 
       const { version: remoteVersion, files } = result.data;
-      if (!remoteVersion) return;
+      if (!remoteVersion) return null;
 
       const localVersion = getLocalVersion();
       console.log(`本地: ${localVersion}, 线上: ${remoteVersion}`);
@@ -52,7 +52,7 @@ export const useCheckUpdate = () => {
       const ignoredVersion = await AsyncStorage.getItem("ignored_version");
       if (remoteVersion === ignoredVersion) {
         console.log(`Version ${remoteVersion} is ignored.`);
-        return;
+        return null;
       }
 
       if (compareVersions(remoteVersion, localVersion) === 1) {
@@ -60,21 +60,26 @@ export const useCheckUpdate = () => {
 
         if (!apkAsset) {
           console.log(`Version ${remoteVersion} found but no Android APK found.`);
-          return;
+          return null;
         }
 
         console.log(`Found Android APK: ${apkAsset.url}`);
 
-        setUpdateInfo({
+        const info: UpdateInfo = {
           version: remoteVersion,
           body: `${apkAsset.label} ${apkAsset.filename}`,
           downloadUrl: apkAsset.url
-        });
+        };
 
+        setUpdateInfo(info);
         setProgress(0);
+        return info;
       }
+
+      return null;
     } catch (error) {
       console.error('检查更新失败', error);
+      return null;
     }
   };
 
