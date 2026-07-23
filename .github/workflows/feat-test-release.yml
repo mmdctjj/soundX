@@ -59,7 +59,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d  # v3
         with:
           version: 8
 
@@ -122,7 +122,7 @@ jobs:
           find apps/desktop/src-tauri/target -type d -name "bundle" -exec ls -la {} \;
 
       - name: Upload Release Assets (Draft)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2
         with:
           tag_name: test-build
           name: Test Build (feat/test)
@@ -187,7 +187,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d  # v3
         with:
           version: 8
 
@@ -243,7 +243,7 @@ jobs:
           echo "apk_path=$NEW_PATH" >> $GITHUB_OUTPUT
 
       - name: Upload Release Assets (Draft)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2
         with:
           tag_name: test-build
           name: Test Build (feat/test)
