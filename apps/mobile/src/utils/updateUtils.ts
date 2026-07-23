@@ -1,6 +1,11 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import SystemDownloadManager from '../../modules/system-download-manager';
+// iOS 通过 App Store 更新，无需 APK 下载；只在 Android 上加载原生下载模块
+// （SystemDownloadManager 仅注册了 android 平台，iOS 上 requireNativeModule 会抛错）
+const SystemDownloadManager =
+  Platform.OS === 'android'
+    ? require('../../modules/system-download-manager').default
+    : null;
 
 /**
  * 1. 获取本地版本号 (例如 "1.0.58")
@@ -39,7 +44,7 @@ export const downloadAndInstallApk = async (
   onProgress(0.05);
 
   try {
-    await SystemDownloadManager.downloadApk(downloadUrl);
+    await SystemDownloadManager!.downloadApk(downloadUrl);
     onProgress(1);
   } catch (e) {
     console.error('创建系统下载任务失败:', e);
