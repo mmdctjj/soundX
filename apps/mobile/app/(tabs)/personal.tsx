@@ -198,7 +198,6 @@ export default function PersonalScreen() {
     startUpdate,
     ignoreUpdate,
     cancelUpdate,
-    installLocalUpdate,
   } = useCheckUpdate();
 
   const [isModalVisible, setModalVisible] = useState(false);
@@ -339,7 +338,9 @@ export default function PersonalScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    checkUpdate();
+    checkUpdate().then((info) => {
+      if (info) setModalVisible(true);
+    });
   }, []);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -971,29 +972,11 @@ export default function PersonalScreen() {
         >
           <Ionicons name="add" size={28} color={colors.text} />
         </TouchableOpacity>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          {progress > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                if (progress === 1) {
-                  installLocalUpdate();
-                } else {
-                  setModalVisible(true);
-                }
-              }}
-              style={[styles.iconBtn, { marginRight: 10 }]}
-            >
-              <Ionicons name="download-outline" size={22} color={colors.text} />
-              <Text style={{ color: colors.text }}>
-                {(progress * 100).toFixed(0)}%
-              </Text>
-            </TouchableOpacity>
-          )}
-
+       <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
-            onPress={handleOpenScanEntry}
-            style={[styles.iconBtn, { marginRight: 10 }]}
-          >
+           onPress={handleOpenScanEntry}
+           style={[styles.iconBtn, { marginRight: 10 }]}
+         >
             <AntDesign name="scan" size={22} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity

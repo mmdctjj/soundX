@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState } from 'react';
 import { Alert, Platform } from 'react-native';
-import { checkLocalApkExists, compareVersions, downloadAndInstallApk, getLocalApkUri, getLocalVersion, installApk } from '../src/utils/updateUtils';
+import { plusRequest, ISuccessResponse } from '@soundx/services';
+import { compareVersions, downloadAndInstallApk, getLocalVersion } from '../src/utils/updateUtils';
 // 配置常量
 const GITHUB_USER = 'mmdctjj';
 const GITHUB_REPO = 'AudioDock';
-const USE_GHPROXY = false; // 开启加速
 
 export interface UpdateInfo {
   version: string;
@@ -13,72 +13,90 @@ export interface UpdateInfo {
   downloadUrl: string;
 }
 
+interface DownloadFileInfo {
+  platform: string;
+  label: string;
+  filename: string;
+  size: number;
+  url: string;
+}
+
+interface DownloadLatestData {
+  version: string;
+  files: DownloadFileInfo[];
+}
+
 export const useCheckUpdate = () => {
-  // UI 状态
   const [progress, setProgress] = useState(0);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const checkUpdate = async () => {
-    if (Platform.OS !== 'android') return;
+  const checkUpdate = async (): Promise<UpdateInfo | null> => {
+    if (Platform.OS !== 'android') return null;
 
     try {
-      // 1. 请求 GitHub API
-      const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`;
-      const response = await fetch(apiUrl);
-      console.log(response);
-      const data = await response.json();
+      const response = await plusRequest.get<ISuccessResponse<DownloadLatestData>>(
+        '/download/latest',
+        { params: { product: 'audiodock' } }
+      );
+      const result = response.data;
 
-      // 2. 解析版本 (Tag: v1.0.59 -> 1.0.59)
-      const tagName = data.tag_name;
-      if (!tagName) return;
-      const remoteVersion = tagName.replace(/^v/, '');
+      if (result.code !== 200 || !result.data) {
+        console.log('检查更新接口返回异常:', result);
+        return null;
+      }
+
+      const { version: remoteVersion, files } = result.data;
+      if (!remoteVersion) return null;
+
       const localVersion = getLocalVersion();
-
       console.log(`本地: ${localVersion}, 线上: ${remoteVersion}`);
 
-      // Check ignore
       const ignoredVersion = await AsyncStorage.getItem("ignored_version");
       if (remoteVersion === ignoredVersion) {
         console.log(`Version ${remoteVersion} is ignored.`);
-        return;
+        return null;
       }
 
-      // 3. 比对版本
       if (compareVersions(remoteVersion, localVersion) === 1) {
+        const apkAsset = files.find((a) => a.platform === 'android');
 
-        // 寻找 APK 资源
-        const apkAsset = data.assets?.find((a: any) => a.name.endsWith('.apk'));
-        
         if (!apkAsset) {
-          console.log(`Version ${remoteVersion} found but no APK asset found in release.`);
-          return;
+          console.log(`Version ${remoteVersion} found but no Android APK found.`);
+          return null;
         }
 
-        let downloadUrl = apkAsset.browser_download_url;
-        console.log(`Found APK: ${downloadUrl}`);
+        console.log(`Found Android APK: ${apkAsset.url}`);
 
-        if (USE_GHPROXY) {
-          downloadUrl = `https://mirror.ghproxy.com/${downloadUrl}`;
+        // 从 GitHub release 获取更新说明
+        let releaseBody = '建议立即更新体验新功能';
+        try {
+          const githubRes = await fetch(
+            `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/tags/v${remoteVersion}`
+          );
+          const githubData = await githubRes.json();
+          if (githubData?.body) {
+            releaseBody = githubData.body;
+          }
+        } catch (e) {
+          console.log('获取 GitHub release 说明失败:', e);
         }
 
-        // 4. 设置更新信息，不再弹出 Alert
-        setUpdateInfo({
+        const info: UpdateInfo = {
           version: remoteVersion,
-          body: data.body || '建议立即更新体验新功能',
-          downloadUrl: downloadUrl
-        });
+          body: releaseBody,
+          downloadUrl: apkAsset.url
+        };
 
-        // 5. 检查本地是否已经下载过
-        const exists = await checkLocalApkExists(downloadUrl);
-        if (exists) {
-          setProgress(1); // 如果已存在，直接标记进度为完成
-        } else {
-          setProgress(0);
-        }
+        setUpdateInfo(info);
+        setProgress(0);
+        return info;
       }
+
+      return null;
     } catch (error) {
       console.error('检查更新失败', error);
+      return null;
     }
   };
 
@@ -86,10 +104,6 @@ export const useCheckUpdate = () => {
     if (isUpdating) return;
     if (updateInfo) {
       startDownload(updateInfo.downloadUrl);
-      // Keep updateInfo to show progress in the same modal context if needed, 
-      // or we can rely on progress > 0.
-      // But typically we might want to hide the "Prompt" part. 
-      // setUpdateInfo(null); // Do not clear yet if we want to use the info for title etc.
     }
   };
 
@@ -104,34 +118,21 @@ export const useCheckUpdate = () => {
     setUpdateInfo(null);
   };
 
-  const installLocalUpdate = async () => {
-    if (updateInfo) {
-      const localUri = getLocalApkUri(updateInfo.downloadUrl);
-      try {
-        await installApk(localUri);
-      } catch (e) {
-        Alert.alert('安装失败', '无法打开安装程序');
-      }
-    }
-  };
-
-  // 内部函数：处理下载流程
   const startDownload = async (url: string) => {
     setIsUpdating(true);
     setProgress(0);
 
     try {
       await downloadAndInstallApk(url, (p) => {
-        setProgress(p); // 实时更新进度条
+        setProgress(p);
       });
     } catch (e) {
-      Alert.alert('更新失败', '网络连接错误，请重试');
+      Alert.alert('更新失败', '无法创建系统下载任务，请重试');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // 返回：触发函数 + UI组件
   return {
     checkUpdate,
     progress,
@@ -140,6 +141,5 @@ export const useCheckUpdate = () => {
     startUpdate,
     ignoreUpdate,
     cancelUpdate,
-    installLocalUpdate
   };
 };

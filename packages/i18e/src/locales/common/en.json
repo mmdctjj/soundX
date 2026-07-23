@@ -333,7 +333,9 @@
     "pluginRemove": "Delete plugin",
     "pluginDeleteSuccess": "Plugin deleted",
     "pluginDeleteFailed": "Failed to delete plugin",
-    "pluginIndex": "Plugin {{index}}"
+    "pluginIndex": "Plugin {{index}}",
+    "checkUpdate": "Check for Updates",
+    "checkUpdateDescription": "Check if a new version is available"
   },
   "header": {
     "pleaseLoginMemberFirst": "Please login to member account first",
@@ -1581,7 +1583,9 @@
     "foundNewVersion": "New Version Found",
     "ignoreThisVersion": "Ignore This Version",
     "preparing2": "Preparing...",
-    "updateNow": "Update Now"
+    "updateNow": "Update Now",
+    "systemDownloadStarted": "System downloader started",
+    "systemDownloadDescription": "The APK will install automatically after download. Check the notification shade for progress."
   },
   "playerMore": {
     "moreOptions": "More Options",
