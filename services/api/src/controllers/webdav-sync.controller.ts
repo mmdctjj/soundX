@@ -1,7 +1,7 @@
-import { Controller, ForbiddenException, Get, NotFoundException, Param, Post, Req } from '@nestjs/common';
-import { IErrorResponse, INotFoundResponse, ISuccessResponse } from '../common/const';
+import { Controller, ForbiddenException, Post, Req } from '@nestjs/common';
+import { IErrorResponse, ISuccessResponse } from '../common/const';
 import { LogMethod } from '../common/log-method.decorator';
-import { ImportService, ImportTask } from '../services/import';
+import { ImportService } from '../services/import';
 import { UserService } from '../services/user';
 import { WebDavConfigService } from '../services/webdav-config.service';
 
@@ -31,38 +31,13 @@ export class WebDavSyncController {
         message: '请先在 WebDAV 设置中添加至少一个数据源',
       };
     }
-    const result = this.importService.triggerWebDavSync();
+    // The sync runs as a standard import task (stored in the shared task map),
+    // so clients poll its progress via GET /import/task/:id like full/incremental scans.
+    const result = await this.importService.triggerWebDavSync();
     return {
       code: 200,
       message: 'success',
       data: result,
-    };
-  }
-
-  @Get('task/:id')
-  @LogMethod()
-  async getTask(@Req() req: any, @Param('id') id: string): Promise<ISuccessResponse<ImportTask> | INotFoundResponse | IErrorResponse> {
-    await this.checkAdmin(req.user.userId);
-    const task = this.importService.getWebDavTask(id);
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-    return {
-      code: 200,
-      message: 'success',
-      data: task,
-    };
-  }
-
-  @Get('current-task')
-  @LogMethod()
-  async currentTask(@Req() req: any): Promise<ISuccessResponse<ImportTask | null> | IErrorResponse> {
-    await this.checkAdmin(req.user.userId);
-    const task = this.importService.getRunningWebDavTask() ?? null;
-    return {
-      code: 200,
-      message: 'success',
-      data: task,
     };
   }
 }

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
-  getCurrentWebDavSyncTask,
+  getImportTask,
   getWebDavSources,
   saveWebDavSources,
   testWebDavConnection,
@@ -223,9 +223,63 @@ export default function WebDavSourcesScreen() {
       {
         text: t("settings.webdavSourceRemove"),
         style: "destructive",
-        onPress: () => setSources((prev) => prev.filter((s) => s.id !== id)),
+        onPress: async () => {
+          const next = sources.filter((s) => s.id !== id);
+          setSources(next);
+          await persistSources(next);
+        },
       },
     ]);
+  };
+
+  // Persist a given source list immediately. Used by delete and enable/disable
+  // so the change takes effect right away (and triggers the backend data
+  // cleanup) instead of waiting for the "Save" button. Rows still missing
+  // name/url are skipped so an in-progress row can't block the action.
+  const persistSources = async (list: EditableSource[]): Promise<boolean> => {
+    const payload: WebDavSourceInput[] = list
+      .filter((s) => s.name.trim() && s.url.trim())
+      .map((s) => ({
+        id: s.id,
+        name: s.name.trim(),
+        url: s.url.trim(),
+        username: s.username?.trim() || undefined,
+        password: s.password || undefined,
+        enabled: s.enabled,
+        paths: {
+          MUSIC: compactPathList(s.paths?.MUSIC),
+          AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK),
+          MV: compactPathList(s.paths?.MV),
+        },
+      }));
+    try {
+      const res = await saveWebDavSources(payload);
+      if (res.code === 200) {
+        const saved = (res.data || []) as WebDavSource[];
+        const editable: EditableSource[] = saved.map((s, idx) => ({
+          ...s,
+          paths: {
+            MUSIC: normalizePathList(s.paths?.MUSIC),
+            AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK),
+            MV: normalizePathList(s.paths?.MV),
+          },
+          expanded: idx === 0,
+        }));
+        setSources(editable);
+        return true;
+      }
+      Alert.alert(t("settings.webdavSaveFailed"), res.message);
+    } catch (error) {
+      console.error("Persist WebDAV sources failed", error);
+      Alert.alert(t("settings.webdavSaveFailed"));
+    }
+    return false;
+  };
+
+  const toggleSourceEnabled = async (id: string, enabled: boolean) => {
+    const next = sources.map((s) => (s.id === id ? { ...s, enabled } : s));
+    setSources(next);
+    await persistSources(next);
   };
 
   const handleTest = async (source: EditableSource) => {
@@ -357,7 +411,7 @@ export default function WebDavSourcesScreen() {
     stopPolling();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await getCurrentWebDavSyncTask();
+        const res = await getImportTask(id);
         if (res.code === 200) {
           const task = res.data;
           if (!task || task.id !== id) return;
@@ -716,7 +770,7 @@ export default function WebDavSourcesScreen() {
                           <Switch
                             value={source.enabled}
                             onValueChange={(val) =>
-                              updateSource(source.id, { enabled: val })
+                              toggleSourceEnabled(source.id, val)
                             }
                             trackColor={{
                               false: "#767577",

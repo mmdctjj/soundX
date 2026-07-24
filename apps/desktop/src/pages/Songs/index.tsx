@@ -301,6 +301,7 @@ const Songs: React.FC = () => {
             showIndex={true}
             showArtist={true}
             showAlbum={true}
+            showSource={true}
             onPlay={(track, tracks) => {
               if (isSelectionMode) return;
               setPlaylist(tracks);

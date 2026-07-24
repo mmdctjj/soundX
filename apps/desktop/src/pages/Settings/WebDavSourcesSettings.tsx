@@ -12,7 +12,7 @@ import {
   Typography,
 } from "antd";
 import {
-  getCurrentWebDavSyncTask,
+  getImportTask,
   getWebDavSources,
   saveWebDavSources,
   testWebDavConnection,
@@ -205,9 +205,52 @@ const WebDavSourcesSettings: React.FC = () => {
     );
   };
 
-  const removeSource = (id: string) => {
-    setSources((prev) => prev.filter((s) => s.id !== id));
+  // Persist a given source list immediately. Used by delete and enable/disable,
+  // which must take effect right away (and trigger the backend data cleanup)
+  // instead of waiting for the "Save" button. Rows still missing name/url are
+  // skipped so an in-progress row can't block the action.
+  const persistSources = async (list: WebDavSource[]): Promise<boolean> => {
+    const payload: WebDavSourceInput[] = list
+      .filter((s) => s.name.trim() && s.url.trim())
+      .map((s) => ({
+        id: s.id,
+        name: s.name.trim(),
+        url: s.url.trim(),
+        username: s.username?.trim() || undefined,
+        password: s.password || undefined,
+        enabled: s.enabled,
+        paths: {
+          MUSIC: compactPathList(s.paths?.MUSIC) as any,
+          AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK) as any,
+          MV: compactPathList(s.paths?.MV) as any,
+        },
+      }));
+    try {
+      const res = await saveWebDavSources(payload);
+      if (res.code === 200) {
+        await load();
+        return true;
+      }
+      message.error(res.message || t("settings.webdavSaveFailed"));
+    } catch (error) {
+      console.error("Persist WebDAV sources failed", error);
+      message.error(t("settings.webdavSaveFailed"));
+    }
+    return false;
+  };
+
+  const removeSource = async (id: string) => {
+    const next = sources.filter((s) => s.id !== id);
+    setSources(next);
     setActiveKey((prev) => prev.filter((k) => k !== id));
+    const ok = await persistSources(next);
+    if (ok) message.success(t("settings.webdavSaveSuccess"));
+  };
+
+  const toggleSourceEnabled = async (id: string, enabled: boolean) => {
+    const next = sources.map((s) => (s.id === id ? { ...s, enabled } : s));
+    setSources(next);
+    await persistSources(next);
   };
 
   const handleTest = async (source: WebDavSource) => {
@@ -318,6 +361,7 @@ const WebDavSourcesSettings: React.FC = () => {
           await runSync();
         }
       } else {
+        console.error("Save WebDAV sources failed", res);
         message.error(res.message || t("settings.webdavSaveFailed"));
       }
     } catch (error) {
@@ -339,7 +383,7 @@ const WebDavSourcesSettings: React.FC = () => {
     stopPolling();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await getCurrentWebDavSyncTask();
+        const res = await getImportTask(id);
         if (res.code === 200) {
           const task = res.data;
           if (!task || task.id !== id) return;
@@ -545,7 +589,7 @@ const WebDavSourcesSettings: React.FC = () => {
                       checkedChildren={t("settings.webdavSourceEnabled")}
                       unCheckedChildren={t("settings.webdavSourceEnabled")}
                       onChange={(val) =>
-                        updateSource(source.id, { enabled: val })
+                        toggleSourceEnabled(source.id, val)
                       }
                     />
                     <Button

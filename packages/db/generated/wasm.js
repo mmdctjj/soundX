@@ -141,6 +141,7 @@ exports.Prisma.TrackScalarFieldEnum = {
   transcodedPath: 'transcodedPath',
   metadataSource: 'metadataSource',
   metadataProvider: 'metadataProvider',
+  source: 'source',
   tags: 'tags',
   artistId: 'artistId',
   albumId: 'albumId',
@@ -376,6 +377,11 @@ exports.MetadataSource = exports.$Enums.MetadataSource = {
   EMBEDDED: 'EMBEDDED',
   PLUGIN: 'PLUGIN',
   USER_EDITED: 'USER_EDITED'
+};
+
+exports.TrackSource = exports.$Enums.TrackSource = {
+  FILE: 'FILE',
+  WEBDAV: 'WEBDAV'
 };
 
 exports.Prisma.ModelName = {

@@ -747,6 +747,7 @@ const Detail: React.FC = () => {
                   tracks={tracks}
                   loading={loading}
                   type={album?.type}
+                  showSource={true}
                   onRefresh={handleRefresh}
                   rowSelection={
                     isSelectionMode

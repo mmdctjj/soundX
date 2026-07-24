@@ -28,6 +28,12 @@ enum MetadataSource {
   USER_EDITED
 }
 
+// 单曲文件来源：本地文件扫描 / WebDAV 同步
+enum TrackSource {
+  FILE
+  WEBDAV
+}
+
 model Track {
   id             Int       @id @default(autoincrement())
   name           String
@@ -58,6 +64,9 @@ model Track {
   // Metadata source tracking
   metadataSource   MetadataSource @default(EMBEDDED)
   metadataProvider String?
+
+  // 文件来源：本地文件 or WebDAV
+  source TrackSource @default(FILE)
 
   // Plugin-driven tags (JSON-serialized string array)
   tags String?
