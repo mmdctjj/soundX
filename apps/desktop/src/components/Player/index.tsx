@@ -236,6 +236,28 @@ const Player: React.FC = () => {
   });
   const [activeTab, setActiveTab] = useState<"playlist" | "lyrics">("playlist");
 
+  // 监听插件写入的 --ad-detail-cover-style（"square" | "vinyl"），决定封面渲染样式
+  const [coverStyle, setCoverStyle] = useState<"square" | "vinyl">("square");
+  // 监听 --ad-detail-tonearm（"none" | "basic"），决定唱针装饰
+  const [tonearm, setTonearm] = useState<"none" | "basic">("none");
+  useEffect(() => {
+    const sync = () => {
+      const root = getComputedStyle(document.documentElement);
+      const coverV = root.getPropertyValue("--ad-detail-cover-style").trim();
+      const armV = root.getPropertyValue("--ad-detail-tonearm").trim();
+      setCoverStyle(coverV === "vinyl" ? "vinyl" : "square");
+      setTonearm(armV === "basic" ? "basic" : "none");
+    };
+    sync();
+    // 主题切换由 useUiTheme 触发 effect 重写 :root CSS var；这里用 MutationObserver 兜底
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["style"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const navigator = useNavigate();
 
   const [modalApi, modalContextHolder] = Modal.useModal();
@@ -435,7 +457,7 @@ const Player: React.FC = () => {
                         gap: 8,
                         marginBottom: 12,
                         padding: 8,
-                        background: "rgba(255,255,255,0.05)",
+                        background: "var(--ad-player-control, rgba(255,255,255,0.05))",
                         borderRadius: 4,
                       }}
                     >
@@ -2023,7 +2045,8 @@ const Player: React.FC = () => {
     >
       <audio
         ref={audioRef}
-        src={resolvedUri}
+        // 注意：src 不通过 JSX 绑定，否则 React 重渲染可能触发 audio 重载并把 currentTime 重置为 0。
+        // src 完全由下面的 useEffect（play/pause/src 同步）控制。
         preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
@@ -2067,17 +2090,40 @@ const Player: React.FC = () => {
               /> */}
 
             <Flex vertical align="center" gap={20}>
-              <img
-                src={getCoverUrl(currentTrack)}
-                alt="Current Cover"
-                className={styles.fullPlayerCover}
-                onError={(e) =>
-                  console.error(
-                    `[Player] Full Cover Load Error: ${currentTrack?.cover}`,
-                    e,
-                  )
+              <div
+                className={
+                  coverStyle === "vinyl"
+                    ? `${styles.fullPlayerCoverVinyl} ${
+                        isPlaying ? styles.spinning : ""
+                      }`
+                    : styles.fullPlayerCoverSquare
                 }
-              />
+              >
+                <img
+                  src={getCoverUrl(currentTrack)}
+                  alt="Current Cover"
+                  className={styles.fullPlayerCover}
+                  onError={(e) =>
+                    console.error(
+                      `[Player] Full Cover Load Error: ${currentTrack?.cover}`,
+                      e,
+                    )
+                  }
+                />
+                {coverStyle === "vinyl" && tonearm === "basic" && (
+                  <div
+                    className={`${styles.tonearm} ${
+                      isPlaying ? styles.tonearmPlaying : styles.tonearmPaused
+                    }`}
+                    aria-hidden
+                  >
+                    <div className={styles.tonearmPivot} />
+                    <div className={styles.tonearmArm}>
+                      <div className={styles.tonearmHead} />
+                    </div>
+                  </div>
+                )}
+              </div>
             </Flex>
           </div>
 
@@ -2089,7 +2135,14 @@ const Player: React.FC = () => {
             }}
           >
             {/* Top: Title */}
-            <div style={{ marginBottom: "24px" }}>
+            <div
+              style={
+                {
+                  marginBottom: "24px",
+                  textAlign: "var(--ad-detail-lyrics-align, inherit)",
+                } as unknown as React.CSSProperties
+              }
+            >
               <Title level={3} style={{ margin: "0 0 10px 0" }}>
                 {currentTrack?.name || "No Track"}
               </Title>
@@ -2097,12 +2150,24 @@ const Player: React.FC = () => {
                 <Flex
                   justify={appMode !== TrackType.MUSIC ? "start" : "center"}
                   gap={16}
+                  style={{
+                    justifyContent:
+                      "var(--ad-detail-lyrics-justify, " +
+                      (appMode !== TrackType.MUSIC ? "flex-start" : "center") +
+                      ")",
+                  }}
                 >
                   <Flex
                     align="center"
                     justify={appMode !== TrackType.MUSIC ? "start" : "center"}
                     gap={8}
-                    style={{ cursor: "pointer" }}
+                    style={{
+                      cursor: "pointer",
+                      justifyContent:
+                        "var(--ad-detail-lyrics-justify, " +
+                        (appMode !== TrackType.MUSIC ? "flex-start" : "center") +
+                        ")",
+                    }}
                     onClick={() => {
                       setIsFullPlayerVisible(false);
                       navigator(`/artist/${currentTrack?.artistEntity?.id}`);
@@ -2149,7 +2214,13 @@ const Player: React.FC = () => {
                     align="center"
                     justify={appMode !== TrackType.MUSIC ? "start" : "center"}
                     gap={8}
-                    style={{ cursor: "pointer" }}
+                    style={{
+                      cursor: "pointer",
+                      justifyContent:
+                        "var(--ad-detail-lyrics-justify, " +
+                        (appMode !== TrackType.MUSIC ? "flex-start" : "center") +
+                        ")",
+                    }}
                     onClick={() => {
                       setIsFullPlayerVisible(false);
                       navigator(`/detail?id=${currentTrack?.albumEntity?.id}`);

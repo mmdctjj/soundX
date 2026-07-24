@@ -385,6 +385,7 @@ const Header: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
   const searchTimerRef = useRef<number | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<any>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [hotSearches, setHotSearches] = useState<
     { keyword: string; count: number }[]
@@ -466,6 +467,16 @@ const Header: React.FC = () => {
     }
   };
 
+  // antd 的 css-dev-only-* 类会给内层 <input> 单独设 color 覆盖外层 style，
+  // 这里直接通过 ref 把 token.colorText 写到 input 元素上，inline style 永远胜出。
+  useEffect(() => {
+    const inner: HTMLInputElement | undefined =
+      searchInputRef.current?.input ?? searchInputRef.current;
+    if (inner && inner.tagName === "INPUT") {
+      inner.style.color = token.colorText;
+    }
+  }, [token.colorText]);
+
   const handleLogout = () => {
     logout();
     message.success(t("header.logoutSuccess"));
@@ -539,8 +550,8 @@ const Header: React.FC = () => {
     // window.location.reload(); // Removed reload as we now have reactive state
   };
 
-  const iconStyle = { color: token.colorTextSecondary };
-  const actionIconStyle = { color: token.colorText };
+  const iconStyle = { color: "var(--ad-header-text, " + token.colorTextSecondary + ")" };
+  const actionIconStyle = { color: "var(--ad-header-text, " + token.colorText + ")" };
 
   const handleUpdateLibrary = async (
     mode: "incremental" | "full" | "compact",
@@ -899,6 +910,7 @@ const Header: React.FC = () => {
           </div>
         </Tooltip>
         <Input
+          ref={searchInputRef}
           prefix={
             <SearchOutlined style={{ color: token.colorTextSecondary }} />
           }

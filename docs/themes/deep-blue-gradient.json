@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "name": "Deep Blue Gradient",
+    "author": "AudioDock",
+    "version": "1.0.0",
+    "schemaVersion": 1,
+    "description": "只改背景色：详情页深蓝渐变、歌词靠左展示，其余文本/主色保留默认。",
+    "homepage": "https://github.com/mmDctjj/AudioDock"
+  },
+  "light": {
+    "components": {
+      "header": {
+        "background": "linear-gradient(135deg, rgba(30,58,138,0.10), rgba(59,130,246,0.18))"
+      },
+      "player": {
+        "background": "linear-gradient(180deg, rgba(30,58,138,0.06), rgba(30,58,138,0.12))"
+      },
+      "home": {
+        "background": "linear-gradient(180deg, rgba(59,130,246,0.05), rgba(30,58,138,0.10))"
+      },
+      "detail": {
+        "background": "linear-gradient(160deg, #0b1f4a 0%, #163b8a 45%, #1d4ed8 100%)",
+        "lyricsAlign": "left",
+        "lyricsColumnRatio": 0.4,
+        "lyricsFontSize": 18,
+        "coverStyle": "vinyl",
+        "tonearm": "basic"
+      }
+    }
+  },
+  "dark": {
+    "components": {
+      "header": {
+        "background": "linear-gradient(135deg, rgba(15,23,42,0.65), rgba(30,58,138,0.55))"
+      },
+      "player": {
+        "background": "linear-gradient(180deg, rgba(15,23,42,0.85), rgba(30,58,138,0.65))"
+      },
+      "home": {
+        "background": "linear-gradient(180deg, rgba(15,23,42,0.55), rgba(30,58,138,0.35))"
+      },
+      "detail": {
+        "background": "linear-gradient(160deg, #020617 0%, #0b1f4a 45%, #1d4ed8 100%)",
+        "lyricsAlign": "left",
+        "lyricsColumnRatio": 0.6,
+        "lyricsFontSize": 18,
+        "coverStyle": "vinyl",
+        "tonearm": "basic"
+      }
+    }
+  }
+}

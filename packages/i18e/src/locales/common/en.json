@@ -337,6 +337,29 @@
     "checkUpdate": "Check for Updates",
     "checkUpdateDescription": "Check if a new version is available"
   },
+  "uiPlugin": {
+    "title": "UI Plugin",
+    "tabLabel": "UI Plugin",
+    "description": "Upload a JSON file to customize UI styles. Both light and dark variants are supported.",
+    "upload": "Click or drag to upload a JSON file",
+    "uploadHint": "Single .json file. See docs/ui-theme-schema.md",
+    "activeNow": "Active",
+    "active": "Activate",
+    "deactivate": "Deactivate",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this plugin?",
+    "empty": "No plugins yet. Upload a JSON file to get started.",
+    "imported": "Imported: {{name}}",
+    "parseFailed": "Failed to parse JSON",
+    "invalid": "Invalid plugin file: {{reason}}",
+    "warnings": "Imported with {{count}} warning(s) (unknown keys or format issues; keys were preserved)",
+    "schemaVersionMismatch": "schemaVersion mismatch",
+    "by": "By: {{author}}",
+    "version": "Version: {{version}}",
+    "downloadSample": "Download sample plugin",
+    "vipOnly": "UI plugins are available to Plus members only",
+    "vipOnlyAction": "Upgrade to Plus"
+  },
   "header": {
     "pleaseLoginMemberFirst": "Please login to member account first",
     "cancelMembership": "Cancel Membership",
@@ -836,7 +859,8 @@
     "networkError": "Network error, please try again",
     "to": "to",
     "desktopWidget": "Desktop widgets",
-    "tvVersionComingSoon": "TV version (coming soon)"
+    "tvVersionComingSoon": "TV version (coming soon)",
+    "uiStyleSwitch": "Customizable UI Styles"
   },
   "collectionDetail": {
     "title": "Collection",

@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "name": "Midnight Glass (Sample)",
+    "author": "AudioDock",
+    "version": "1.0.0",
+    "schemaVersion": 1,
+    "description": "半透明深色玻璃风示例，演示如何覆盖 Header / Player / Home。"
+  },
+  "dark": {
+    "global": {
+      "colorPrimary": "#7c5cff",
+      "colorBgBase": "#0d0d12",
+      "colorText": "#e6e6eb",
+      "colorTextSecondary": "#9a9aa5",
+      "colorBorder": "rgba(255,255,255,0.12)",
+      "borderRadius": 10
+    },
+    "components": {
+      "header": {
+        "background": "rgba(20,20,28,0.55)",
+        "blur": 24,
+        "textColor": "#e6e6eb",
+        "activeColor": "#7c5cff",
+        "border": "rgba(255,255,255,0.10)"
+      },
+      "player": {
+        "background": "rgba(20,20,28,0.55)",
+        "blur": 24,
+        "textColor": "#e6e6eb",
+        "progressColor": "#7c5cff",
+        "controlColor": "rgba(255,255,255,0.12)"
+      },
+      "home": {
+        "background": "rgba(20,20,28,0.45)",
+        "cardBackground": "rgba(255,255,255,0.05)",
+        "cardHoverBackground": "rgba(255,255,255,0.10)",
+        "titleColor": "#e6e6eb"
+      },
+      "detail": {
+        "background": "rgba(20,20,28,0.45)",
+        "blur": 20,
+        "controlsBackground": "rgba(255,255,255,0.08)",
+        "controlsTextColor": "#ffffff",
+        "lyricsAlign": "center",
+        "lyricsColumnRatio": 0.6,
+        "lyricsFontSize": 18,
+        "coverStyle": "vinyl",
+        "tonearm": "basic"
+      }
+    }
+  },
+  "light": {
+    "global": {
+      "colorPrimary": "#7c5cff",
+      "colorBgBase": "#f6f6fb",
+      "colorText": "#1a1a22",
+      "colorTextSecondary": "#5a5a66",
+      "colorBorder": "rgba(0,0,0,0.10)",
+      "borderRadius": 10
+    },
+    "components": {
+      "header": {
+        "background": "rgba(255,255,255,0.7)",
+        "blur": 24,
+        "textColor": "#1a1a22",
+        "activeColor": "#7c5cff",
+        "border": "rgba(0,0,0,0.08)"
+      },
+      "player": {
+        "background": "rgba(255,255,255,0.7)",
+        "blur": 24,
+        "textColor": "#1a1a22",
+        "progressColor": "#7c5cff",
+        "controlColor": "rgba(0,0,0,0.08)"
+      },
+      "home": {
+        "background": "rgba(255,255,255,0.55)",
+        "cardBackground": "rgba(0,0,0,0.04)",
+        "cardHoverBackground": "rgba(0,0,0,0.08)",
+        "titleColor": "#1a1a22"
+      },
+      "detail": {
+        "background": "rgba(255,255,255,0.55)",
+        "blur": 20,
+        "controlsBackground": "#7c5cff",
+        "controlsTextColor": "#ffffff",
+        "lyricsAlign": "left",
+        "lyricsColumnRatio": 0.55,
+        "lyricsFontSize": 16,
+        "coverStyle": "square",
+        "tonearm": "none"
+      }
+    }
+  }
+}

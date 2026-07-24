@@ -480,7 +480,7 @@ const Recommended: React.FC = () => {
                           alignItems: "center",
                           gap: 10,
                           padding: 10,
-                          backgroundColor: "rgba(255,255,255,0.05)",
+                          backgroundColor: "var(--ad-home-card-bg, rgba(255,255,255,0.05))",
                           borderRadius: 8,
                           cursor: "pointer",
                           transition: "all 0.2s",
@@ -497,11 +497,11 @@ const Recommended: React.FC = () => {
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor =
-                            "rgba(255,255,255,0.1)";
+                            "var(--ad-home-card-hover-bg, rgba(255,255,255,0.1))";
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor =
-                            "rgba(255,255,255,0.05)";
+                            "var(--ad-home-card-bg, rgba(255,255,255,0.05))";
                         }}
                       >
                         <img

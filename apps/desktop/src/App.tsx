@@ -8,6 +8,7 @@ import Sidebar from "./components/Sidebar/index";
 import { getThemeConfig } from "./config/themeConfig";
 import { MessageProvider } from "./context/MessageContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import { useUiTheme } from "./hooks/useUiTheme";
 import LyricWindow from "./pages/LyricWindow";
 import Recommended from "./pages/Recommended";
 
@@ -75,7 +76,8 @@ const RootWrapper = ({
 
 const AppContent = () => {
   const { mode } = useTheme();
-  const themeConfig = getThemeConfig(mode);
+  const { plugin: uiPlugin } = useUiTheme();
+  const themeConfig = getThemeConfig(mode, uiPlugin);
   const [messageApi, contextHolder] = message.useMessage();
   const { token, user } = useAuthStore();
 

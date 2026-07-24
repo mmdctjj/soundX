@@ -24,14 +24,26 @@ AudioDock（声仓） 是一个基于现代 Web 技术构建的音乐和有声�
 - **设备接力 📱**：支持多设备之间无缝切换！
 - **解析元数据 🖼️**：如果是带元信息的歌曲，可以展示歌词、封面等信息！
 
-<p>
-<img src="./images/desktop.png" width="500" />
-<img src="./images/mobile.png" width="177" />
+<p align="center">
+<img src="./images/audiodock_light.png" width="500" />
 </p>
 
 > 代码编号：soundx
 
 ## 下载
+
+### 国内下载通道
+
+- 客户端下载：https://www.audiodock.cn/#download
+- 服务端下载：
+```
+services:
+  app:
+    platform: linux/amd64
+    image: hub.audiodock.cn/audiodock/audiodock
+```
+
+### 原生下载通道
 
 最新版本看这里：
 
@@ -42,8 +54,8 @@ AudioDock（声仓） 是一个基于现代 Web 技术构建的音乐和有声�
 
 - [x] web 和桌面端
 - [x] 移动端
-- [ ] 小程序（待开发）
-- [ ] 电视端（待开发）
+- [x] 小程序
+- [x] 电视端（待上线）
 - [x] 服务端
 
 ### 功能规划
@@ -59,9 +71,9 @@ AudioDock（声仓） 是一个基于现代 Web 技术构建的音乐和有声�
 | 专辑、艺术家         | ✅           | ✅     | ✅     | ✅     |
 | 聚合搜索             | ✅           | ✅     | ✅     | ❌     |
 | 边听边存             | ✅           | ✅     | 🚫     | ❌     |
-| 多端同步             | ✅           | ✅     | ❌     | ❌     |
+| 多端同步             | ✅           | ✅     | ✅     | ✅     |
 | 迷你播放器           | ✅           | 🚫     | 🚫     | 🚫     |
-| 多用户同步播放       | ✅           | ✅     | ❌     | ❌     |
+| 多用户同步播放       | ✅           | ✅     | ✅     | ✅     |
 | 播放记录             | ✅           | ✅     | ✅     | ✅     |
 | 收藏记录             | ✅           | ✅     | ✅     | ✅     |
 | 桌面歌词             | ✅           | ❌     | 🚫     | 🚫     |
@@ -109,22 +121,10 @@ services:
       - DATABASE_URL=file:/data/dev.db # 数据库
       - JWT_SECRET=/.jwt_secret # 这个是文件，不是目录
       - PORT=3000
-      - STRM_ADDRESS=http://192.168.1.12:5244 # 没有可注释
       - DISABLE_TTS=${DISABLE_TTS:-false} # 是否禁用 tts 服务，不用tts功能可注释
       - DISABLE_ASR=${DISABLE_ASR:-false} # 是否禁用 tts 服务，不用语音助手可注释
-      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek} # 大模型提供商
-      - LLM_MODEL=${LLM_MODEL:-deepseek-chat} # 对应大模型
-      - LLM_BASE_URL=${LLM_BASE_URL:-}
-      - LLM_TIMEOUT=${LLM_TIMEOUT:-60000}
-      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7}
-      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2048}
-      - LLM_API_KEY=${LLM_API_KEY:-sk-xxxx} # 大模型 key
-      # ====== 小米 MiMo TTS 配置 ======
-      - TTS_MIMO_API_TOKEN=sk-xxxx
-      - TTS_MIMO_MODEL=mimo-v2.5-tts
-      # ====== MiniMax TTS 配置 ======
-      - TTS_MINIMAX_API_KEY=sk-xxxx
-      - TTS_MINIMAX_MODEL=speech-2.8-hd
+      - DISABLE_MI=${DISABLE_MI:-false} # 是否禁用 mi 服务，不用小爱音箱功能可注释
+      - VOICE_KEYWORDS=小苍小苍 # 语音唤醒关键词，多个用英文逗号分隔，按最长匹配优先
 
     # 挂载数据文件和缓存，使用 Docker 命名卷更安全
     volumes:
