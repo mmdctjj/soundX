@@ -357,8 +357,8 @@
     "by": "By: {{author}}",
     "version": "Version: {{version}}",
     "downloadSample": "Download sample plugin",
-    "vipOnly": "UI plugins are available to Plus members only",
-    "vipOnlyAction": "Upgrade to Plus"
+    "vipOnly": "UI plugins are available to members only",
+    "vipOnlyAction": "Upgrade Membership"
   },
   "header": {
     "pleaseLoginMemberFirst": "Please login to member account first",

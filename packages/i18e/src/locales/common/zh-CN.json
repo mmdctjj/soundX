@@ -365,7 +365,7 @@
     "by": "作者：{{author}}",
     "version": "版本：{{version}}",
     "downloadSample": "下载示例插件",
-    "vipOnly": "UI 插件仅 Plus 会员可用",
+    "vipOnly": "UI 插件仅会员可用",
     "vipOnlyAction": "前往开通会员"
   },
   "login": {
