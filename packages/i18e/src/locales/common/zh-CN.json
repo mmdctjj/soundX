@@ -345,6 +345,29 @@
     "checkUpdate": "检查更新",
     "checkUpdateDescription": "检测是否有新版本"
   },
+  "uiPlugin": {
+    "title": "UI 插件",
+    "tabLabel": "UI 插件",
+    "description": "上传 JSON 文件自定义界面样式，支持亮色/暗色双主题。",
+    "upload": "点击或拖拽上传 JSON",
+    "uploadHint": "支持单个 .json 文件，参考 docs/ui-theme-schema.md",
+    "activeNow": "当前启用",
+    "active": "启用",
+    "deactivate": "停用",
+    "delete": "删除",
+    "deleteConfirm": "确定要删除这个插件吗？",
+    "empty": "暂无插件，请上传 JSON 文件",
+    "imported": "已导入插件：{{name}}",
+    "parseFailed": "JSON 解析失败",
+    "invalid": "插件文件无效：{{reason}}",
+    "warnings": "已导入，存在 {{count}} 项告警（未知键或格式异常，已保留）",
+    "schemaVersionMismatch": "schemaVersion 不匹配",
+    "by": "作者：{{author}}",
+    "version": "版本：{{version}}",
+    "downloadSample": "下载示例插件",
+    "vipOnly": "UI 插件仅 Plus 会员可用",
+    "vipOnlyAction": "前往开通会员"
+  },
   "login": {
     "title": "登录",
     "phone": "手机号",
@@ -844,7 +867,8 @@
     "networkError": "网络请求失败，请重试",
     "to": "至",
     "desktopWidget": "桌面小部件",
-    "tvVersionComingSoon": "TV版 (待上线)"
+    "tvVersionComingSoon": "TV版 (待上线)",
+    "uiStyleSwitch": "UI 样式随心切换"
   },
   "collectionDetail": {
     "title": "合集",

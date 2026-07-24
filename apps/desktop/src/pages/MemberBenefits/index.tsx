@@ -466,6 +466,7 @@ const MemberBenefits: React.FC = () => {
     { key: "6", feature: t("memberBenefits.carMode"), nonMember: false, member: true },
     { key: "7", feature: t("memberBenefits.scanLogin"), nonMember: false, member: true },
     { key: "8", feature: t("memberBenefits.voiceAssistant"), nonMember: false, member: true },
+    { key: "9", feature: t("memberBenefits.uiStyleSwitch"), nonMember: false, member: true },
   ];
 
   const columns = [

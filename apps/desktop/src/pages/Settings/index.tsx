@@ -5,6 +5,7 @@ import {
   SYSTEM_LANGUAGE_VALUE,
   resolveLanguageSelection,
 } from "@soundx/i18e";
+import { plusGetMe } from "@soundx/services";
 import {
   Button,
   ColorPicker,
@@ -20,7 +21,7 @@ import {
   message,
   theme,
 } from "antd";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { languages } from "../../i18n";
@@ -32,6 +33,7 @@ import WebDavSourcesSettings from "./WebDavSourcesSettings";
 import LlmConfigSettings from "./LlmConfigSettings";
 import TtsConfigSettings from "./TtsConfigSettings";
 import PluginCenterSettings from "./PluginCenterSettings";
+import UIThemeSettings from "./UIThemeSettings";
 import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
@@ -141,6 +143,27 @@ const Settings: React.FC = () => {
   };
 
   const isAdmin = !!user?.is_admin;
+
+  // Plus VIP 校验：参考 Header/index.tsx 里的同名 useEffect。
+  const [isPlusVip, setIsPlusVip] = useState(false);
+  useEffect(() => {
+    const plusToken = localStorage.getItem("plus_token");
+    const plusUserId = localStorage.getItem("plus_user_id");
+    if (plusToken && plusUserId) {
+      let id: any = plusUserId;
+      try {
+        id = JSON.parse(plusUserId);
+      } catch (e) {}
+      plusGetMe(id)
+        .then((res) => {
+          if (res.data.code === 200 && res.data.data) {
+            const vipTier = res.data.data.vipTier;
+            setIsPlusVip(!!vipTier && vipTier !== "NONE");
+          }
+        })
+        .catch((err) => console.error("Failed to fetch plus profile", err));
+    }
+  }, []);
 
   const tabItems = [
     {
@@ -595,20 +618,35 @@ const Settings: React.FC = () => {
               </section>
             ),
           },
-          {
-            key: "plugins",
-            label: t("settings.tabPlugins"),
-            children: (
-              <section className={styles.section}>
-                <Title level={4} className={styles.sectionTitle}>
-                  {t("settings.pluginCenter")}
-                </Title>
-                <PluginCenterSettings />
-              </section>
-            ),
-          },
         ]
       : []),
+    // 插件中心 tab 始终可见：
+// - 数据插件仅管理员可见
+// - UI 插件始终渲染，由 UIThemeSettings 内部按 VIP 状态启用/禁用
+//   （未登录或非会员都走同一条非会员逻辑，展示「请开通会员」并禁用控件）
+{
+      key: "plugins",
+      label: t("settings.tabPlugins"),
+      children: (
+        <>
+          {isAdmin && (
+            <section className={styles.section}>
+              <Title level={4} className={styles.sectionTitle}>
+                {t("settings.pluginCenter")}
+              </Title>
+              <PluginCenterSettings />
+            </section>
+          )}
+          {isAdmin && <Divider className={styles.divider} />}
+          <section className={styles.section}>
+            <Title level={4} className={styles.sectionTitle}>
+              {t("uiPlugin.title")}
+            </Title>
+            <UIThemeSettings />
+          </section>
+        </>
+      ),
+    },
   ];
 
   return (

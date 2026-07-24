@@ -4,10 +4,10 @@
 
 .miniPlayer {
   height: 70px;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: var(--ad-player-bg, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(var(--ad-player-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--ad-player-blur, 20px));
+  border-top: 1px solid var(--ad-player-control, rgba(255, 255, 255, 0.1));
   display: flex;
   align-items: center;
   padding: 0 20px;
@@ -187,7 +187,7 @@
 
 .activeLyricButton {
   opacity: 1;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--ad-player-control, rgba(255, 255, 255, 0.1));
 }
 
 // Drawer Styles
@@ -205,7 +205,7 @@
 }
 
 .fullPlayerLeft {
-  flex: 1;
+  flex: var(--ad-detail-cover-flex, 1);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -234,8 +234,173 @@
   z-index: 1;
 }
 
+// 方形封面 —— 默认渲染包装，纯透传，无额外样式
+.fullPlayerCoverSquare {
+  display: inline-block;
+  line-height: 0;
+}
+
+// 黑胶唱片风格封面 —— 圆盘 + 沟纹 + 中央专辑标签
+.fullPlayerCoverVinyl {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    #1a1a1a 0%,
+    #0a0a0a 60%,
+    #000 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    inset 0 0 20px rgba(255, 255, 255, 0.04);
+  line-height: 0;
+
+  // 沟纹纹理：细同心环
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    border-radius: 50%;
+    background: repeating-radial-gradient(
+      circle at center,
+      transparent 0,
+      transparent 3px,
+      rgba(255, 255, 255, 0.05) 3px,
+      rgba(255, 255, 255, 0.05) 4px
+    );
+    pointer-events: none;
+  }
+
+  // 中央标签外圈高光（绝对居中）
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+  }
+
+  img.fullPlayerCover {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    z-index: 1;
+  }
+
+  // 旋转动画：始终挂载动画，paused/running 切换播放状态；
+  // 这样暂停时动画停在当前帧，恢复时从同一位置继续转，不会重置。
+  img.fullPlayerCover,
+  &::before,
+  &::after {
+    animation: vinylSpin 8s linear infinite;
+    animation-play-state: paused;
+  }
+  // ::after 需要叠加 translate 居中，单独写 keyframes
+  &::after {
+    animation-name: vinylSpinAfter;
+  }
+  &.spinning img.fullPlayerCover,
+  &.spinning::before,
+  &.spinning::after {
+    animation-play-state: running;
+  }
+
+  @keyframes vinylSpin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes vinylSpinAfter {
+    from {
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+
+  // 唱针：右上角锚点 + 单 wrapper 旋转 + 头嵌在臂里，整体跟随。
+  // 暂停：针尖朝唱片中心；播放：再 CCW 45° → 针尖落到支点正下方（外圈右缘）。
+  .tonearm {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 240px;
+    height: 24px;
+    z-index: 3;
+    pointer-events: none;
+    transition: transform 0.6s cubic-bezier(0.34, 1.4, 0.64, 1);
+    // 旋转锚点 = 容器右中点（唱针支点位置）
+    transform-origin: 100% 50%;
+  }
+  .tonearmPaused {
+    // 暂停：基态，针尖朝唱片中心
+    transform: rotate(0deg);
+  }
+  .tonearmPlaying {
+    // 播放：从 SW（中心方向）再 CCW 22.5° → 针尖落在中心与支点正下方的中点（约距中心 62% 半径），正好踩在胶片轨道上
+    transform: rotate(-22.5deg);
+  }
+  .tonearmPivot {
+    // 支点圆盘：固定在容器右中点附近
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translate(40%, -50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #555 0%, #111 70%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  }
+  .tonearmArm {
+    // 臂从支点向左延伸到唱片中心（基态 rotate(-45deg) 指向 SW）
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    width: 220px;
+    height: 4px;
+    transform-origin: right center;
+    transform: translateY(-50%) rotate(-45deg);
+    background: linear-gradient(
+      to right,
+      #c0c0c0 0%,
+      #808080 40%,
+      #4a4a4a 100%
+    );
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  .tonearmHead {
+    // 头嵌在臂里：定位在臂的左端（臂坐标系），跟随臂的旋转
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 18px;
+    background: linear-gradient(180deg, #2a2a2a 0%, #000 100%);
+    border-radius: 2px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  }
+}
+
 .fullPlayerRight {
-  flex: 1;
+  flex: var(--ad-detail-lyrics-flex, 1);
   display: flex;
   flex-direction: column;
   padding: 60px 40px;
@@ -247,6 +412,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--ad-detail-bg, transparent);
   background-size: cover;
   background-position: center;
   backdrop-filter: blur(20px);
@@ -280,10 +446,11 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 10px;
+  // 给 active lyric 的 transform: scale(1.1) 留出左右呼吸空间，靠左/靠右时不裁字
+  padding: 0 14px;
   height: 100%;
   display: flex;
-  justify-content: center;
+  justify-content: var(--ad-detail-lyrics-justify, center);
   align-items: flex-start;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -315,7 +482,7 @@
 .lyricsContent {
   width: 100%;
   min-width: 0;
-  text-align: center;
+  text-align: var(--ad-detail-lyrics-align, center);
   padding: 50% 0; // Add padding to allow scrolling to top/bottom
 }
 
@@ -326,10 +493,7 @@
   white-space: normal;
   word-break: break-word;
   overflow-wrap: anywhere;
-}
-
-.activeLyric {
-  transform: scale(1.1);
+  font-size: var(--ad-detail-lyrics-font-size, 16px);
 }
 
 .noLyrics {
