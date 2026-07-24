@@ -5,6 +5,7 @@ import {
   SYSTEM_LANGUAGE_VALUE,
   resolveLanguageSelection,
 } from "@soundx/i18e";
+import { plusGetMe } from "@soundx/services";
 import {
   Button,
   ColorPicker,
@@ -20,7 +21,7 @@ import {
   message,
   theme,
 } from "antd";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { languages } from "../../i18n";
@@ -142,6 +143,27 @@ const Settings: React.FC = () => {
   };
 
   const isAdmin = !!user?.is_admin;
+
+  // Plus VIP 校验：参考 Header/index.tsx 里的同名 useEffect。
+  const [isPlusVip, setIsPlusVip] = useState(false);
+  useEffect(() => {
+    const plusToken = localStorage.getItem("plus_token");
+    const plusUserId = localStorage.getItem("plus_user_id");
+    if (plusToken && plusUserId) {
+      let id: any = plusUserId;
+      try {
+        id = JSON.parse(plusUserId);
+      } catch (e) {}
+      plusGetMe(id)
+        .then((res) => {
+          if (res.data.code === 200 && res.data.data) {
+            const vipTier = res.data.data.vipTier;
+            setIsPlusVip(!!vipTier && vipTier !== "NONE");
+          }
+        })
+        .catch((err) => console.error("Failed to fetch plus profile", err));
+    }
+  }, []);
 
   const tabItems = [
     {
