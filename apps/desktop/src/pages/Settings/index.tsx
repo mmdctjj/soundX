@@ -28,6 +28,7 @@ import { useAuthStore } from "../../store/auth";
 import { useSettingsStore } from "../../store/settings";
 import { isTauri } from "../../utils/platform";
 import AdminSettings from "./AdminSettings";
+import FileSourcesSettings from "./FileSourcesSettings";
 import WebDavSourcesSettings from "./WebDavSourcesSettings";
 import LlmConfigSettings from "./LlmConfigSettings";
 import TtsConfigSettings from "./TtsConfigSettings";
@@ -564,12 +565,21 @@ const Settings: React.FC = () => {
             key: "sources",
             label: t("settings.tabSources"),
             children: (
-              <section className={styles.section}>
-                <Title level={4} className={styles.sectionTitle}>
-                  {t("settings.webdavSources")}
-                </Title>
-                <WebDavSourcesSettings />
-              </section>
+              <>
+                <section className={styles.section}>
+                  <Title level={4} className={styles.sectionTitle}>
+                    {t("settings.fileSources")}
+                  </Title>
+                  <FileSourcesSettings />
+                </section>
+                <Divider className={styles.divider} />
+                <section className={styles.section}>
+                  <Title level={4} className={styles.sectionTitle}>
+                    {t("settings.webdavSources")}
+                  </Title>
+                  <WebDavSourcesSettings />
+                </section>
+              </>
             ),
           },
           {
