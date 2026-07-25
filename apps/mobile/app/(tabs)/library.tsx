@@ -306,6 +306,13 @@ const SongList = ({
                     ? t("trackList.sourceWebdav")
                     : t("trackList.sourceFile")}
                 </Text>
+                <View style={styles.songSourceBadge}>
+                  <Text style={[styles.songSourceText, { color: colors.secondary }]}>
+                    {item.source === TrackSource.WEBDAV
+                      ? t("trackList.sourceWebdav")
+                      : t("trackList.sourceFile")}
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
           )}
@@ -1756,6 +1763,17 @@ const styles = StyleSheet.create({
   },
   songArtist: {
     fontSize: 13,
+  },
+  songSourceBadge: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    backgroundColor: "rgba(127,127,127,0.15)",
+  },
+  songSourceText: {
+    fontSize: 10,
   },
   listFooter: {
     paddingVertical: 16,

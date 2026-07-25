@@ -321,6 +321,7 @@ const WebDavSourcesSettings: React.FC = () => {
           await runSync();
         }
       } else {
+        console.error("Save WebDAV sources failed", res);
         message.error(res.message || t("settings.webdavSaveFailed"));
       }
     } catch (error) {
