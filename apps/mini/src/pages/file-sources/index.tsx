@@ -111,6 +111,11 @@ export default function FileSources() {
     }
   };
 
+  const handleSaveAndSync = async () => {
+    await handleSave();
+    await handleSync();
+  };
+
   const handleSync = async () => {
     Taro.showLoading({ title: t('settings.fileSourcesSync') });
     try {
@@ -191,6 +196,13 @@ export default function FileSources() {
       </View>
       <View className='bottom-actions'>
         <View
+          className='btn btn-primary'
+          style={{ backgroundColor: colors.primary }}
+          onClick={saving ? undefined : handleSaveAndSync}
+        >
+          <Text style={{ color: '#fff' }}>{t('settings.fileSourcesSaveAndSync')}</Text>
+        </View>
+        <View
           className='btn btn-secondary'
           style={{
             backgroundColor: colors.card,
@@ -200,13 +212,6 @@ export default function FileSources() {
           onClick={saving ? undefined : handleSave}
         >
           <Text style={{ color: colors.text }}>{t('common.save')}</Text>
-        </View>
-        <View
-          className='btn btn-primary'
-          style={{ backgroundColor: colors.primary }}
-          onClick={handleSync}
-        >
-          <Text style={{ color: '#fff' }}>{t('settings.fileSourcesSync')}</Text>
         </View>
       </View>
     </View>

@@ -248,6 +248,7 @@
     "fileSourcesSyncFailed": "Sync failed",
     "fileSourcesSaveSuccess": "Saved, file watchers have been rebuilt",
     "fileSourcesSaveFailed": "Save failed",
+    "fileSourcesSaveAndSync": "Save and sync",
     "filePathPlaceholder": "Absolute path or path relative to the api directory",
     "filePathExists": "Directory exists",
     "filePathMissing": "Directory missing",

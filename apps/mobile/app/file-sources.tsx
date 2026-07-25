@@ -140,7 +140,7 @@ export default function FileSourcesScreen() {
   const truncatePath = (p: string) =>
     p.length <= 36 ? p : p.slice(0, 14) + "…" + p.slice(-20);
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<boolean> => {
     setSaving(true);
     try {
       const payload: FileSources = {
@@ -154,17 +154,26 @@ export default function FileSourcesScreen() {
         const view = res.data as FileSourcesView;
         setRows(rowsFromView(view));
         Alert.alert(t("common.success"), t("settings.fileSourcesSaveSuccess"));
-      } else {
-        Alert.alert(t("settings.fileSourcesSaveFailed"), res.message || "");
+        return true;
       }
+      Alert.alert(t("settings.fileSourcesSaveFailed"), res.message || "");
+      return false;
     } catch (error: any) {
       console.error("Save file sources failed", error);
       Alert.alert(
         t("settings.fileSourcesSaveFailed"),
         error?.message || "",
       );
+      return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveAndSync = async () => {
+    const ok = await handleSave();
+    if (ok) {
+      await handleSync();
     }
   };
 
@@ -363,26 +372,34 @@ export default function FileSourcesScreen() {
 
         <View style={styles.actions}>
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: colors.primary }]}
-            disabled={saving}
-            onPress={handleSave}
+            style={[styles.btnPrimary, { backgroundColor: colors.primary }]}
+            disabled={saving || syncing}
+            onPress={handleSaveAndSync}
           >
             {saving ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.btnText}>{t("common.save")}</Text>
+              <Text style={styles.btnText}>
+                {t("settings.fileSourcesSaveAndSync")}
+              </Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: colors.primary }]}
-            disabled={syncing}
-            onPress={handleSync}
+            style={[
+              styles.btnSecondary,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+            disabled={saving || syncing}
+            onPress={handleSave}
           >
-            {syncing ? (
-              <ActivityIndicator color="#fff" />
+            {saving ? (
+              <ActivityIndicator color={colors.text} />
             ) : (
-              <Text style={styles.btnText}>
-                {t("settings.fileSourcesSync")}
+              <Text style={[styles.btnTextSecondary, { color: colors.text }]}>
+                {t("common.save")}
               </Text>
             )}
           </TouchableOpacity>
@@ -450,15 +467,22 @@ const styles = StyleSheet.create({
   },
   tagRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 6 },
   tag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginRight: 6, marginBottom: 4 },
-  actions: { flexDirection: "row", gap: 12, marginTop: 16 },
-  btn: {
-    flex: 1,
+  actions: { marginTop: 16, gap: 10 },
+  btnPrimary: {
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
+  btnSecondary: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   btnText: { color: "#fff", fontWeight: "600" },
+  btnTextSecondary: { fontWeight: "600" },
   syncPanel: {
     marginTop: 12,
     padding: 12,

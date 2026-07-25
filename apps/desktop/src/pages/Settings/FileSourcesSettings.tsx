@@ -135,7 +135,7 @@ const FileSourcesSettings: React.FC = () => {
   const truncatePath = (p: string) =>
     p.length <= 36 ? p : p.slice(0, 14) + "…" + p.slice(-20);
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<boolean> => {
     setSaving(true);
     try {
       const payload: FileSources = {
@@ -149,14 +149,23 @@ const FileSourcesSettings: React.FC = () => {
         const view = res.data as FileSourcesView;
         setRows(rowsFromView(view));
         message.success(t("settings.fileSourcesSaveSuccess"));
-      } else {
-        message.error(res.message || t("settings.fileSourcesSaveFailed"));
+        return true;
       }
+      message.error(res.message || t("settings.fileSourcesSaveFailed"));
+      return false;
     } catch (e) {
       console.error(e);
       message.error(t("settings.fileSourcesSaveFailed"));
+      return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveAndSync = async () => {
+    const ok = await handleSave();
+    if (ok) {
+      await handleSync();
     }
   };
 
@@ -276,12 +285,18 @@ const FileSourcesSettings: React.FC = () => {
           </Space>
         </div>
       ))}
-      <Space>
-        <Button type="primary" loading={saving} onClick={handleSave}>
-          {t("common.save")}
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <Button
+          type="primary"
+          block
+          loading={saving}
+          disabled={syncing}
+          onClick={handleSaveAndSync}
+        >
+          {t("settings.fileSourcesSaveAndSync")}
         </Button>
-        <Button loading={syncing} onClick={handleSync}>
-          {t("settings.fileSourcesSync")}
+        <Button block onClick={handleSave} disabled={saving || syncing}>
+          {t("common.save")}
         </Button>
       </Space>
       {progress && (

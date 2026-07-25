@@ -256,6 +256,7 @@
     "fileSourcesSyncFailed": "同步失败",
     "fileSourcesSaveSuccess": "保存成功，文件监听已重建",
     "fileSourcesSaveFailed": "保存失败",
+    "fileSourcesSaveAndSync": "保存并同步",
     "filePathPlaceholder": "绝对路径或相对 api 目录的路径",
     "filePathExists": "目录存在",
     "filePathMissing": "目录不存在",
