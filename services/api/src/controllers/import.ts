@@ -42,6 +42,13 @@ export class ImportController {
     return { code: 200, message: 'success', data: { id } };
   }
 
+  @Get('tasks')
+  @LogMethod()
+  async getAllTasks() {
+    const tasks = await this.importService.getAllTasks();
+    return { code: 200, message: 'success', data: tasks };
+  }
+
   @Get('task/:id')
   @LogMethod()
   async getTask(@Param('id') id: string) {

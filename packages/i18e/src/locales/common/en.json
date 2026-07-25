@@ -406,6 +406,7 @@
     "miniPlayer": "Mini Player",
     "folder": "Folder",
     "switchServer": "Switch Server",
+    "taskCenter": "Task Center",
     "switchToLightMode": "Switch to Light Mode",
     "switchToDarkMode": "Switch to Dark Mode",
     "switchToSystem": "Follow System",
@@ -1928,5 +1929,38 @@
     "deleteTask": "Delete Task",
     "noTasksYet": "No tasks yet",
     "title": "Task Title"
+  },
+  "taskCenter": {
+    "title": "Task Center",
+    "empty": "No tasks",
+    "loadFailed": "Failed to load tasks",
+    "refresh": "Refresh",
+    "all": "All",
+    "active": "Active",
+    "chapters": "Chapters",
+    "columnName": "Task",
+    "columnCategory": "Type",
+    "columnStatus": "Status",
+    "columnProgress": "Progress",
+    "columnAction": "Action",
+    "pause": "Pause",
+    "resume": "Resume",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this task?",
+    "actionFailed": "Action failed",
+    "category": {
+      "full": "Full Update",
+      "incremental": "Incremental Update",
+      "compact": "Compact Data",
+      "webdavSync": "Source Sync",
+      "tts": "TTS Audiobook"
+    },
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "paused": "Paused",
+      "success": "Completed",
+      "failed": "Failed"
+    }
   }
 }

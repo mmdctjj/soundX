@@ -9,6 +9,7 @@ import {
   getPlaylists,
   getRunningImportTask,
   getTrackHistory,
+  hasActiveTasks,
   ImportTask,
   plusGetMe,
   TaskStatus,
@@ -53,6 +54,26 @@ export default function Personal() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importTask, setImportTask] = useState<ImportTask | null>(null);
   const pollTimerRef = useRef<any>(null);
+  // 任务中心入口显隐：仅当存在进行中任务时显示
+  const [showTaskCenterEntry, setShowTaskCenterEntry] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const active = await hasActiveTasks();
+        if (!cancelled) setShowTaskCenterEntry(active);
+      } catch {
+        /* 忽略网络异常 */
+      }
+    };
+    check();
+    const timer = setInterval(check, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
 
   const [isVip, setIsVip] = useState(false);
 
@@ -411,6 +432,11 @@ export default function Personal() {
           </View>
         )}
         <View className='right-actions'>
+          {showTaskCenterEntry && (
+            <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/task-center/index' })}>
+              <Text className='header-icon icon icon-task' />
+            </View>
+          )}
           <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/source-manage/index' })}>
             <Text className='header-icon icon icon-server' />
           </View>

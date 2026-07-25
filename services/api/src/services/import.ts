@@ -49,6 +49,8 @@ export enum TaskStatus {
   FAILED = 'FAILED',
 }
 
+export type ImportTaskType = 'full' | 'incremental' | 'compact' | 'webdav-sync';
+
 export interface ImportTask {
   id: string;
   status: TaskStatus;
@@ -63,6 +65,11 @@ export interface ImportTask {
   mvCurrent?: number;
   currentFileName?: string;
   mode?: 'incremental' | 'full' | 'compact';
+  // Distinguishes the task's origin for the Task Center. `mode` alone can't tell a
+  // WebDAV sync apart from a normal incremental scan (both use mode:'incremental').
+  type?: ImportTaskType;
+  // ISO timestamp of when the task was created, used for sorting in the Task Center.
+  createdAt?: string;
 }
 
 interface TrackSortFields {
@@ -313,6 +320,8 @@ export class ImportService implements OnModuleInit {
       id,
       status: TaskStatus.INITIALIZING,
       mode: 'incremental',
+      type: 'webdav-sync',
+      createdAt: new Date().toISOString(),
       message: '正在准备 WebDAV 扫描...',
       total: 0,
       current: 0,
@@ -587,7 +596,13 @@ export class ImportService implements OnModuleInit {
     mode: 'incremental' | 'full' | 'compact' = 'incremental'
   ): string {
     const id = randomUUID();
-    this.tasks.set(id, { id, status: TaskStatus.INITIALIZING, mode });
+    this.tasks.set(id, {
+      id,
+      status: TaskStatus.INITIALIZING,
+      mode,
+      type: mode,
+      createdAt: new Date().toISOString(),
+    });
 
     const normalizedMusicPaths = this.normalizePathInput(musicPaths);
     const normalizedAudiobookPaths = this.normalizePathInput(audiobookPaths);
@@ -606,9 +621,21 @@ export class ImportService implements OnModuleInit {
   }
 
   @LogMethod()
+  getAllTasks(): ImportTask[] {
+    return Array.from(this.tasks.values()).sort((a, b) => {
+      const at = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const bt = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return bt - at;
+    });
+  }
+
+  @LogMethod()
   getRunningTask(): ImportTask | undefined {
     return Array.from(this.tasks.values()).find(
-      task => task.status === TaskStatus.INITIALIZING || task.status === TaskStatus.PARSING
+      task =>
+        task.status === TaskStatus.INITIALIZING ||
+        task.status === TaskStatus.PREPARING ||
+        task.status === TaskStatus.PARSING
     );
   }
 

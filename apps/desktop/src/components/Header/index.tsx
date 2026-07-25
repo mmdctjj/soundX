@@ -24,6 +24,7 @@ import {
   SearchOutlined,
   SettingOutlined,
   SunOutlined,
+  UnorderedListOutlined,
   WifiOutlined,
 } from "@ant-design/icons";
 import {
@@ -37,6 +38,7 @@ import {
   getImportTask,
   getRunningImportTask,
   getSearchHistory,
+  hasActiveTasks,
   plusDeleteMe,
   plusGetMe,
   plusParticipateInternalTest,
@@ -408,6 +410,28 @@ const Header: React.FC = () => {
   const [, setPlusVipData] = useState<any>(null);
   const [redeemingInternalTestCode, setRedeemingInternalTestCode] =
     useState(false);
+  // 任务中心入口显隐：仅当存在进行中任务时显示
+  const [showTaskCenterEntry, setShowTaskCenterEntry] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const active = await hasActiveTasks();
+        console.log("Checked active tasks:", active);
+        if (!cancelled) setShowTaskCenterEntry(active);
+      } catch (e) {
+        /* 忽略：网络异常时不改变入口状态 */
+        console.warn("Failed to check active tasks", e);
+      }
+    };
+    check();
+    const timer = setInterval(check, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const refreshCurrentUser = async () => {
@@ -1152,6 +1176,20 @@ const Header: React.FC = () => {
             )}
           </div>
         </Tooltip>
+        {showTaskCenterEntry && (
+          <Tooltip title={t("header.taskCenter")}>
+            <div
+              className={styles.actionIcon}
+              style={{ ...actionIconStyle }}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate("/task-center");
+              }}
+            >
+              <UnorderedListOutlined style={{ fontSize: 18 }} />
+            </div>
+          </Tooltip>
+        )}
         <Popover
           content={
             <div className={styles.userMenu}>
