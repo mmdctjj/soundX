@@ -713,7 +713,7 @@ export class ImportService implements OnModuleInit {
       try {
         // Resolve absolute path using TrackService
         // track.path is URL like /music/Artist/Album/Song.mp3
-        const absolutePath = this.trackService.getFilePath(track.path);
+        const absolutePath = await this.trackService.getFilePath(track.path);
 
         if (absolutePath && fs.existsSync(absolutePath)) {
           const hash = await this.calculateFingerprint(absolutePath);
@@ -1605,7 +1605,7 @@ export class ImportService implements OnModuleInit {
     });
 
     for (const track of tracks) {
-      const absolutePath = this.trackService.getFilePath(track.path);
+      const absolutePath = await this.trackService.getFilePath(track.path);
       if (!absolutePath) continue;
 
       const trackBaseName = path.basename(absolutePath, path.extname(absolutePath));
@@ -1637,7 +1637,7 @@ export class ImportService implements OnModuleInit {
     });
 
     for (const track of tracks) {
-      const absolutePath = this.trackService.getFilePath(track.path);
+      const absolutePath = await this.trackService.getFilePath(track.path);
       if (!absolutePath) continue;
 
       const trackBaseName = path.basename(absolutePath, path.extname(absolutePath));
@@ -1970,7 +1970,7 @@ export class ImportService implements OnModuleInit {
 
     const missingIds: number[] = [];
     for (const track of tracks) {
-      const absolutePath = this.trackService.getFilePath(track.path);
+      const absolutePath = await this.trackService.getFilePath(track.path);
       if (!absolutePath) continue;
       if (!fs.existsSync(absolutePath)) {
         missingIds.push(track.id);

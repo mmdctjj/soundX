@@ -7,8 +7,9 @@ import uuid
 import json
 from typing import List
 from sqlmodel import Session, select
+from sqlalchemy import text
 from src.core.splitter import NovelSplitter
-from src.database.models import get_session, Task, ChapterTask
+from src.database.models import get_session, Task, ChapterTask, engine
 from src.core.processor import processor
 from src.engines.registry import EngineFactory
 
@@ -23,7 +24,48 @@ UPLOAD_DIR = os.path.join(BASE_DIR, "services/tts/data/novels")
 print(f"--- TTS Upload Dir: {UPLOAD_DIR} ---")
 
 
+def _load_txt_dirs_from_setting():
+    """Read raw txtDirs from the shared file_sources SystemSetting."""
+    with Session(engine) as session:
+        try:
+            row = session.exec(
+                text("SELECT value FROM system_setting WHERE key = :k"),
+                params={"k": "file_sources"},
+            ).first()
+        except Exception:
+            return None
+    if not row or not row[0]:
+        return None
+    try:
+        parsed = json.loads(row[0])
+        dirs = parsed.get("txtDirs") if isinstance(parsed, dict) else None
+        if isinstance(dirs, list) and dirs:
+            return [str(item) for item in dirs if str(item).strip()]
+    except Exception:
+        return None
+    return None
+
+
 def resolve_txt_dirs():
+    raw = _load_txt_dirs_from_setting()
+    tts_dir = os.path.join(BASE_DIR, "services", "tts")
+    if raw:
+        resolved = []
+        for item in raw:
+            item = item.strip()
+            if not item:
+                continue
+            if os.path.isabs(item):
+                resolved.append(item)
+            else:
+                cwd_candidate = os.path.abspath(os.path.join(os.getcwd(), item))
+                if os.path.exists(cwd_candidate):
+                    resolved.append(cwd_candidate)
+                else:
+                    resolved.append(os.path.abspath(os.path.join(tts_dir, item)))
+        if resolved:
+            return list(dict.fromkeys(resolved))
+
     env_txt_dir = os.getenv("TXT_BASE_DIR")
     if env_txt_dir:
         raw_items = [value.strip() for value in re.split(r"[;,]", env_txt_dir) if value.strip()]
@@ -32,8 +74,6 @@ def resolve_txt_dirs():
             if os.path.isabs(item):
                 resolved.append(item)
             else:
-                # 相对路径以 .env 所在目录（即 services/tts）为基准解析
-                tts_dir = os.path.join(BASE_DIR, "services", "tts")
                 resolved.append(os.path.abspath(os.path.join(tts_dir, item)))
         if resolved:
             return list(dict.fromkeys(resolved))
