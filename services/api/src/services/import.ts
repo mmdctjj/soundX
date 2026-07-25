@@ -454,6 +454,63 @@ export class ImportService implements OnModuleInit {
   }
 
   /**
+   * React to file source list changes (called after file_sources are saved):
+   * - path removed from any category → soft-trash its tracks (TRASHED).
+   *   Re-adding the path and syncing later restores them via TRASHED → ACTIVE
+   *   match on relativePath prefix.
+   */
+  @LogMethod()
+  async applyFileSourcesChanges(
+    previous: { musicDirs: string[]; audiobookDirs: string[]; mvDirs: string[] },
+    current: { musicDirs: string[]; audiobookDirs: string[]; mvDirs: string[] },
+  ): Promise<void> {
+    const prevResolved = {
+      musicDirs: previous.musicDirs.map((d) => path.resolve(d)),
+      audiobookDirs: previous.audiobookDirs.map((d) => path.resolve(d)),
+      mvDirs: previous.mvDirs.map((d) => path.resolve(d)),
+    };
+    const nextResolved = {
+      musicDirs: current.musicDirs.map((d) => path.resolve(d)),
+      audiobookDirs: current.audiobookDirs.map((d) => path.resolve(d)),
+      mvDirs: current.mvDirs.map((d) => path.resolve(d)),
+    };
+    const removed = [
+      ...prevResolved.musicDirs.filter((d) => !nextResolved.musicDirs.includes(d)),
+      ...prevResolved.audiobookDirs.filter((d) => !nextResolved.audiobookDirs.includes(d)),
+      ...prevResolved.mvDirs.filter((d) => !nextResolved.mvDirs.includes(d)),
+    ];
+    if (removed.length === 0) return;
+
+    await this.normalizeLegacyDisabledTracks();
+
+    // trash any ACTIVE track whose stored absolute file lives under a removed dir.
+    // relativePath is the in-DB relative path from the base; we resolve relative to every
+    // removed dir to find the on-disk absolute path.
+    const candidates = await this.prisma.track.findMany({
+      where: { status: FileStatus.ACTIVE },
+      select: { id: true, relativePath: true },
+    });
+    const fs = require('fs') as typeof import('fs');
+    const ids: number[] = [];
+    for (const t of candidates) {
+      if (!t.relativePath) continue;
+      for (const base of removed) {
+        const abs = path.resolve(base, t.relativePath);
+        if (fs.existsSync(abs)) {
+          ids.push(t.id);
+          break;
+        }
+      }
+    }
+    if (ids.length === 0) return;
+    await this.prisma.track.updateMany({
+      where: { id: { in: ids } },
+      data: { status: FileStatus.TRASHED, trashedAt: new Date() },
+    });
+    this.logger.log(`Soft-trashed ${ids.length} track(s) after file source removal.`);
+  }
+
+  /**
    * One-time cleanup: legacy rows with status='DISABLED' (from the old enum)
    * become 'TRASHED' so they participate in the same resurrection path on
    * re-enable. Safe to call repeatedly — UPDATE matches by string and is a

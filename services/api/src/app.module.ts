@@ -14,6 +14,7 @@ import { ArtistController } from './controllers/artist';
 import { AudiobookController } from './controllers/audiobook';
 import { AudiobookCollectionController } from './controllers/audiobook-collection';
 import { FolderController } from './controllers/folder';
+import { FileSourcesController } from './controllers/file-sources.controller';
 import { ImportController } from './controllers/import';
 import { LlmConfigController } from './controllers/llm-config.controller';
 import { LlmController } from './controllers/llm.controller';
@@ -40,6 +41,7 @@ import { ArtistService } from './services/artist';
 import { AudiobookService } from './services/audiobook';
 import { AudiobookCollectionService } from './services/audiobook-collection';
 import { FolderService } from './services/folder';
+import { FileSourcesService } from './services/file-sources.service';
 import { ImportService } from './services/import';
 import { LlmConfigService } from './services/llm-config.service';
 import { LlmService } from './services/llm.service';
@@ -103,6 +105,7 @@ import { MetadataPluginService } from './services/metadata-plugin.service';
     ImportController,
     PlaylistController,
     FolderController,
+    FileSourcesController,
     SearchRecordController,
     ScanLoginController,
     LlmController,
@@ -142,6 +145,7 @@ import { MetadataPluginService } from './services/metadata-plugin.service';
     AudiobookCollectionService,
     PlaylistService,
     FolderService,
+    FileSourcesService,
     SearchRecordService,
     ScanLoginService,
     LlmService,
