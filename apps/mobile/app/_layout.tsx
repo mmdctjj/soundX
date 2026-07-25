@@ -413,6 +413,7 @@ function RootLayoutNav() {
       <Stack.Screen name="language" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="playback-quality" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="mv/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="file-sources" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="webdav-sources" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="llm-config" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="tts-config" options={{ headerShown: false, animation: 'slide_from_right' }} />
