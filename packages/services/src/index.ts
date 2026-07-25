@@ -20,6 +20,7 @@ export * from "./request";
 export * from "./scan-login";
 export * from "./search";
 export * from "./search-record";
+export * from "./taskCenter";
 export * from "./track";
 export * from "./tts";
 export * from "./ttsConfig";

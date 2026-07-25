@@ -10,6 +10,7 @@ import {
   getPlaylists,
   getRunningImportTask,
   getTrackHistory,
+  hasActiveTasks,
   setPlusToken,
   TaskStatus,
   uploadUserAvatar,
@@ -389,6 +390,26 @@ export default function PersonalScreen() {
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importTask, setImportTask] = useState<ImportTask | null>(null);
   const pollTimerRef = React.useRef<any>(null);
+  // 任务中心入口显隐：仅当存在进行中任务时显示
+  const [showTaskCenterEntry, setShowTaskCenterEntry] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const active = await hasActiveTasks();
+        if (!cancelled) setShowTaskCenterEntry(active);
+      } catch {
+        /* 忽略网络异常 */
+      }
+    };
+    check();
+    const timer = setInterval(check, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
   const [isPlusVip, setIsPlusVip] = useState(false);
   const [plusVipData, setPlusVipData] = useState<any>(null);
 
@@ -979,6 +1000,14 @@ export default function PersonalScreen() {
          >
             <AntDesign name="scan" size={22} color={colors.text} />
           </TouchableOpacity>
+          {showTaskCenterEntry && (
+            <TouchableOpacity
+              onPress={() => router.push("/task-center" as any)}
+              style={[styles.iconBtn, { marginRight: 10 }]}
+            >
+              <Ionicons name="list-outline" size={22} color={colors.text} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => router.push("/source-manage" as any)}
             style={[styles.iconBtn, { marginRight: 10 }]}

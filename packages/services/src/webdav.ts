@@ -60,13 +60,3 @@ export const testWebDavConnection = async (source: WebDavSourceInput) => {
 export const triggerWebDavSync = async () => {
   return request.post<ISuccessResponse<{ id: string }>>("/admin/webdav-sync");
 };
-
-export const getWebDavSyncTask = async (id: string) => {
-  return request.get<ISuccessResponse<any>>(`/admin/webdav-sync/task/${id}`);
-};
-
-export const getCurrentWebDavSyncTask = async () => {
-  return request.get<ISuccessResponse<any | null>>(
-    "/admin/webdav-sync/current-task",
-  );
-};

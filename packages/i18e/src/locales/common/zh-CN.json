@@ -365,7 +365,7 @@
     "by": "作者：{{author}}",
     "version": "版本：{{version}}",
     "downloadSample": "下载示例插件",
-    "vipOnly": "UI 插件仅 Plus 会员可用",
+    "vipOnly": "UI 插件仅会员可用",
     "vipOnlyAction": "前往开通会员"
   },
   "login": {
@@ -603,6 +603,7 @@
     "miniPlayer": "mini播放器",
     "folder": "文件夹",
     "switchServer": "切换服务端",
+    "taskCenter": "任务中心",
     "switchToLightMode": "切换至亮色模式",
     "switchToDarkMode": "切换至暗色模式",
     "switchToSystem": "切换至跟随系统",
@@ -986,6 +987,9 @@
     "title": "标题",
     "artist": "艺术家",
     "album": "专辑",
+    "source": "来源",
+    "sourceWebdav": "WebDAV",
+    "sourceFile": "文件",
     "cover": "封面",
     "duration": "时长",
     "progress": "进度",
@@ -1932,5 +1936,38 @@
     "deleteTask": "删除任务",
     "noTasksYet": "暂无任务",
     "title": "任务标题"
+  },
+  "taskCenter": {
+    "title": "任务中心",
+    "empty": "暂无任务",
+    "loadFailed": "加载任务失败",
+    "refresh": "刷新",
+    "all": "全部",
+    "active": "进行中",
+    "chapters": "章节",
+    "columnName": "任务",
+    "columnCategory": "类型",
+    "columnStatus": "状态",
+    "columnProgress": "进度",
+    "columnAction": "操作",
+    "pause": "暂停",
+    "resume": "恢复",
+    "delete": "删除",
+    "deleteConfirm": "确认删除该任务？",
+    "actionFailed": "操作失败",
+    "category": {
+      "full": "全量更新",
+      "incremental": "增量更新",
+      "compact": "精简数据",
+      "webdavSync": "数据源同步",
+      "tts": "TTS 有声书"
+    },
+    "status": {
+      "pending": "等待中",
+      "processing": "处理中",
+      "paused": "已暂停",
+      "success": "已完成",
+      "failed": "失败"
+    }
   }
 }

@@ -24,6 +24,7 @@ export default defineAppConfig({
     'pages/llm-config/index',
     'pages/tts-config/index',
     'pages/plugin-center/index',
+    'pages/task-center/index',
     'pages/tts/tasks/index',
     'pages/tts/create/index',
     'pages/member/login/index',

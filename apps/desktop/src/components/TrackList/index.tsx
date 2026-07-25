@@ -16,12 +16,12 @@ import {
   getPlaylists,
   type Playlist,
 } from "@soundx/services";
-import { Dropdown, List, type MenuProps, Modal, Table, Typography } from "antd";
+import { Dropdown, List, type MenuProps, Modal, Table, Tag, Typography } from "antd";
 import type { ColumnProps } from "antd/es/table";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMessage } from "../../context/MessageContext";
-import { type Track, TrackType } from "../../models";
+import { type Track, TrackSource, TrackType } from "../../models";
 import { downloadTrack } from "../../services/downloadManager";
 import { useAuthStore } from "../../store/auth";
 import { type PlaylistSource, usePlayerStore } from "../../store/player";
@@ -41,6 +41,7 @@ export interface TrackListProps {
   showCover?: boolean;
   showArtist?: boolean;
   showAlbum?: boolean;
+  showSource?: boolean;
   showActions?: boolean;
   showDuration?: boolean;
   onPlay?: (track: Track, tracks: Track[]) => void;
@@ -58,6 +59,7 @@ const TrackList: React.FC<TrackListProps> = ({
   showCover = true,
   showArtist = false,
   showAlbum = false,
+  showSource = false,
   showActions = true,
   showDuration = true,
   onPlay,
@@ -291,6 +293,22 @@ const TrackList: React.FC<TrackListProps> = ({
                   : record.album;
               return <Text type="secondary">{albumName}</Text>;
             },
+          } as ColumnProps<Track>,
+        ]
+      : []),
+    ...(showSource
+      ? [
+          {
+            title: t("trackList.source"),
+            dataIndex: "source",
+            key: "source",
+            width: 90,
+            render: (source: TrackSource | undefined) =>
+              source === TrackSource.WEBDAV ? (
+                <Tag color="blue">{t("trackList.sourceWebdav")}</Tag>
+              ) : (
+                <Tag>{t("trackList.sourceFile")}</Tag>
+              ),
           } as ColumnProps<Track>,
         ]
       : []),

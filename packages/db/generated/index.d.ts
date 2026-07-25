@@ -152,6 +152,14 @@ export const MetadataSource: {
 
 export type MetadataSource = (typeof MetadataSource)[keyof typeof MetadataSource]
 
+
+export const TrackSource: {
+  FILE: 'FILE',
+  WEBDAV: 'WEBDAV'
+};
+
+export type TrackSource = (typeof TrackSource)[keyof typeof TrackSource]
+
 }
 
 export type TrackType = $Enums.TrackType
@@ -165,6 +173,10 @@ export const FileStatus: typeof $Enums.FileStatus
 export type MetadataSource = $Enums.MetadataSource
 
 export const MetadataSource: typeof $Enums.MetadataSource
+
+export type TrackSource = $Enums.TrackSource
+
+export const TrackSource: typeof $Enums.TrackSource
 
 /**
  * ##  Prisma Client ʲˢ
@@ -3338,6 +3350,7 @@ export namespace Prisma {
     transcodedPath: string | null
     metadataSource: $Enums.MetadataSource | null
     metadataProvider: string | null
+    source: $Enums.TrackSource | null
     tags: string | null
     artistId: number | null
     albumId: number | null
@@ -3368,6 +3381,7 @@ export namespace Prisma {
     transcodedPath: string | null
     metadataSource: $Enums.MetadataSource | null
     metadataProvider: string | null
+    source: $Enums.TrackSource | null
     tags: string | null
     artistId: number | null
     albumId: number | null
@@ -3398,6 +3412,7 @@ export namespace Prisma {
     transcodedPath: number
     metadataSource: number
     metadataProvider: number
+    source: number
     tags: number
     artistId: number
     albumId: number
@@ -3452,6 +3467,7 @@ export namespace Prisma {
     transcodedPath?: true
     metadataSource?: true
     metadataProvider?: true
+    source?: true
     tags?: true
     artistId?: true
     albumId?: true
@@ -3482,6 +3498,7 @@ export namespace Prisma {
     transcodedPath?: true
     metadataSource?: true
     metadataProvider?: true
+    source?: true
     tags?: true
     artistId?: true
     albumId?: true
@@ -3512,6 +3529,7 @@ export namespace Prisma {
     transcodedPath?: true
     metadataSource?: true
     metadataProvider?: true
+    source?: true
     tags?: true
     artistId?: true
     albumId?: true
@@ -3629,6 +3647,7 @@ export namespace Prisma {
     transcodedPath: string | null
     metadataSource: $Enums.MetadataSource
     metadataProvider: string | null
+    source: $Enums.TrackSource
     tags: string | null
     artistId: number | null
     albumId: number | null
@@ -3678,6 +3697,7 @@ export namespace Prisma {
     transcodedPath?: boolean
     metadataSource?: boolean
     metadataProvider?: boolean
+    source?: boolean
     tags?: boolean
     artistId?: boolean
     albumId?: boolean
@@ -3718,6 +3738,7 @@ export namespace Prisma {
     transcodedPath?: boolean
     metadataSource?: boolean
     metadataProvider?: boolean
+    source?: boolean
     tags?: boolean
     artistId?: boolean
     albumId?: boolean
@@ -3751,6 +3772,7 @@ export namespace Prisma {
     transcodedPath?: boolean
     metadataSource?: boolean
     metadataProvider?: boolean
+    source?: boolean
     tags?: boolean
     artistId?: boolean
     albumId?: boolean
@@ -3784,13 +3806,14 @@ export namespace Prisma {
     transcodedPath?: boolean
     metadataSource?: boolean
     metadataProvider?: boolean
+    source?: boolean
     tags?: boolean
     artistId?: boolean
     albumId?: boolean
     folderId?: boolean
   }
 
-  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "fileName" | "relativePath" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileCreatedAt" | "fileModifiedAt" | "scanOrder" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "transcodedPath" | "metadataSource" | "metadataProvider" | "tags" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
+  export type TrackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "fileName" | "relativePath" | "path" | "artist" | "album" | "cover" | "duration" | "lyrics" | "index" | "type" | "createdAt" | "fileCreatedAt" | "fileModifiedAt" | "scanOrder" | "episodeNumber" | "fileHash" | "status" | "trashedAt" | "transcodedPath" | "metadataSource" | "metadataProvider" | "source" | "tags" | "artistId" | "albumId" | "folderId", ExtArgs["result"]["track"]>
   export type TrackInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     artistEntity?: boolean | Track$artistEntityArgs<ExtArgs>
     albumEntity?: boolean | Track$albumEntityArgs<ExtArgs>
@@ -3854,6 +3877,7 @@ export namespace Prisma {
       transcodedPath: string | null
       metadataSource: $Enums.MetadataSource
       metadataProvider: string | null
+      source: $Enums.TrackSource
       tags: string | null
       artistId: number | null
       albumId: number | null
@@ -4313,6 +4337,7 @@ export namespace Prisma {
     readonly transcodedPath: FieldRef<"Track", 'String'>
     readonly metadataSource: FieldRef<"Track", 'MetadataSource'>
     readonly metadataProvider: FieldRef<"Track", 'String'>
+    readonly source: FieldRef<"Track", 'TrackSource'>
     readonly tags: FieldRef<"Track", 'String'>
     readonly artistId: FieldRef<"Track", 'Int'>
     readonly albumId: FieldRef<"Track", 'Int'>
@@ -29130,6 +29155,7 @@ export namespace Prisma {
     transcodedPath: 'transcodedPath',
     metadataSource: 'metadataSource',
     metadataProvider: 'metadataProvider',
+    source: 'source',
     tags: 'tags',
     artistId: 'artistId',
     albumId: 'albumId',
@@ -29472,6 +29498,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'TrackSource'
+   */
+  export type EnumTrackSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TrackSource'>
+    
+
+
+  /**
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
@@ -29515,6 +29548,7 @@ export namespace Prisma {
     transcodedPath?: StringNullableFilter<"Track"> | string | null
     metadataSource?: EnumMetadataSourceFilter<"Track"> | $Enums.MetadataSource
     metadataProvider?: StringNullableFilter<"Track"> | string | null
+    source?: EnumTrackSourceFilter<"Track"> | $Enums.TrackSource
     tags?: StringNullableFilter<"Track"> | string | null
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
@@ -29554,6 +29588,7 @@ export namespace Prisma {
     transcodedPath?: SortOrderInput | SortOrder
     metadataSource?: SortOrder
     metadataProvider?: SortOrderInput | SortOrder
+    source?: SortOrder
     tags?: SortOrderInput | SortOrder
     artistId?: SortOrderInput | SortOrder
     albumId?: SortOrderInput | SortOrder
@@ -29596,6 +29631,7 @@ export namespace Prisma {
     transcodedPath?: StringNullableFilter<"Track"> | string | null
     metadataSource?: EnumMetadataSourceFilter<"Track"> | $Enums.MetadataSource
     metadataProvider?: StringNullableFilter<"Track"> | string | null
+    source?: EnumTrackSourceFilter<"Track"> | $Enums.TrackSource
     tags?: StringNullableFilter<"Track"> | string | null
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
@@ -29635,6 +29671,7 @@ export namespace Prisma {
     transcodedPath?: SortOrderInput | SortOrder
     metadataSource?: SortOrder
     metadataProvider?: SortOrderInput | SortOrder
+    source?: SortOrder
     tags?: SortOrderInput | SortOrder
     artistId?: SortOrderInput | SortOrder
     albumId?: SortOrderInput | SortOrder
@@ -29673,6 +29710,7 @@ export namespace Prisma {
     transcodedPath?: StringNullableWithAggregatesFilter<"Track"> | string | null
     metadataSource?: EnumMetadataSourceWithAggregatesFilter<"Track"> | $Enums.MetadataSource
     metadataProvider?: StringNullableWithAggregatesFilter<"Track"> | string | null
+    source?: EnumTrackSourceWithAggregatesFilter<"Track"> | $Enums.TrackSource
     tags?: StringNullableWithAggregatesFilter<"Track"> | string | null
     artistId?: IntNullableWithAggregatesFilter<"Track"> | number | null
     albumId?: IntNullableWithAggregatesFilter<"Track"> | number | null
@@ -31169,6 +31207,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
@@ -31205,6 +31244,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -31240,6 +31280,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
@@ -31276,6 +31317,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -31312,6 +31354,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -31341,6 +31384,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
@@ -31368,6 +31412,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -32917,6 +32962,13 @@ export namespace Prisma {
     not?: NestedEnumMetadataSourceFilter<$PrismaModel> | $Enums.MetadataSource
   }
 
+  export type EnumTrackSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrackSource | EnumTrackSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.TrackSource[]
+    notIn?: $Enums.TrackSource[]
+    not?: NestedEnumTrackSourceFilter<$PrismaModel> | $Enums.TrackSource
+  }
+
   export type ArtistNullableScalarRelationFilter = {
     is?: ArtistWhereInput | null
     isNot?: ArtistWhereInput | null
@@ -33021,6 +33073,7 @@ export namespace Prisma {
     transcodedPath?: SortOrder
     metadataSource?: SortOrder
     metadataProvider?: SortOrder
+    source?: SortOrder
     tags?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
@@ -33062,6 +33115,7 @@ export namespace Prisma {
     transcodedPath?: SortOrder
     metadataSource?: SortOrder
     metadataProvider?: SortOrder
+    source?: SortOrder
     tags?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
@@ -33092,6 +33146,7 @@ export namespace Prisma {
     transcodedPath?: SortOrder
     metadataSource?: SortOrder
     metadataProvider?: SortOrder
+    source?: SortOrder
     tags?: SortOrder
     artistId?: SortOrder
     albumId?: SortOrder
@@ -33231,6 +33286,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumMetadataSourceFilter<$PrismaModel>
     _max?: NestedEnumMetadataSourceFilter<$PrismaModel>
+  }
+
+  export type EnumTrackSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrackSource | EnumTrackSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.TrackSource[]
+    notIn?: $Enums.TrackSource[]
+    not?: NestedEnumTrackSourceWithAggregatesFilter<$PrismaModel> | $Enums.TrackSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTrackSourceFilter<$PrismaModel>
+    _max?: NestedEnumTrackSourceFilter<$PrismaModel>
   }
 
   export type TrackListRelationFilter = {
@@ -34390,6 +34455,10 @@ export namespace Prisma {
 
   export type EnumMetadataSourceFieldUpdateOperationsInput = {
     set?: $Enums.MetadataSource
+  }
+
+  export type EnumTrackSourceFieldUpdateOperationsInput = {
+    set?: $Enums.TrackSource
   }
 
   export type ArtistUpdateOneWithoutTracksNestedInput = {
@@ -36007,6 +36076,13 @@ export namespace Prisma {
     not?: NestedEnumMetadataSourceFilter<$PrismaModel> | $Enums.MetadataSource
   }
 
+  export type NestedEnumTrackSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrackSource | EnumTrackSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.TrackSource[]
+    notIn?: $Enums.TrackSource[]
+    not?: NestedEnumTrackSourceFilter<$PrismaModel> | $Enums.TrackSource
+  }
+
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[]
@@ -36151,6 +36227,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumMetadataSourceFilter<$PrismaModel>
     _max?: NestedEnumMetadataSourceFilter<$PrismaModel>
+  }
+
+  export type NestedEnumTrackSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrackSource | EnumTrackSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.TrackSource[]
+    notIn?: $Enums.TrackSource[]
+    not?: NestedEnumTrackSourceWithAggregatesFilter<$PrismaModel> | $Enums.TrackSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTrackSourceFilter<$PrismaModel>
+    _max?: NestedEnumTrackSourceFilter<$PrismaModel>
   }
 
   export type NestedBoolFilter<$PrismaModel = never> = {
@@ -36743,6 +36829,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -36778,6 +36865,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     folderId?: number | null
@@ -36945,6 +37033,7 @@ export namespace Prisma {
     transcodedPath?: StringNullableFilter<"Track"> | string | null
     metadataSource?: EnumMetadataSourceFilter<"Track"> | $Enums.MetadataSource
     metadataProvider?: StringNullableFilter<"Track"> | string | null
+    source?: EnumTrackSourceFilter<"Track"> | $Enums.TrackSource
     tags?: StringNullableFilter<"Track"> | string | null
     artistId?: IntNullableFilter<"Track"> | number | null
     albumId?: IntNullableFilter<"Track"> | number | null
@@ -37069,6 +37158,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
     likedByUsers?: UserTrackLikeCreateNestedManyWithoutTrackInput
@@ -37104,6 +37194,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     albumId?: number | null
     folderId?: number | null
@@ -37535,6 +37626,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
@@ -37570,6 +37662,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -37668,6 +37761,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
@@ -37703,6 +37797,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -37779,6 +37874,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
@@ -37814,6 +37910,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -37934,6 +38031,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
@@ -37969,6 +38067,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -38433,6 +38532,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
@@ -38468,6 +38568,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -38566,6 +38667,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
@@ -38601,6 +38703,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -38677,6 +38780,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
@@ -38712,6 +38816,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -38810,6 +38915,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
@@ -38845,6 +38951,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -39570,6 +39677,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
@@ -39605,6 +39713,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -39756,6 +39865,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
@@ -39791,6 +39901,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -40034,6 +40145,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistEntity?: ArtistCreateNestedOneWithoutTracksInput
     albumEntity?: AlbumCreateNestedOneWithoutTracksInput
@@ -40069,6 +40181,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -40205,6 +40318,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
@@ -40240,6 +40354,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -40556,6 +40671,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     folderId?: number | null
@@ -40620,6 +40736,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -40655,6 +40772,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -40690,6 +40808,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -40823,6 +40942,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     albumId?: number | null
     folderId?: number | null
@@ -40868,6 +40988,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
     likedByUsers?: UserTrackLikeUpdateManyWithoutTrackNestedInput
@@ -40903,6 +41024,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -40938,6 +41060,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
     folderId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -41366,6 +41489,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
@@ -41401,6 +41525,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -41436,6 +41561,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -41473,6 +41599,7 @@ export namespace Prisma {
     transcodedPath?: string | null
     metadataSource?: $Enums.MetadataSource
     metadataProvider?: string | null
+    source?: $Enums.TrackSource
     tags?: string | null
     artistId?: number | null
     albumId?: number | null
@@ -41525,6 +41652,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistEntity?: ArtistUpdateOneWithoutTracksNestedInput
     albumEntity?: AlbumUpdateOneWithoutTracksNestedInput
@@ -41560,6 +41688,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -41595,6 +41724,7 @@ export namespace Prisma {
     transcodedPath?: NullableStringFieldUpdateOperationsInput | string | null
     metadataSource?: EnumMetadataSourceFieldUpdateOperationsInput | $Enums.MetadataSource
     metadataProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumTrackSourceFieldUpdateOperationsInput | $Enums.TrackSource
     tags?: NullableStringFieldUpdateOperationsInput | string | null
     artistId?: NullableIntFieldUpdateOperationsInput | number | null
     albumId?: NullableIntFieldUpdateOperationsInput | number | null

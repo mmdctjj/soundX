@@ -30,6 +30,7 @@ const Login = lazy(() => import("./pages/Login/index"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword/index"));
 const SourceManage = lazy(() => import("./pages/SourceManage/index"));
 const TaskList = lazy(() => import("./pages/TTS/TaskList/index"));
+const TaskCenter = lazy(() => import("./pages/TaskCenter/index"));
 const CreateTask = lazy(() => import("./pages/TTS/CreateTask/index"));
 const ProductUpdates = lazy(() => import("./pages/ProductUpdates/index"));
 const MemberLogin = lazy(() => import("./pages/MemberLogin/index"));
@@ -297,6 +298,10 @@ const AppContent = () => {
                                 <Route
                                   path="/product-updates"
                                   element={<ProductUpdates />}
+                                />
+                                <Route
+                                  path="/task-center"
+                                  element={<TaskCenter />}
                                 />
                               </Routes>
                             </Suspense>

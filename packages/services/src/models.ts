@@ -9,6 +9,12 @@ export enum TrackType {
   AUDIOBOOK = "AUDIOBOOK",
 }
 
+// 单曲文件来源：本地文件 / WebDAV
+export enum TrackSource {
+  FILE = "FILE",
+  WEBDAV = "WEBDAV",
+}
+
 export type AlbumTrackSortBy =
   | "id"
   | "index"
@@ -67,6 +73,7 @@ export interface Track {
   lyrics: string | null;
   index: number | null;
   type: TrackType;
+  source?: TrackSource;
   createdAt: string | Date; // DateTime in Prisma maps to Date object or ISO string in JSON
   fileCreatedAt?: string | Date | null;
   fileModifiedAt?: string | Date | null;

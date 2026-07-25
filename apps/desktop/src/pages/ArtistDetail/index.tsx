@@ -450,6 +450,7 @@ const ArtistDetail: React.FC = () => {
             type={artist?.type}
             showAlbum={false}
             showArtist={false}
+            showSource={true}
             rowSelection={isSelectionMode ? {
                 selectedRowKeys,
                 onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
