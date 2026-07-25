@@ -207,6 +207,18 @@
   font-weight: bold;
 }
 
+.track-name-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.track-source {
+  font-size: 22rpx;
+  color: #999;
+  margin-left: 12rpx;
+}
+
 .track-duration {
     font-size: 24rpx;
     color: #999;
