@@ -285,7 +285,7 @@ const FileSourcesSettings: React.FC = () => {
           </Space>
         </div>
       ))}
-      <Space direction="vertical">
+      <Space>
         <Button
           type="primary"
           loading={saving}
