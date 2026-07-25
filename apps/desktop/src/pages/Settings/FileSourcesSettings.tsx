@@ -285,17 +285,16 @@ const FileSourcesSettings: React.FC = () => {
           </Space>
         </div>
       ))}
-      <Space direction="vertical" style={{ width: "100%" }}>
+      <Space direction="vertical">
         <Button
           type="primary"
-          block
           loading={saving}
           disabled={syncing}
           onClick={handleSaveAndSync}
         >
           {t("settings.fileSourcesSaveAndSync")}
         </Button>
-        <Button block onClick={handleSave} disabled={saving || syncing}>
+        <Button onClick={handleSave} disabled={saving || syncing}>
           {t("common.save")}
         </Button>
       </Space>
