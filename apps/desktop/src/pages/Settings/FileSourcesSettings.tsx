@@ -1,12 +1,4 @@
-import {
-  Button,
-  Input,
-  Progress,
-  Space,
-  Tag,
-  Typography,
-  message as antdMessage,
-} from "antd";
+import { Button, Input, Progress, Space, Tag, Typography } from "antd";
 import {
   getFileSources,
   saveFileSources,
@@ -50,23 +42,40 @@ const FIELDS = [
 
 const normalize = (arr?: string[]) => (arr && arr.length > 0 ? arr : [""]);
 
+type SourceRow = {
+  value: string;
+  exists: boolean | null;
+};
+
+type SourceRows = Record<keyof FileSources, SourceRow[]>;
+
+const normalizeRows = (values?: string[], exists?: boolean[]): SourceRow[] =>
+  normalize(values).map((value, idx) => ({
+    value,
+    exists: values && values.length > 0 ? (exists?.[idx] ?? null) : null,
+  }));
+
+const rowsFromView = (view: FileSourcesView): SourceRows => ({
+  musicDirs: normalizeRows(view.sources.musicDirs, view.exists.musicDirs),
+  audiobookDirs: normalizeRows(
+    view.sources.audiobookDirs,
+    view.exists.audiobookDirs,
+  ),
+  mvDirs: normalizeRows(view.sources.mvDirs, view.exists.mvDirs),
+  txtDirs: normalizeRows(view.sources.txtDirs, view.exists.txtDirs),
+});
+
+const emptyRows = (): SourceRows => ({
+  musicDirs: [{ value: "", exists: null }],
+  audiobookDirs: [{ value: "", exists: null }],
+  mvDirs: [{ value: "", exists: null }],
+  txtDirs: [{ value: "", exists: null }],
+});
+
 const FileSourcesSettings: React.FC = () => {
   const { t } = useTranslation();
   const message = useMessage();
-  const [sources, setSources] = useState<FileSources>({
-    musicDirs: [""],
-    audiobookDirs: [""],
-    mvDirs: [""],
-    txtDirs: [""],
-  });
-  const [exists, setExists] = useState<
-    Record<keyof FileSources, boolean[]>
-  >({
-    musicDirs: [false],
-    audiobookDirs: [false],
-    mvDirs: [false],
-    txtDirs: [false],
-  });
+  const [rows, setRows] = useState<SourceRows>(emptyRows);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState<{
@@ -89,18 +98,13 @@ const FileSourcesSettings: React.FC = () => {
       const res = await getFileSources();
       if (res.code === 200) {
         const view = res.data as FileSourcesView;
-        setSources({
-          musicDirs: normalize(view.sources.musicDirs),
-          audiobookDirs: normalize(view.sources.audiobookDirs),
-          mvDirs: normalize(view.sources.mvDirs),
-          txtDirs: normalize(view.sources.txtDirs),
-        });
-        setExists(view.exists);
+        setRows(rowsFromView(view));
       } else {
-        antdMessage.error(res.message || t("common.error"));
+        message.error(res.message || t("common.error"));
       }
     } catch (e) {
       console.error(e);
+      message.error(t("common.error"));
     }
   };
 
@@ -109,42 +113,42 @@ const FileSourcesSettings: React.FC = () => {
     idx: number,
     value: string,
   ) => {
-    setSources((prev) => {
+    setRows((prev) => {
       const next = [...prev[key]];
-      next[idx] = value;
+      next[idx] = { value, exists: null };
       return { ...prev, [key]: next };
     });
   };
   const addFieldLine = (key: keyof FileSources) =>
-    setSources((prev) => ({ ...prev, [key]: [...prev[key], ""] }));
+    setRows((prev) => ({
+      ...prev,
+      [key]: [...prev[key], { value: "", exists: null }],
+    }));
   const removeFieldLine = (key: keyof FileSources, idx: number) =>
-    setSources((prev) => {
+    setRows((prev) => {
       const next = prev[key].filter((_, i) => i !== idx);
-      return { ...prev, [key]: next.length > 0 ? next : [""] };
+      return {
+        ...prev,
+        [key]: next.length > 0 ? next : [{ value: "", exists: null }],
+      };
     });
 
-  const compact = (arr: string[]) =>
-    arr.map((s) => s.trim()).filter(Boolean);
+  const compact = (sourceRows: SourceRow[]) =>
+    sourceRows.map(({ value }) => value.trim()).filter(Boolean);
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const payload: FileSources = {
-        musicDirs: compact(sources.musicDirs),
-        audiobookDirs: compact(sources.audiobookDirs),
-        mvDirs: compact(sources.mvDirs),
-        txtDirs: compact(sources.txtDirs),
+        musicDirs: compact(rows.musicDirs),
+        audiobookDirs: compact(rows.audiobookDirs),
+        mvDirs: compact(rows.mvDirs),
+        txtDirs: compact(rows.txtDirs),
       };
       const res = await saveFileSources(payload);
       if (res.code === 200) {
         const view = res.data as FileSourcesView;
-        setSources({
-          musicDirs: normalize(view.sources.musicDirs),
-          audiobookDirs: normalize(view.sources.audiobookDirs),
-          mvDirs: normalize(view.sources.mvDirs),
-          txtDirs: normalize(view.sources.txtDirs),
-        });
-        setExists(view.exists);
+        setRows(rowsFromView(view));
         message.success(t("settings.fileSourcesSaveSuccess"));
       } else {
         message.error(res.message || t("settings.fileSourcesSaveFailed"));
@@ -168,26 +172,31 @@ const FileSourcesSettings: React.FC = () => {
     pollRef.current = setInterval(async () => {
       try {
         const res = await getImportTask(id);
-        if (res.code === 200) {
-          const task = res.data;
-          if (!task || task.id !== id) return;
-          setProgress({
-            current: task.current,
-            total: task.total,
-            message: task.message,
-          });
-          if (task.status === "SUCCESS" || task.status === "FAILED") {
-            stopPolling();
-            setSyncing(false);
-            if (task.status === "SUCCESS")
-              message.success(
-                task.message || t("settings.fileSourcesSyncComplete"),
-              );
-            else
-              message.error(
-                task.message || t("settings.fileSourcesSyncFailed"),
-              );
-          }
+        if (res.code !== 200) {
+          stopPolling();
+          setSyncing(false);
+          message.error(res.message || t("settings.fileSourcesSyncFailed"));
+          return;
+        }
+
+        const task = res.data;
+        if (!task || task.id !== id) return;
+        setProgress({
+          current: task.current,
+          total: task.total,
+          message: task.message,
+        });
+        if (task.status === "SUCCESS" || task.status === "FAILED") {
+          stopPolling();
+          setSyncing(false);
+          if (task.status === "SUCCESS")
+            message.success(
+              task.message || t("settings.fileSourcesSyncComplete"),
+            );
+          else
+            message.error(
+              task.message || t("settings.fileSourcesSyncFailed"),
+            );
         }
       } catch {
         /* keep polling */
@@ -232,32 +241,39 @@ const FileSourcesSettings: React.FC = () => {
         <div key={key} style={{ marginBottom: 24 }}>
           <Text strong>{t(labelKey)}</Text>
           <Space direction="vertical" style={{ width: "100%", marginTop: 8 }}>
-            {(sources[key] ?? [""]).map((value, idx) => (
-              <Space.Compact key={idx} style={{ width: "100%" }}>
-                <Input
-                  value={value}
-                  onChange={(e) => setFieldLine(key, idx, e.target.value)}
-                  placeholder={t(placeholderKey)}
-                  style={{ width: "calc(100% - 90px)" }}
-                />
-                <Button
-                  onClick={() => removeFieldLine(key, idx)}
-                  danger
-                  disabled={(sources[key] ?? []).length <= 1}
-                >
-                  {t("common.delete")}
-                </Button>
-              </Space.Compact>
-            ))}
+            {(rows[key] ?? [{ value: "", exists: null }]).map(
+              ({ value }, idx) => (
+                <Space.Compact key={idx} style={{ width: "100%" }}>
+                  <Input
+                    value={value}
+                    onChange={(e) => setFieldLine(key, idx, e.target.value)}
+                    placeholder={t(placeholderKey)}
+                    style={{ width: "calc(100% - 90px)" }}
+                  />
+                  <Button
+                    onClick={() => removeFieldLine(key, idx)}
+                    danger
+                    disabled={(rows[key] ?? []).length <= 1}
+                  >
+                    {t("common.delete")}
+                  </Button>
+                </Space.Compact>
+              ),
+            )}
             <Button onClick={() => addFieldLine(key)} type="dashed">
               {t("settings.fileSourcesAddPath")}
             </Button>
             <div>
-              {(exists[key] ?? []).map((e, i) => (
-                <Tag key={i} color={e ? "green" : "orange"}>
-                  {sources[key][i] || "(empty)"} {e ? t(existsKey) : t("settings.filePathMissing")}
-                </Tag>
-              ))}
+              {(rows[key] ?? []).map((row, i) =>
+                row.exists === null ? null : (
+                  <Tag key={i} color={row.exists ? "green" : "orange"}>
+                    {row.value || "(empty)"}{" "}
+                    {row.exists
+                      ? t(existsKey)
+                      : t("settings.filePathMissing")}
+                  </Tag>
+                ),
+              )}
             </div>
           </Space>
         </div>
