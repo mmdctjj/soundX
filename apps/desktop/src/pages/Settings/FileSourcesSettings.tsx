@@ -1,4 +1,4 @@
-import { Button, Input, Popconfirm, Progress, Space, Tag, Typography } from "antd";
+import { Button, Input, Popconfirm, Progress, Space, Typography } from "antd";
 import {
   getFileSources,
   saveFileSources,
@@ -18,25 +18,21 @@ const FIELDS = [
     key: "musicDirs",
     labelKey: "settings.fileSourcesMusic",
     placeholderKey: "settings.filePathPlaceholder",
-    existsKey: "settings.filePathExists",
   },
   {
     key: "audiobookDirs",
     labelKey: "settings.fileSourcesAudiobook",
     placeholderKey: "settings.filePathPlaceholder",
-    existsKey: "settings.filePathExists",
   },
   {
     key: "mvDirs",
     labelKey: "settings.fileSourcesMv",
     placeholderKey: "settings.filePathPlaceholder",
-    existsKey: "settings.filePathExists",
   },
   {
     key: "txtDirs",
     labelKey: "settings.fileSourcesTxt",
     placeholderKey: "settings.filePathPlaceholder",
-    existsKey: "settings.filePathExists",
   },
 ] as const;
 
@@ -240,7 +236,7 @@ const FileSourcesSettings: React.FC = () => {
   return (
     <section>
       <Paragraph type="secondary">{t("settings.fileSourcesDescription")}</Paragraph>
-      {FIELDS.map(({ key, labelKey, placeholderKey, existsKey }) => (
+      {FIELDS.map(({ key, labelKey, placeholderKey }) => (
         <div key={key} style={{ marginBottom: 24 }}>
           <Text strong>{t(labelKey)}</Text>
           <Space direction="vertical" style={{ width: "100%", marginTop: 8 }}>
@@ -277,18 +273,6 @@ const FileSourcesSettings: React.FC = () => {
             <Button onClick={() => addFieldLine(key)} type="dashed">
               {t("settings.fileSourcesAddPath")}
             </Button>
-            <div>
-              {(rows[key] ?? []).map((row, i) =>
-                row.exists === null ? null : (
-                  <Tag key={i} color={row.exists ? "green" : "orange"}>
-                    {row.value || "(empty)"}{" "}
-                    {row.exists
-                      ? t(existsKey)
-                      : t("settings.filePathMissing")}
-                  </Tag>
-                ),
-              )}
-            </div>
           </Space>
         </div>
       ))}
