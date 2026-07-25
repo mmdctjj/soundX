@@ -92,6 +92,7 @@ function RootLayoutNav() {
       segmentName === "language" ||
       segmentName === "playback-quality" ||
       segmentName === "mv" ||
+      segmentName === "file-sources" ||
       segmentName === "webdav-sources" ||
       segmentName === "llm-config" ||
       segmentName === "tts-config" ||
@@ -431,6 +432,7 @@ function RootLayoutNav() {
     rootSegment === "forgot-password" ||
     rootSegment === "settings" ||
     rootSegment === "source-manage" ||
+    rootSegment === "file-sources" ||
     rootSegment === "webdav-sources" ||
     rootSegment === "llm-config" ||
     rootSegment === "tts-config" ||
