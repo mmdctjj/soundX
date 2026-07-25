@@ -17,7 +17,6 @@ services:
       - TXT_BASE_DIR=/txt # Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
       - AUDIO_BOOK_DIR=/audio # Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
       - MUSIC_BASE_DIR=/music # Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
-      - MV_BASE_DIR=/mv # Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
       - CACHE_DIR=/covers
       - DATABASE_URL=file:/data/dev.db
       - JWT_SECRET=/.jwt_secret
