@@ -477,6 +477,32 @@ export default function SettingsScreen() {
           {user?.is_admin && (
             <TouchableOpacity
               style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/file-sources" as any)}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  {t("settings.fileSources")}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("settings.fileSourcesDescription")}
+                </Text>
+              </View>
+              <Ionicons
+                name="folder-outline"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
+
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
               onPress={() => router.push("/webdav-sources" as any)}
             >
               <View style={styles.settingInfo}>
