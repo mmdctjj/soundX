@@ -62,7 +62,7 @@ TTS list-files ──读共享 SQLite SystemSetting──> txtDirs (env 兜底)
 
 ### 2. 新增 `FileSourcesController`（`src/controllers/file-sources.controller.ts`，前缀 `admin/file-sources`，仅 admin）
 
-- `GET /` → `FileSources`（原始输入值，供表单回填）
+- `GET /` → `{ sources: FileSources, exists: { musicDirs: boolean[]; audiobookDirs: boolean[]; mvDirs: boolean[]; txtDirs: boolean[] } }` —— `sources` 为原始输入值供表单回填；`exists` 逐路径标记目录当前是否存在（解析为绝对路径后 `existsSync`），供 UI 提示「目录不存在」
 - `POST /` body 为 `FileSources`，全量替换保存。保存后依次：
   1. 调 `ImportService.setupWatcher(music, audiobook, mv, cache)` 重建监听
   2. 通知静态挂载中间件刷新路径列表（见第 3 点）
@@ -92,7 +92,8 @@ TTS list-files ──读共享 SQLite SystemSetting──> txtDirs (env 兜底)
 
 ```ts
 export interface FileSources { musicDirs: string[]; audiobookDirs: string[]; mvDirs: string[]; txtDirs: string[] }
-getFileSources(): Promise<FileSources>
+export interface FileSourcesResponse { sources: FileSources; exists: Record<keyof FileSources, boolean[]> }
+getFileSources(): Promise<FileSourcesResponse>
 saveFileSources(sources: FileSources): Promise<void>
 syncFileSources(): Promise<{ taskId: string }>   // 进度复用现有 getImportTask 轮询
 ```
