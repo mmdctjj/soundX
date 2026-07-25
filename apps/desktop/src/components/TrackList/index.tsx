@@ -16,7 +16,7 @@ import {
   getPlaylists,
   type Playlist,
 } from "@soundx/services";
-import { Dropdown, List, type MenuProps, Modal, Table, Tag, Typography } from "antd";
+import { Dropdown, List, type MenuProps, Modal, Table, Typography } from "antd";
 import type { ColumnProps } from "antd/es/table";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
