@@ -251,6 +251,7 @@
     "filePathPlaceholder": "Absolute path or path relative to the api directory",
     "filePathExists": "Directory exists",
     "filePathMissing": "Directory missing",
+    "filePathRemoveConfirm": "Are you sure you want to remove the path \"{{path}}\"?",
     "ttsConfig": "TTS Provider Configuration",
     "ttsConfigDescription": "Configure API keys per TTS provider. Keys are stored server-side.",
     "ttsConfigEmpty": "No TTS providers configured",

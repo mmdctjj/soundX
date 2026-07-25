@@ -137,6 +137,9 @@ export default function FileSourcesScreen() {
   const compact = (sourceRows: SourceRow[]) =>
     sourceRows.map(({ value }) => value.trim()).filter(Boolean);
 
+  const truncatePath = (p: string) =>
+    p.length <= 36 ? p : p.slice(0, 14) + "…" + p.slice(-20);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -283,7 +286,24 @@ export default function FileSourcesScreen() {
                       autoCapitalize="none"
                     />
                     <TouchableOpacity
-                      onPress={() => removeLine(key, idx)}
+                      onPress={() => {
+                        if (list.length <= 1) return;
+                        Alert.alert(
+                          t("common.confirm"),
+                          t("settings.filePathRemoveConfirm", {
+                            path: truncatePath(value),
+                          }),
+                          [
+                            { text: t("common.cancel"), style: "cancel" },
+                            {
+                              text: t("common.confirm"),
+                              style: "destructive",
+                              onPress: () => removeLine(key, idx),
+                            },
+                          ],
+                          { cancelable: true },
+                        );
+                      }}
                       disabled={list.length <= 1}
                       style={[
                         styles.iconButton,

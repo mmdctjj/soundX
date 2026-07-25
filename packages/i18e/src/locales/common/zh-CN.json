@@ -259,6 +259,7 @@
     "filePathPlaceholder": "绝对路径或相对 api 目录的路径",
     "filePathExists": "目录存在",
     "filePathMissing": "目录不存在",
+    "filePathRemoveConfirm": "确定要删除路径 \"{{path}}\" 吗？",
     "ttsConfig": "TTS 服务配置",
     "ttsConfigDescription": "为各个 TTS 服务商配置 API Key，Key 仅保存在服务端",
     "ttsConfigEmpty": "暂未配置任何 TTS 服务商",

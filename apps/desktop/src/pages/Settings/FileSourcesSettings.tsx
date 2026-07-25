@@ -1,4 +1,4 @@
-import { Button, Input, Progress, Space, Tag, Typography } from "antd";
+import { Button, Input, Popconfirm, Progress, Space, Tag, Typography } from "antd";
 import {
   getFileSources,
   saveFileSources,
@@ -136,6 +136,9 @@ const FileSourcesSettings: React.FC = () => {
   const compact = (sourceRows: SourceRow[]) =>
     sourceRows.map(({ value }) => value.trim()).filter(Boolean);
 
+  const truncatePath = (p: string) =>
+    p.length <= 36 ? p : p.slice(0, 14) + "…" + p.slice(-20);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -250,13 +253,24 @@ const FileSourcesSettings: React.FC = () => {
                     placeholder={t(placeholderKey)}
                     style={{ width: "calc(100% - 90px)" }}
                   />
-                  <Button
-                    onClick={() => removeFieldLine(key, idx)}
-                    danger
+                  <Popconfirm
+                    title={t("settings.filePathRemoveConfirm", {
+                      path: truncatePath(value),
+                    })}
+                    okText={t("common.confirm")}
+                    cancelText={t("common.cancel")}
+                    okButtonProps={{ danger: true }}
+                    placement="topRight"
+                    onConfirm={() => removeFieldLine(key, idx)}
                     disabled={(rows[key] ?? []).length <= 1}
                   >
-                    {t("common.delete")}
-                  </Button>
+                    <Button
+                      danger
+                      disabled={(rows[key] ?? []).length <= 1}
+                    >
+                      {t("common.delete")}
+                    </Button>
+                  </Popconfirm>
                 </Space.Compact>
               ),
             )}
