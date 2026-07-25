@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
@@ -60,6 +60,7 @@ import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
 import { WebDavConfigService } from './services/webdav-config.service';
 import { MetadataPluginService } from './services/metadata-plugin.service';
+import { DynamicStaticMiddleware } from './middleware/dynamic-static.middleware';
 
 @Module({
   imports: [
@@ -156,4 +157,8 @@ import { MetadataPluginService } from './services/metadata-plugin.service';
     MetadataPluginService,
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(DynamicStaticMiddleware).forRoutes('*');
+  }
+}
