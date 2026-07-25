@@ -1,6 +1,6 @@
 import * as path from 'path';
 
-const splitPathList = (raw?: string): string[] => {
+export const splitPathList = (raw?: string): string[] => {
   if (!raw) return [];
   return raw
     .split(/[;,]/)
