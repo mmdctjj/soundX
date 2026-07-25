@@ -1,0 +1,93 @@
+.file-sources {
+  min-height: 100vh;
+  padding-bottom: 80rpx;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 30rpx 24rpx 30rpx;
+}
+
+.back-btn { padding: 16rpx; }
+.back-icon { font-size: 48rpx; }
+.header-title { font-size: 36rpx; font-weight: bold; }
+
+.description {
+  font-size: 26rpx;
+  line-height: 38rpx;
+  padding: 16rpx 30rpx;
+}
+
+.form-list {
+  padding: 16rpx 30rpx;
+}
+
+.form-field {
+  margin-bottom: 32rpx;
+}
+
+.field-label {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.field-input {
+  border: 1rpx solid #ddd;
+  border-radius: 10rpx;
+  padding: 16rpx 20rpx;
+  font-size: 26rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tag-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: 12rpx;
+}
+
+.tag {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+  margin-right: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.btn {
+  padding: 14rpx 24rpx;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  margin-right: 16rpx;
+}
+
+.btn-primary {
+  background: #000;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #f5f5f5;
+  color: #333;
+  border: 1rpx solid #ddd;
+}
+
+.bottom-actions {
+  padding: 24rpx 30rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.bottom-actions .btn {
+  flex: 1;
+  text-align: center;
+  margin-right: 0;
+}

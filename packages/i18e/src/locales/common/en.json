@@ -244,6 +244,7 @@
     "fileSourcesAddPath": "Add Path",
     "fileSourcesSync": "Sync",
     "fileSourcesSyncStarting": "Starting...",
+    "fileSourcesSyncStarted": "Sync task started",
     "fileSourcesSyncComplete": "Sync complete",
     "fileSourcesSyncFailed": "Sync failed",
     "fileSourcesSaveSuccess": "Saved, file watchers have been rebuilt",
