@@ -7,6 +7,10 @@ import {
   DEFAULT_MUSIC_DIR,
   DEFAULT_MV_DIR,
 } from '../common/media-paths';
+import {
+  containerToHost as bindContainerToHost,
+  hostToContainer as bindHostToContainer,
+} from '../common/mount-paths';
 import { splitPathList } from '../common/path-list';
 
 const SETTING_KEY = 'file_sources';
@@ -110,17 +114,19 @@ export class FileSourcesService implements OnModuleInit {
   }
 
   private resolveDirs(sources: FileSources): ResolvedFileSources {
+    // DB stores host-side paths (the user-friendly form for the settings UI);
+    // reverse-translate to container-side paths so the runtime code (chokidar,
+    // dynamic middleware, getFilePath) operates against the filesystem the api
+    // process actually sees.
     return {
-      musicDirs: sources.musicDirs.map((d) => path.resolve(d)),
-      audiobookDirs: sources.audiobookDirs.map((d) => path.resolve(d)),
-      mvDirs: sources.mvDirs.map((d) => path.resolve(d)),
-      txtDirs: sources.txtDirs.map((d) => path.resolve(d)),
+      musicDirs: sources.musicDirs.map((d) => bindHostToContainer(d)),
+      audiobookDirs: sources.audiobookDirs.map((d) => bindHostToContainer(d)),
+      mvDirs: sources.mvDirs.map((d) => bindHostToContainer(d)),
+      txtDirs: sources.txtDirs.map((d) => bindHostToContainer(d)),
     };
   }
 
   private buildFromEnv(): FileSources {
-    // env seeding stores **original input strings** (possibly `;`-joined).
-    // resolveDirs always does `path.resolve` per-item at read time.
     return {
       musicDirs: this.envOrDefault('MUSIC_BASE_DIR', DEFAULT_MUSIC_DIR),
       audiobookDirs: this.envOrDefault('AUDIO_BOOK_DIR', DEFAULT_AUDIOBOOK_DIR),
@@ -133,7 +139,9 @@ export class FileSourcesService implements OnModuleInit {
     const raw = process.env[envKey];
     if (raw === undefined) return [fallback];
     if (raw === '') return [];
-    return [raw];
+    // Env values (e.g. MUSIC_BASE_DIR=/music) are container-side; translate
+    // them to host-side paths so the DB stores the user-facing form.
+    return [raw].map((p) => bindContainerToHost(p));
   }
 
   private clone(s: FileSources): FileSources {
