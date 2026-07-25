@@ -3,7 +3,6 @@ import {
   getImportTask,
   getWebDavSources,
   saveWebDavSources,
-  testWebDavConnection,
   triggerWebDavSync,
   type WebDavPathKind,
   type WebDavSource,
@@ -97,7 +96,6 @@ export default function WebDavSourcesScreen() {
   const [sources, setSources] = useState<EditableSource[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [testingId, setTestingId] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [legacyEnvImported, setLegacyEnvImported] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -282,125 +280,83 @@ export default function WebDavSourcesScreen() {
     await persistSources(next);
   };
 
-  const handleTest = async (source: EditableSource) => {
-    if (!source.name.trim() || !source.url.trim()) {
+  // Save a single source's edits and trigger sync. The backend replaces the
+  // full source list, so we re-submit the other sources unchanged.
+  const handleSaveOne = async (source: EditableSource) => {
+    const name = source.name.trim();
+    const url = source.url.trim();
+    if (!name || !url) {
       Alert.alert(t("settings.webdavSourceRequired"));
       return;
     }
-    setTestingId(source.id);
-    try {
-      const res = await testWebDavConnection({
-        name: source.name,
-        url: source.url,
-        username: source.username,
-        password: source.password,
-        enabled: source.enabled,
-        paths: {
-          MUSIC: compactPathList(source.paths?.MUSIC),
-          AUDIOBOOK: compactPathList(source.paths?.AUDIOBOOK),
-          MV: compactPathList(source.paths?.MV),
-        },
-      });
-      if (res.code === 200) {
-        const result = res.data;
-        if (result.success) {
-          Alert.alert(t("settings.webdavTestSuccess"));
-        } else {
-          const detailEntries = result.details
-            ? Object.entries(result.details)
-            : [];
-          const detailMsg =
-            detailEntries
-              .filter(([, v]) => !(v as { success: boolean }).success)
-              .map(([k, v]) => `${k}: ${(v as { message: string }).message}`)
-              .join("\n") || result.message;
-          Alert.alert(t("settings.webdavTestFailed"), detailMsg);
-        }
-      } else {
-        Alert.alert(t("settings.webdavTestFailed"), res.message);
-      }
-    } catch (error) {
-      console.error("WebDAV test failed", error);
-      Alert.alert(t("settings.webdavTestFailed"));
-    } finally {
-      setTestingId(null);
-    }
-  };
-
-  const handleSave = async (triggerSync: boolean) => {
-    const sanitized: WebDavSourceInput[] = [];
-    for (const s of sources) {
-      const name = s.name.trim();
-      const url = s.url.trim();
-      const pathInput = {
-        MUSIC: compactPathList(s.paths?.MUSIC),
-        AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK),
-        MV: compactPathList(s.paths?.MV),
-      };
-      if (
-        !name &&
-        !url &&
-        !pathInput.MUSIC.length &&
-        !pathInput.AUDIOBOOK.length &&
-        !pathInput.MV.length
-      ) {
-        continue;
-      }
-      if (!name || !url) {
-        Alert.alert(t("settings.webdavSourceRequired"));
-        return;
-      }
-      sanitized.push({
+    const pathInput = {
+      MUSIC: compactPathList(source.paths?.MUSIC),
+      AUDIOBOOK: compactPathList(source.paths?.AUDIOBOOK),
+      MV: compactPathList(source.paths?.MV),
+    };
+    const others: WebDavSourceInput[] = sources
+      .filter((s) => s.id !== source.id)
+      .filter((s) => s.name.trim() && s.url.trim())
+      .map((s) => ({
         id: s.id,
-        name,
-        url,
+        name: s.name.trim(),
+        url: s.url.trim(),
         username: s.username?.trim() || undefined,
         password: s.password || undefined,
         enabled: s.enabled,
+        paths: {
+          MUSIC: compactPathList(s.paths?.MUSIC),
+          AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK),
+          MV: compactPathList(s.paths?.MV),
+        },
+      }));
+    const payload = [
+      ...others,
+      {
+        id: source.id,
+        name,
+        url,
+        username: source.username?.trim() || undefined,
+        password: source.password || undefined,
+        enabled: source.enabled,
         paths: pathInput,
-      });
-    }
+      },
+    ];
 
     setSaving(true);
     try {
-      const res = await saveWebDavSources(sanitized);
-      const saved = (res.code === 200 ? res.data : []) as
-        | WebDavSource[]
-        | undefined;
+      const res = await saveWebDavSources(payload);
       if (res.code === 200) {
-        const editable: EditableSource[] = (saved || []).map(
-          (s: WebDavSource, idx: number) => ({
-            ...s,
-            paths: {
-              MUSIC: normalizePathList(s.paths?.MUSIC),
-              AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK),
-              MV: normalizePathList(s.paths?.MV),
-            },
-            expanded: idx === 0,
-          }),
-        );
+        const saved = (res.data || []) as WebDavSource[];
+        const editable: EditableSource[] = saved.map((s, idx) => ({
+          ...s,
+          paths: {
+            MUSIC: normalizePathList(s.paths?.MUSIC),
+            AUDIOBOOK: normalizePathList(s.paths?.AUDIOBOOK),
+            MV: normalizePathList(s.paths?.MV),
+          },
+          expanded: idx === 0,
+        }));
         setSources(editable);
         setLegacyEnvImported(false);
         Alert.alert(t("settings.webdavSaveSuccess"));
         trackEvent({
           feature: "settings",
           eventName: "webdav_sources_save",
-          metadata: { count: sanitized.length },
+          metadata: { count: 1 },
         });
-        const hasAnyPath = sanitized.some(
-          (s) =>
-            s.paths?.MUSIC?.length ||
-            s.paths?.AUDIOBOOK?.length ||
-            s.paths?.MV?.length,
-        );
-        if (triggerSync && sanitized.length > 0 && hasAnyPath) {
+        const hasAnyPath =
+          pathInput.MUSIC.length ||
+          pathInput.AUDIOBOOK.length ||
+          pathInput.MV.length;
+        if (hasAnyPath) {
           await runSync();
         }
       } else {
         Alert.alert(t("settings.webdavSaveFailed"), res.message);
       }
     } catch (error) {
-      console.error("Save WebDAV sources failed", error);
+      console.error("Save WebDAV source failed", error);
       Alert.alert(t("settings.webdavSaveFailed"));
     } finally {
       setSaving(false);
@@ -545,7 +501,7 @@ export default function WebDavSourcesScreen() {
                     }
                     activeOpacity={hasValue ? 0.7 : 1}
                   >
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={[styles.cardTitle, { color: colors.text }]}>
                         {source.name || t("settings.webdavSourceName")}
                       </Text>
@@ -558,15 +514,66 @@ export default function WebDavSourcesScreen() {
                       >
                         {source.url || "—"}
                       </Text>
-                      <View style={styles.tagsRow}>
-                        {renderPathTags(source)}
-                      </View>
                     </View>
-                    <Ionicons
-                      name={isExpanded ? "chevron-up" : "chevron-down"}
-                      size={22}
-                      color={colors.secondary}
-                    />
+                    <View style={styles.headerActions}>
+                      <Switch
+                        value={source.enabled}
+                        onValueChange={(val) =>
+                          toggleSourceEnabled(source.id, val)
+                        }
+                        trackColor={{
+                          false: "#767577",
+                          true: colors.primary,
+                        }}
+                        thumbColor="#f4f3f4"
+                      />
+                      <TouchableOpacity
+                        style={[
+                          styles.saveButton,
+                          styles.headerButton,
+                          { backgroundColor: colors.primary, borderColor: colors.primary },
+                        ]}
+                        onPress={() => handleSaveOne(source)}
+                        disabled={saving}
+                      >
+                        {saving ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Text
+                            style={{
+                              color: "#fff",
+                              fontWeight: "600",
+                              fontSize: 12,
+                            }}
+                          >
+                            {t("settings.webdavSaveAndSync")}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.removeButton,
+                          styles.headerButton,
+                          { borderColor: "#FF3B30" },
+                        ]}
+                        onPress={() => removeSource(source.id)}
+                      >
+                        <Text
+                          style={{
+                            color: "#FF3B30",
+                            fontWeight: "600",
+                            fontSize: 12,
+                          }}
+                        >
+                          {t("settings.webdavSourceRemove")}
+                        </Text>
+                      </TouchableOpacity>
+                      <Ionicons
+                        name={isExpanded ? "chevron-up" : "chevron-down"}
+                        size={22}
+                        color={colors.secondary}
+                      />
+                    </View>
                   </TouchableOpacity>
 
                   {isExpanded && (
@@ -764,61 +771,6 @@ export default function WebDavSourcesScreen() {
                           </TouchableOpacity>
                         </View>
                       ))}
-
-                      <View style={styles.actionsRow}>
-                        <View style={styles.switchRow}>
-                          <Switch
-                            value={source.enabled}
-                            onValueChange={(val) =>
-                              toggleSourceEnabled(source.id, val)
-                            }
-                            trackColor={{
-                              false: "#767577",
-                              true: colors.primary,
-                            }}
-                            thumbColor="#f4f3f4"
-                          />
-                          <Text
-                            style={[styles.switchLabel, { color: colors.text }]}
-                          >
-                            {t("settings.webdavSourceEnabled")}
-                          </Text>
-                        </View>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.testButton,
-                            { borderColor: colors.primary },
-                          ]}
-                          onPress={() => handleTest(source)}
-                          disabled={testingId === source.id}
-                        >
-                          {testingId === source.id ? (
-                            <ActivityIndicator color={colors.primary} />
-                          ) : (
-                            <Text
-                              style={{
-                                color: colors.primary,
-                                fontWeight: "600",
-                              }}
-                            >
-                              {t("settings.webdavTestConnection")}
-                            </Text>
-                          )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.removeButton,
-                            { borderColor: "#FF3B30" },
-                          ]}
-                          onPress={() => removeSource(source.id)}
-                        >
-                          <Text style={{ color: "#FF3B30", fontWeight: "600" }}>
-                            {t("settings.webdavSourceRemove")}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
                     </View>
                   )}
                 </View>
@@ -842,39 +794,6 @@ export default function WebDavSourcesScreen() {
               {t("settings.webdavAddSource")}
             </Text>
           </TouchableOpacity>
-
-          <View style={styles.footerButtons}>
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                {
-                  backgroundColor:
-                    sources.length === 0 ? colors.border : colors.primary,
-                },
-              ]}
-              onPress={() => handleSave(true)}
-              disabled={saving || sources.length === 0}
-            >
-              {saving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>
-                  {t("settings.webdavSaveAndSync")}
-                </Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.secondaryButton, { borderColor: colors.border }]}
-              onPress={() => handleSave(false)}
-              disabled={saving || sources.length === 0}
-            >
-              <Text
-                style={[styles.secondaryButtonText, { color: colors.text }]}
-              >
-                {t("settings.webdavSaveSuccess")}
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           {syncState && (
             <View
@@ -956,14 +875,16 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 16, fontWeight: "600" },
   cardSubtitle: { fontSize: 12, marginTop: 2 },
-  tagsRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 6, gap: 6 },
-  tag: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginLeft: 8,
   },
-  tagText: { fontSize: 11, fontWeight: "500" },
+  headerButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   cardBody: { marginTop: 12, gap: 10 },
   inputGroup: { gap: 4 },
   label: { fontSize: 12 },
@@ -997,26 +918,21 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     gap: 4,
   },
-  actionsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    marginTop: 8,
-    gap: 10,
-  },
-  switchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  switchLabel: { fontSize: 13, fontWeight: "500" },
-  testButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+  saveButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   removeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   addButton: {
     flexDirection: "row",
@@ -1029,27 +945,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addButtonText: { fontSize: 14, fontWeight: "600" },
-  footerButtons: { gap: 10, marginTop: 8 },
-  primaryButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  secondaryButton: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
   syncPanel: {
     marginTop: 12,
     padding: 12,

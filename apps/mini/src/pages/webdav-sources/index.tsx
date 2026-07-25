@@ -1,12 +1,11 @@
 import { Switch, Text, Textarea, View } from '@tarojs/components';
 import Taro, { useLoad } from '@tarojs/taro';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import {
   getWebDavSources,
   saveWebDavSources,
-  testWebDavConnection,
   triggerWebDavSync,
   type WebDavPathKind,
   type WebDavSource,
@@ -163,25 +162,34 @@ export default function WebDavConfig() {
     );
   };
 
-  const handleTest = async (source: EditableSource) => {
-    Taro.showLoading({ title: t('settings.webdavTestingConnection') });
-    try {
-      const res = await testWebDavConnection(source);
-      Taro.hideLoading();
-      if (res.code === 200 && res.data?.success) {
-        Taro.showToast({ title: t('settings.webdavTestSuccess'), icon: 'success' });
-      } else {
-        Taro.showToast({
-          title: res.data?.message || res.message || t('settings.webdavTestFailed'),
-          icon: 'none',
-        });
+  // Save one source and trigger sync. If the source is currently being edited
+  // in the modal, the draft paths are included.
+  const handleSaveOne = async (source: EditableSource) => {
+    if (!source.name?.trim() || !source.url?.trim()) {
+      Taro.showToast({ title: t('settings.webdavSourceRequired'), icon: 'none' });
+      return;
+    }
+    let paths = source.paths;
+    if (editing?.id === source.id) {
+      const next: Record<WebDavPathKind, string[]> = { MUSIC: [], AUDIOBOOK: [], MV: [] };
+      for (const field of PATH_FIELDS) {
+        const raw = draftPaths[field.kind] || '';
+        const lines = raw.split(/[\n;,]/).map((s) => s.trim()).filter(Boolean);
+        if (lines.length > 0) next[field.kind] = lines;
       }
+      paths = next;
+    }
+    const updated: EditableSource = { ...source, paths };
+    await persist(sources.map((s) => (s.id === updated.id ? updated : s)));
+    if (editing?.id === source.id) setEditing(null);
+    Taro.showLoading({ title: t('settings.webdavSyncing') });
+    try {
+      await triggerWebDavSync();
+      Taro.hideLoading();
+      Taro.showToast({ title: t('settings.webdavSaveSuccess'), icon: 'success' });
     } catch (error: any) {
       Taro.hideLoading();
-      Taro.showToast({
-        title: error?.message || t('settings.webdavTestFailed'),
-        icon: 'none',
-      });
+      Taro.showToast({ title: error?.message || t('settings.webdavSaveSuccess'), icon: 'success' });
     }
   };
 
@@ -200,27 +208,6 @@ export default function WebDavConfig() {
       Taro.showToast({ title: error?.message, icon: 'none' });
     }
   };
-
-  const renderTag = (kind: WebDavPathKind, value: string) => (
-    <Text key={kind} className='source-meta' style={{ color: colors.secondary }}>
-      {t(`settings.webdavSourceType${kind.charAt(0) + kind.slice(1).toLowerCase()}`)}: {value}
-    </Text>
-  );
-
-  const summaryPaths = useMemo(() => {
-    const result: Record<string, string> = {};
-    for (const s of sources) {
-      const summary: string[] = [];
-      for (const field of PATH_FIELDS) {
-        const list = normalizePathList(s.paths?.[field.kind]);
-        if (list.length > 0) {
-          summary.push(`${t(field.tagKey)} ${list.length}`);
-        }
-      }
-      result[s.id] = summary.join(' · ');
-    }
-    return result;
-  }, [sources]);
 
   return (
     <View className='webdav' style={{ backgroundColor: colors.background }}>
@@ -254,7 +241,7 @@ export default function WebDavConfig() {
               style={{ backgroundColor: colors.card, borderColor: colors.border }}
             >
               <View className='source-row'>
-                <View>
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <Text className='source-name' style={{ color: colors.text }}>
                     {source.name || t('settings.webdavSourceName')}
                   </Text>
@@ -267,12 +254,20 @@ export default function WebDavConfig() {
                   onChange={(e) => handleToggleEnabled(source, e.detail.value)}
                   color={colors.primary}
                 />
+                <View
+                  className='btn btn-primary btn-mini'
+                  style={{ backgroundColor: colors.primary }}
+                  onClick={() => handleSaveOne(source)}
+                >
+                  <Text style={{ color: '#fff' }}>{t('settings.webdavSaveAndSync')}</Text>
+                </View>
+                <View
+                  className='btn btn-danger btn-mini'
+                  onClick={() => handleDelete(source)}
+                >
+                  <Text style={{ color: '#cf1322' }}>{t('settings.webdavSourceRemove')}</Text>
+                </View>
               </View>
-              {summaryPaths[source.id] && (
-                <Text className='source-meta' style={{ color: colors.secondary }}>
-                  {summaryPaths[source.id]}
-                </Text>
-              )}
               <View className='source-actions'>
                 <View
                   className='btn btn-primary'
@@ -280,12 +275,6 @@ export default function WebDavConfig() {
                   onClick={() => startEdit(source)}
                 >
                   <Text style={{ color: '#fff' }}>{t('common.save')}</Text>
-                </View>
-                <View className='btn btn-secondary' onClick={() => handleTest(source)}>
-                  <Text style={{ color: colors.text }}>{t('settings.webdavTestConnection')}</Text>
-                </View>
-                <View className='btn btn-danger' onClick={() => handleDelete(source)}>
-                  <Text style={{ color: '#cf1322' }}>{t('settings.webdavSourceRemove')}</Text>
                 </View>
               </View>
             </View>
