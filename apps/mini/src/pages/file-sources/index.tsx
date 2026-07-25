@@ -118,7 +118,7 @@ export default function FileSources() {
       Taro.hideLoading();
       if (res.code === 200) {
         Taro.showToast({
-          title: t('settings.fileSourcesSyncStarted'),
+          title: t('settings.fileSourcesSyncStarting'),
           icon: 'success',
         });
       } else {

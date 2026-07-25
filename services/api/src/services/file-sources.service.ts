@@ -1,12 +1,13 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@soundx/db';
+import * as fs from 'fs';
 import * as path from 'path';
 import {
   DEFAULT_AUDIOBOOK_DIR,
   DEFAULT_MUSIC_DIR,
   DEFAULT_MV_DIR,
 } from '../common/media-paths';
-import { resolvePathList, splitPathList } from '../common/path-list';
+import { splitPathList } from '../common/path-list';
 
 const SETTING_KEY = 'file_sources';
 
@@ -36,6 +37,7 @@ export class FileSourcesService implements OnModuleInit {
   private readonly logger = new Logger(FileSourcesService.name);
   private prisma: PrismaClient;
   private cache: FileSources | null = null;
+  private existsCache: { key: string; value: Record<keyof FileSources, boolean[]> } | null = null;
 
   constructor() {
     this.prisma = new PrismaClient();
@@ -59,13 +61,22 @@ export class FileSourcesService implements OnModuleInit {
     }
     const sources = this.clone(this.cache);
     const resolved = this.resolveDirs(sources);
-    const fs = require('fs') as typeof import('fs');
+    const key = JSON.stringify({
+      musicDirs: resolved.musicDirs,
+      audiobookDirs: resolved.audiobookDirs,
+      mvDirs: resolved.mvDirs,
+      txtDirs: resolved.txtDirs,
+    });
+    if (this.existsCache && this.existsCache.key === key) {
+      return { sources, exists: this.existsCache.value };
+    }
     const exists: Record<keyof FileSources, boolean[]> = {
       musicDirs: resolved.musicDirs.map((d) => fs.existsSync(d)),
       audiobookDirs: resolved.audiobookDirs.map((d) => fs.existsSync(d)),
       mvDirs: resolved.mvDirs.map((d) => fs.existsSync(d)),
       txtDirs: resolved.txtDirs.map((d) => fs.existsSync(d)),
     };
+    this.existsCache = { key, value: exists };
     return { sources, exists };
   }
 
@@ -78,14 +89,7 @@ export class FileSourcesService implements OnModuleInit {
     const normalized = this.normalize(sources);
     await this.writeToDb(normalized);
     this.cache = normalized;
-  }
-
-  /** Get previous snapshot before save, used by controller to detect removals. */
-  async snapshot(): Promise<FileSources> {
-    if (this.cache === null) {
-      this.cache = (await this.readFromDb()) ?? this.buildFromEnv();
-    }
-    return this.clone(this.cache);
+    this.existsCache = null;
   }
 
   private normalize(input: FileSources): FileSources {
@@ -130,14 +134,6 @@ export class FileSourcesService implements OnModuleInit {
     if (raw === undefined) return [fallback];
     if (raw === '') return [];
     return [raw];
-  }
-
-  /** Convert a path.resolve'd absolute path back to the user's original input form if it was relative. */
-  private relativeFromAbsolute(abs: string): string {
-    const cwd = process.cwd();
-    if (abs === cwd) return '.';
-    if (abs.startsWith(cwd + path.sep)) return '.' + abs.slice(cwd.length);
-    return abs;
   }
 
   private clone(s: FileSources): FileSources {

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Logger, Post, Req } from '@nestjs/common';
 import { IErrorResponse, ISuccessResponse } from '../common/const';
 import { LogMethod } from '../common/log-method.decorator';
 import {
@@ -13,6 +13,8 @@ import * as path from 'path';
 
 @Controller('admin/file-sources')
 export class FileSourcesController {
+  private readonly logger = new Logger(FileSourcesController.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly fileSources: FileSourcesService,
@@ -49,6 +51,17 @@ export class FileSourcesController {
     await this.checkAdmin(req.user.userId);
     if (!body || typeof body !== 'object') {
       throw new BadRequestException('请求格式错误');
+    }
+    // Guard against an empty payload wiping every configured directory: saving
+    // an all-empty FileSources would make applyFileSourcesChanges treat every
+    // previous dir as "removed" and soft-trash all tracks/mvs.
+    const hasAnyPath = (['musicDirs', 'audiobookDirs', 'mvDirs', 'txtDirs'] as const).some(
+      (key) =>
+        Array.isArray(body[key]) &&
+        body[key].some((v) => typeof v === 'string' && v.trim() !== ''),
+    );
+    if (!hasAnyPath) {
+      throw new BadRequestException('至少需要配置一个目录');
     }
     try {
       // Snapshot + save. Resolve both sides so we can (a) skip the watcher rebuild
@@ -138,11 +151,9 @@ export class FileSourcesController {
   }
 
   private logPartialStateWarning(detail: string): void {
-    // Mirror to the service logger so operators see it in the structured log too.
-    // (We don't depend on Nest's Logger here to keep the controller free of DI.)
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[FileSourcesController] Saved config but post-save side-effects failed: ${detail}`,
+    // Mirror to the structured (pino) logger so operators see it in the log.
+    this.logger.warn(
+      `Saved config but post-save side-effects failed: ${detail}`,
     );
   }
 }

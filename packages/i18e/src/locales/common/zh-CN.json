@@ -252,7 +252,6 @@
     "fileSourcesAddPath": "添加路径",
     "fileSourcesSync": "同步",
     "fileSourcesSyncStarting": "正在启动...",
-    "fileSourcesSyncStarted": "同步任务已启动",
     "fileSourcesSyncComplete": "同步完成",
     "fileSourcesSyncFailed": "同步失败",
     "fileSourcesSaveSuccess": "保存成功，文件监听已重建",
