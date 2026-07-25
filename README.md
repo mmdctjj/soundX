@@ -100,6 +100,8 @@ services:
 - 复制 nginx.conf 到 NAS 上可访问文件根目录
 - 创建服务即可
 
+> 文件目录配置：推荐使用桌面端/移动端的 **Settings → File Sources**（数据库存储的 file_sources）来管理多个目录；上面的 `TXT_BASE_DIR` / `AUDIO_BOOK_DIR` / `MUSIC_BASE_DIR` / `MV_BASE_DIR` 环境变量仅作为首次启动的种子值，启动后会被 DB 覆盖。如无需 UI 配置，也可直接保留环境变量使用。
+
 ```yaml
 version: "3.8"
 
