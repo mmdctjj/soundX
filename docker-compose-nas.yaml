@@ -10,17 +10,10 @@ services:
       - "9961:9958" # Web UI
     environment:
       - NODE_ENV=production
-      - TXT_BASE_DIR=/txt # 电子书目录 — Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
-      - AUDIO_BOOK_DIR=/audio # 有声书目录 — Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
-      - MUSIC_BASE_DIR=/music # 音乐目录 — Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
-      - MV_BASE_DIR=/mv # mv视频目录 — Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
-      # NAS 部署必填：群晖 /volume1 是 btrfs 挂载点，容器内 mountinfo 只能看到相对超级块根的路径
-      # （如 /迅雷下载/音乐），推不出 /volume1 前缀。下面的 *_HOST 显式声明完整宿主机路径，与上方
-      # *_BASE_DIR 按 ; 列表顺序一一对应。如需挂多个音乐目录（同一容器路径再补一条 mount + env）。
-      - MUSIC_BASE_DIR_HOST=/volume1/迅雷下载/音乐
-      - AUDIO_BOOK_DIR_HOST=/volume1/迅雷下载/有声书
-      - MV_BASE_DIR_HOST=/volume1/迅雷下载/MV
-      - TXT_BASE_DIR_HOST=/volume1/迅雷下载/TXT
+      - TXT_BASE_DIR=/txt # 电子书目录
+      - AUDIO_BOOK_DIR=/audio # 有声书目录
+      - MUSIC_BASE_DIR=/music # 音乐目录
+      - MV_BASE_DIR=/mv # mv视频目录
       - CACHE_DIR=/covers # 封面目录
       - DATABASE_URL=file:/data/dev.db # 数据库
       - JWT_SECRET=/.jwt_secret # 这个是文件，不是目录

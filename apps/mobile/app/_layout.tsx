@@ -92,7 +92,6 @@ function RootLayoutNav() {
       segmentName === "language" ||
       segmentName === "playback-quality" ||
       segmentName === "mv" ||
-      segmentName === "file-sources" ||
       segmentName === "webdav-sources" ||
       segmentName === "llm-config" ||
       segmentName === "tts-config" ||
@@ -414,7 +413,6 @@ function RootLayoutNav() {
       <Stack.Screen name="language" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="playback-quality" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="mv/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="file-sources" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="webdav-sources" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="llm-config" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="tts-config" options={{ headerShown: false, animation: 'slide_from_right' }} />
@@ -432,7 +430,6 @@ function RootLayoutNav() {
     rootSegment === "forgot-password" ||
     rootSegment === "settings" ||
     rootSegment === "source-manage" ||
-    rootSegment === "file-sources" ||
     rootSegment === "webdav-sources" ||
     rootSegment === "llm-config" ||
     rootSegment === "tts-config" ||

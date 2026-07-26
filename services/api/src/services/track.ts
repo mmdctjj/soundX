@@ -4,8 +4,13 @@ import { FileStatus, PrismaClient, Track, TrackType } from '@soundx/db';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DEFAULT_CACHE_DIR } from '../common/media-paths';
-import { FileSourcesService } from './file-sources.service';
+import {
+  DEFAULT_AUDIOBOOK_DIR,
+  DEFAULT_CACHE_DIR,
+  DEFAULT_MUSIC_DIR,
+  DEFAULT_MV_DIR,
+} from '../common/media-paths';
+import { resolvePathList } from '../common/path-list';
 import { getTrackHeartbeatScoreMap } from './heartbeat-score';
 import { toSimplified } from '../common/zh-utils';
 
@@ -48,9 +53,20 @@ export class TrackService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly fileSources: FileSourcesService,
   ) {
     this.prisma = new PrismaClient();
+  }
+
+  private getMusicDirs(): string[] {
+    return resolvePathList(process.env.MUSIC_BASE_DIR, DEFAULT_MUSIC_DIR);
+  }
+
+  private getMvDirs(): string[] {
+    return resolvePathList(process.env.MV_BASE_DIR, DEFAULT_MV_DIR);
+  }
+
+  private getAudiobookDirs(): string[] {
+    return resolvePathList(process.env.AUDIO_BOOK_DIR, DEFAULT_AUDIOBOOK_DIR);
   }
 
   private getFileNameSortKey(track: Pick<Track, 'fileName' | 'name' | 'relativePath'>): string {
@@ -61,8 +77,7 @@ export class TrackService {
 
   public async getFilePath(trackPath: string): Promise<string | null> {
     if (trackPath.startsWith('/music/')) {
-      const { musicDirs, mvDirs } = await this.fileSources.getResolved();
-      const dirs = [...musicDirs, ...mvDirs];
+      const dirs = [...this.getMusicDirs(), ...this.getMvDirs()];
       const relativePath = trackPath.replace('/music/', '');
       for (const dir of dirs) {
         const candidate = this.resolveCandidatePath(dir, relativePath);
@@ -71,13 +86,13 @@ export class TrackService {
       return path.join(dirs[0] || './music/music', relativePath);
     }
     if (trackPath.startsWith('/audio/')) {
-      const { audiobookDirs } = await this.fileSources.getResolved();
+      const dirs = this.getAudiobookDirs();
       const relativePath = trackPath.replace('/audio/', '');
-      for (const dir of audiobookDirs) {
+      for (const dir of dirs) {
         const candidate = this.resolveCandidatePath(dir, relativePath);
         if (candidate) return candidate;
       }
-      return path.join(audiobookDirs[0] || './music/audio', relativePath);
+      return path.join(dirs[0] || './music/audio', relativePath);
     }
     if (trackPath.startsWith('/covers/')) {
       const cacheDir = path.resolve(this.configService.get<string>('CACHE_DIR') || DEFAULT_CACHE_DIR);

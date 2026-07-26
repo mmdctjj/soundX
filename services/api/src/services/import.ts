@@ -454,176 +454,6 @@ export class ImportService implements OnModuleInit {
   }
 
   /**
-   * React to file source list changes (called after file_sources are saved):
-   * - path removed from any category → soft-trash its tracks (TRASHED).
-   *
-   * Ownership is determined deterministically from each row's stored `path` URL
-   * (e.g. `/music/foo/bar.mp3`). The relative segment after `/music/` (or `/audio/`)
-   * is joined onto every removed root; if any of those resolved files still exists
-   * on disk, that root used to own the row, so the row is soft-trashed.
-   *
-   * Restoration on re-add is handled by `processTrackData`: when a scan sees a file
-   * already in DB it matches by `fileHash` and overwrites the ACTIVE row — it does
-   * not flip TRASHED rows. (TRASHED rows stay TRASHED unless a migration / manual
-   * touch resurrects them; re-scanning the same path will create a fresh ACTIVE row
-   * alongside.)
-   *
-   * Only rows with `source = FILE` are considered; WebDAV rows belong to a
-   * WebDAV source and are managed by `applyWebDavSourceChanges`.
-   */
-  @LogMethod()
-  async applyFileSourcesChanges(
-    previous: { musicDirs: string[]; audiobookDirs: string[]; mvDirs: string[] },
-    current: { musicDirs: string[]; audiobookDirs: string[]; mvDirs: string[] },
-  ): Promise<void> {
-    const prevResolved = {
-      musicDirs: previous.musicDirs.map((d) => path.resolve(d)),
-      audiobookDirs: previous.audiobookDirs.map((d) => path.resolve(d)),
-      mvDirs: previous.mvDirs.map((d) => path.resolve(d)),
-    };
-    const nextResolved = {
-      musicDirs: current.musicDirs.map((d) => path.resolve(d)),
-      audiobookDirs: current.audiobookDirs.map((d) => path.resolve(d)),
-      mvDirs: current.mvDirs.map((d) => path.resolve(d)),
-    };
-    const removed = [
-      ...prevResolved.musicDirs.filter((d) => !nextResolved.musicDirs.includes(d)),
-      ...prevResolved.audiobookDirs.filter((d) => !nextResolved.audiobookDirs.includes(d)),
-      ...prevResolved.mvDirs.filter((d) => !nextResolved.mvDirs.includes(d)),
-    ];
-    if (removed.length === 0) return;
-
-    await this.normalizeLegacyDisabledTracks();
-
-    // Track rows: only FILE source rows can be owned by a local file source.
-    const trackIds = await this.collectIdsForRemovedRoots({
-      model: 'track' as const,
-      removed,
-      urlPrefixes: ['/music/', '/audio/'],
-    });
-    if (trackIds.length > 0) {
-      await this.prisma.track.updateMany({
-        where: { id: { in: trackIds } },
-        data: { status: FileStatus.TRASHED, trashedAt: new Date() },
-      });
-    }
-
-    // MV rows: also local-file sourced, also served under /music/... URLs.
-    const mvIds = await this.collectIdsForRemovedRoots({
-      model: 'mv' as const,
-      removed,
-      urlPrefixes: ['/music/'],
-    });
-    if (mvIds.length > 0) {
-      await this.prisma.mv.updateMany({
-        where: { id: { in: mvIds } },
-        data: { status: FileStatus.TRASHED, trashedAt: new Date() },
-      });
-    }
-
-    const total = trackIds.length + mvIds.length;
-    if (total > 0) {
-      this.logger.log(
-        `Soft-trashed ${trackIds.length} track(s) and ${mvIds.length} mv(s) after file source removal.`,
-      );
-    }
-  }
-
-  /**
-   * For each ACTIVE row of `model`, decide whether any removed root still owns
-   * the file. We only treat the row as belonging to a removed root if the file
-   * actually exists on disk under that root — so unmounted / permission-denied
-   * paths leave their rows alone (no thrash) and coincidental URL-prefix
-   * collisions don't false-positive.
-   *
-   * Disk checks are async and per-row parallelized; per-row work is O(removed).
-   */
-  private async collectIdsForRemovedRoots(args: {
-    model: 'track' | 'mv';
-    removed: string[];
-    urlPrefixes: string[];
-  }): Promise<number[]> {
-    const { model, removed, urlPrefixes } = args;
-    if (removed.length === 0) return [];
-
-    const pathFilter = (where: any) => {
-      if (urlPrefixes.length === 1) where.path = { startsWith: urlPrefixes[0] };
-      else where.OR = urlPrefixes.map((p) => ({ path: { startsWith: p } }));
-    };
-
-    const rows = await (model === 'track'
-      ? this.prisma.track.findMany({
-          where: (() => {
-            const w: any = { status: FileStatus.ACTIVE, source: TrackSource.FILE };
-            pathFilter(w);
-            return w;
-          })(),
-          select: { id: true, path: true },
-        })
-      : this.prisma.mv.findMany({
-          where: (() => {
-            const w: any = { status: FileStatus.ACTIVE };
-            pathFilter(w);
-            return w;
-          })(),
-          select: { id: true, path: true },
-        }));
-
-    const ids: number[] = [];
-    await Promise.all(
-      rows.map(async (row) => {
-        const url = (row.path || '').split('?')[0].split('#')[0];
-        const rel = this.urlToRelative(url);
-        if (!rel) return;
-        for (const base of removed) {
-          const abs = path.resolve(base, rel);
-          try {
-            await fs.promises.access(abs, fs.constants.F_OK);
-            ids.push(row.id);
-            return;
-          } catch {
-            // try next base
-          }
-        }
-      }),
-    );
-    return ids;
-  }
-
-  /**
-   * Map a stored track/mv URL to its on-disk relative segment. Returns '' for
-   * URLs that aren't local files (WebDAV http(s), /covers/, etc.) — those rows
-   * are skipped by the caller.
-   */
-  private urlToRelative(url: string): string {
-    if (url.startsWith('/music/')) return url.slice('/music/'.length);
-    if (url.startsWith('/audio/')) return url.slice('/audio/'.length);
-    return '';
-  }
-
-  /**
-   * One-time cleanup: legacy rows with status='DISABLED' (from the old enum)
-   * become 'TRASHED' so they participate in the same resurrection path on
-   * re-enable. Safe to call repeatedly — UPDATE matches by string and is a
-   * no-op when no rows match.
-   */
-  private async normalizeLegacyDisabledTracks(): Promise<void> {
-    try {
-      const result = await this.prisma.track.updateMany({
-        where: { status: 'DISABLED' as any },
-        data: { status: FileStatus.TRASHED, trashedAt: new Date() },
-      });
-      if (result.count > 0) {
-        this.logger.log(`Normalized ${result.count} legacy DISABLED track(s) -> TRASHED.`);
-      }
-    } catch (err) {
-      // Don't block the apply flow if the legacy column doesn't exist or the
-      // string match is rejected by a future Prisma upgrade.
-      this.logger.warn(`normalizeLegacyDisabledTracks skipped: ${(err as Error).message}`);
-    }
-  }
-
-  /**
    * Flip status of a source's WebDAV tracks, then refresh the visibility of their
    * parent albums/artists (empty albums auto-hide via the ACTIVE-track-count
    * derivation in updateParentStatus).
@@ -691,6 +521,28 @@ export class ImportService implements OnModuleInit {
       update: { value: 'true' },
       create: { key: FLAG_KEY, value: 'true' },
     });
+  }
+
+  /**
+   * One-time cleanup: legacy rows with status='DISABLED' (from the old enum)
+   * become 'TRASHED' so they participate in the same resurrection path on
+   * re-enable. Safe to call repeatedly — UPDATE matches by string and is a
+   * no-op when no rows match.
+   */
+  private async normalizeLegacyDisabledTracks(): Promise<void> {
+    try {
+      const result = await this.prisma.track.updateMany({
+        where: { status: 'DISABLED' as any },
+        data: { status: FileStatus.TRASHED, trashedAt: new Date() },
+      });
+      if (result.count > 0) {
+        this.logger.log(`Normalized ${result.count} legacy DISABLED track(s) -> TRASHED.`);
+      }
+    } catch (err) {
+      // Don't block the apply flow if the legacy column doesn't exist or the
+      // string match is rejected by a future Prisma upgrade.
+      this.logger.warn(`normalizeLegacyDisabledTracks skipped: ${(err as Error).message}`);
+    }
   }
 
   private async generateMissingHashes() {

@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
@@ -14,7 +14,6 @@ import { ArtistController } from './controllers/artist';
 import { AudiobookController } from './controllers/audiobook';
 import { AudiobookCollectionController } from './controllers/audiobook-collection';
 import { FolderController } from './controllers/folder';
-import { FileSourcesController } from './controllers/file-sources.controller';
 import { ImportController } from './controllers/import';
 import { LlmConfigController } from './controllers/llm-config.controller';
 import { LlmController } from './controllers/llm.controller';
@@ -41,7 +40,6 @@ import { ArtistService } from './services/artist';
 import { AudiobookService } from './services/audiobook';
 import { AudiobookCollectionService } from './services/audiobook-collection';
 import { FolderService } from './services/folder';
-import { FileSourcesService } from './services/file-sources.service';
 import { ImportService } from './services/import';
 import { LlmConfigService } from './services/llm-config.service';
 import { LlmService } from './services/llm.service';
@@ -60,7 +58,6 @@ import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
 import { WebDavConfigService } from './services/webdav-config.service';
 import { MetadataPluginService } from './services/metadata-plugin.service';
-import { DynamicStaticMiddleware } from './middleware/dynamic-static.middleware';
 
 @Module({
   imports: [
@@ -106,7 +103,6 @@ import { DynamicStaticMiddleware } from './middleware/dynamic-static.middleware'
     ImportController,
     PlaylistController,
     FolderController,
-    FileSourcesController,
     SearchRecordController,
     ScanLoginController,
     LlmController,
@@ -146,7 +142,6 @@ import { DynamicStaticMiddleware } from './middleware/dynamic-static.middleware'
     AudiobookCollectionService,
     PlaylistService,
     FolderService,
-    FileSourcesService,
     SearchRecordService,
     ScanLoginService,
     LlmService,
@@ -157,8 +152,4 @@ import { DynamicStaticMiddleware } from './middleware/dynamic-static.middleware'
     MetadataPluginService,
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(DynamicStaticMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

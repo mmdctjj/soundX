@@ -20,7 +20,6 @@ export default defineAppConfig({
     'pages/settings/playback-quality/index',
     'pages/admin/index',
     'pages/source-manage/index',
-    'pages/file-sources/index',
     'pages/webdav-sources/index',
     'pages/llm-config/index',
     'pages/tts-config/index',

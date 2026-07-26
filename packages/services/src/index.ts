@@ -6,7 +6,6 @@ export * from "./asr";
 export * from "./auth";
 export * from "./collection";
 export * from "./config";
-export * from "./file-sources";
 export * from "./folder";
 export * from "./import";
 export * from "./llm";

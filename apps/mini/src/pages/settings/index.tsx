@@ -242,11 +242,6 @@ export default function Settings() {
             () => Taro.navigateTo({ url: '/pages/source-manage/index' })
           )}
           {user?.is_admin && renderActionRow(
-            t('settings.fileSources'),
-            t('settings.fileSourcesDescription'),
-            () => Taro.navigateTo({ url: '/pages/file-sources/index' })
-          )}
-          {user?.is_admin && renderActionRow(
             t('settings.webdavSources'),
             t('settings.sourceManagementDescription'),
             () => Taro.navigateTo({ url: '/pages/webdav-sources/index' })

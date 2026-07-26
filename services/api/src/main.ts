@@ -7,9 +7,14 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { Logger } from 'nestjs-pino';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DEFAULT_CACHE_DIR } from './common/media-paths';
+import {
+  DEFAULT_AUDIOBOOK_DIR,
+  DEFAULT_CACHE_DIR,
+  DEFAULT_MUSIC_DIR,
+  DEFAULT_MV_DIR,
+} from './common/media-paths';
+import { resolvePathList } from './common/path-list';
 import { DatabaseSchemaService } from './services/database-schema.service';
-import { FileSourcesService } from './services/file-sources.service';
 import { ImportService } from './services/import';
 import { TrackService } from './services/track';
 
@@ -21,9 +26,9 @@ async function bootstrap() {
   app.enableCors();
 
 
-  const fileSources = app.get(FileSourcesService);
-  await fileSources.onModuleInit();
-  const { musicDirs, audiobookDirs, mvDirs } = await fileSources.getResolved();
+  const musicDirs = resolvePathList(process.env.MUSIC_BASE_DIR, DEFAULT_MUSIC_DIR);
+  const audiobookDirs = resolvePathList(process.env.AUDIO_BOOK_DIR, DEFAULT_AUDIOBOOK_DIR);
+  const mvDirs = resolvePathList(process.env.MV_BASE_DIR, DEFAULT_MV_DIR);
 
   const cacheDir = path.resolve(process.env.CACHE_DIR || DEFAULT_CACHE_DIR);
   const transcodedAudioDir = path.join(cacheDir, 'transcoded-audio');

@@ -14,20 +14,10 @@ services:
       - "9958:9958" # Web UI
     environment:
       - NODE_ENV=production
-      - TXT_BASE_DIR=/txt # Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
-      - AUDIO_BOOK_DIR=/audio # Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
-      - MUSIC_BASE_DIR=/music # Optional: prefer configuring via Settings → File Sources (DB-stored file_sources). Env values seed the DB on first boot and are ignored thereafter.
-      # Below are commented out — leave unset when local mountinfo gives the
-      # full host path (typical on Linux dev hosts). On NAS hosts where mount
-      # sources sit under a secondary mount point (e.g. Synology /volume1),
-      # bind-mount sources are reported by mountinfo relative to the superblock
-      # root, missing the prefix; set *_HOST env vars to override. Pair each
-      # *_HOST entry 1:1 with the corresponding *_BASE_DIR (semicolon list).
-      # - MUSIC_BASE_DIR_HOST=/path/on/host/music
-      # - AUDIO_BOOK_DIR_HOST=/path/on/host/audio
-      # - MV_BASE_DIR_HOST=/path/on/host/mv
-      # - TXT_BASE_DIR_HOST=/path/on/host/txt
-      - CACHE_DIR=/covers
+      - TXT_BASE_DIR=/txt # 电子书目录
+      - AUDIO_BOOK_DIR=/audio # 有声书目录
+      - MUSIC_BASE_DIR=/music # 音乐目录
+      - CACHE_DIR=/covers # 封面目录
       - DATABASE_URL=file:/data/dev.db
       - JWT_SECRET=/.jwt_secret
       - PORT=3000

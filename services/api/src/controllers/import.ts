@@ -3,7 +3,6 @@ import * as path from 'path';
 import { LogMethod } from '../common/log-method.decorator';
 import { DEFAULT_CACHE_DIR } from '../common/media-paths';
 import { resolvePathListFromBody } from '../common/path-list';
-import { FileSourcesService } from '../services/file-sources.service';
 import { ImportService } from '../services/import';
 
 @Controller('import')
@@ -11,7 +10,6 @@ export class ImportController {
   private readonly logger = new Logger(ImportController.name);
   constructor(
     private readonly importService: ImportService,
-    private readonly fileSources: FileSourcesService,
   ) { }
 
   @Post('task')
@@ -19,17 +17,19 @@ export class ImportController {
   async createTask(@Body() body: any) {
     let { musicPath, audiobookPath, mvPath, cachePath, mode } = body;
 
-    // Explicit request paths win; otherwise use the DB-backed file source configuration.
-    const configured = await this.fileSources.getResolved();
+    const defaultMusic = process.env.MUSIC_BASE_DIR || './music/music';
+    const defaultAudiobook = process.env.AUDIO_BOOK_DIR || './music/audio';
+    const defaultMv = process.env.MV_BASE_DIR || './music/mv';
+
     const musicPaths = musicPath === undefined
-      ? configured.musicDirs
-      : resolvePathListFromBody(musicPath, configured.musicDirs.join(';'));
+      ? resolvePathListFromBody(undefined, defaultMusic)
+      : resolvePathListFromBody(musicPath, defaultMusic);
     const audiobookPaths = audiobookPath === undefined
-      ? configured.audiobookDirs
-      : resolvePathListFromBody(audiobookPath, configured.audiobookDirs.join(';'));
+      ? resolvePathListFromBody(undefined, defaultAudiobook)
+      : resolvePathListFromBody(audiobookPath, defaultAudiobook);
     const mvPaths = mvPath === undefined
-      ? configured.mvDirs
-      : resolvePathListFromBody(mvPath, configured.mvDirs.join(';'));
+      ? resolvePathListFromBody(undefined, defaultMv)
+      : resolvePathListFromBody(mvPath, defaultMv);
     const resolvedCachePath = cachePath ? path.resolve(cachePath) : path.resolve(process.env.CACHE_DIR || DEFAULT_CACHE_DIR);
 
     console.log('Received import task with musicPaths:', musicPaths);

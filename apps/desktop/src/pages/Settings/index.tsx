@@ -29,7 +29,6 @@ import { useAuthStore } from "../../store/auth";
 import { useSettingsStore } from "../../store/settings";
 import { isTauri } from "../../utils/platform";
 import AdminSettings from "./AdminSettings";
-import FileSourcesSettings from "./FileSourcesSettings";
 import WebDavSourcesSettings from "./WebDavSourcesSettings";
 import LlmConfigSettings from "./LlmConfigSettings";
 import TtsConfigSettings from "./TtsConfigSettings";
@@ -628,25 +627,11 @@ const Settings: React.FC = () => {
                 getContainer={getAnchorContainer}
                 nav={[
                   {
-                    key: "sources--fileSources",
-                    title: t("settings.fileSources"),
-                  },
-                  {
                     key: "sources--webdavSources",
                     title: t("settings.webdavSources"),
                   },
                 ]}
               >
-                <section
-                  id="sources--fileSources"
-                  className={styles.section}
-                >
-                  <Title level={4} className={styles.sectionTitle}>
-                    {t("settings.fileSources")}
-                  </Title>
-                  <FileSourcesSettings />
-                </section>
-                <Divider className={styles.divider} />
                 <section
                   id="sources--webdavSources"
                   className={styles.section}
