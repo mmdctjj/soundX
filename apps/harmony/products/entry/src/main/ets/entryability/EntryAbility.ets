@@ -1,6 +1,7 @@
 import UIAbility from '@ohos.app.ability.UIAbility';
 import hilog from '@ohos.hilog';
-import wantConstant from '@ohos.app.ability.wantConstant';
+import Want from '@ohos.app.ability.Want';
+import { window } from '@kit.ArkUI';
 import { Logger } from 'audiodock_common';
 import { kvStore, fileCache, rdbStore } from 'features_storage';
 import { httpClient } from 'features_network';
@@ -10,7 +11,7 @@ const DOMAIN = 0xA001;
 const TAG = 'EntryAbility';
 
 export default class EntryAbility extends UIAbility {
-  async onCreate(want: want, launchParam: number): Promise<void> {
+  async onCreate(want: Want, launchParam: number): Promise<void> {
     hilog.info(DOMAIN, TAG, `onCreate launchParam=${launchParam}`);
     Logger.i(TAG, 'onCreate');
     await this.initialize();
@@ -21,7 +22,7 @@ export default class EntryAbility extends UIAbility {
     Logger.i(TAG, 'onDestroy');
   }
 
-  onWindowStageCreate(windowStage: any): void {
+  onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, TAG, 'onWindowStageCreate');
     windowStage.loadContent('pages/Index', (err: Error) => {
       if (err) Logger.e(TAG, `loadContent: ${err.message}`);
