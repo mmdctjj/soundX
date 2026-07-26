@@ -277,23 +277,54 @@ export default function FileSourcesScreen() {
             {(rows[key] ?? [{ value: "", exists: null }]).map(
               ({ value, exists }, idx) => {
                 const list = rows[key] ?? [];
+                const isLast = idx === list.length - 1;
+                const borderColor =
+                  exists === true
+                    ? "#52c41a"
+                    : exists === false
+                      ? "#ff4d4f"
+                      : colors.border;
                 return (
                   <View key={idx} style={styles.pathRow}>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          color: colors.text,
-                          backgroundColor: colors.card,
-                          borderColor: colors.border,
-                        },
-                      ]}
-                      value={value}
-                      onChangeText={(v) => setLine(key, idx, v)}
-                      placeholder={t("settings.filePathPlaceholder")}
-                      placeholderTextColor={colors.secondary}
-                      autoCapitalize="none"
-                    />
+                    <View style={styles.inputWrapper}>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          {
+                            color: colors.text,
+                            backgroundColor: colors.card,
+                            borderColor,
+                          },
+                        ]}
+                        value={value}
+                        onChangeText={(v) => setLine(key, idx, v)}
+                        placeholder={t("settings.filePathPlaceholder")}
+                        placeholderTextColor={colors.secondary}
+                        autoCapitalize="none"
+                      />
+                      {exists !== null && (
+                        <Ionicons
+                          name={
+                            exists ? "checkmark-circle" : "close-circle"
+                          }
+                          size={20}
+                          color={exists ? "#52c41a" : "#ff4d4f"}
+                          style={styles.statusIcon}
+                        />
+                      )}
+                      {exists !== null && (
+                        <Text
+                          style={[
+                            styles.statusText,
+                            { color: exists ? "#52c41a" : "#ff4d4f" },
+                          ]}
+                        >
+                          {exists
+                            ? t("settings.filePathExists")
+                            : t("settings.filePathMissing")}
+                        </Text>
+                      )}
+                    </View>
                     <TouchableOpacity
                       onPress={() => {
                         if (list.length <= 1) return;
@@ -325,48 +356,25 @@ export default function FileSourcesScreen() {
                         color={list.length <= 1 ? colors.secondary : "#cf1322"}
                       />
                     </TouchableOpacity>
+                    {isLast && (
+                      <TouchableOpacity
+                        onPress={() => addLine(key)}
+                        style={[
+                          styles.iconButton,
+                          { borderColor: colors.border },
+                        ]}
+                      >
+                        <Ionicons
+                          name="add"
+                          size={20}
+                          color={colors.primary}
+                        />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 );
               },
             )}
-            <TouchableOpacity
-              onPress={() => addLine(key)}
-              style={[
-                styles.addBtn,
-                { borderColor: colors.primary },
-              ]}
-            >
-              <Ionicons name="add" size={16} color={colors.primary} />
-              <Text style={{ color: colors.primary, fontWeight: "600" }}>
-                {t("settings.fileSourcesAddPath")}
-              </Text>
-            </TouchableOpacity>
-            <View style={styles.tagRow}>
-              {(rows[key] ?? []).map(
-                (row, i) =>
-                  row.exists === null ? null : (
-                    <View
-                      key={i}
-                      style={[
-                        styles.tag,
-                        { backgroundColor: row.exists ? "#52c41a22" : "#faad1422" },
-                      ]}
-                    >
-                      <Text
-                        style={{
-                          color: row.exists ? "#389e0d" : "#d46b08",
-                          fontSize: 12,
-                        }}
-                      >
-                        {row.value || "(empty)"} ·{" "}
-                        {row.exists
-                          ? t("settings.filePathExists")
-                          : t("settings.filePathMissing")}
-                      </Text>
-                    </View>
-                  ),
-              )}
-            </View>
           </View>
         ))}
 
@@ -436,7 +444,11 @@ const styles = StyleSheet.create({
   description: { fontSize: 13, lineHeight: 18, marginBottom: 8 },
   section: { marginBottom: 16 },
   sectionTitle: { fontSize: 15, fontWeight: "600", marginBottom: 8 },
-  pathRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  pathRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 8 },
+  inputWrapper: {
+    flex: 1,
+    position: "relative",
+  },
   input: {
     flex: 1,
     height: 40,
@@ -444,6 +456,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 14,
+  },
+  statusIcon: {
+    position: "absolute",
+    right: 10,
+    top: 10,
+  },
+  statusText: {
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
   },
   iconButton: {
     width: 40,
@@ -453,20 +475,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    gap: 4,
-  },
-  tagRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 6 },
-  tag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginRight: 6, marginBottom: 4 },
   actions: { marginTop: 16, gap: 10 },
   btnPrimary: {
     paddingVertical: 12,

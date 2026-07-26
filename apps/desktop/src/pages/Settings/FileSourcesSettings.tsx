@@ -1,5 +1,7 @@
-import { Button, Input, Popconfirm, Progress, Space, Tag, Typography } from "antd";
+import { Button, Input, Popconfirm, Progress, Space, Typography } from "antd";
 import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
   DeleteOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
@@ -258,6 +260,12 @@ const FileSourcesSettings: React.FC = () => {
                 const list = rows[key] ?? [];
                 const isLast = idx === list.length - 1;
                 const iconWidth = isLast ? 80 : 40;
+                const inputStatus =
+                  exists === true
+                    ? "success"
+                    : exists === false
+                      ? "error"
+                      : undefined;
                 return (
                   <div key={idx} style={{ width: "100%" }}>
                     <Space.Compact style={{ width: "100%" }}>
@@ -267,6 +275,14 @@ const FileSourcesSettings: React.FC = () => {
                           setFieldLine(key, idx, e.target.value)
                         }
                         placeholder={t(placeholderKey)}
+                        status={inputStatus}
+                        suffix={
+                          inputStatus === "success" ? (
+                            <CheckCircleOutlined />
+                          ) : inputStatus === "error" ? (
+                            <CloseCircleOutlined />
+                          ) : null
+                        }
                         style={{
                           width: `calc(100% - ${iconWidth}px)`,
                         }}
@@ -300,14 +316,18 @@ const FileSourcesSettings: React.FC = () => {
                       )}
                     </Space.Compact>
                     {exists !== null && (
-                      <div style={{ marginTop: 4 }}>
-                        <Tag color={exists ? "success" : "warning"}>
-                          {value || "(empty)"} ·{" "}
-                          {exists
-                            ? t("settings.filePathExists")
-                            : t("settings.filePathMissing")}
-                        </Tag>
-                      </div>
+                      <Typography.Text
+                        type={exists ? "success" : "danger"}
+                        style={{
+                          fontSize: 12,
+                          marginTop: 4,
+                          display: "block",
+                        }}
+                      >
+                        {exists
+                          ? t("settings.filePathExists")
+                          : t("settings.filePathMissing")}
+                      </Typography.Text>
                     )}
                   </div>
                 );

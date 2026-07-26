@@ -21,3 +21,14 @@ export const saveFileSources = (sources: FileSources) =>
 
 export const syncFileSources = () =>
   request.post<any, ISuccessResponse<{ taskId: string }>>('/admin/file-sources/sync');
+
+export interface ImportTask {
+  id: string;
+  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED';
+  current?: number;
+  total?: number;
+  message?: string;
+}
+
+export const getImportTask = (id: string) =>
+  request.get<any, ISuccessResponse<ImportTask>>(`/admin/file-sources/sync/${id}`);
