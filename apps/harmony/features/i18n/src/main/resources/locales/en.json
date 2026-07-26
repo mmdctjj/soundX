@@ -66,6 +66,8 @@
     "vipOnly": "VIP Only",
     "loginFirst": "Please log in first",
     "loginMemberFirst": "Please log in with your member account first.",
+    "next": "Next",
+    "login": "Login",
     "noFilePath": "No file path",
     "loadingCount": "Loaded {{count}}",
     "and": "and",
@@ -470,6 +472,8 @@
   },
   "login": {
     "title": "Login",
+    "heading": "Login to AudioDock",
+    "register_tip": "No account? Register",
     "phone": "Phone Number",
     "verificationCode": "Verification Code",
     "sendCode": "Send Code",
@@ -1008,6 +1012,12 @@
     "goToDownload": "Go to download",
     "webUpdateNote": "For Web version, please update via Docker image update service. Desktop client does not need to download installation package.",
     "updateContent": "Update content:"
+  },
+  "source_select": {
+    "title": "Select Source",
+    "heading": "Enter your AudioDock server address",
+    "url_placeholder": "https://example.com",
+    "name_placeholder": "Display name (optional)"
   },
   "sourceManage": {
     "selectType": "Select data source type",

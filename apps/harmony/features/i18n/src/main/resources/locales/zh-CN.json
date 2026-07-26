@@ -44,6 +44,8 @@
     "skipForward": "前进",
     "skipIntro": "跳过片头",
     "skipOutro": "跳过片尾",
+    "next": "下一步",
+    "login": "登录",
     "adjustControlPosition": "控制组位置调整",
     "adjustLyricFontSize": "调整播放页歌词字号",
     "fontSize": "字号",
@@ -370,6 +372,8 @@
   },
   "login": {
     "title": "登录",
+    "heading": "登录到 AudioDock",
+    "register_tip": "还没有账号？去注册",
     "phone": "手机号",
     "verificationCode": "验证码",
     "sendCode": "发送验证码",
@@ -1017,6 +1021,12 @@
     "goToDownload": "去下载",
     "webUpdateNote": "Web 端请通过 Docker 镜像更新服务，客户端无需下载安装包。",
     "updateContent": "更新内容："
+  },
+  "source_select": {
+    "title": "选择数据源",
+    "heading": "请输入 AudioDock 服务器地址",
+    "url_placeholder": "https://example.com",
+    "name_placeholder": "显示名称（可选）"
   },
   "sourceManage": {
     "selectType": "选择数据源类型",
