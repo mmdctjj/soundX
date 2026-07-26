@@ -20,6 +20,10 @@
     {
       "name": "audiodock_common",
       "srcPath": "./common/audiodock_common"
+    },
+    {
+      "name": "features_storage",
+      "srcPath": "./features/storage"
     }
   ]
 }

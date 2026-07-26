@@ -1,0 +1,9 @@
+{
+  "name": "features_storage",
+  "version": "1.0.0",
+  "description": "AudioDock HarmonyOS storage module",
+  "main": "Index.ets",
+  "author": "AudioDock",
+  "license": "ISC",
+  "dependencies": {}
+}
