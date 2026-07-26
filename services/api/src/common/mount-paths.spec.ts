@@ -3,6 +3,7 @@ import {
   __setReadMountInfoForTest,
   containerToHost,
   hostToContainer,
+  registerHostPathPair,
 } from './mount-paths';
 
 const SAMPLE_MOUNTINFO = [
@@ -65,5 +66,53 @@ describe('mount-paths', () => {
     // proc and sysfs lines in the sample should not pollute the map
     expect(containerToHost('/proc/1/root')).toBe('/proc/1/root');
     expect(containerToHost('/sys/class')).toBe('/sys/class');
+  });
+
+  describe('explicit host path pair (e.g. MUSIC_BASE_DIR_HOST)', () => {
+    it('explicit container→host overrides mountinfo', () => {
+      // mountinfo sample maps /music → /volume1/迅雷下载/音乐, but on real
+      // Synology mountinfo only sees /迅雷下载/音乐 (no /volume1 prefix),
+      // so the operator must register the full host path explicitly.
+      registerHostPathPair('/music', '/volume1/迅雷下载/音乐');
+      expect(containerToHost('/music')).toBe('/volume1/迅雷下载/音乐');
+      expect(containerToHost('/music/foo.mp3')).toBe(
+        '/volume1/迅雷下载/音乐/foo.mp3',
+      );
+    });
+
+    it('explicit host→container overrides mountinfo', () => {
+      registerHostPathPair('/music', '/volume1/迅雷下载/音乐');
+      expect(hostToContainer('/volume1/迅雷下载/音乐')).toBe('/music');
+      expect(hostToContainer('/volume1/迅雷下载/音乐/a.mp3')).toBe(
+        '/music/a.mp3',
+      );
+    });
+
+    it('longest explicit container prefix wins over shorter', () => {
+      registerHostPathPair('/music', '/host/music');
+      registerHostPathPair('/music/audiobook', '/host/music/audiobook');
+      expect(containerToHost('/music')).toBe('/host/music');
+      expect(containerToHost('/music/audiobook')).toBe('/host/music/audiobook');
+      expect(containerToHost('/music/audiobook/x.mp3')).toBe(
+        '/host/music/audiobook/x.mp3',
+      );
+    });
+
+    it('falls through to mountinfo when no explicit pair matches', () => {
+      registerHostPathPair('/music', '/volume1/迅雷下载/音乐');
+      // /mv is only in mountinfo (root: /volume1/迅雷下载/MV)
+      expect(containerToHost('/mv')).toBe('/volume1/迅雷下载/MV');
+    });
+
+    it('reset clears explicit pairs', () => {
+      registerHostPathPair('/music', '/volume1/迅雷下载/音乐');
+      __resetMountMapsForTest();
+      expect(containerToHost('/music')).toBe('/volume1/迅雷下载/音乐'); // mountinfo still loaded
+      __resetMountMapsForTest();
+      __setReadMountInfoForTest(() => SAMPLE_MOUNTINFO);
+      registerHostPathPair('/music', '/override');
+      __resetMountMapsForTest();
+      expect(containerToHost('/music')).toBe('/volume1/迅雷下载/音乐');
+    });
   });
 });

@@ -101,6 +101,8 @@ services:
 - 创建服务即可
 
 > 文件目录配置：推荐使用桌面端/移动端的 **Settings → File Sources**（数据库存储的 file_sources）来管理多个目录；上面的 `TXT_BASE_DIR` / `AUDIO_BOOK_DIR` / `MUSIC_BASE_DIR` / `MV_BASE_DIR` 环境变量仅作为首次启动的种子值，启动后会被 DB 覆盖。如无需 UI 配置，也可直接保留环境变量使用。
+>
+> **NAS 部署（如群晖）**：当媒体目录位于二级挂载点（典型为 `/volume1/...`）时，容器内 `/proc/self/mountinfo` 只能拿到相对超级块根的路径（少了 `/volume1` 前缀），设置页会显示「目录不存在」。请额外配置对应的 `MUSIC_BASE_DIR_HOST` / `AUDIO_BOOK_DIR_HOST` / `MV_BASE_DIR_HOST` / `TXT_BASE_DIR_HOST` 环境变量显式声明宿主机路径，与上方 `*_BASE_DIR` 按 `;` 列表顺序一一对应（多个目录同理）。`docker-compose-nas.yaml` 已默认配置好，NAS 用户直接使用即可。
 
 ```yaml
 version: "3.8"

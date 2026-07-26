@@ -24,6 +24,27 @@ interface MountMaps {
   hostToContainer: Map<string, string>;
 }
 
+/**
+ * Operator-declared container ↔ host path pairs. These take precedence over
+ * mountinfo because on NAS systems (e.g. Synology) the btrfs mount under
+ * `/volume1` is invisible from inside the container — mountinfo only shows
+ * paths relative to the superblock root, so it cannot recover the missing
+ * `/volume1` prefix. Setting `*_HOST` env vars pushes the full host path in.
+ */
+interface ExplicitPair {
+  container: string;
+  host: string;
+}
+let explicitPairs: ExplicitPair[] = [];
+
+export function registerHostPathPair(containerPath: string, hostPath: string): void {
+  if (!containerPath || !hostPath) return;
+  // Replace any prior registration for the same container path so the last
+  // call wins (matches how seeding iterates per source kind).
+  explicitPairs = explicitPairs.filter((p) => p.container !== containerPath);
+  explicitPairs.push({ container: containerPath, host: hostPath });
+}
+
 const IGNORE_FS_PREFIXES = [
   'proc',
   'sysfs',
@@ -119,6 +140,11 @@ function loadMountMaps(): MountMaps {
  * the input unchanged if no matching bind mount is found.
  */
 export function containerToHost(mountPoint: string): string {
+  // Explicit pairs first — operators may have set *_HOST to recover paths
+  // mountinfo can't see (see registerHostPathPair).
+  const explicit = matchExplicitContainer(mountPoint);
+  if (explicit) return applyExplicitContainer(explicit, mountPoint);
+
   const maps = loadMountMaps();
   // Longest matching prefix wins so deeply nested paths resolve correctly.
   let best: { mount: string; source: string } | null = null;
@@ -140,6 +166,9 @@ export function containerToHost(mountPoint: string): string {
  * input unchanged if no matching bind mount is found.
  */
 export function hostToContainer(hostPath: string): string {
+  const explicit = matchExplicitHost(hostPath);
+  if (explicit) return applyExplicitHost(explicit, hostPath);
+
   const maps = loadMountMaps();
   let best: { host: string; container: string } | null = null;
   for (const [h, c] of maps.hostToContainer) {
@@ -155,9 +184,41 @@ export function hostToContainer(hostPath: string): string {
   return path.posix.join(best.container, suffix);
 }
 
+function matchExplicitContainer(p: string): ExplicitPair | null {
+  let best: ExplicitPair | null = null;
+  for (const pair of explicitPairs) {
+    if (p === pair.container || p.startsWith(pair.container + '/')) {
+      if (!best || pair.container.length > best.container.length) best = pair;
+    }
+  }
+  return best;
+}
+
+function matchExplicitHost(p: string): ExplicitPair | null {
+  let best: ExplicitPair | null = null;
+  for (const pair of explicitPairs) {
+    if (p === pair.host || p.startsWith(pair.host + '/')) {
+      if (!best || pair.host.length > best.host.length) best = pair;
+    }
+  }
+  return best;
+}
+
+function applyExplicitContainer(pair: ExplicitPair, p: string): string {
+  if (p === pair.container) return pair.host;
+  return path.posix.join(pair.host, p.slice(pair.container.length));
+}
+
+function applyExplicitHost(pair: ExplicitPair, p: string): string {
+  if (p === pair.host) return pair.container;
+  return path.posix.join(pair.container, p.slice(pair.host.length));
+}
+
 /**
- * Test-only: drop the cached maps so the next call re-reads /proc/self/mountinfo.
+ * Test-only: drop the cached maps so the next call re-reads /proc/self/mountinfo,
+ * and clear explicit pairs.
  */
 export function __resetMountMapsForTest(): void {
   cached = null;
+  explicitPairs = [];
 }
