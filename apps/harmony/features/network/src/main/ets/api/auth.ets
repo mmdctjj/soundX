@@ -8,7 +8,16 @@ export interface AuthMe { id: string; username: string; nickname?: string }
 export interface LoginResponse { token: string; user: AuthMe; deviceId: string }
 export interface CheckResponse { needRegister: boolean }
 
-export const authApi = {
+export interface AuthApi {
+  login(dto: LoginDto): Promise<LoginResponse>;
+  register(dto: RegisterDto): Promise<LoginResponse>;
+  me(): Promise<AuthMe>;
+  check(username: string): Promise<CheckResponse>;
+  resetPassword(dto: { username: string; newPassword: string; deviceName: string }): Promise<void>;
+  verifyDevice(dto: { username: string; deviceName: string }): Promise<{ verified: boolean }>;
+}
+
+export const authApi: AuthApi = {
   async login(dto: LoginDto): Promise<LoginResponse> {
     return httpClient.post<LoginResponse>('/auth/login', dto);
   },

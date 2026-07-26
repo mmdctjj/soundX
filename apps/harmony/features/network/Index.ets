@@ -7,3 +7,4 @@ export type {
 } from './src/main/ets/types';
 export type { LoginDto, RegisterDto, AuthMe, LoginResponse, CheckResponse, UserItem }
   from './src/main/ets/api';
+export type { AuthApi, UserApi } from './src/main/ets/api';

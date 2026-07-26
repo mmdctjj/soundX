@@ -1,6 +1,5 @@
-import { Logger } from 'audiodock_common';
 import { kvStore } from 'features_storage';
-import { httpClient, HttpError } from 'features_network';
+import { httpClient } from 'features_network';
 import { authApi } from 'features_network';
 import type { AuthMe, LoginResponse, LoginDto, RegisterDto } from 'features_network';
 
@@ -15,12 +14,13 @@ export interface AuthState {
   serverAddress: string;
 }
 
-const DEFAULT: AuthState = {
-  user: null, token: null, sourceType: 'audiodock', serverAddress: '',
-};
-
 export class AuthStore {
-  private state: AuthState = { ...DEFAULT };
+  private state: AuthState = {
+    user: null,
+    token: null,
+    sourceType: 'audiodock',
+    serverAddress: '',
+  };
   private listeners = new Set<Listener>();
 
   get state_(): AuthState { return this.state; }
@@ -30,19 +30,29 @@ export class AuthStore {
     return () => this.listeners.delete(l);
   }
 
+  private defaultState(): AuthState {
+    return {
+      user: null,
+      token: null,
+      sourceType: this.state.sourceType,
+      serverAddress: '',
+    };
+  }
+
   async loadFromStorage(): Promise<void> {
     const url = await kvStore.get('serverAddress');
     const sourceType = (await kvStore.get('selectedSourceType')) as SourceType | null;
     if (url) {
-      const token = await kvStore.get(`token_${url}`);
-      const userRaw = await kvStore.get(`user_${url}`);
+      httpClient.setBaseURL(url);
+      const normalized = httpClient.getBaseURL();
+      const token = await kvStore.get(`token_${normalized}`);
+      const userRaw = await kvStore.get(`user_${normalized}`);
       this.state = {
-        serverAddress: url,
+        serverAddress: normalized,
         sourceType: sourceType ?? 'audiodock',
         token,
         user: userRaw ? JSON.parse(userRaw) as AuthMe : null,
       };
-      httpClient.setBaseURL(url);
       httpClient.setAuthToken(token);
     }
   }
@@ -58,26 +68,40 @@ export class AuthStore {
   }
 
   async logout(): Promise<void> {
-    if (!this.state.serverAddress) return;
-    await kvStore.delete(`token_${this.state.serverAddress}`);
-    await kvStore.delete(`user_${this.state.serverAddress}`);
+    const url = this.state.serverAddress;
+    if (!url) return;
+    await kvStore.delete(`token_${url}`);
+    await kvStore.delete(`user_${url}`);
+    await kvStore.delete(`device_${url}`);
     httpClient.setAuthToken(null);
-    this.state = { ...DEFAULT };
+    this.state = this.defaultState();
     this.notify();
   }
 
   async switchServer(url: string): Promise<void> {
-    this.state.serverAddress = url;
     httpClient.setBaseURL(url);
-    const token = await kvStore.get(`token_${url}`);
+    const normalized = httpClient.getBaseURL();
+    const token = await kvStore.get(`token_${normalized}`);
+    const userRaw = await kvStore.get(`user_${normalized}`);
+    this.state = {
+      serverAddress: normalized,
+      sourceType: this.state.sourceType,
+      token,
+      user: userRaw ? JSON.parse(userRaw) as AuthMe : null,
+    };
     httpClient.setAuthToken(token);
-    await kvStore.set('serverAddress', url);
+    await kvStore.set('serverAddress', normalized);
     this.notify();
   }
 
   private async persist(res: LoginResponse): Promise<void> {
     const url = httpClient.getBaseURL();
-    this.state = { ...this.state, token: res.token, user: res.user };
+    this.state = {
+      serverAddress: url,
+      sourceType: this.state.sourceType,
+      token: res.token,
+      user: res.user,
+    };
     await kvStore.set(`token_${url}`, res.token);
     await kvStore.set(`user_${url}`, JSON.stringify(res.user));
     await kvStore.set(`device_${url}`, res.deviceId);
@@ -90,4 +114,4 @@ export class AuthStore {
   }
 }
 
-export const authStore = new AuthStore();
+export const authStore: AuthStore = new AuthStore();

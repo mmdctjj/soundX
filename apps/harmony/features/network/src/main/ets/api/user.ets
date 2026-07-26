@@ -5,7 +5,14 @@ export interface UserItem {
   createdAt: string; expiresAt?: string | null;
 }
 
-export const userApi = {
+export interface UserApi {
+  list(params: { pageSize: number; loadCount: number }): Promise<{ data: UserItem[]; total: number }>;
+  create(payload: { username: string; password: string; nickname?: string; role?: string }): Promise<UserItem>;
+  delete(id: string): Promise<void>;
+  uploadAvatar(id: string, fileUri: string): Promise<{ url: string }>;
+}
+
+export const userApi: UserApi = {
   async list(params: { pageSize: number; loadCount: number }): Promise<{ data: UserItem[]; total: number }> {
     return httpClient.get('/user/list', params);
   },
