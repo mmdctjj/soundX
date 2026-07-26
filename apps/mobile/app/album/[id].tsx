@@ -11,7 +11,7 @@ import { XiaoAiIcon } from "@/src/components/XiaoAiIcon";
 import { useAuth } from "@/src/context/AuthContext";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
-import { Album, Track } from "@/src/models";
+import { Album, Track, TrackSource } from "@/src/models";
 import { downloadTracks } from "@/src/services/downloadManager";
 import { getImageUrl } from "@/src/utils/image";
 import { mvPlaylistStore } from "@/src/store/mvPlaylist";
@@ -551,7 +551,14 @@ export default function AlbumDetailScreen() {
                   style={{ width: 40, height: 30, borderRadius: 2 }}
                 />
                 <View style={styles.trackInfo}>
-                  <Text style={[styles.trackName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
+                  <View style={styles.trackNameRow}>
+                    <Text style={[styles.trackName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
+                    <Text style={[styles.trackSource, { color: colors.secondary }]}>
+                      {item.source === TrackSource.WEBDAV
+                        ? t("trackList.sourceWebdav")
+                        : t("trackList.sourceFile")}
+                    </Text>
+                  </View>
                 </View>
                 <Text style={[styles.trackDuration, { color: colors.secondary }]}>
                   {item.duration ? `${Math.floor(item.duration / 60)}:${(item.duration % 60).toString().padStart(2, "0")}` : "--:--"}
@@ -629,22 +636,29 @@ export default function AlbumDetailScreen() {
                 style={{ width: 20, height: 20, borderRadius: 2 }}
               />
               <View style={styles.trackInfo}>
-                <Text
-                  style={[
-                    styles.trackName,
-                    {
-                      color:
-                        album.type === "AUDIOBOOK" &&
-                        ((item as any).progress > 0 ||
-                          item.listenedAsAudiobookByUsers?.[0]?.progress)
-                          ? colors.secondary
-                          : colors.text,
-                    },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {item.name}
-                </Text>
+                <View style={styles.trackNameRow}>
+                  <Text
+                    style={[
+                      styles.trackName,
+                      {
+                        color:
+                          album.type === "AUDIOBOOK" &&
+                          ((item as any).progress > 0 ||
+                            item.listenedAsAudiobookByUsers?.[0]?.progress)
+                            ? colors.secondary
+                            : colors.text,
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.name}
+                  </Text>
+                  <Text style={[styles.trackSource, { color: colors.secondary }]}>
+                    {item.source === TrackSource.WEBDAV
+                      ? t("trackList.sourceWebdav")
+                      : t("trackList.sourceFile")}
+                  </Text>
+                </View>
               </View>
               {album.type === "AUDIOBOOK" && (() => {
                 const displayProgress = currentTrack?.id === item.id ? position : ((item as any).progress || item.listenedAsAudiobookByUsers?.[0]?.progress || 0);
@@ -1044,9 +1058,18 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 10,
   },
+  trackNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   trackName: {
     fontSize: 16,
     marginBottom: 2,
+    flexShrink: 1,
+  },
+  trackSource: {
+    fontSize: 10,
+    marginLeft: 6,
   },
   trackArtist: {
     fontSize: 12,

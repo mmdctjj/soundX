@@ -152,4 +152,4 @@ import { MetadataPluginService } from './services/metadata-plugin.service';
     MetadataPluginService,
   ],
 })
-export class AppModule { }
+export class AppModule {}

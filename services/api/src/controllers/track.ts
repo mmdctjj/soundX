@@ -403,7 +403,7 @@ export class TrackController {
       // Fallback for .strm files that were incorrectly saved as local paths
       if ((!filePath || !fs.existsSync(filePath)) && track.path.includes('.strm')) {
           // If the DB path is a local URL like /music/..., get the actual disk path
-          const resolvedFilePath = this.trackService.getFilePath(track.path);
+          const resolvedFilePath = await this.trackService.getFilePath(track.path);
           if (resolvedFilePath) {
             filePath = resolvedFilePath;
           }

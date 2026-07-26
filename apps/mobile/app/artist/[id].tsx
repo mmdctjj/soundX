@@ -9,7 +9,7 @@ import { XiaoAiIcon } from "@/src/components/XiaoAiIcon";
 import { useAuth } from "@/src/context/AuthContext";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
-import { Album, Artist, Track, TrackType } from "@/src/models";
+import { Album, Artist, Track, TrackSource, TrackType } from "@/src/models";
 import { downloadTracks } from "@/src/services/downloadManager";
 import { getImageUrl } from "@/src/utils/image";
 import { mvPlaylistStore } from "@/src/store/mvPlaylist";
@@ -703,12 +703,21 @@ export default function ArtistDetailScreen() {
                     alt=""
                     style={{ width: 20, height: 20 }}
                   />
-                  <Text
-                    style={[styles.trackName, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {track.name}
-                  </Text>
+                  <View style={styles.trackNameRow}>
+                    <Text
+                      style={[styles.trackName, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {track.name}
+                    </Text>
+                    <Text
+                      style={[styles.trackSource, { color: colors.secondary }]}
+                    >
+                      {track.source === TrackSource.WEBDAV
+                        ? t("trackList.sourceWebdav")
+                        : t("trackList.sourceFile")}
+                    </Text>
+                  </View>
                 </View>
                 <Text
                   style={[styles.trackDuration, { color: colors.secondary }]}
@@ -1000,8 +1009,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 10,
   },
+  trackNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
   trackName: {
     fontSize: 16,
+    flexShrink: 1,
+  },
+  trackSource: {
+    fontSize: 10,
+    marginLeft: 6,
   },
   trackDuration: {
     fontSize: 12,

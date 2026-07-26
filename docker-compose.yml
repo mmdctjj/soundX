@@ -14,10 +14,10 @@ services:
       - "9958:9958" # Web UI
     environment:
       - NODE_ENV=production
-      - TXT_BASE_DIR=/txt
-      - AUDIO_BOOK_DIR=/audio
-      - MUSIC_BASE_DIR=/music
-      - CACHE_DIR=/covers
+      - TXT_BASE_DIR=/txt # 电子书目录
+      - AUDIO_BOOK_DIR=/audio # 有声书目录
+      - MUSIC_BASE_DIR=/music # 音乐目录
+      - CACHE_DIR=/covers # 封面目录
       - DATABASE_URL=file:/data/dev.db
       - JWT_SECRET=/.jwt_secret
       - PORT=3000

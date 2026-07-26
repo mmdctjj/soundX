@@ -16,7 +16,7 @@ import {
   getPlaylists,
   type Playlist,
 } from "@soundx/services";
-import { Dropdown, List, type MenuProps, Modal, Table, Tag, Typography } from "antd";
+import { Dropdown, List, type MenuProps, Modal, Table, Typography } from "antd";
 import type { ColumnProps } from "antd/es/table";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -303,12 +303,13 @@ const TrackList: React.FC<TrackListProps> = ({
             dataIndex: "source",
             key: "source",
             width: 90,
-            render: (source: TrackSource | undefined) =>
-              source === TrackSource.WEBDAV ? (
-                <Tag color="blue">{t("trackList.sourceWebdav")}</Tag>
-              ) : (
-                <Tag>{t("trackList.sourceFile")}</Tag>
-              ),
+            render: (source: TrackSource | undefined) => (
+              <Text type="secondary">
+                {source === TrackSource.WEBDAV
+                  ? t("trackList.sourceWebdav")
+                  : t("trackList.sourceFile")}
+              </Text>
+            ),
           } as ColumnProps<Track>,
         ]
       : []),

@@ -454,28 +454,6 @@ export class ImportService implements OnModuleInit {
   }
 
   /**
-   * One-time cleanup: legacy rows with status='DISABLED' (from the old enum)
-   * become 'TRASHED' so they participate in the same resurrection path on
-   * re-enable. Safe to call repeatedly — UPDATE matches by string and is a
-   * no-op when no rows match.
-   */
-  private async normalizeLegacyDisabledTracks(): Promise<void> {
-    try {
-      const result = await this.prisma.track.updateMany({
-        where: { status: 'DISABLED' as any },
-        data: { status: FileStatus.TRASHED, trashedAt: new Date() },
-      });
-      if (result.count > 0) {
-        this.logger.log(`Normalized ${result.count} legacy DISABLED track(s) -> TRASHED.`);
-      }
-    } catch (err) {
-      // Don't block the apply flow if the legacy column doesn't exist or the
-      // string match is rejected by a future Prisma upgrade.
-      this.logger.warn(`normalizeLegacyDisabledTracks skipped: ${(err as Error).message}`);
-    }
-  }
-
-  /**
    * Flip status of a source's WebDAV tracks, then refresh the visibility of their
    * parent albums/artists (empty albums auto-hide via the ACTIVE-track-count
    * derivation in updateParentStatus).
@@ -545,6 +523,28 @@ export class ImportService implements OnModuleInit {
     });
   }
 
+  /**
+   * One-time cleanup: legacy rows with status='DISABLED' (from the old enum)
+   * become 'TRASHED' so they participate in the same resurrection path on
+   * re-enable. Safe to call repeatedly — UPDATE matches by string and is a
+   * no-op when no rows match.
+   */
+  private async normalizeLegacyDisabledTracks(): Promise<void> {
+    try {
+      const result = await this.prisma.track.updateMany({
+        where: { status: 'DISABLED' as any },
+        data: { status: FileStatus.TRASHED, trashedAt: new Date() },
+      });
+      if (result.count > 0) {
+        this.logger.log(`Normalized ${result.count} legacy DISABLED track(s) -> TRASHED.`);
+      }
+    } catch (err) {
+      // Don't block the apply flow if the legacy column doesn't exist or the
+      // string match is rejected by a future Prisma upgrade.
+      this.logger.warn(`normalizeLegacyDisabledTracks skipped: ${(err as Error).message}`);
+    }
+  }
+
   private async generateMissingHashes() {
     const tracks = await this.prisma.track.findMany({
       where: {
@@ -565,7 +565,7 @@ export class ImportService implements OnModuleInit {
       try {
         // Resolve absolute path using TrackService
         // track.path is URL like /music/Artist/Album/Song.mp3
-        const absolutePath = this.trackService.getFilePath(track.path);
+        const absolutePath = await this.trackService.getFilePath(track.path);
 
         if (absolutePath && fs.existsSync(absolutePath)) {
           const hash = await this.calculateFingerprint(absolutePath);
@@ -1457,7 +1457,7 @@ export class ImportService implements OnModuleInit {
     });
 
     for (const track of tracks) {
-      const absolutePath = this.trackService.getFilePath(track.path);
+      const absolutePath = await this.trackService.getFilePath(track.path);
       if (!absolutePath) continue;
 
       const trackBaseName = path.basename(absolutePath, path.extname(absolutePath));
@@ -1489,7 +1489,7 @@ export class ImportService implements OnModuleInit {
     });
 
     for (const track of tracks) {
-      const absolutePath = this.trackService.getFilePath(track.path);
+      const absolutePath = await this.trackService.getFilePath(track.path);
       if (!absolutePath) continue;
 
       const trackBaseName = path.basename(absolutePath, path.extname(absolutePath));
@@ -1822,7 +1822,7 @@ export class ImportService implements OnModuleInit {
 
     const missingIds: number[] = [];
     for (const track of tracks) {
-      const absolutePath = this.trackService.getFilePath(track.path);
+      const absolutePath = await this.trackService.getFilePath(track.path);
       if (!absolutePath) continue;
       if (!fs.existsSync(absolutePath)) {
         missingIds.push(track.id);

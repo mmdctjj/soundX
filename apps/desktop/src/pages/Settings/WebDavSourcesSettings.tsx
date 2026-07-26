@@ -15,7 +15,6 @@ import {
   getImportTask,
   getWebDavSources,
   saveWebDavSources,
-  testWebDavConnection,
   triggerWebDavSync,
   type WebDavPathKind,
   type WebDavSource,
@@ -84,7 +83,6 @@ const WebDavSourcesSettings: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [, setSyncing] = useState(false);
-  const [testingId, setTestingId] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [legacyEnvImported, setLegacyEnvImported] = useState(false);
   const [activeKey, setActiveKey] = useState<string[]>([]);
@@ -253,94 +251,58 @@ const WebDavSourcesSettings: React.FC = () => {
     await persistSources(next);
   };
 
-  const handleTest = async (source: WebDavSource) => {
-    if (!source.name.trim() || !source.url.trim()) {
+  // Save a single source's edits. The backend replaces the full source list,
+  // so we re-submit the other sources unchanged alongside the updated one.
+  const handleSaveOne = async (
+    source: WebDavSource,
+    triggerSync: boolean,
+  ) => {
+    const name = source.name.trim();
+    const url = source.url.trim();
+    if (!name || !url) {
       message.warning(t("settings.webdavSourceRequired"));
       return;
     }
-    setTestingId(source.id);
-    try {
-      const res = await testWebDavConnection({
-        name: source.name,
-        url: source.url,
-        username: source.username,
-        password: source.password,
-        enabled: source.enabled,
-        paths: {
-          MUSIC: compactPathList(source.paths?.MUSIC) as any,
-          AUDIOBOOK: compactPathList(source.paths?.AUDIOBOOK) as any,
-          MV: compactPathList(source.paths?.MV) as any,
-        },
-      });
-      if (res.code === 200) {
-        const result = res.data;
-        if (result.success) {
-          message.success(t("settings.webdavTestSuccess"));
-        } else {
-          const detailEntries = result.details
-            ? Object.entries(result.details)
-            : [];
-          const detailMsg =
-            detailEntries
-              .filter(([, v]) => !(v as { success: boolean }).success)
-              .map(([k, v]) => `${k}: ${(v as { message: string }).message}`)
-              .join("; ") || result.message;
-          message.error(`${t("settings.webdavTestFailed")}: ${detailMsg}`);
-        }
-      } else {
-        message.error(res.message || t("settings.webdavTestFailed"));
-      }
-    } catch (error) {
-      console.error("WebDAV test failed", error);
-      message.error(t("settings.webdavTestFailed"));
-    } finally {
-      setTestingId(null);
-    }
-  };
-
-  const handleSave = async (triggerSync: boolean) => {
-    // Keep only rows that have at least a name; reject rows missing URL.
-    const sanitized: WebDavSourceInput[] = [];
-    for (const s of sources) {
-      const name = s.name.trim();
-      const url = s.url.trim();
-      const pathInput = {
-        MUSIC: compactPathList(s.paths?.MUSIC) as any,
-        AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK) as any,
-        MV: compactPathList(s.paths?.MV) as any,
-      };
-      if (
-        !name &&
-        !url &&
-        !pathInput.MUSIC.length &&
-        !pathInput.AUDIOBOOK.length &&
-        !pathInput.MV.length
-      ) {
-        continue; // untouched empty row
-      }
-      if (!name || !url) {
-        message.warning(t("settings.webdavSourceRequired"));
-        return;
-      }
-      sanitized.push({
+    const pathInput = {
+      MUSIC: compactPathList(source.paths?.MUSIC) as any,
+      AUDIOBOOK: compactPathList(source.paths?.AUDIOBOOK) as any,
+      MV: compactPathList(source.paths?.MV) as any,
+    };
+    const others: WebDavSourceInput[] = sources
+      .filter((s) => s.id !== source.id)
+      .filter((s) => s.name.trim() && s.url.trim())
+      .map((s) => ({
         id: s.id,
-        name,
-        url,
+        name: s.name.trim(),
+        url: s.url.trim(),
         username: s.username?.trim() || undefined,
         password: s.password || undefined,
         enabled: s.enabled,
+        paths: {
+          MUSIC: compactPathList(s.paths?.MUSIC) as any,
+          AUDIOBOOK: compactPathList(s.paths?.AUDIOBOOK) as any,
+          MV: compactPathList(s.paths?.MV) as any,
+        },
+      }));
+    const payload = [
+      ...others,
+      {
+        id: source.id,
+        name,
+        url,
+        username: source.username?.trim() || undefined,
+        password: source.password || undefined,
+        enabled: source.enabled,
         paths: pathInput,
-      });
-    }
+      },
+    ];
 
     setSaving(true);
     try {
-      const res = await saveWebDavSources(sanitized);
-      const rawList = (res.code === 200 ? res.data : []) as
-        | WebDavSource[]
-        | undefined;
+      const res = await saveWebDavSources(payload);
       if (res.code === 200) {
-        const list = (rawList || []).map((s: WebDavSource) => ({
+        const rawList = (res.data || []) as WebDavSource[];
+        const list = rawList.map((s) => ({
           ...s,
           paths: {
             MUSIC: normalizePathList(s.paths?.MUSIC) as any,
@@ -351,13 +313,11 @@ const WebDavSourcesSettings: React.FC = () => {
         setSources(list);
         setLegacyEnvImported(false);
         message.success(t("settings.webdavSaveSuccess"));
-        const hasAnyPath = sanitized.some(
-          (s) =>
-            s.paths?.MUSIC?.length ||
-            s.paths?.AUDIOBOOK?.length ||
-            s.paths?.MV?.length,
-        );
-        if (triggerSync && sanitized.length > 0 && hasAnyPath) {
+        const hasAnyPath =
+          pathInput.MUSIC.length ||
+          pathInput.AUDIOBOOK.length ||
+          pathInput.MV.length;
+        if (triggerSync && hasAnyPath) {
           await runSync();
         }
       } else {
@@ -365,7 +325,7 @@ const WebDavSourcesSettings: React.FC = () => {
         message.error(res.message || t("settings.webdavSaveFailed"));
       }
     } catch (error) {
-      console.error("Save WebDAV sources failed", error);
+      console.error("Save WebDAV source failed", error);
       message.error(t("settings.webdavSaveFailed"));
     } finally {
       setSaving(false);
@@ -428,22 +388,6 @@ const WebDavSourcesSettings: React.FC = () => {
     }
   };
 
-  const renderPathTags = (source: WebDavSource) => {
-    const tags: React.ReactElement[] = [];
-    for (const f of PATH_FIELDS) {
-      const paths = compactPathList(source.paths?.[f.kind]);
-      if (paths.length > 0) {
-        tags.push(
-          <Tag key={f.kind} color="blue">
-            {t(f.tagKey)}:{" "}
-            {paths.length > 1 ? `${paths[0]} +${paths.length - 1}` : paths[0]}
-          </Tag>,
-        );
-      }
-    }
-    return tags;
-  };
-
   const progress = useMemo(() => {
     if (!syncState || !syncState.total || syncState.total <= 0) return 0;
     return Math.min(
@@ -481,20 +425,53 @@ const WebDavSourcesSettings: React.FC = () => {
           items={sources.map((source) => ({
             key: source.id,
             label: (
-              <Space size={4} wrap>
-                <Text strong>
-                  {source.name || t("settings.webdavSourceName")}
-                </Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  {source.url || "—"}
-                </Text>
-                {renderPathTags(source)}
-                {!source.enabled && (
-                  <Tag color="default">
-                    {t("settings.webdavSourceEnabled")}: OFF
-                  </Tag>
-                )}
-              </Space>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  width: "100%",
+                  paddingRight: 16,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Space size={4} wrap style={{ flex: 1, minWidth: 0 }}>
+                  <Text strong>
+                    {source.name || t("settings.webdavSourceName")}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {source.url || "—"}
+                  </Text>
+                </Space>
+                <Space size={4} wrap onClick={(e) => e.stopPropagation()}>
+                  <Switch
+                    checked={source.enabled}
+                    checkedChildren={t("settings.webdavSourceEnabled")}
+                    unCheckedChildren={t("settings.webdavSourceEnabled")}
+                    onChange={(val) =>
+                      toggleSourceEnabled(source.id, val)
+                    }
+                  />
+                  <Button
+                    size="small"
+                    type="primary"
+                    loading={saving}
+                    onClick={() => handleSaveOne(source, true)}
+                  >
+                    {t("settings.webdavSaveAndSync")}
+                  </Button>
+                  <Popconfirm
+                    title={t("settings.webdavSourceRemove")}
+                    onConfirm={() => removeSource(source.id)}
+                  >
+                    <Button size="small" danger>
+                      {t("settings.webdavSourceRemove")}
+                    </Button>
+                  </Popconfirm>
+                </Space>
+              </div>
             ),
             children: (
               <Form layout="vertical" size="middle">
@@ -582,32 +559,6 @@ const WebDavSourcesSettings: React.FC = () => {
                     </Space>
                   </Form.Item>
                 ))}
-                <Form.Item>
-                  <Space wrap>
-                    <Switch
-                      checked={source.enabled}
-                      checkedChildren={t("settings.webdavSourceEnabled")}
-                      unCheckedChildren={t("settings.webdavSourceEnabled")}
-                      onChange={(val) =>
-                        toggleSourceEnabled(source.id, val)
-                      }
-                    />
-                    <Button
-                      loading={testingId === source.id}
-                      onClick={() => handleTest(source)}
-                    >
-                      {testingId === source.id
-                        ? t("settings.webdavTestingConnection")
-                        : t("settings.webdavTestConnection")}
-                    </Button>
-                    <Popconfirm
-                      title={t("settings.webdavSourceRemove")}
-                      onConfirm={() => removeSource(source.id)}
-                    >
-                      <Button danger>{t("settings.webdavSourceRemove")}</Button>
-                    </Popconfirm>
-                  </Space>
-                </Form.Item>
               </Form>
             ),
           }))}
@@ -617,25 +568,6 @@ const WebDavSourcesSettings: React.FC = () => {
       <Space style={{ marginTop: 16 }} wrap>
         <Button onClick={addSource} type="dashed">
           + {t("settings.webdavAddSource")}
-        </Button>
-        <Button
-          type="primary"
-          loading={saving}
-          onClick={() => handleSave(true)}
-          disabled={sources.length === 0}
-        >
-          {saving
-            ? t("settings.webdavSaving")
-            : t("settings.webdavSaveAndSync")}
-        </Button>
-        <Button
-          onClick={() => handleSave(false)}
-          loading={saving}
-          disabled={sources.length === 0}
-        >
-          {saving
-            ? t("settings.webdavSaving")
-            : t("settings.webdavSaveSuccess")}
         </Button>
       </Space>
 

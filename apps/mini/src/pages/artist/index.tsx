@@ -1,4 +1,4 @@
-import { Album, Artist, Track, getAlbumsByArtist, getArtistById, getCollaborativeAlbumsByArtist, getTracksByArtist, Mv, getMvsByArtist, type MiDevice, playMiDevicePlaylist } from '@soundx/services';
+import { Album, Artist, Track, TrackSource, getAlbumsByArtist, getArtistById, getCollaborativeAlbumsByArtist, getTracksByArtist, Mv, getMvsByArtist, type MiDevice, playMiDevicePlaylist } from '@soundx/services';
 import { mvPlaylistStore } from '../../store/mvPlaylist';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
@@ -228,7 +228,14 @@ export default function ArtistDetail() {
                              </View>
                              <Image src={getImageUrl(track.cover)} className='track-cover' mode='aspectFill' />
                              <View className='track-info'>
-                                 <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
+                                 <View className='track-name-row'>
+                                   <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
+                                   <Text className='track-source'>
+                                     {track.source === TrackSource.WEBDAV
+                                       ? t('trackList.sourceWebdav')
+                                       : t('trackList.sourceFile')}
+                                   </Text>
+                                 </View>
                              </View>
                              <Text className='track-duration'>{formatDuration(track.duration || 0)}</Text>
                          </View>

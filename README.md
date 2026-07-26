@@ -100,6 +100,8 @@ services:
 - 复制 nginx.conf 到 NAS 上可访问文件根目录
 - 创建服务即可
 
+> 文件目录配置：环境变量 `TXT_BASE_DIR` / `AUDIO_BOOK_DIR` / `MUSIC_BASE_DIR` / `MV_BASE_DIR` 直接控制服务端媒体目录路径，相对路径以 api 子项目目录为基准解析。
+
 ```yaml
 version: "3.8"
 
