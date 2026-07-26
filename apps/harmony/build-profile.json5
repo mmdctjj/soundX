@@ -40,6 +40,10 @@
     {
       "name": "features_socket",
       "srcPath": "./features/socket"
+    },
+    {
+      "name": "features_player",
+      "srcPath": "./features/player"
     }
   ]
 }

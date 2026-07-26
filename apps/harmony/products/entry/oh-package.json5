@@ -23,6 +23,9 @@
     },
     "features_socket": {
       "path": "../features/socket"
+    },
+    "features_player": {
+      "path": "../features/player"
     }
   }
 }
