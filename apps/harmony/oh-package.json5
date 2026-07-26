@@ -6,6 +6,9 @@
     },
     "features_storage": {
       "path": "./features/storage"
+    },
+    "features_network": {
+      "path": "./features/network"
     }
   },
   "devDependencies": {

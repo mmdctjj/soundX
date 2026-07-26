@@ -24,6 +24,10 @@
     {
       "name": "features_storage",
       "srcPath": "./features/storage"
+    },
+    {
+      "name": "features_network",
+      "srcPath": "./features/network"
     }
   ]
 }
