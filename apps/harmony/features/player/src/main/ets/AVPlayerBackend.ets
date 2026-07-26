@@ -6,6 +6,8 @@ export class AVPlayerBackend implements IAudioPlayer {
   private player: media.AVPlayer | null = null;
   private listeners = new Map<PlayerEvent, Set<PlayerListener>>();
   private currentUrl: string = '';
+  private prepareResolve: (() => void) | null = null;
+  private prepareReject: ((err: Error) => void) | null = null;
 
   private async ensure(): Promise<media.AVPlayer> {
     if (this.player) return this.player;
@@ -18,13 +20,10 @@ export class AVPlayerBackend implements IAudioPlayer {
     const p = await this.ensure();
     this.currentUrl = url;
     if (p.url !== url) p.url = url;
-    p.prepare();
     return new Promise<void>((resolve, reject) => {
-      const onState = (s: media.AVPlayerState) => {
-        if (s === 'prepared') { resolve(); this.offState(onState); }
-        else if (s === 'error') { reject(new Error('AVPlayer prepare failed')); this.offState(onState); }
-      };
-      this.onState(onState);
+      this.prepareResolve = resolve;
+      this.prepareReject = reject;
+      p.prepare();
     });
   }
 
@@ -60,14 +59,23 @@ export class AVPlayerBackend implements IAudioPlayer {
     if (!p) return;
     p.on('timeUpdate', (ms: number) => this.dispatch('timeUpdate', { currentMs: ms, durationMs: p.duration }));
     p.on('durationUpdate', (ms: number) => this.dispatch('durationUpdate', { currentMs: p.currentTime, durationMs: ms }));
-    p.on('stateChange', (s: media.AVPlayerState) => this.dispatch('stateChange', { state: s }));
+    p.on('stateChange', (s: media.AVPlayerState) => {
+      this.dispatch('stateChange', { state: s });
+      if (s === 'prepared' && this.prepareResolve) {
+        const r = this.prepareResolve;
+        this.prepareResolve = null;
+        this.prepareReject = null;
+        r();
+      } else if (s === 'error' && this.prepareReject) {
+        const r = this.prepareReject;
+        this.prepareResolve = null;
+        this.prepareReject = null;
+        r(new Error('AVPlayer prepare failed'));
+      }
+    });
     p.on('error', (err: { message: string }) => this.dispatch('error', { message: err.message }));
     p.on('bufferingUpdate', (info: { value: number }) => this.dispatch('bufferingUpdate', { value: info.value }));
     p.on('endOfStream', () => this.dispatch('ended', null));
-  }
-
-  private onState(_cb: (s: media.AVPlayerState) => void): void {
-    // placeholder retained for prepare() promise; real listener is bound in bindInternal()
   }
 
   private dispatch(event: PlayerEvent, payload: unknown): void {
