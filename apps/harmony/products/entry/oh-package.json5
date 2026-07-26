@@ -17,6 +17,9 @@
     },
     "features_ui": {
       "path": "../features/ui"
+    },
+    "features_i18n": {
+      "path": "../features/i18n"
     }
   }
 }

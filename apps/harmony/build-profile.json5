@@ -32,6 +32,10 @@
     {
       "name": "features_ui",
       "srcPath": "./features/ui"
+    },
+    {
+      "name": "features_i18n",
+      "srcPath": "./features/i18n"
     }
   ]
 }
