@@ -1,4 +1,5 @@
 import router from '@ohos.router';
+import { MiniPlayer } from '../components/MiniPlayer';
 import { httpClient } from '../utils/HttpClient';
 import { storage } from '../utils/StorageManager';
 import {
@@ -730,30 +731,37 @@ struct MainPage {
   }
 
   build() {
-    Tabs({ barPosition: BarPosition.End }) {
-      TabContent() {
-        HomeTab()
-      }
-      .tabBar(this.TabBuilder('首页', 0, '🏠', '🏠'))
+    Stack({ alignContent: Alignment.Bottom }) {
+      Tabs({ barPosition: BarPosition.End }) {
+        TabContent() {
+          HomeTab()
+        }
+        .tabBar(this.TabBuilder('首页', 0, '🏠', '🏠'))
 
-      TabContent() {
-        LibraryTab()
-      }
-      .tabBar(this.TabBuilder('音乐库', 1, '📚', '📚'))
+        TabContent() {
+          LibraryTab()
+        }
+        .tabBar(this.TabBuilder('音乐库', 1, '📚', '📚'))
 
-      TabContent() {
-        PersonalTab()
+        TabContent() {
+          PersonalTab()
+        }
+        .tabBar(this.TabBuilder('我的', 2, '👤', '👤'))
       }
-      .tabBar(this.TabBuilder('我的', 2, '👤', '👤'))
+      .width('100%')
+      .height('100%')
+      .barWidth('100%')
+      .barHeight(56)
+      .animationDuration(300)
+      .onChange((index: number) => {
+        this.currentIndex = index;
+      })
+
+      MiniPlayer()
+        .margin({ bottom: 56 })
     }
     .width('100%')
     .height('100%')
     .backgroundColor('#f5f5f5')
-    .barWidth('100%')
-    .barHeight(56)
-    .animationDuration(300)
-    .onChange((index: number) => {
-      this.currentIndex = index;
-    })
   }
 }
