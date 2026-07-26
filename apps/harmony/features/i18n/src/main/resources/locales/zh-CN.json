@@ -530,7 +530,9 @@
     "setSkipIntro": "设置自动跳过片头",
     "albumDetail": "专辑详情",
     "artistDetail": "歌手详情",
-    "bottomOffset": "底部偏移"
+    "bottomOffset": "底部偏移",
+    "title": "正在播放",
+    "empty": "暂无播放内容"
   },
   "library": {
     "title": "音乐库",

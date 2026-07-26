@@ -630,7 +630,9 @@
     "setSkipIntro": "Set Auto-skip Intro",
     "albumDetail": "Album Detail",
     "artistDetail": "Artist Detail",
-    "bottomOffset": "Bottom Offset"
+    "bottomOffset": "Bottom Offset",
+    "title": "Now Playing",
+    "empty": "Nothing playing"
   },
   "library": {
     "title": "Library",

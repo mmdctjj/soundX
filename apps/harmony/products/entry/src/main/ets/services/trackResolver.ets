@@ -1,0 +1,21 @@
+import { fileCache } from 'features_storage';
+import type { TrackDto } from 'features_network';
+import { getInternalQuality, getExternalQuality, resolveTrackUrl } from './trackQuality';
+import type { Track } from '../context/PlayerStore';
+
+export async function resolveTrackToPlayer(track: TrackDto, isExternal: boolean): Promise<Track> {
+  const ext = track.ext ?? 'mp3';
+  if (await fileCache.hasAudio(track.id, ext)) {
+    return toPlayerTrack(track, await fileCache.audioPath(track.id, ext));
+  }
+  const q = isExternal ? await getExternalQuality() : await getInternalQuality();
+  const url = await resolveTrackUrl(track.id, q);
+  return toPlayerTrack(track, url);
+}
+
+function toPlayerTrack(t: TrackDto, url: string): Track {
+  return {
+    id: t.id, title: t.title, artist: t.artist, album: t.album,
+    duration: t.duration, coverUrl: t.coverUrl, ext: t.ext, url,
+  };
+}
