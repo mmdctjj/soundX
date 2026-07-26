@@ -15,6 +15,7 @@ import { AudiobookController } from './controllers/audiobook';
 import { AudiobookCollectionController } from './controllers/audiobook-collection';
 import { FolderController } from './controllers/folder';
 import { ImportController } from './controllers/import';
+import { LlmConfigController } from './controllers/llm-config.controller';
 import { LlmController } from './controllers/llm.controller';
 import { MvController } from './controllers/mv';
 import { PlaylistController } from './controllers/playlist';
@@ -28,6 +29,9 @@ import { UserAudiobookHistoryController } from './controllers/user-audiobook-his
 import { UserAudiobookLikeController } from './controllers/user-audiobook-like';
 import { UserTrackHistoryController } from './controllers/user-track-history';
 import { UserTrackLikeController } from './controllers/user-track-like';
+import { WebDavSourcesController } from './controllers/webdav-sources.controller';
+import { MetadataPluginsController } from './controllers/metadata-plugins.controller';
+import { WebDavSyncController } from './controllers/webdav-sync.controller';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { SyncGateway } from './gateways/sync.gateway';
 import { ResponseInterceptor } from './interceptors/response.interceptor';
@@ -37,6 +41,7 @@ import { AudiobookService } from './services/audiobook';
 import { AudiobookCollectionService } from './services/audiobook-collection';
 import { FolderService } from './services/folder';
 import { ImportService } from './services/import';
+import { LlmConfigService } from './services/llm-config.service';
 import { LlmService } from './services/llm.service';
 import { MvService } from './services/mv';
 import { PlaylistService } from './services/playlist';
@@ -51,6 +56,8 @@ import { UserAudiobookLikeService } from './services/user-audiobook-like';
 import { DatabaseSchemaService } from './services/database-schema.service';
 import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
+import { WebDavConfigService } from './services/webdav-config.service';
+import { MetadataPluginService } from './services/metadata-plugin.service';
 
 @Module({
   imports: [
@@ -99,7 +106,11 @@ import { UserTrackLikeService } from './services/user-track-like';
     SearchRecordController,
     ScanLoginController,
     LlmController,
+    LlmConfigController,
     MvController,
+    WebDavSourcesController,
+    MetadataPluginsController,
+    WebDavSyncController,
   ],
   providers: [
     UserService,
@@ -134,8 +145,11 @@ import { UserTrackLikeService } from './services/user-track-like';
     SearchRecordService,
     ScanLoginService,
     LlmService,
+    LlmConfigService,
     MvService,
     SyncGateway,
+    WebDavConfigService,
+    MetadataPluginService,
   ],
 })
-export class AppModule { }
+export class AppModule {}

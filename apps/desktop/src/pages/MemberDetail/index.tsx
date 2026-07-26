@@ -90,6 +90,7 @@ const MemberDetail: React.FC = () => {
       { key: "7", feature: "车机模式", nonMember: false, member: true },
       { key: "8", feature: "扫码登录", nonMember: false, member: true },
       { key: "9", feature: "语音助手", nonMember: false, member: true },
+      { key: "10", feature: "UI 样式随心切换", nonMember: false, member: true },
     ],
     [],
   );

@@ -74,6 +74,7 @@ const Sidebar: React.FC = () => {
     <div
       className={styles.sidebar}
       style={{ color: token.colorText, borderRightColor: token.colorBorder }}
+      data-tauri-drag-region
     >
       <div className={styles.header}>
         <Title level={4} style={{ margin: 0, color: token.colorText }}>
@@ -81,7 +82,7 @@ const Sidebar: React.FC = () => {
         </Title>
       </div>
 
-      <div className={styles.menuGroup}>
+      <div className={styles.menuGroup} data-tauri-no-drag>
         <MenuItem
           icon={<CompassOutlined />}
           text={t("nav.recommended")}
@@ -128,14 +129,14 @@ const Sidebar: React.FC = () => {
         }
       </div>
 
-      <div className={styles.playlistHeader}>
+      <div className={styles.playlistHeader} data-tauri-no-drag>
         <Title level={5} style={{ margin: 0, color: token.colorText }}>
           {t("nav.playlists")}
         </Title>
         <CustomerServiceOutlined style={{ color: token.colorTextSecondary }} />
       </div>
 
-      <div className={styles.playlistGroup}>
+      <div className={styles.playlistGroup} data-tauri-no-drag>
         {!isWeb() && (
           <MenuItem
             icon={<CloudDownloadOutlined />}
@@ -223,10 +224,14 @@ const MenuItem = ({
     <div
       onClick={onClick}
       className={`${styles.menuItem} ${active ? styles.active : ""}`}
-      style={{
-        color: active ? token.colorText : token.colorTextSecondary,
-        backgroundColor: active ? token.colorFillTertiary : "transparent",
-      }}
+      style={
+        active
+          ? {
+              color: token.colorTextLightSolid,
+              backgroundColor: token.colorPrimary,
+            }
+          : { color: token.colorTextSecondary }
+      }
     >
       <span style={{ fontSize: "20px" }}>{icon}</span>
       <Text style={{ color: "inherit" }} ellipsis>

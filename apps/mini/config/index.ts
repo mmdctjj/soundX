@@ -56,6 +56,16 @@ export default defineConfig(async (merge, { command, mode }) => {
     h5: {
       publicPath: '/',
       staticDirectory: 'static',
+      // Fix: 工作区里 desktop/mobile 用 React 19，pnpm 把 react@19.2.0 提升为 .pnpm 默认 react；
+      // @tarojs/components 未声明 react peer，于是 import 'react' 拿到 19，与 mini 的 react-dom@18
+      // 混用 -> React #31（react.transitional.element vs react.element）。强制 alias 到 mini 自己的 18.3.1。
+      webpackChain: (chain: any) => {
+        const path = require('path')
+        const reactDir = path.dirname(require.resolve('react/package.json'))
+        const reactDomDir = path.dirname(require.resolve('react-dom/package.json'))
+        chain.resolve.alias.set('react', reactDir)
+        chain.resolve.alias.set('react-dom', reactDomDir)
+      },
       output: {
         filename: 'js/[name].[hash:8].js',
         chunkFilename: 'js/[name].[chunkhash:8].js'

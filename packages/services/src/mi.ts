@@ -1,0 +1,132 @@
+import { request } from "./request";
+export interface MiPlayPlaylistRequest {
+  device_id: string;
+  tracks: { url: string; title: string; duration?: number }[];
+  start_index?: number;
+}
+
+export interface MiPlayPlaylistResponse {
+  success: boolean;
+  tracks_count: number;
+}
+
+/**
+ * 播放播放列表到小爱音箱
+ * 从指定索引开始播放，服务端自动切歌
+ */
+export const playMiDevicePlaylist = async (
+  payload: MiPlayPlaylistRequest,
+): Promise<MiPlayPlaylistResponse> => {
+  return request.post<MiPlayPlaylistResponse>(
+    `${MI_BASE_URL}/api/play_playlist`,
+    payload.tracks,
+    {
+      params: {
+        device_id: payload.device_id,
+        start_index: payload.start_index || 0,
+      },
+    },
+  );
+};
+
+export interface MiDevice {
+  device_id: string;
+  name: string;
+  model: string;
+}
+
+export interface MiDevicesResponse {
+  devices: MiDevice[];
+}
+
+export interface MiAuthStatusResponse {
+  success: boolean;
+  logged_in: boolean;
+  message?: string;
+}
+
+export interface MiQRCodeResponse {
+  success: boolean;
+  already_logged_in: boolean;
+  qrcode_url: string;
+  login_url?: string;
+  status_url?: string;
+  expire_seconds: number;
+  message?: string;
+}
+
+export interface MiQRCodeStatusResponse {
+  success: boolean;
+  status: "pending" | "success" | "expired" | "error";
+  message?: string;
+  user_id?: string;
+}
+
+const MI_BASE_URL = "/mi";
+
+/**
+ * 获取小爱音箱设备列表
+ * 通过 /mi 前缀由后端代理到 mi 服务
+ */
+export const getMiDevices = async (): Promise<MiDevicesResponse> => {
+  return request.get<MiDevicesResponse>(`${MI_BASE_URL}/api/devices`);
+};
+
+/**
+ * 检查小米账号登录状态
+ */
+export const getMiAuthStatus = async (): Promise<MiAuthStatusResponse> => {
+  return request.get<MiAuthStatusResponse>(`${MI_BASE_URL}/api/auth/status`);
+};
+
+/**
+ * 获取小米账号扫码登录二维码
+ */
+export const getMiQRCode = async (): Promise<MiQRCodeResponse> => {
+  return request.get<MiQRCodeResponse>(`${MI_BASE_URL}/api/auth/qrcode`);
+};
+
+/**
+ * 查询扫码登录状态
+ * @param lpUrl 从 /auth/qrcode 返回的 status_url
+ */
+export const getMiQRCodeStatus = async (
+  lpUrl: string,
+): Promise<MiQRCodeStatusResponse> => {
+  return request.get<MiQRCodeStatusResponse>(
+    `${MI_BASE_URL}/api/auth/qrcode_status`,
+    { params: { lp_url: lpUrl } },
+  );
+};
+
+/**
+ * 退出小米账号登录
+ */
+export const logoutMiAccount = async (): Promise<{ success: boolean; message?: string }> => {
+  return request.post(`${MI_BASE_URL}/api/auth/logout`);
+};
+
+export interface MiPlayByUrlRequest {
+  device_id: string;
+  url: string;
+  title?: string;
+}
+
+export interface MiPlayByUrlResponse {
+  success: boolean;
+  title: string;
+}
+
+/**
+ * 通过 URL 把当前播放的歌曲推送到小爱音箱
+ * desktop 端构造 track 流地址后调用此接口
+ */
+export const playMiDeviceByUrl = async (
+  payload: MiPlayByUrlRequest,
+): Promise<MiPlayByUrlResponse> => {
+  return request.post<MiPlayByUrlResponse>(
+    `${MI_BASE_URL}/api/play_by_url`,
+    null,
+    { params: payload },
+  );
+};

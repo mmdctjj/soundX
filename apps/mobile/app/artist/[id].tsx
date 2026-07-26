@@ -1,13 +1,15 @@
 import { AddToPlaylistModal } from "@/src/components/AddToPlaylistModal";
 import { ArtistMoreModal } from "@/src/components/ArtistMoreModal";
 import { FilePathModal } from "@/src/components/FilePathModal";
+import { MiDeviceSelector } from "@/src/components/MiDeviceSelector";
 import PlayingIndicator from "@/src/components/PlayingIndicator";
 import SkeletonBlock from "@/src/components/SkeletonBlock";
-import { useAuth } from "@/src/context/AuthContext";
 import { TrackMoreModal } from "@/src/components/TrackMoreModal";
+import { XiaoAiIcon } from "@/src/components/XiaoAiIcon";
+import { useAuth } from "@/src/context/AuthContext";
 import { usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
-import { Album, Artist, Track, TrackType } from "@/src/models";
+import { Album, Artist, Track, TrackSource, TrackType } from "@/src/models";
 import { downloadTracks } from "@/src/services/downloadManager";
 import { getImageUrl } from "@/src/utils/image";
 import { mvPlaylistStore } from "@/src/store/mvPlaylist";
@@ -22,6 +24,7 @@ import {
     getTracksByArtist,
     uploadArtistAvatar,
     getMvsByArtist,
+    playMiDevicePlaylist,
 } from "@soundx/services";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -68,6 +71,10 @@ export default function ArtistDetailScreen() {
     [],
   );
   const [uploadingCover, setUploadingCover] = useState(false);
+
+  // Mi Speaker cast state
+  const [isMiDeviceSelectorVisible, setIsMiDeviceSelectorVisible] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -181,6 +188,38 @@ export default function ArtistDetailScreen() {
         ? prev.filter((id) => id !== trackId)
         : [...prev, trackId],
     );
+  };
+
+  const handleCastTracksToMi = async (deviceId: string, deviceName: string) => {
+    if (tracks.length === 0) {
+      Alert.alert(t("playerPage.miCastNoTrack"));
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const baseURL = (await import("@/src/https")).getBaseURL().replace(/\/$/, "");
+      const quality = "high";
+      const qualityQuery = `?quality=${quality}`;
+      const trackPayloads = tracks.map((track) => ({
+        url: `${baseURL}/track/stream/${track.id}${qualityQuery}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+
+      Alert.alert(t("playerPage.miCastPlaylistSuccess", { device: deviceName, count: trackPayloads.length }));
+      setIsMiDeviceSelectorVisible(false);
+    } catch (error) {
+      console.error("Failed to cast tracks to Mi device:", error);
+      Alert.alert(t("playerPage.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
   };
 
   const handleDownloadSelected = () => {
@@ -539,6 +578,16 @@ export default function ArtistDetailScreen() {
                 {!isSelectionMode ? (
                   <>
                     <TouchableOpacity
+                      onPress={() => setIsMiDeviceSelectorVisible(true)}
+                      disabled={!tracks.length}
+                      style={[
+                        styles.actionButton,
+                        { backgroundColor: colors.card },
+                      ]}
+                    >
+                      <XiaoAiIcon size={18} color={tracks.length ? colors.secondary : colors.secondary + "80"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       onPress={() => {
                         setIsSelectionMode(true);
                         setSelectedTrackIds([]);
@@ -654,12 +703,21 @@ export default function ArtistDetailScreen() {
                     alt=""
                     style={{ width: 20, height: 20 }}
                   />
-                  <Text
-                    style={[styles.trackName, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {track.name}
-                  </Text>
+                  <View style={styles.trackNameRow}>
+                    <Text
+                      style={[styles.trackName, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {track.name}
+                    </Text>
+                    <Text
+                      style={[styles.trackSource, { color: colors.secondary }]}
+                    >
+                      {track.source === TrackSource.WEBDAV
+                        ? t("trackList.sourceWebdav")
+                        : t("trackList.sourceFile")}
+                    </Text>
+                  </View>
                 </View>
                 <Text
                   style={[styles.trackDuration, { color: colors.secondary }]}
@@ -704,6 +762,13 @@ export default function ArtistDetailScreen() {
         trackIds={isSelectionMode ? selectedTrackIds : undefined}
         tracks={tracks}
         onClose={() => setAddToPlaylistVisible(false)}
+      />
+
+      <MiDeviceSelector
+        visible={isMiDeviceSelectorVisible}
+        onClose={() => setIsMiDeviceSelectorVisible(false)}
+        onSelectDevice={(device) => handleCastTracksToMi(device.device_id, device.name)}
+        loading={isCastingToMi}
       />
 
       <FilePathModal
@@ -944,8 +1009,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 10,
   },
+  trackNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
   trackName: {
     fontSize: 16,
+    flexShrink: 1,
+  },
+  trackSource: {
+    fontSize: 10,
+    marginLeft: 6,
   },
   trackDuration: {
     fontSize: 12,

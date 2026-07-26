@@ -4,6 +4,7 @@ import { Button, Form, Input, message, Steps, Typography } from "antd";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { tauriGetDeviceName } from "../../utils/platform";
 
 import styles from "./index.module.less";
 
@@ -29,7 +30,7 @@ const ForgotPassword: React.FC = () => {
 
   // Constant device name matching Login logic
   const getDeviceName = async () => {
-    return (await window.ipcRenderer?.getName()) || window.navigator.userAgent;
+    return await tauriGetDeviceName();
   };
 
   const handleVerify = async () => {
@@ -47,9 +48,12 @@ const ForgotPassword: React.FC = () => {
       } else {
         messageApi.error(res.message || t('forgotPassword.verifyFailed'));
       }
-    } catch (e) {
+    } catch (e: any) {
       setLoading(false);
-      // Validation error
+      // Form validation errors have type 'object' but no .message; skip those
+      if (e?.message && !e?.errorFields) {
+        messageApi.error(e.message || t('forgotPassword.verifyFailed'));
+      }
     }
   };
 
@@ -80,8 +84,11 @@ const ForgotPassword: React.FC = () => {
       } else {
         messageApi.error(res.message || t('forgotPassword.resetFailed'));
       }
-    } catch (e) {
+    } catch (e: any) {
       setLoading(false);
+      if (e?.message && !e?.errorFields) {
+        messageApi.error(e.message || t('forgotPassword.resetFailed'));
+      }
     }
   };
 

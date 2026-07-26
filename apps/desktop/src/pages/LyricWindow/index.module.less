@@ -3,7 +3,7 @@
   width: 100vw;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
-  -webkit-app-region: no-drag;
+  -webkit-app-region: drag;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -87,6 +87,7 @@
   justify-content: center;
   align-items: center;
   width: 100%;
+  -webkit-app-region: no-drag;
 }
 
 .lyricText {
@@ -111,6 +112,7 @@
   padding: 4px 16px;
   border-radius: 20px;
   backdrop-filter: blur(4px);
+  -webkit-app-region: no-drag;
 }
 
 .controlBtn {

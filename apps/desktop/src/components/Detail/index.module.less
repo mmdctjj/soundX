@@ -3,9 +3,9 @@
   position: relative;
   height: 100%;
   overflow: hidden;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background-color: var(--ad-detail-bg, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(var(--ad-detail-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--ad-detail-blur, 20px));
 }
 
 .detailContainer {
@@ -41,6 +41,9 @@
 .bannerContent {
   position: relative;
   z-index: 1;
+  // 与歌词同步对齐：靠左 / 居中 / 靠右
+  width: 100%;
+  justify-content: var(--ad-detail-lyrics-justify, flex-start);
 }
 
 .coverWrapper {
@@ -92,6 +95,10 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
+  background-color: var(--ad-detail-controls-bg, transparent);
+  color: var(--ad-detail-controls-text, inherit);
+  padding: 10px 14px;
+  border-radius: 8px;
 }
 
 .mainControls {

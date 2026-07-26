@@ -16,7 +16,40 @@ function isGarbled(str: string): boolean {
   // Check for "REPLACEMENT CHARACTER" (U+FFFD)
   if (str.includes('\uFFFD')) return true;
 
+  // Common mojibake when GBK metadata bytes are interpreted as Latin-1/Windows-1252.
+  if (looksLikeLatin1Mojibake(str)) return true;
+
   return false;
+}
+
+function looksLikeLatin1Mojibake(str: string): boolean {
+  if (!str) return false;
+
+  const suspiciousChars = str.match(/[\u00A0-\u00FF]/g)?.length || 0;
+  if (suspiciousChars < 2) return false;
+
+  const decoded = decodeLatin1AsGbk(str);
+  return hasCjk(decoded) && scoreDecodedText(decoded) > scoreDecodedText(str);
+}
+
+function decodeLatin1AsGbk(str: string): string {
+  const buf = iconv.encode(str, 'latin1');
+  return iconv.decode(buf, 'gbk');
+}
+
+function hasCjk(str: string): boolean {
+  return /[\u3400-\u9fff]/.test(str);
+}
+
+function scoreDecodedText(str: string): number {
+  let score = 0;
+  for (const char of str) {
+    if (/[\u3400-\u9fff]/.test(char)) score += 3;
+    else if (/[\w\s()[\].,_-]/.test(char)) score += 1;
+    else if (/[\u00A0-\u00FF]/.test(char)) score -= 1;
+    else score -= 0.5;
+  }
+  return score;
 }
 
 export function readLyricsFile(filePath: string): string | null {
@@ -110,12 +143,17 @@ export class LocalMusicScanner {
     await this.traverse(dir, async (filePath) => {
       const metadata = await this.parseFile(filePath);
       if (metadata) {
-        // Override album with parent folder name
+        // 优先使用元信息中的 album，如果没有才使用文件夹名
         const parentDir = path.dirname(filePath);
         const folderName = path.basename(parentDir);
-        metadata.album = folderName;
-        if (!metadata.artist) {
+        if (this.isMissingAudiobookContributor(metadata.album)) {
+          metadata.album = folderName;
+        }
+        if (this.isMissingAudiobookContributor(metadata.artist)) {
           metadata.artist = folderName;
+        }
+        if (this.isMissingAudiobookContributor(metadata.albumArtist)) {
+          metadata.albumArtist = metadata.artist;
         }
 
         // If no cover, look for first image in directory
@@ -168,9 +206,9 @@ export class LocalMusicScanner {
     return count;
   }
 
-  private readonly AUDIO_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|strm)$/i;
+  private readonly AUDIO_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|strm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i;
   private readonly VIDEO_EXTENSIONS = /\.(mp4|mkv|avi|webm)$/i;
-  private readonly ALL_MEDIA_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i;
+  private readonly ALL_MEDIA_EXTENSIONS = /\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i;
 
   private async traverse(dir: string, callback: (path: string) => Promise<void>, options?: { audioOnly?: boolean }) {
     const extensionPattern = options?.audioOnly ? this.AUDIO_EXTENSIONS : this.ALL_MEDIA_EXTENSIONS;
@@ -379,7 +417,14 @@ export class LocalMusicScanner {
             duration: 0,
           };
         }
-        throw err;
+        // Fallback: if extension mismatch (e.g. .flac but actually MP3),
+        // read buffer and let music-metadata auto-detect format from content.
+        try {
+          const buffer = fs.readFileSync(filePath);
+          metadata = await music.parseBuffer(buffer);
+        } catch (bufferErr) {
+          throw err;
+        }
       }
 
       const common = metadata.common;
@@ -389,8 +434,9 @@ export class LocalMusicScanner {
         const picture = common.picture[0];
         const ext = picture.format.split('/')[1] || 'jpg';
         const fileName = path.basename(filePath);
-        // Cover name consistent with file name
-        const coverName = `${fileName}.${ext}`;
+        const dirName = path.basename(path.dirname(filePath));
+        // Cover name includes parent directory to avoid conflicts
+        const coverName = `${dirName}_${fileName}.${ext}`;
         const savePath = path.join(this.cacheDir, coverName);
 
         fs.writeFileSync(savePath, picture.data);
@@ -430,9 +476,58 @@ export class LocalMusicScanner {
         lyrics = lyrics.replace(/\u0000/g, '');
       }
 
-      let title = common.title;
-      let artist = common.artist || common.album;
-      let album = common.album;
+      // 优先从 ID3v2.4/ID3v2.3 读取标签，避免 APEv2 等标签污染
+      let title: string | undefined = undefined;
+      let artist: string | undefined = undefined;
+      let album: string | undefined = undefined;
+      let hasId3v2Title = false;
+
+      // 尝试从 ID3v2.4 获取
+      if (metadata.native && metadata.native['ID3v2.4']) {
+        const id3v24 = metadata.native['ID3v2.4'];
+        const tit2 = id3v24.find((tag: any) => tag.id === 'TIT2');
+        const tpe1 = id3v24.find((tag: any) => tag.id === 'TPE1');
+        const talb = id3v24.find((tag: any) => tag.id === 'TALB');
+        if (tit2 && tit2.value) {
+          title = tit2.value;
+          hasId3v2Title = true;
+        }
+        if (tpe1 && tpe1.value) artist = tpe1.value;
+        if (talb && talb.value) album = talb.value;
+      }
+
+      // 如果 ID3v2.4 没有，尝试从 ID3v2.3 获取
+      if ((!title || !artist || !album) && metadata.native && metadata.native['ID3v2.3']) {
+        const id3v23 = metadata.native['ID3v2.3'];
+        if (!title) {
+          const tit2 = id3v23.find((tag: any) => tag.id === 'TIT2');
+          if (tit2 && tit2.value) {
+            title = tit2.value;
+            hasId3v2Title = true;
+          }
+        }
+        if (!artist) {
+          const tpe1 = id3v23.find((tag: any) => tag.id === 'TPE1');
+          if (tpe1 && tpe1.value) artist = tpe1.value;
+        }
+        if (!album) {
+          const talb = id3v23.find((tag: any) => tag.id === 'TALB');
+          if (talb && talb.value) album = talb.value;
+        }
+      }
+
+      // 如果 ID3v2 中没有 title，则回退到文件名（避免使用可能被 APEv2 污染的 common.title）
+      if (!hasId3v2Title) {
+        title = path.basename(filePath, path.extname(filePath));
+      }
+
+      // 如果 ID3v2 中没有 artist/album，回退到 common
+      if (!artist) {
+        artist = common.artist || common.album;
+      }
+      if (!album) {
+        album = common.album;
+      }
 
       // Fix encoding if garbled
       title = this.fixEncoding(title || '');
@@ -511,7 +606,14 @@ export class LocalMusicScanner {
     // Check for "REPLACEMENT CHARACTER" (U+FFFD)
     if (str.includes('\uFFFD')) return true;
 
+    if (looksLikeLatin1Mojibake(str)) return true;
+
     return false;
+  }
+
+  private isMissingAudiobookContributor(value?: string): boolean {
+    const normalized = (value || '').trim();
+    return !normalized || normalized === '未知' || this.isGarbled(normalized);
   }
 
   private fixEncoding(str: string): string {
@@ -521,8 +623,7 @@ export class LocalMusicScanner {
     try {
       // Try to convert back to buffer using ISO-8859-1 (raw bytes)
       // and then decode as GBK
-      const buf = iconv.encode(str, 'latin1');
-      const decoded = iconv.decode(buf, 'gbk');
+      const decoded = decodeLatin1AsGbk(str);
 
       // If the decoded string doesn't look garbled, use it
       if (decoded && !this.isGarbled(decoded)) {
@@ -621,7 +722,7 @@ export class WebDAVScanner {
       for (const item of contents) {
         if (item.type === 'directory') {
           count += await this.count(item.filename);
-        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm)$/i.test(item.filename)) {
+        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(item.filename)) {
           count++;
         }
       }
@@ -638,7 +739,7 @@ export class WebDAVScanner {
       for (const item of contents) {
         if (item.type === 'directory') {
           await this.scan(item.filename, callback);
-        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm)$/i.test(item.filename)) {
+        } else if (/\.(mp3|flac|ogg|wav|m4a|mp4|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(item.filename)) {
           const result = await this.parseRemoteFile(item);
           if (result) {
             await callback(result);

@@ -194,7 +194,10 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
                 index === activeIndex
                   ? token.colorPrimary
                   : token.colorTextSecondary,
-              fontSize: index === activeIndex ? "18px" : "16px",
+              fontSize:
+                index === activeIndex
+                  ? "var(--ad-detail-lyrics-active-font-size, 18px)"
+                  : "var(--ad-detail-lyrics-font-size, 16px)",
               fontWeight: index === activeIndex ? "bold" : "normal",
             }}
           >

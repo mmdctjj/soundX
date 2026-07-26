@@ -122,6 +122,20 @@ target 'AudioDock' do
       end
     end
 
+    # 显式禁用 Bitcode —— 苹果已弃用，启用会拖慢构建且占用体积
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['ENABLE_BITCODE'] = 'NO'
+      end
+    end
+    installer.aggregate_targets.each do |aggregate_target|
+      aggregate_target.user_project.targets.each do |target|
+        target.build_configurations.each do |config|
+          config.build_settings['ENABLE_BITCODE'] = 'NO'
+        end
+      end
+    end
+
     # Add a dummy x86_64 slice to WeChat SDK to allow simulator builds under Rosetta
     wechat_lib = File.join(installer.sandbox.root, 'RCTWeChat', 'libWeChatSDK.a')
     if File.exist?(wechat_lib)

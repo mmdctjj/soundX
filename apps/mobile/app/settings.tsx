@@ -29,6 +29,8 @@ import { trackEvent } from "../src/services/tracking";
 import { goBackOrReplace } from "../src/utils/navigation";
 import { usePlayMode } from "../src/utils/playMode";
 import { getLocalVersion } from "../src/utils/updateUtils";
+import { useCheckUpdate } from "@/hooks/useCheckUpdate";
+import { UpdateModal } from "@/src/components/UpdateModal";
 import { getCachedVipStatus } from "../src/utils/vipStatus";
 
 export default function SettingsScreen() {
@@ -80,6 +82,17 @@ export default function SettingsScreen() {
     audiobooks: "0 B",
     apks: "0 B",
   });
+
+  const {
+    checkUpdate,
+    progress,
+    isUpdating,
+    updateInfo,
+    startUpdate,
+    ignoreUpdate,
+    cancelUpdate,
+  } = useCheckUpdate();
+  const [updateModalVisible, setUpdateModalVisible] = React.useState(false);
 
   const formatSize = (size: number) => {
     if (size === 0) return "0 B";
@@ -360,6 +373,13 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleCheckUpdate = async () => {
+    const info = await checkUpdate();
+    if (info) {
+      setUpdateModalVisible(true);
+    }
+  };
+
   const handleDeleteMemberAccount = () => {
     if (!plusToken) {
       Alert.alert(t("settings.loginFirst"), t("settings.loginFirst"));
@@ -425,7 +445,7 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-            {t("settings.account")}
+            {t("settings.server")}
           </Text>
 
           {user?.is_admin && (
@@ -448,6 +468,110 @@ export default function SettingsScreen() {
               </View>
               <Ionicons
                 name="settings-outline"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
+
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/webdav-sources" as any)}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  {t("settings.webdavSources")}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("settings.sourceManagementDescription")}
+                </Text>
+              </View>
+              <Ionicons
+                name="cloud-outline"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
+
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/llm-config" as any)}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  {t("settings.llmConfig")}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("settings.llmConfigDescription")}
+                </Text>
+              </View>
+              <Ionicons
+                name="hardware-chip-outline"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
+
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/tts-config" as any)}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  {t("settings.ttsConfig")}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("settings.ttsConfigDescription")}
+                </Text>
+              </View>
+              <Ionicons
+                name="mic-outline"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
+          )}
+
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/plugin-center" as any)}
+            >
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>
+                  {t("settings.pluginCenter")}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("settings.pluginCenterDescription")}
+                </Text>
+              </View>
+              <Ionicons
+                name="extension-puzzle-outline"
                 size={20}
                 color={colors.secondary}
               />
@@ -674,6 +798,27 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            onPress={() => void handleCheckUpdate()}
+          >
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                {t("settings.checkUpdate")}
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.secondary }]}
+              >
+                {t("settings.checkUpdateDescription")}
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.secondary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomColor: colors.border }]}
             disabled={redeemingInternalTestCode}
             onPress={() => void handleRedeemInternalTestCode()}
           >
@@ -834,6 +979,23 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      <UpdateModal
+        visible={updateModalVisible}
+        progress={progress}
+        isUpdating={isUpdating}
+        updateInfo={updateInfo}
+        onBackground={() => setUpdateModalVisible(false)}
+        onUpdate={startUpdate}
+        onIgnore={() => {
+          ignoreUpdate();
+          setUpdateModalVisible(false);
+        }}
+        onCancel={() => {
+          cancelUpdate();
+          setUpdateModalVisible(false);
+        }}
+      />
     </View>
   );
 }

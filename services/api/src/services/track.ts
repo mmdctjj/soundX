@@ -4,9 +4,15 @@ import { FileStatus, PrismaClient, Track, TrackType } from '@soundx/db';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import {
+  DEFAULT_AUDIOBOOK_DIR,
+  DEFAULT_CACHE_DIR,
+  DEFAULT_MUSIC_DIR,
+  DEFAULT_MV_DIR,
+} from '../common/media-paths';
+import { resolvePathList } from '../common/path-list';
 import { getTrackHeartbeatScoreMap } from './heartbeat-score';
 import { toSimplified } from '../common/zh-utils';
-import { resolvePathList } from '../common/path-list';
 
 export type AlbumTrackSortBy =
   | 'id'
@@ -45,8 +51,22 @@ export class TrackService {
     sensitivity: 'base',
   });
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+  ) {
     this.prisma = new PrismaClient();
+  }
+
+  private getMusicDirs(): string[] {
+    return resolvePathList(process.env.MUSIC_BASE_DIR, DEFAULT_MUSIC_DIR);
+  }
+
+  private getMvDirs(): string[] {
+    return resolvePathList(process.env.MV_BASE_DIR, DEFAULT_MV_DIR);
+  }
+
+  private getAudiobookDirs(): string[] {
+    return resolvePathList(process.env.AUDIO_BOOK_DIR, DEFAULT_AUDIOBOOK_DIR);
   }
 
   private getFileNameSortKey(track: Pick<Track, 'fileName' | 'name' | 'relativePath'>): string {
@@ -55,24 +75,30 @@ export class TrackService {
     return ext ? rawName.slice(0, -ext.length) : rawName;
   }
 
-  public getFilePath(trackPath: string): string | null {
+  public async getFilePath(trackPath: string): Promise<string | null> {
     if (trackPath.startsWith('/music/')) {
-      const musicBaseDirs = resolvePathList(this.configService.get<string>('MUSIC_BASE_DIR'), './');
+      const dirs = [...this.getMusicDirs(), ...this.getMvDirs()];
       const relativePath = trackPath.replace('/music/', '');
-      for (const musicBaseDir of musicBaseDirs) {
-        const candidate = this.resolveCandidatePath(musicBaseDir, relativePath);
+      for (const dir of dirs) {
+        const candidate = this.resolveCandidatePath(dir, relativePath);
         if (candidate) return candidate;
       }
-      return path.join(musicBaseDirs[0], relativePath);
+      return path.join(dirs[0] || './music/music', relativePath);
     }
     if (trackPath.startsWith('/audio/')) {
-      const audioBookDirs = resolvePathList(this.configService.get<string>('AUDIO_BOOK_DIR'), './');
+      const dirs = this.getAudiobookDirs();
       const relativePath = trackPath.replace('/audio/', '');
-      for (const audioBookDir of audioBookDirs) {
-        const candidate = this.resolveCandidatePath(audioBookDir, relativePath);
+      for (const dir of dirs) {
+        const candidate = this.resolveCandidatePath(dir, relativePath);
         if (candidate) return candidate;
       }
-      return path.join(audioBookDirs[0], relativePath);
+      return path.join(dirs[0] || './music/audio', relativePath);
+    }
+    if (trackPath.startsWith('/covers/')) {
+      const cacheDir = path.resolve(this.configService.get<string>('CACHE_DIR') || DEFAULT_CACHE_DIR);
+      const relativePath = trackPath.replace('/covers/', '');
+      const candidate = this.resolveCandidatePath(cacheDir, relativePath);
+      return candidate || path.join(cacheDir, relativePath);
     }
     return null;
   }
@@ -188,7 +214,7 @@ export class TrackService {
       };
     }
 
-    const filePath = this.getFilePath(track.path);
+    const filePath = await this.getFilePath(track.path);
     if (!filePath || !fs.existsSync(filePath)) {
       return {
         defaultQuality: 'lossless',
@@ -243,7 +269,16 @@ export class TrackService {
       };
     }
 
-    const sourcePath = this.getFilePath(track.path);
+    // If track has a pre-transcoded path (import-time transcode for incompatible formats),
+    // use it directly regardless of quality setting
+    if ((track as any).transcodedPath && fs.existsSync((track as any).transcodedPath)) {
+      return {
+        filePath: (track as any).transcodedPath,
+        contentType: 'audio/mpeg',
+      };
+    }
+
+    const sourcePath = await this.getFilePath(track.path);
     if (!sourcePath || !fs.existsSync(sourcePath)) {
       throw new Error('File not found');
     }
@@ -319,7 +354,7 @@ export class TrackService {
   }
 
   private async deleteFileSafely(trackPath: string) {
-    const absolutePath = this.getFilePath(trackPath);
+    const absolutePath = await this.getFilePath(trackPath);
     if (absolutePath && fs.existsSync(absolutePath)) {
       try {
         await fs.promises.unlink(absolutePath);

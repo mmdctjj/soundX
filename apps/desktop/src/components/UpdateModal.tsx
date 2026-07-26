@@ -2,16 +2,13 @@ import { DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from "react-i18next";
 import { Button, Modal, Typography } from 'antd';
 import React from 'react';
+import { open } from "@tauri-apps/plugin-shell";
 import type { UpdateInfo } from '../hooks/useCheckUpdate';
 
 import MarkdownContent from './MarkdownContent';
-import { isWeb } from '../utils/platform';
+import { isWeb, isTauri } from '../utils/platform';
 
 const { Paragraph, Text } = Typography;
-
-type IpcRendererBridge = {
-  openExternal: (url: string) => void;
-};
 
 interface UpdateModalProps {
   visible: boolean;
@@ -26,9 +23,8 @@ const UpdateModal: React.FC<UpdateModalProps> = ({ visible, updateInfo, onCancel
 
   const handleDownload = () => {
     if (updateInfo.downloadUrl) {
-        const ipcRenderer = (window as Window & { ipcRenderer?: IpcRendererBridge }).ipcRenderer;
-        if (ipcRenderer) {
-            ipcRenderer.openExternal(updateInfo.downloadUrl);
+        if (isTauri()) {
+            open(updateInfo.downloadUrl).catch(console.error);
         } else {
             window.open(updateInfo.downloadUrl, '_blank');
         }

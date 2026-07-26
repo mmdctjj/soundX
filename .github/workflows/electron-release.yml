@@ -1,4 +1,4 @@
-name: Release Electron App
+name: Release Tauri App
 
 on:
   push:
@@ -11,19 +11,47 @@ jobs:
     permissions:
       contents: write
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
             platform: mac
-            command: build:mac
+            arch: arm64
+            target: aarch64-apple-darwin
+            command: build:mac:arm64
+            bundle_subdir: aarch64-apple-darwin
+          - os: macos-latest
+            platform: mac
+            arch: x64
+            target: x86_64-apple-darwin
+            command: build:mac:x64
+            bundle_subdir: x86_64-apple-darwin
           - os: windows-latest
             platform: win
+            arch: x64
+            target: x86_64-pc-windows-msvc
             command: build:win
+            bundle_subdir: x86_64-pc-windows-msvc
+          - os: windows-latest
+            platform: win
+            arch: arm64
+            target: aarch64-pc-windows-msvc
+            command: build:win:arm64
+            bundle_subdir: aarch64-pc-windows-msvc
           - os: ubuntu-latest
             platform: linux
+            arch: x64
+            target: ""
             command: build:linux
+            bundle_subdir: ""
 
     runs-on: ${{ matrix.os }}
+    env:
+      MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+      MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+      MINIO_ACCESS: ${{ secrets.MINIO_ACCESS }}
+      MINIO_SECRET: ${{ secrets.MINIO_SECRET }}
+      MINIO_REGION: ${{ secrets.MINIO_REGION || 'us-east-1' }}
 
     steps:
       - name: Checkout
@@ -39,8 +67,37 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: "pnpm"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target && format('{0}', matrix.target) || '' }}
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/desktop/src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            patchelf
 
       - name: Install dependencies
         run: pnpm install
@@ -53,15 +110,22 @@ jobs:
           pnpm --filter @soundx/db run generate
           pnpm --filter @soundx/services run build
 
-      - name: Build Electron App
+      - name: Build Tauri App
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm --filter sound-x run ${{ matrix.command }} -- --publish never
+        run: pnpm --filter sound-x run ${{ matrix.command }}
+
+      - name: List build outputs
+        if: matrix.os != 'windows-latest'
+        run: |
+          echo "Listing Tauri bundle outputs..."
+          ls -la apps/desktop/src-tauri/target/*/release/bundle/ 2>/dev/null || true
+          find apps/desktop/src-tauri/target -type d -name "bundle" -exec ls -la {} \;
 
       - name: Build Changelog
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v5
-        if: matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'mac' && matrix.arch == 'arm64' && startsWith(github.ref, 'refs/tags/')
         with:
           configurationJson: |
             {
@@ -91,35 +155,60 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Release Assets (Mac)
-        uses: softprops/action-gh-release@v2
-        if: matrix.platform == 'mac' && startsWith(github.ref, 'refs/tags/')
+      - name: Upload Release Assets (Mac x64, append)
+        uses: softprops/action-gh-release@v2.4.1
+        if: matrix.platform == 'mac' && matrix.arch == 'x64' && startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            apps/desktop/release/*.dmg
-            apps/desktop/release/*.zip
-            apps/desktop/release/*.exe
-            apps/desktop/release/*.AppImage
-            apps/desktop/release/*.deb
-            apps/desktop/release/*.blockmap
-            apps/desktop/release/latest*.yml
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/macos/*.app
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets (Mac arm64, with changelog, makes latest)
+        uses: softprops/action-gh-release@v2.4.1
+        if: matrix.platform == 'mac' && matrix.arch == 'arm64' && startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/macos/*.app
           body: ${{ steps.build_changelog.outputs.changelog }}
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets (Win/Linux)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.4.1
         if: matrix.platform != 'mac' && startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            apps/desktop/release/*.dmg
-            apps/desktop/release/*.zip
-            apps/desktop/release/*.exe
-            apps/desktop/release/*.AppImage
-            apps/desktop/release/*.deb
-            apps/desktop/release/*.blockmap
-            apps/desktop/release/latest*.yml
-          make_latest: true
+            apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/nsis/*.exe
+            apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+            apps/desktop/src-tauri/target/release/bundle/deb/*.deb
+          make_latest: ${{ matrix.arch == 'x64' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installers to MinIO
+        if: ${{ startsWith(github.ref, 'refs/tags/') && env.MINIO_ENDPOINT != '' }}
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ env.MINIO_ACCESS }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.MINIO_SECRET }}
+          AWS_DEFAULT_REGION: ${{ env.MINIO_REGION }}
+        run: |
+          set -e
+          mkdir -p ~/.aws
+          printf '[default]\ns3 =\n    addressing_style = path\n' > ~/.aws/config
+          VERSION="${{ github.ref_name }}"
+          SUBDIR="${{ matrix.bundle_subdir }}"
+          BUNDLE_DIR="apps/desktop/src-tauri/target/${SUBDIR:+${SUBDIR}/}release/bundle"
+          echo "Uploading ${{ matrix.platform }}/${{ matrix.arch }} installers -> minio:$MINIO_BUCKET/audiodock/releases/$VERSION/"
+          found=0
+          while IFS= read -r -d '' f; do
+            name="$(basename "$f")"
+            echo "  -> $name"
+            aws s3 cp "$f" "s3://$MINIO_BUCKET/audiodock/releases/$VERSION/$name" --endpoint-url "$MINIO_ENDPOINT" --no-progress
+            found=1
+          done < <(find "$BUNDLE_DIR" -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) -print0)
+          [ "$found" = "1" ] || echo "No installer files found in $BUNDLE_DIR"

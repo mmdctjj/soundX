@@ -11,6 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+      MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+      MINIO_ACCESS: ${{ secrets.MINIO_ACCESS }}
+      MINIO_SECRET: ${{ secrets.MINIO_SECRET }}
+      MINIO_REGION: ${{ secrets.MINIO_REGION || 'us-east-1' }}
 
     steps:
       - name: Checkout
@@ -107,3 +113,20 @@ jobs:
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload APK to MinIO
+        if: ${{ startsWith(github.ref, 'refs/tags/') && env.MINIO_ENDPOINT != '' }}
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ env.MINIO_ACCESS }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.MINIO_SECRET }}
+          AWS_DEFAULT_REGION: ${{ env.MINIO_REGION }}
+        run: |
+          set -e
+          mkdir -p ~/.aws
+          printf '[default]\ns3 =\n    addressing_style = path\n' > ~/.aws/config
+          VERSION="${{ github.ref_name }}"
+          APK="${{ steps.prepare_apk.outputs.apk_path }}"
+          name="$(basename "$APK")"
+          echo "Uploading $name -> minio:$MINIO_BUCKET/audiodock/releases/$VERSION/"
+          aws s3 cp "$APK" "s3://$MINIO_BUCKET/audiodock/releases/$VERSION/$name" --endpoint-url "$MINIO_ENDPOINT" --no-progress

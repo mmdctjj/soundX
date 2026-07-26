@@ -2,7 +2,19 @@ import os
 from dotenv import load_dotenv
 
 # 加载环境变量，一定要在导入其他业务模块之前
-# load_dotenv(override=True)
+# 显式指定 .env 文件路径，确保能正确加载
+env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+load_dotenv(dotenv_path=env_path)
+print(f"[main] Loaded .env from: {os.path.abspath(env_path)}")
+print(f"[main] TTS_MINIMAX_API_KEY present: {bool(os.getenv('TTS_MINIMAX_API_KEY'))}")
+print(f"[main] TTS_MINIMAX_GROUP_ID present: {bool(os.getenv('TTS_MINIMAX_GROUP_ID'))}")
+print(f"[main] TTS_MIMO_API_TOKEN present: {bool(os.getenv('TTS_MIMO_API_TOKEN'))}")
+
+# 启动时把 DB 中持久化的 provider 配置回写到 os.environ，
+# 让现有 processor/engine 直接从环境变量读取，无需修改核心逻辑。
+from src.core.settings_manager import hydrate_from_db
+hydrate_from_db()
+print("[main] TTS provider configs hydrated from DB")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

@@ -1,0 +1,33 @@
+[package]
+name = "sound-x"
+version = "1.1.22"
+description = "AudioDock - A modern audio player"
+authors = ["mmdctjj <mmdctjj@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/mmdctjj/AudioDock"
+edition = "2021"
+rust-version = "1.70"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api", "protocol-asset", "tray-icon", "image-png"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-http = "2"
+tauri-plugin-os = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["stream"] }
+futures-util = "0.3"
+dirs = "5"
+percent-encoding = "2"
+tauri-plugin-opener = "2"
+axum = "0.8"
+tokio-util = { version = "0.7", features = ["io"] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

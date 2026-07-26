@@ -9,6 +9,9 @@ export * from "./config";
 export * from "./folder";
 export * from "./import";
 export * from "./llm";
+export * from "./llmConfig";
+export * from "./metadataPlugins";
+export * from "./mi";
 export * from "./models";
 export * from "./mv";
 export * from "./playlist";
@@ -17,10 +20,13 @@ export * from "./request";
 export * from "./scan-login";
 export * from "./search";
 export * from "./search-record";
+export * from "./taskCenter";
 export * from "./track";
 export * from "./tts";
+export * from "./ttsConfig";
 export * from "./user";
 export * from "./userAudiobookHistory";
+export * from "./webdav";
 
 export const SOURCEMAP = {
     AudioDock: "audiodock",

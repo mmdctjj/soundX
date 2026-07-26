@@ -7,6 +7,12 @@ import { setBaseURL } from '../../utils/request'
 import { SOURCEMAP, SOURCETIPSMAP, SourceConfig, getSourceLogo, selectBestServer } from '../../utils/sourceUtils'
 import './index.scss'
 
+// H5 同源部署时默认指向 nginx 代理的 /api；小程序端用 localhost:3000 由用户填写
+const DEFAULT_INTERNAL_ADDRESS =
+  process.env.TARO_ENV === 'h5' && typeof window !== 'undefined' && window.location
+    ? `${window.location.origin}/api`
+    : 'http://localhost:3000'
+
 export default function LoginForm() {
   const { t } = useTranslation();
   const { login, register, token } = useAuth()
@@ -73,7 +79,7 @@ export default function LoginForm() {
       }
 
       if (type === 'AudioDock') {
-        setInternalAddress('http://localhost:3000')
+        setInternalAddress(DEFAULT_INTERNAL_ADDRESS)
       } else {
         setInternalAddress('')
       }
@@ -82,7 +88,7 @@ export default function LoginForm() {
       setPassword('')
     } catch (error) {
       if (type === 'AudioDock') {
-        setInternalAddress('http://localhost:3000')
+        setInternalAddress(DEFAULT_INTERNAL_ADDRESS)
       }
       setExternalAddress('')
     }

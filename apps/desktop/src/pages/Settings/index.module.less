@@ -70,4 +70,37 @@
   .pathInput {
     max-width: 460px;
   }
+
+  .webdavWrapper {
+    width: 100%;
+    max-width: 1080px;
+  }
+
+  .webdavSyncPanel {
+    margin-top: 24px;
+    padding: 16px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+
+  .tabLayout {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 32px;
+  }
+
+  .tabNav {
+    flex-shrink: 0;
+    width: 160px;
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+  }
+
+  .tabBody {
+    flex: 1;
+    min-width: 0;
+  }
 }

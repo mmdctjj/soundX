@@ -405,13 +405,21 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       const baseUrl = getBaseURL();
-      const { selectedQuality, options } = await prepareAudioQuality(track, preferredQuality);
-      if (requestId !== playRequestIdRef.current) return;
+
+      // Pick the quality synchronously so playback can start immediately.
+      // The async profile fetch runs in the background via the
+      // `syncCurrentTrackQuality` effect and only swaps the URI when the
+      // server offers a different bitrate than the user's preference.
+      const initialQuality: AudioQuality =
+        preferredQuality ??
+        getCurrentPlaybackQualityPreference({ externalPlaybackQuality }) ??
+        'lossless';
 
       const uri =
         track.type === 'AUDIOBOOK'
           ? (track.path.startsWith('http') ? track.path : `${baseUrl}${track.path}`)
-          : buildTrackPlaybackUrl(track, selectedQuality);
+          : buildTrackPlaybackUrl(track, initialQuality);
+      if (requestId !== playRequestIdRef.current) return;
       const cover = track.cover
         ? (track.cover.startsWith('http') ? track.cover : `${baseUrl}${track.cover}`)
         : undefined;
@@ -427,18 +435,36 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch (error) {
           console.error('Failed to apply playback rate:', error);
         }
-        // Setting src starts playback automatically
+        // Setting src starts playback automatically. Do not await anything
+        // before this line — every millisecond of waiting is audible latency
+        // for the user.
         manager.src = uri;
         currentTrackRef.current = track;
         setCurrentTrack(track);
         setCurrentTime(0);
         setDuration(track.duration ?? 0);
-        setAvailableAudioQualities(options);
-        setCurrentAudioQuality(selectedQuality);
+        setAvailableAudioQualities([]);
+        setCurrentAudioQuality(initialQuality);
         const startPosition = initialPosition !== undefined
           ? initialPosition
           : (track.type === 'AUDIOBOOK' ? skipIntroDurationRef.current : 0);
         applyStartPosition(startPosition, requestId);
+      }
+
+      // Fire-and-forget the profile fetch so the quality switcher reflects
+      // the server's actual options without delaying the play click.
+      if (track.type !== 'AUDIOBOOK' && requestId === playRequestIdRef.current) {
+        prepareAudioQuality(track, initialQuality)
+          .then(({ selectedQuality, options }) => {
+            if (requestId !== playRequestIdRef.current) return;
+            setAvailableAudioQualities(options);
+            setCurrentAudioQuality((prev) =>
+              prev === selectedQuality ? prev : selectedQuality
+            );
+          })
+          .catch(() => {
+            /* keep initial quality on error */
+          });
       }
     } catch (error) {
       if (requestId === playRequestIdRef.current) {

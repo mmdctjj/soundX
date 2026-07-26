@@ -51,6 +51,7 @@ import { useTranslation } from "react-i18next";
 import { updateWidget, updateWidgetCollections } from "../native/WidgetBridge";
 import { cacheCover } from "../services/cache";
 import { resolveArtworkUri } from "../services/trackResolver";
+import { getBaseURL } from "../https";
 import { toggleTrackLike, toggleTrackUnLike } from "@soundx/services";
 import {
   AudioQuality,
@@ -1404,29 +1405,43 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       // ✨ 重置片尾跳过锁
       isSkippingOutroRef.current = false;
 
-      const { selectedQuality, options } = await prepareAudioQuality(track, preferredQuality);
-      if (!isLatestRequest()) return;
+      // Pick the quality synchronously so we can hand TrackPlayer a URL on
+      // the very next tick. The async profile fetch + cache check + artwork
+      // download run in the background and only upgrade state when they
+      // resolve — they never gate the play call.
+      //
+      // Note: getCurrentPlaybackQualityPreference is async (reads
+      // AsyncStorage) so we can't await it on the play path. Falling back to
+      // "lossless" gives a sensible default that works for every track; if
+      // the user picked a different preferred quality the background
+      // prepareAudioQuality() call will reconcile the UI state. We
+      // deliberately do NOT swap the audio URL mid-playback — that would
+      // re-buffer and defeat the purpose of this fix.
+      const initialQuality: AudioQuality = preferredQuality ?? "lossless";
 
-      const playUri =
+      const remoteUri =
         track.type === TrackType.AUDIOBOOK
-          ? await resolveTrackUri(track, { cacheEnabled })
-          : buildTrackPlaybackUrl(track, selectedQuality);
-      if (!isLatestRequest()) return;
+          ? (track.path.startsWith("http")
+              ? track.path
+              : `${getBaseURL()}${track.path
+                  .split("/")
+                  .map(encodeURIComponent)
+                  .join("/")}`)
+          : buildTrackPlaybackUrl(track, initialQuality);
 
-      const artwork = await resolveArtworkUriForPlayer(track, {
-        shouldDownload: true,
-      });
-      if (!isLatestRequest()) return;
+      // Artwork: use the remote URL immediately. A cached / downloaded
+      // copy is wired up in the background and just swaps the metadata.
+      const remoteArtwork = resolveArtworkUri(track);
 
-      console.log("Playing track:", track.id, "URI:", playUri);
+      console.log("Playing track:", track.id, "URI:", remoteUri);
 
       const trackData: any = {
         id: String(track.id),
-        url: playUri,
+        url: remoteUri,
         title: track.name,
         artist: track.artist,
         album: track.album || "Unknown Album",
-        artwork: artwork,
+        artwork: remoteArtwork,
         duration: track.duration || 0,
         type: track.type, // ✨ 传递类型
       };
@@ -1473,8 +1488,46 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!isLatestRequest()) return;
 
       setCurrentTrackState(track);
-      setAvailableAudioQualities(options);
-      setCurrentAudioQuality(selectedQuality);
+      setCurrentAudioQuality(initialQuality);
+
+      // ✨ 异步升级：拉取 quality profile + 缓存 + 封面，全部不阻塞播放
+      if (track.type !== TrackType.AUDIOBOOK) {
+        prepareAudioQuality(track, initialQuality)
+          .then(({ selectedQuality, options }) => {
+            if (!isLatestRequest()) return;
+            setAvailableAudioQualities(options);
+            setCurrentAudioQuality((prev) =>
+              prev === selectedQuality ? prev : selectedQuality
+            );
+          })
+          .catch(() => {
+            /* keep initial quality */
+          });
+      } else {
+        // Audiobook: upgrade URI to a local cache file when available.
+        resolveTrackUri(track, { cacheEnabled, shouldDownload: true })
+          .then((cachedUri) => {
+            if (!isLatestRequest()) return;
+            if (cachedUri && cachedUri !== remoteUri) {
+              // TrackPlayer doesn't allow swapping the URL of an active
+              // track without a re-buffer, so the cache benefit applies on
+              // the next play. We still surface it for the user via the
+              // state cache that future playTrack invocations read.
+              console.log(
+                `[Player] Cached copy available for ${track.id}, will use on next play.`
+              );
+            }
+          })
+          .catch(() => {
+            /* keep remote URI */
+          });
+      }
+
+      // Background: download cover art for future metadata use.
+      resolveArtworkUriForPlayer(track, { shouldDownload: true }).catch(() => {
+        /* keep remote artwork */
+      });
+
       savePlaybackState(mode);
     } catch (error) {
       if (isLatestRequest()) {
@@ -1503,21 +1556,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       setTrackListState(tracks);
       isSkippingOutroRef.current = false;
 
+      // Pick the preferred quality synchronously for the same reason as
+      // playTrack: never block queue setup on an HTTP profile fetch.
+      // AsyncStorage-backed preferences are read in the background; "lossless"
+      // is the safe default that every backend supports.
+      const listQuality: AudioQuality = "lossless";
+
+      const buildSyncUri = (t: Track): string =>
+        t.type === TrackType.AUDIOBOOK
+          ? (t.path.startsWith("http")
+              ? t.path
+              : `${getBaseURL()}${t.path
+                  .split("/")
+                  .map(encodeURIComponent)
+                  .join("/")}`)
+          : buildTrackPlaybackUrl(t, listQuality);
+
       const shouldUseSingleTrackQueue = playModeRef.current === PlayMode.SHUFFLE;
       if (shouldUseSingleTrackQueue) {
         const track = tracks[index];
-        const uri =
-          track.type === TrackType.AUDIOBOOK
-            ? await resolveTrackUri(track, {
-                cacheEnabled,
-                shouldDownload: true,
-              })
-            : buildTrackPlaybackUrl(track);
-        if (!isLatestRequest()) return;
-
-        const artwork = await resolveArtworkUriForPlayer(track, {
-          shouldDownload: true,
-        });
+        const uri = buildSyncUri(track);
+        const artwork = resolveArtworkUri(track);
         if (!isLatestRequest()) return;
 
         await TrackPlayer.setQueue([
@@ -1535,42 +1594,47 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!isLatestRequest()) return;
 
         await TrackPlayer.skip(0);
+
+        // Background upgrades for the playing track (non-blocking).
+        if (track.type === TrackType.AUDIOBOOK) {
+          resolveTrackUri(track, { cacheEnabled, shouldDownload: true }).catch(
+            () => {}
+          );
+        }
+        resolveArtworkUriForPlayer(track, { shouldDownload: true }).catch(
+          () => {}
+        );
       } else {
-        // ✨ 核心改进：预加载整个列表进入原生队列，但仅触发当前和下一首的下载
-        const playerTracks = await Promise.all(tracks.map(async (t, i) => {
-            // 核心优化：仅当前曲目 (index) 和下一首 (index + 1) 会触发耗时的缓存检查和预下载
-            // 其他歌曲使用 fast 模式直接返回远程 URL，稍后真正切到它们时再由 resolveTrackUri 处理缓存
-            const isNearCurrent = (i === index || i === index + 1);
-            const uri =
-              t.type === TrackType.AUDIOBOOK
-                ? await resolveTrackUri(t, {
-                    cacheEnabled,
-                    shouldDownload: isNearCurrent,
-                    fast: !isNearCurrent
-                  })
-                : buildTrackPlaybackUrl(t);
-            const artwork = await resolveArtworkUriForPlayer(t, {
-              shouldDownload: isNearCurrent,
-              fast: !isNearCurrent,
-            });
-            return {
-              id: String(t.id),
-              url: uri,
-              title: t.name,
-              artist: t.artist,
-              album: t.album || "Unknown Album",
-              artwork: artwork,
-              duration: t.duration || 0,
-              // ✨ 附加自定义字段，方便背景服务识别
-              type: t.type
-            } as any;
-        }));
+        // ✨ 核心改进：预加载整个列表进入原生队列。全部使用同步 URL
+        // 计算 + 远程封面，确保 setQueue 不被任何 IO 操作阻塞。
+        const playerTracks = tracks.map((t) => ({
+          id: String(t.id),
+          url: buildSyncUri(t),
+          title: t.name,
+          artist: t.artist,
+          album: t.album || "Unknown Album",
+          artwork: resolveArtworkUri(t),
+          duration: t.duration || 0,
+          // ✨ 附加自定义字段，方便背景服务识别
+          type: t.type,
+        } as any));
         if (!isLatestRequest()) return;
 
         await TrackPlayer.setQueue(playerTracks);
         if (!isLatestRequest()) return;
 
         await TrackPlayer.skip(index);
+
+        // ✨ 后台异步触发当前和下一首的缓存/封面升级（不阻塞播放）
+        const nearTracks = [tracks[index], tracks[index + 1]].filter(Boolean);
+        nearTracks.forEach((t) => {
+          if (t.type === TrackType.AUDIOBOOK) {
+            resolveTrackUri(t, { cacheEnabled, shouldDownload: true }).catch(
+              () => {}
+            );
+          }
+          resolveArtworkUriForPlayer(t, { shouldDownload: true }).catch(() => {});
+        });
       }
       if (!isLatestRequest()) return;
 

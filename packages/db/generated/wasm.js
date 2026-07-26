@@ -138,6 +138,11 @@ exports.Prisma.TrackScalarFieldEnum = {
   fileHash: 'fileHash',
   status: 'status',
   trashedAt: 'trashedAt',
+  transcodedPath: 'transcodedPath',
+  metadataSource: 'metadataSource',
+  metadataProvider: 'metadataProvider',
+  source: 'source',
+  tags: 'tags',
   artistId: 'artistId',
   albumId: 'albumId',
   folderId: 'folderId'
@@ -151,7 +156,11 @@ exports.Prisma.AlbumScalarFieldEnum = {
   year: 'year',
   type: 'type',
   status: 'status',
-  trashedAt: 'trashedAt'
+  trashedAt: 'trashedAt',
+  metadataSource: 'metadataSource',
+  metadataProvider: 'metadataProvider',
+  description: 'description',
+  tags: 'tags'
 };
 
 exports.Prisma.ArtistScalarFieldEnum = {
@@ -160,7 +169,11 @@ exports.Prisma.ArtistScalarFieldEnum = {
   avatar: 'avatar',
   type: 'type',
   status: 'status',
-  trashedAt: 'trashedAt'
+  trashedAt: 'trashedAt',
+  metadataSource: 'metadataSource',
+  metadataProvider: 'metadataProvider',
+  description: 'description',
+  tags: 'tags'
 };
 
 exports.Prisma.AudiobookCollectionScalarFieldEnum = {
@@ -289,6 +302,9 @@ exports.Prisma.TtsTaskScalarFieldEnum = {
   bookName: 'bookName',
   author: 'author',
   filePath: 'filePath',
+  provider: 'provider',
+  voice: 'voice',
+  speed: 'speed',
   totalChapters: 'totalChapters',
   completedChapters: 'completedChapters',
   status: 'status',
@@ -324,6 +340,20 @@ exports.Prisma.TtsChapterTaskScalarFieldEnum = {
   outputPath: 'outputPath'
 };
 
+exports.Prisma.PluginLogScalarFieldEnum = {
+  id: 'id',
+  pluginId: 'pluginId',
+  pluginName: 'pluginName',
+  targetPath: 'targetPath',
+  targetType: 'targetType',
+  input: 'input',
+  output: 'output',
+  status: 'status',
+  durationMs: 'durationMs',
+  message: 'message',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -341,6 +371,17 @@ exports.TrackType = exports.$Enums.TrackType = {
 exports.FileStatus = exports.$Enums.FileStatus = {
   ACTIVE: 'ACTIVE',
   TRASHED: 'TRASHED'
+};
+
+exports.MetadataSource = exports.$Enums.MetadataSource = {
+  EMBEDDED: 'EMBEDDED',
+  PLUGIN: 'PLUGIN',
+  USER_EDITED: 'USER_EDITED'
+};
+
+exports.TrackSource = exports.$Enums.TrackSource = {
+  FILE: 'FILE',
+  WEBDAV: 'WEBDAV'
 };
 
 exports.Prisma.ModelName = {
@@ -364,7 +405,8 @@ exports.Prisma.ModelName = {
   TtsUserConfig: 'TtsUserConfig',
   TtsTask: 'TtsTask',
   Mv: 'Mv',
-  TtsChapterTask: 'TtsChapterTask'
+  TtsChapterTask: 'TtsChapterTask',
+  PluginLog: 'PluginLog'
 };
 
 /**

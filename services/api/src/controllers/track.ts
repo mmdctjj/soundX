@@ -403,7 +403,7 @@ export class TrackController {
       // Fallback for .strm files that were incorrectly saved as local paths
       if ((!filePath || !fs.existsSync(filePath)) && track.path.includes('.strm')) {
           // If the DB path is a local URL like /music/..., get the actual disk path
-          const resolvedFilePath = this.trackService.getFilePath(track.path);
+          const resolvedFilePath = await this.trackService.getFilePath(track.path);
           if (resolvedFilePath) {
             filePath = resolvedFilePath;
           }
@@ -461,7 +461,9 @@ export class TrackController {
       }
 
       // Normal audio file: provide range support via express
-      return res.sendFile(filePath);
+      // Use root option for absolute paths to ensure Express handles it correctly
+      const rootPath = path.isAbsolute(filePath) ? '/' : undefined;
+      return res.sendFile(filePath, { root: rootPath });
       
     } catch (error) {
       console.error('Stream error:', error);

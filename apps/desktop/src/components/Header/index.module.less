@@ -4,9 +4,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background-color: var(--ad-header-bg, rgba(255, 255, 255, 0.1));
+  color: var(--ad-header-text, inherit);
   z-index: 100;
   -webkit-app-region: drag; // Enable window dragging
 }
@@ -34,7 +33,7 @@
 
   &:hover {
     opacity: 1;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--ad-header-border, rgba(255, 255, 255, 0.1));
   }
 }
 
@@ -53,9 +52,9 @@
 
 .navGroup {
   border-radius: 20px;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background-color: var(--ad-header-border, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(var(--ad-header-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--ad-header-blur, 20px));
   padding: 10px 15px;
   display: flex;
   gap: 15px;
@@ -80,9 +79,9 @@
 .searchBar {
   flex: 1;
   max-width: 400px;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background-color: var(--ad-header-border, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(var(--ad-header-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--ad-header-blur, 20px));
   margin: 0 20px;
   border-radius: 20px;
   padding: 3px 5px;
@@ -91,19 +90,19 @@
   transition: background-color 0.3s;
 
   &:focus-within {
-    background-color: rgba(255, 255, 255, 0.25);
+    background-color: var(--ad-header-active, rgba(255, 255, 255, 0.25));
   }
 }
 
 .searchInput {
   border-radius: 20px;
-  color: inherit;
   background-color: transparent;
 
   :global {
     .ant-input {
       background-color: transparent;
-      color: inherit;
+      // 显式读 antd 全局 colorText token，避免被 .header 的白色级联吞掉
+      color: var(--ant-color-text, inherit);
     }
   }
 }
@@ -187,7 +186,7 @@
   opacity: 0.7;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--ad-header-border, rgba(255, 255, 255, 0.1));
     opacity: 1;
   }
 

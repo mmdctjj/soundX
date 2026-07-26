@@ -1,9 +1,11 @@
 import { AddToPlaylistModal } from "@/src/components/AddToPlaylistModal";
 import { CachedImage } from "@/src/components/CachedImage";
 import { FloatingActionButtons } from "@/src/components/FloatingActionButtons";
+import { MiDeviceSelector } from "@/src/components/MiDeviceSelector";
+import { XiaoAiIcon } from "@/src/components/XiaoAiIcon";
 import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { Ionicons } from "@expo/vector-icons";
-import { getArtistList, getCollections, loadMoreAlbum, loadMoreTrack, getMvList } from "@soundx/services";
+import { getArtistList, getCollections, loadMoreAlbum, loadMoreTrack, getMvList, playMiDevicePlaylist } from "@soundx/services";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -23,7 +25,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/AuthContext";
 import { usePlayer } from "../../src/context/PlayerContext";
 import { useTheme } from "../../src/context/ThemeContext";
-import { Album, Artist, Track } from "../../src/models";
+import { Album, Artist, Track, TrackSource } from "../../src/models";
 import { downloadTracks } from "../../src/services/downloadManager";
 import { getImageUrl } from "../../src/utils/image";
 import { usePlayMode } from "../../src/utils/playMode";
@@ -35,6 +37,14 @@ const SCREEN_PADDING = 40; // 20 horizontal padding * 2
 const TARGET_WIDTH = 100; // Slightly smaller target for dense list
 const SONG_SKELETON_COUNT = 9;
 const GRID_SKELETON_COUNT = 12;
+
+const libraryTabCache = {
+  tracks: new Map<string, Track[]>(),
+  artists: new Map<string, Artist[]>(),
+  albums: new Map<string, Album[]>(),
+  collections: new Map<string, any[]>(),
+  mvs: new Map<string, any[]>(),
+};
 
 interface SongListProps {
   isSelectionMode: boolean;
@@ -57,8 +67,9 @@ const SongList = ({
   const { t } = useTranslation();
   const { mode } = usePlayMode();
   const { playTrackList } = usePlayer();
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${mode}_${heartbeatModeActive ? "heartbeat" : "normal"}`;
+  const [tracks, setTracks] = useState<Track[]>(() => libraryTabCache.tracks.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.tracks.has(cacheKey));
   const [addToPlaylistVisible, setAddToPlaylistVisible] = useState(false);
   const flatListRef = useRef<FlatList<Track>>(null);
   const { currentTrack } = usePlayer();
@@ -84,12 +95,18 @@ const SongList = ({
   };
 
   useEffect(() => {
+    const cached = libraryTabCache.tracks.get(cacheKey);
+    if (cached) {
+      setTracks(cached);
+      setLoading(false);
+      return;
+    }
     loadTracks();
-  }, [mode, heartbeatModeActive]);
+  }, [cacheKey]);
 
   const loadTracks = async () => {
     try {
-      setLoading(true);
+      setLoading(tracks.length === 0);
       const res = await loadMoreTrack({
         pageSize: 2000,
         loadCount: 0,
@@ -102,11 +119,11 @@ const SongList = ({
         const mappedTracks = list.map((item: any) =>
           item.track ? item.track : item,
         );
-        setTracks(
-          heartbeatModeActive
-            ? mappedTracks
-            : mappedTracks.sort((a, b) => a.name.localeCompare(b.name)),
-        );
+        const nextTracks = heartbeatModeActive
+          ? mappedTracks
+          : mappedTracks.sort((a, b) => a.name.localeCompare(b.name));
+        libraryTabCache.tracks.set(cacheKey, nextTracks);
+        setTracks(nextTracks);
       }
     } catch (error) {
       console.error("Failed to load tracks:", error);
@@ -284,7 +301,10 @@ const SongList = ({
                   style={[styles.songArtist, { color: colors.secondary }]}
                   numberOfLines={1}
                 >
-                  {item.artist} · {item.album}
+                  {item.artist} · {item.album} ·{" "}
+                  {item.source === TrackSource.WEBDAV
+                    ? t("trackList.sourceWebdav")
+                    : t("trackList.sourceFile")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -334,8 +354,9 @@ const ArtistList = ({
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
-  const [artists, setArtists] = useState<Artist[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${mode}_${heartbeatModeActive ? "heartbeat" : "normal"}`;
+  const [artists, setArtists] = useState<Artist[]>(() => libraryTabCache.artists.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.artists.has(cacheKey));
   const flatListRef = useRef<FlatList<Artist>>(null);
   const { currentTrack } = usePlayer();
 
@@ -369,12 +390,18 @@ const ArtistList = ({
   const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
 
   useEffect(() => {
+    const cached = libraryTabCache.artists.get(cacheKey);
+    if (cached) {
+      setArtists(cached);
+      setLoading(false);
+      return;
+    }
     loadArtists();
-  }, [mode, heartbeatModeActive]);
+  }, [cacheKey]);
 
   const loadArtists = async () => {
     try {
-      setLoading(true);
+      setLoading(artists.length === 0);
       const res = await getArtistList(
         1000,
         0,
@@ -384,11 +411,11 @@ const ArtistList = ({
 
       if (res.code === 200 && res.data) {
         const { list } = res.data;
-        setArtists(
-          heartbeatModeActive
-            ? list
-            : list.sort((a, b) => a.name.localeCompare(b.name)),
-        );
+        const nextArtists = heartbeatModeActive
+          ? list
+          : list.sort((a, b) => a.name.localeCompare(b.name));
+        libraryTabCache.artists.set(cacheKey, nextArtists);
+        setArtists(nextArtists);
       }
     } catch (error) {
       console.error("Failed to load artists:", error);
@@ -508,8 +535,9 @@ const AlbumList = ({
   const router = useRouter();
   const { mode } = usePlayMode();
   const { width } = useWindowDimensions();
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${mode}_${heartbeatModeActive ? "heartbeat" : "normal"}`;
+  const [albums, setAlbums] = useState<Album[]>(() => libraryTabCache.albums.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.albums.has(cacheKey));
   const flatListRef = useRef<FlatList<Album>>(null);
   const { currentTrack } = usePlayer();
 
@@ -547,12 +575,18 @@ const AlbumList = ({
   const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
 
   useEffect(() => {
+    const cached = libraryTabCache.albums.get(cacheKey);
+    if (cached) {
+      setAlbums(cached);
+      setLoading(false);
+      return;
+    }
     loadAlbums();
-  }, [mode, heartbeatModeActive]);
+  }, [cacheKey]);
 
   const loadAlbums = async () => {
     try {
-      setLoading(true);
+      setLoading(albums.length === 0);
       const res = await loadMoreAlbum({
         pageSize: 1000,
         loadCount: 0,
@@ -562,11 +596,11 @@ const AlbumList = ({
 
       if (res.code === 200 && res.data) {
         const { list } = res.data;
-        setAlbums(
-          heartbeatModeActive
-            ? list
-            : list.sort((a, b) => a.name.localeCompare(b.name)),
-        );
+        const nextAlbums = heartbeatModeActive
+          ? list
+          : list.sort((a, b) => a.name.localeCompare(b.name));
+        libraryTabCache.albums.set(cacheKey, nextAlbums);
+        setAlbums(nextAlbums);
       }
     } catch (error) {
       console.error("Failed to load albums:", error);
@@ -707,8 +741,9 @@ const CollectionList = () => {
   const { mode } = usePlayMode();
   const { user } = useAuth();
   const { width } = useWindowDimensions();
-  const [collections, setCollections] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = user ? `${mode}_${user.id}` : `${mode}_anonymous`;
+  const [collections, setCollections] = useState<any[]>(() => libraryTabCache.collections.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.collections.has(cacheKey));
 
   // Calculate columns dynamically
   const availableWidth = width - SCREEN_PADDING;
@@ -720,15 +755,22 @@ const CollectionList = () => {
 
   useEffect(() => {
     if (mode !== "AUDIOBOOK" || !user) return;
+    const cached = libraryTabCache.collections.get(cacheKey);
+    if (cached) {
+      setCollections(cached);
+      setLoading(false);
+      return;
+    }
     loadCollections();
-  }, [mode, user]);
+  }, [cacheKey, mode, user]);
 
   const loadCollections = async () => {
     if (!user) return;
     try {
-      setLoading(true);
+      setLoading(collections.length === 0);
       const res = await getCollections(user.id);
       if (res.code === 200 && res.data) {
+        libraryTabCache.collections.set(cacheKey, res.data);
         setCollections(res.data);
       }
     } catch (error) {
@@ -824,8 +866,9 @@ const MvList = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const [mvs, setMvs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = "all";
+  const [mvs, setMvs] = useState<any[]>(() => libraryTabCache.mvs.get(cacheKey) || []);
+  const [loading, setLoading] = useState(() => !libraryTabCache.mvs.has(cacheKey));
 
   // Calculate columns dynamically
   const availableWidth = width - SCREEN_PADDING;
@@ -836,14 +879,21 @@ const MvList = () => {
   const itemWidth = (availableWidth - (numColumns - 1) * GAP) / numColumns;
 
   useEffect(() => {
+    const cached = libraryTabCache.mvs.get(cacheKey);
+    if (cached) {
+      setMvs(cached);
+      setLoading(false);
+      return;
+    }
     loadMvs();
-  }, []);
+  }, [cacheKey]);
 
   const loadMvs = async () => {
     try {
-      setLoading(true);
+      setLoading(mvs.length === 0);
       const res = await getMvList(1000, 0);
       if (res?.list) {
+        libraryTabCache.mvs.set(cacheKey, res.list);
         setMvs(res.list);
       }
     } catch (error) {
@@ -962,6 +1012,10 @@ export default function LibraryScreen() {
   );
   const [heartbeatModeActive, setHeartbeatModeActive] = useState(false);
   const swingAnim = useRef(new Animated.Value(0)).current;
+
+  // Mi Speaker cast state (for SongList tab)
+  const [isMiDeviceSelectorVisible, setIsMiDeviceSelectorVisible] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   useEffect(() => {
     Animated.loop(
@@ -1103,6 +1157,54 @@ export default function LibraryScreen() {
     </Text>
   );
 
+  const handleCastTracksToMi = async (deviceId: string, deviceName: string) => {
+    setIsCastingToMi(true);
+    try {
+      const baseURL = (await import("@/src/https")).getBaseURL().replace(/\/$/, "");
+      const quality = "high";
+      const qualityQuery = `?quality=${quality}`;
+      const res = await loadMoreTrack({
+        pageSize: 2000,
+        loadCount: 0,
+        type: "MUSIC",
+        sortBy: heartbeatModeActive ? "heartbeat" : undefined,
+      });
+      if (res.code !== 200 || !res.data) {
+        Alert.alert(t("playerPage.miCastNoTrack"));
+        return;
+      }
+      const tracks = res.data.list.map((item: any) => item.track ? item.track : item);
+      const finalTracks = heartbeatModeActive
+        ? tracks
+        : tracks.sort((a: any, b: any) => a.name.localeCompare(b.name));
+      
+      if (finalTracks.length === 0) {
+        Alert.alert(t("playerPage.miCastNoTrack"));
+        return;
+      }
+      
+      const trackPayloads = finalTracks.map((track: any) => ({
+        url: `${baseURL}/track/stream/${track.id}${qualityQuery}`,
+        title: `${track.name} - ${track.artist ?? ""}`,
+        duration: track.duration || 0,
+      }));
+
+      await playMiDevicePlaylist({
+        device_id: deviceId,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+
+      Alert.alert(t("playerPage.miCastPlaylistSuccess", { device: deviceName, count: trackPayloads.length }));
+      setIsMiDeviceSelectorVisible(false);
+    } catch (error) {
+      console.error("Failed to cast tracks to Mi device:", error);
+      Alert.alert(t("playerPage.miCastPlaylistFailed"));
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
+
   return (
     <View
       style={[
@@ -1134,6 +1236,17 @@ export default function LibraryScreen() {
         <View style={styles.headerRight}>
           {mode === "MUSIC" && activeTab === "songs" && (
             <>
+              {!isSelectionMode && (
+                <TouchableOpacity
+                  onPress={() => setIsMiDeviceSelectorVisible(true)}
+                  style={[
+                    styles.iconButton,
+                    { backgroundColor: colors.card, marginRight: 12 },
+                  ]}
+                >
+                  <XiaoAiIcon size={20} color={colors.primary} />
+                </TouchableOpacity>
+              )}
               {isSelectionMode ? (
                 <TouchableOpacity
                   onPress={() => {
@@ -1327,6 +1440,12 @@ export default function LibraryScreen() {
       ) : (
         <CollectionList />
       )}
+      <MiDeviceSelector
+        visible={isMiDeviceSelectorVisible}
+        onClose={() => setIsMiDeviceSelectorVisible(false)}
+        onSelectDevice={(device) => handleCastTracksToMi(device.device_id, device.name)}
+        loading={isCastingToMi}
+      />
     </View>
   );
 }

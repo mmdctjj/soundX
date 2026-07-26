@@ -10,6 +10,7 @@ import {
   getPlaylists,
   getRunningImportTask,
   getTrackHistory,
+  hasActiveTasks,
   setPlusToken,
   TaskStatus,
   uploadUserAvatar,
@@ -62,10 +63,10 @@ import {
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-const logo = require("../../assets/images/logo.png");
-const subsonicLogo = require("../../assets/images/subsonic.png");
-const embyLogo = require("../../assets/images/emby.png");
-const ctjjLogo = require("../../assets/images/ctjj.png");
+const logo = require("../../assets/images/logo.webp");
+const subsonicLogo = require("../../assets/images/subsonic.webp");
+const embyLogo = require("../../assets/images/emby.webp");
+const ctjjLogo = require("../../assets/images/ctjj.webp");
 
 type TabType = "playlists" | "favorites" | "history" | "downloads";
 type SubTabType = "track" | "album";
@@ -198,7 +199,6 @@ export default function PersonalScreen() {
     startUpdate,
     ignoreUpdate,
     cancelUpdate,
-    installLocalUpdate,
   } = useCheckUpdate();
 
   const [isModalVisible, setModalVisible] = useState(false);
@@ -339,7 +339,9 @@ export default function PersonalScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    checkUpdate();
+    checkUpdate().then((info) => {
+      if (info) setModalVisible(true);
+    });
   }, []);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -388,6 +390,26 @@ export default function PersonalScreen() {
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importTask, setImportTask] = useState<ImportTask | null>(null);
   const pollTimerRef = React.useRef<any>(null);
+  // 任务中心入口显隐：仅当存在进行中任务时显示
+  const [showTaskCenterEntry, setShowTaskCenterEntry] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const active = await hasActiveTasks();
+        if (!cancelled) setShowTaskCenterEntry(active);
+      } catch {
+        /* 忽略网络异常 */
+      }
+    };
+    check();
+    const timer = setInterval(check, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
   const [isPlusVip, setIsPlusVip] = useState(false);
   const [plusVipData, setPlusVipData] = useState<any>(null);
 
@@ -971,31 +993,21 @@ export default function PersonalScreen() {
         >
           <Ionicons name="add" size={28} color={colors.text} />
         </TouchableOpacity>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          {progress > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                if (progress === 1) {
-                  installLocalUpdate();
-                } else {
-                  setModalVisible(true);
-                }
-              }}
-              style={[styles.iconBtn, { marginRight: 10 }]}
-            >
-              <Ionicons name="download-outline" size={22} color={colors.text} />
-              <Text style={{ color: colors.text }}>
-                {(progress * 100).toFixed(0)}%
-              </Text>
-            </TouchableOpacity>
-          )}
-
+       <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
-            onPress={handleOpenScanEntry}
-            style={[styles.iconBtn, { marginRight: 10 }]}
-          >
+           onPress={handleOpenScanEntry}
+           style={[styles.iconBtn, { marginRight: 10 }]}
+         >
             <AntDesign name="scan" size={22} color={colors.text} />
           </TouchableOpacity>
+          {showTaskCenterEntry && (
+            <TouchableOpacity
+              onPress={() => router.push("/task-center" as any)}
+              style={[styles.iconBtn, { marginRight: 10 }]}
+            >
+              <Ionicons name="list-outline" size={22} color={colors.text} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => router.push("/source-manage" as any)}
             style={[styles.iconBtn, { marginRight: 10 }]}

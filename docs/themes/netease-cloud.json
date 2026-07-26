@@ -1,0 +1,92 @@
+{
+  "meta": {
+    "name": "NetEase Cloud Style",
+    "author": "AudioDock",
+    "version": "1.0.0",
+    "schemaVersion": 1,
+    "description": "网易云音乐桌面端风格：深黑底配品牌红强调色，Header 不使用毛玻璃，进度条与播放按钮统一为红色。",
+    "homepage": "https://github.com/mmDctjj/AudioDock"
+  },
+  "dark": {
+    "global": {
+      "colorPrimary": "#C20C0C",
+      "colorBgBase": "#161616",
+      "colorBgContainer": "#1f1f1f",
+      "colorText": "#ffffff",
+      "colorTextSecondary": "#999999",
+      "colorBorder": "rgba(255,255,255,0.08)",
+      "borderRadius": 6,
+      "fontFamily": "PingFang SC, Microsoft YaHei, sans-serif"
+    },
+    "components": {
+      "header": {
+        "background": "#0d0d0d",
+        "blur": 0,
+        "textColor": "#ffffff",
+        "activeColor": "#C20C0C",
+        "border": "rgba(255,255,255,0.06)"
+      },
+      "player": {
+        "background": "#1f1f1f",
+        "blur": 0,
+        "textColor": "#ffffff",
+        "progressColor": "#C20C0C",
+        "controlColor": "rgba(255,255,255,0.10)"
+      },
+      "home": {
+        "background": "#1a1a1a",
+        "cardBackground": "rgba(255,255,255,0.04)",
+        "cardHoverBackground": "rgba(196,12,12,0.18)",
+        "titleColor": "#ffffff"
+      },
+      "detail": {
+        "background": "#1a1a1a",
+        "blur": 0,
+        "controlsBackground": "#C20C0C",
+        "controlsTextColor": "#ffffff",
+        "lyricsAlign": "left"
+      }
+    }
+  },
+  "light": {
+    "global": {
+      "colorPrimary": "#C20C0C",
+      "colorBgBase": "#f5f5f7",
+      "colorBgContainer": "#ffffff",
+      "colorText": "#1a1a1a",
+      "colorTextSecondary": "#666666",
+      "colorBorder": "rgba(0,0,0,0.10)",
+      "borderRadius": 6,
+      "fontFamily": "PingFang SC, Microsoft YaHei, sans-serif"
+    },
+    "components": {
+      "header": {
+        "background": "#ffffff",
+        "blur": 0,
+        "textColor": "#1a1a1a",
+        "activeColor": "#C20C0C",
+        "border": "rgba(0,0,0,0.06)"
+      },
+      "player": {
+        "background": "#ffffff",
+        "blur": 0,
+        "textColor": "#1a1a1a",
+        "progressColor": "#C20C0C",
+        "controlColor": "rgba(0,0,0,0.08)"
+      },
+      "home": {
+        "background": "#f5f5f7",
+        "cardBackground": "#ffffff",
+        "cardHoverBackground": "rgba(196,12,12,0.08)",
+        "titleColor": "#1a1a1a"
+      },
+      "detail": {
+        "background": "#ffffff",
+        "blur": 0,
+        "controlsBackground": "#C20C0C",
+        "controlsTextColor": "#ffffff",
+        "lyricsAlign": "left"
+      }
+    }
+  }
+}

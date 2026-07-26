@@ -26,8 +26,8 @@ export default function MemberPaymentSuccess() {
   useEffect(() => {
     const refreshVipStatus = async () => {
       try {
-        const plusToken = wx.getStorageSync('plus_token');
-        const plusUserId = wx.getStorageSync('plus_user_id');
+        const plusToken = Taro.getStorageSync('plus_token');
+        const plusUserId = Taro.getStorageSync('plus_user_id');
         if (!plusToken || !plusUserId) {
           setRefreshing(false);
           return;
@@ -44,9 +44,9 @@ export default function MemberPaymentSuccess() {
         const vipTier = res?.data?.data?.vipTier;
         const isVip = vipTier && vipTier !== 'NONE';
         if (isVip) {
-          wx.setStorageSync('plus_vip_status', 'true');
-          wx.setStorageSync('plus_vip_data', JSON.stringify(res.data.data || {}));
-          wx.setStorageSync('plus_vip_updated_at', Date.now().toString());
+          Taro.setStorageSync('plus_vip_status', 'true');
+          Taro.setStorageSync('plus_vip_data', JSON.stringify(res.data.data || {}));
+          Taro.setStorageSync('plus_vip_updated_at', Date.now().toString());
         }
       } catch (error) {
         console.warn('Failed to refresh vip status', error);

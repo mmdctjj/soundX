@@ -8,6 +8,7 @@ import Sidebar from "./components/Sidebar/index";
 import { getThemeConfig } from "./config/themeConfig";
 import { MessageProvider } from "./context/MessageContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import { useUiTheme } from "./hooks/useUiTheme";
 import LyricWindow from "./pages/LyricWindow";
 import Recommended from "./pages/Recommended";
 
@@ -29,6 +30,7 @@ const Login = lazy(() => import("./pages/Login/index"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword/index"));
 const SourceManage = lazy(() => import("./pages/SourceManage/index"));
 const TaskList = lazy(() => import("./pages/TTS/TaskList/index"));
+const TaskCenter = lazy(() => import("./pages/TaskCenter/index"));
 const CreateTask = lazy(() => import("./pages/TTS/CreateTask/index"));
 const ProductUpdates = lazy(() => import("./pages/ProductUpdates/index"));
 const MemberLogin = lazy(() => import("./pages/MemberLogin/index"));
@@ -45,6 +47,9 @@ import i18n from "./i18n";
 import { socketService } from "./services/socket";
 import { useAuthStore } from "./store/auth";
 import { useSettingsStore, type SettingsState } from "./store/settings";
+import { isTauri } from "./utils/platform";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 // Wrapper to provide consistent background and color based on theme tokens
 const RootWrapper = ({
@@ -72,7 +77,8 @@ const RootWrapper = ({
 
 const AppContent = () => {
   const { mode } = useTheme();
-  const themeConfig = getThemeConfig(mode);
+  const { plugin: uiPlugin } = useUiTheme();
+  const themeConfig = getThemeConfig(mode, uiPlugin);
   const [messageApi, contextHolder] = message.useMessage();
   const { token, user } = useAuthStore();
 
@@ -96,7 +102,7 @@ const AppContent = () => {
 
   // Sync settings on startup
   const settings = useSettingsStore((state: SettingsState) => state);
-  const { autoLaunch, minimizeToTray, language } = settings.general;
+  const { autoLaunch, language } = settings.general;
 
   useEffect(() => {
     if (language === "system") {
@@ -108,35 +114,34 @@ const AppContent = () => {
   }, [language, i18n.language]);
 
   useEffect(() => {
-    if ((window as any).ipcRenderer) {
-      (window as any).ipcRenderer.invoke("set-auto-launch", autoLaunch);
-      (window as any).ipcRenderer.send(
-        "settings:update-minimize-to-tray",
-        minimizeToTray,
-      );
-      (window as any).ipcRenderer.send(
-        "settings:update-download-path",
-        settings.download.downloadPath,
-      );
-
-      const handlePositionUpdate = (
-        _event: any,
-        pos: { x: number; y: number },
-      ) => {
+    if (isTauri()) {
+      invoke("set_auto_launch", { enable: autoLaunch }).catch(console.error);
+      
+      const handlePositionUpdate = (pos: { x: number; y: number }) => {
         useSettingsStore.getState().updateDesktopLyric("x", pos.x);
         useSettingsStore.getState().updateDesktopLyric("y", pos.y);
       };
 
-      (window as any).ipcRenderer.on(
-        "lyric:position-updated",
-        handlePositionUpdate,
-      );
+      let unlisten: (() => void) | undefined;
+      listen("lyric:position-updated", (event) => {
+        handlePositionUpdate(event.payload as { x: number; y: number });
+      }).then((fn) => {
+        unlisten = fn;
+      });
+      
       return () => {
-        (window as any).ipcRenderer.off(
-          "lyric:position-updated",
-          handlePositionUpdate,
-        );
+        if (unlisten) unlisten();
       };
+    }
+  }, []);
+
+  useEffect(() => {
+    // Sync the persisted download path to the backend early so the local media
+    // streaming server can resolve cached audio files from the start.
+    if (isTauri()) {
+      invoke("update_download_path", {
+        path: useSettingsStore.getState().download.downloadPath,
+      }).catch(console.error);
     }
   }, []);
 
@@ -156,8 +161,8 @@ const AppContent = () => {
       <ConfigProvider theme={themeConfig} locale={zhCN}>
         <MiniPlayer
           onRestore={() => {
-            if ((window as any).ipcRenderer) {
-              (window as any).ipcRenderer.send("window:restore-main");
+            if (isTauri()) {
+              invoke("show_main_window").catch(console.error);
             }
           }}
         />
@@ -293,6 +298,10 @@ const AppContent = () => {
                                 <Route
                                   path="/product-updates"
                                   element={<ProductUpdates />}
+                                />
+                                <Route
+                                  path="/task-center"
+                                  element={<TaskCenter />}
                                 />
                               </Routes>
                             </Suspense>

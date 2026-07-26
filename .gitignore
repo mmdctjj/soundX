@@ -16,3 +16,4 @@ dist/
 **/.venv
 **/__pycache__/*.pyc
 *.pyc
+auth.json

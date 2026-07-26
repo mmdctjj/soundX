@@ -1,11 +1,13 @@
-import { Album, Artist, Track, getAlbumsByArtist, getArtistById, getCollaborativeAlbumsByArtist, getTracksByArtist, Mv, getMvsByArtist } from '@soundx/services';
+import { Album, Artist, Track, TrackSource, getAlbumsByArtist, getArtistById, getCollaborativeAlbumsByArtist, getTracksByArtist, Mv, getMvsByArtist, type MiDevice, playMiDevicePlaylist } from '@soundx/services';
 import { mvPlaylistStore } from '../../store/mvPlaylist';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import MiDeviceSelector from '../../components/MiDeviceSelector';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
+import XiaoAiIcon from '../../components/XiaoAiIcon';
 import { usePlayer } from '../../context/PlayerContext';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
@@ -24,6 +26,8 @@ export default function ArtistDetail() {
   const [mvs, setMvs] = useState<Mv[]>([]);
   const [loading, setLoading] = useState(true);
   const [scrollIntoView, setScrollIntoView] = useState('');
+  const [isMiDeviceSelectorVisible, setIsMiDeviceSelectorVisible] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -82,6 +86,37 @@ export default function ArtistDetail() {
     const index = tracks.findIndex((item) => item.id === currentTrack.id);
     if (index > -1) {
       scrollToAnchor(`track-${index}`);
+    }
+  };
+
+  const handleCastTracksToMi = async (device: MiDevice) => {
+    if (tracks.length === 0) {
+      Taro.showToast({ title: t('playerPage.miCastNoTrack'), icon: 'none' });
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const baseURL = getBaseURL().replace(/\/$/, '');
+      const trackPayloads = tracks.map((track) => ({
+        url: `${baseURL}/track/stream/${track.id}`,
+        title: `${track.name} - ${track.artist ?? ''}`,
+        duration: track.duration || 0,
+      }));
+      await playMiDevicePlaylist({
+        device_id: device.device_id,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+      Taro.showToast({
+        title: t('playerPage.miCastPlaylistSuccess', { count: trackPayloads.length, device: device.name }),
+        icon: 'success',
+      });
+      setIsMiDeviceSelectorVisible(false);
+    } catch (error) {
+      console.error('Failed to cast tracks to Mi device:', error);
+      Taro.showToast({ title: t('playerPage.miCastPlaylistFailed'), icon: 'none' });
+    } finally {
+      setIsCastingToMi(false);
     }
   };
 
@@ -159,13 +194,23 @@ export default function ArtistDetail() {
                  </View>
              )}
 
-             <View className='section'>
-                 <View className='section-header-row'>
-                     <Text className='section-title'>{t('artist.allTracks')} ({tracks.length})</Text>
-                     <View className='artist-play-btn' onClick={() => tracks.length > 0 && playTrackList(tracks as any, 0)}>
-                         <Text className='artist-play-icon icon icon-play' />
-                     </View>
-                 </View>
+              <View className='section'>
+                  <View className='section-header-row'>
+                      <Text className='section-title'>{t('artist.allTracks')} ({tracks.length})</Text>
+                      <View className='section-header-actions'>
+                          {tracks.length > 0 && (
+                            <View
+                              className='artist-cast-btn'
+                              onClick={() => setIsMiDeviceSelectorVisible(true)}
+                            >
+                              <XiaoAiIcon size={16} />
+                            </View>
+                          )}
+                          <View className='artist-play-btn' onClick={() => tracks.length > 0 && playTrackList(tracks as any, 0)}>
+                              <Text className='artist-play-icon icon icon-play' />
+                          </View>
+                      </View>
+                  </View>
                  <View className='track-list'>
                      {tracks.map((track, index) => (
                          <View 
@@ -183,7 +228,14 @@ export default function ArtistDetail() {
                              </View>
                              <Image src={getImageUrl(track.cover)} className='track-cover' mode='aspectFill' />
                              <View className='track-info'>
-                                 <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
+                                 <View className='track-name-row'>
+                                   <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
+                                   <Text className='track-source'>
+                                     {track.source === TrackSource.WEBDAV
+                                       ? t('trackList.sourceWebdav')
+                                       : t('trackList.sourceFile')}
+                                   </Text>
+                                 </View>
                              </View>
                              <Text className='track-duration'>{formatDuration(track.duration || 0)}</Text>
                          </View>
@@ -201,6 +253,12 @@ export default function ArtistDetail() {
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
+      <MiDeviceSelector
+        visible={isMiDeviceSelectorVisible}
+        onClose={() => setIsMiDeviceSelectorVisible(false)}
+        onSelectDevice={handleCastTracksToMi}
+        loading={isCastingToMi}
+      />
       <BottomTabBar />
       <MiniPlayer />
     </View>

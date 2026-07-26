@@ -1,5 +1,31 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Album, FileStatus, PrismaClient, TrackType } from '@soundx/db';
+import { Album, FileStatus, MetadataSource, PrismaClient, TrackSource, TrackType } from '@soundx/db';
+
+// Merge plugin-supplied tags into an existing JSON-string tag field.
+// Returns the new JSON string, or undefined if nothing to write.
+function mergeTagJson(existing: string | null | undefined, incoming: string[] | undefined): string | undefined {
+  if (!incoming || incoming.length === 0) return undefined;
+  const seen = new Set<string>();
+  const result: string[] = [];
+  const push = (v: string) => {
+    const trimmed = (v ?? '').trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(trimmed);
+  };
+  if (existing) {
+    try {
+      const parsed = JSON.parse(existing);
+      if (Array.isArray(parsed)) for (const t of parsed) if (typeof t === 'string') push(t);
+    } catch {
+      // ignore malformed JSON
+    }
+  }
+  for (const t of incoming) push(t);
+  return result.length > 0 ? JSON.stringify(result) : undefined;
+}
 import { LocalMusicScanner, readLyricsFile, ScanResult, WebDAVScanner } from '@soundx/utils';
 import { spawn } from 'child_process';
 import * as chokidar from 'chokidar';
@@ -11,7 +37,9 @@ import { LogMethod } from '../common/log-method.decorator';
 import { resolvePathList } from '../common/path-list';
 import { AlbumService } from './album';
 import { ArtistService } from './artist';
+import { MetadataPluginService } from './metadata-plugin.service';
 import { TrackService } from './track';
+import { WebDavConfigService, WebDavPathKind, WebDavSource } from './webdav-config.service';
 
 export enum TaskStatus {
   INITIALIZING = 'INITIALIZING',
@@ -20,6 +48,8 @@ export enum TaskStatus {
   SUCCESS = 'SUCCESS',
   FAILED = 'FAILED',
 }
+
+export type ImportTaskType = 'full' | 'incremental' | 'compact' | 'webdav-sync';
 
 export interface ImportTask {
   id: string;
@@ -35,6 +65,11 @@ export interface ImportTask {
   mvCurrent?: number;
   currentFileName?: string;
   mode?: 'incremental' | 'full' | 'compact';
+  // Distinguishes the task's origin for the Task Center. `mode` alone can't tell a
+  // WebDAV sync apart from a normal incremental scan (both use mode:'incremental').
+  type?: ImportTaskType;
+  // ISO timestamp of when the task was created, used for sorting in the Task Center.
+  createdAt?: string;
 }
 
 interface TrackSortFields {
@@ -68,6 +103,8 @@ export class ImportService implements OnModuleInit {
     private readonly trackService: TrackService,
     private readonly albumService: AlbumService,
     private readonly artistService: ArtistService,
+    private readonly webDavConfig: WebDavConfigService,
+    private readonly metadataPluginService: MetadataPluginService,
   ) {
     this.prisma = new PrismaClient();
   }
@@ -87,7 +124,60 @@ export class ImportService implements OnModuleInit {
       this.checkInitialWebDAVScan().catch(err => {
         this.logger.error("Initial WebDAV scan failed", err);
       });
+
+      // One-time backfill of the `source` field for tracks imported before this feature existed
+      this.backfillTrackSource().catch(err => {
+        this.logger.error("Failed to backfill track source", err);
+      });
+
+      // One-time cleanup: trash ACTIVE artists that have no ACTIVE albums.
+      // Stale artists can accumulate when their last album was trashed but
+      // updateParentStatus('artist') wasn't reached (e.g. pre-existing data).
+      this.cleanupStaleArtists().catch(err => {
+        this.logger.error("Failed to cleanup stale artists", err);
+      });
     }, 5000);
+  }
+
+  /**
+   * One-time migration: existing tracks were all defaulted to FILE by the DB migration.
+   * Mark tracks whose stored `path` points at a configured WebDAV source as WEBDAV.
+   * Guarded by a SystemSetting flag so it only runs once.
+   */
+  private async backfillTrackSource() {
+    const FLAG_KEY = 'track_source_backfilled';
+    const done = await this.prisma.systemSetting.findUnique({ where: { key: FLAG_KEY } });
+    if (done?.value === 'true') return;
+
+    const sources = await this.webDavConfig.list();
+    // WebDAV download links are built from the (decoded, trailing-slash-stripped) source url,
+    // so a prefix match on track.path reliably identifies WebDAV-imported tracks.
+    const prefixes = sources
+      .map((s) => {
+        try {
+          return decodeURI((s.url || '').trim()).replace(/\/+$/, '');
+        } catch {
+          return (s.url || '').trim().replace(/\/+$/, '');
+        }
+      })
+      .filter((p) => p.length > 0);
+
+    let updated = 0;
+    for (const prefix of prefixes) {
+      const res = await this.prisma.track.updateMany({
+        where: { source: TrackSource.FILE, path: { startsWith: prefix } },
+        data: { source: TrackSource.WEBDAV },
+      });
+      updated += res.count;
+    }
+    this.logger.log(`Track source backfill complete: ${updated} track(s) marked as WEBDAV across ${prefixes.length} source(s).`);
+
+    // Only mark as done once the backfill fully succeeds, so transient failures retry next boot.
+    await this.prisma.systemSetting.upsert({
+      where: { key: FLAG_KEY },
+      update: { value: 'true' },
+      create: { key: FLAG_KEY, value: 'true' },
+    });
   }
 
   private async recalibrateAllIndices() {
@@ -121,39 +211,51 @@ export class ImportService implements OnModuleInit {
     const count = await this.prisma.track.count();
     if (count === 0) {
       const cachePath = process.env.CACHE_DIR || './music/cover';
-      if (process.env.WEBDAV_MUSIC_URL) {
-        this.logger.log('Library is empty. Triggering initial WebDAV Music scan...');
-        this.startWebDAVImport(cachePath, TrackType.MUSIC).catch(e => this.logger.error('WebDAV Music initial scan failed', e));
-      }
-      if (process.env.WEBDAV_AUDIOBOOK_URL) {
-        this.logger.log('Library is empty. Triggering initial WebDAV Audiobook scan...');
-        this.startWebDAVImport(cachePath, TrackType.AUDIOBOOK).catch(e => this.logger.error('WebDAV Audiobook initial scan failed', e));
-      }
-      if (process.env.WEBDAV_MV_URL) {
-        this.logger.log('Library is empty. Triggering initial WebDAV MV scan...');
-        this.startWebDAVImport(cachePath, TrackType.MUSIC, undefined, true).catch(e => this.logger.error('WebDAV MV initial scan failed', e));
+      const sources = await this.webDavConfig.list();
+      if (sources.length > 0) {
+        this.logger.log(`Library is empty. Triggering initial WebDAV scan across ${sources.length} source(s)...`);
+        const targets = await this.webDavConfig.listScanTargets();
+        this.runWebDavTargets(targets, { cachePath, reason: 'initial' }).catch(e =>
+          this.logger.error('Initial WebDAV scan failed', e),
+        );
       }
     }
   }
 
   private async startWebDAVImport(cachePath: string, type: TrackType, taskId?: string, isMvDir = false) {
-    const webdavUrl = isMvDir
-      ? process.env.WEBDAV_MV_URL
-      : (type === TrackType.AUDIOBOOK ? process.env.WEBDAV_AUDIOBOOK_URL : process.env.WEBDAV_MUSIC_URL);
-
-    if (!webdavUrl) return;
+    // Legacy wrapper used by the local-path import flow. Map the desired content kind to one
+    // of the WebDAV path kinds and then scan every matching target.
+    const kind: WebDavPathKind = isMvDir ? 'MV' : type === TrackType.AUDIOBOOK ? 'AUDIOBOOK' : 'MUSIC';
+    const all = await this.webDavConfig.listScanTargets();
+    const matched = all.filter((target) => target.kind === kind);
+    if (matched.length === 0) return;
 
     const task = taskId ? this.tasks.get(taskId) : null;
 
+    for (const target of matched) {
+      await this.runSingleWebDavTarget(target, cachePath, task);
+    }
+  }
+
+  private async runSingleWebDavTarget(
+    target: { source: WebDavSource; kind: WebDavPathKind; path: string },
+    cachePath: string,
+    task?: ImportTask | null,
+  ) {
+    const isMv = target.kind === 'MV';
+    const type: TrackType = isMv ? TrackType.MUSIC : target.kind === 'AUDIOBOOK' ? TrackType.AUDIOBOOK : TrackType.MUSIC;
+
     const scanner = new WebDAVScanner(
-      webdavUrl,
-      process.env.WEBDAV_USER,
-      process.env.WEBDAV_PASSWORD,
-      cachePath
+      target.source.url,
+      target.source.username,
+      target.source.password,
+      cachePath,
     );
 
-    this.logger.log(`Starting WebDAV ${isMvDir ? 'MV' : type} scan: ${webdavUrl}`);
-    await scanner.scan('/', async (item) => {
+    this.logger.log(
+      `Starting WebDAV scan: ${target.source.name} [${target.kind}] ${target.path} → ${target.source.url}`,
+    );
+    await scanner.scan(target.path, async (item) => {
       if (task) {
         task.currentFileName = item.title || path.basename(item.path);
       }
@@ -161,7 +263,7 @@ export class ImportService implements OnModuleInit {
       const isMvFile = /\.(mp4|mkv|avi|webm)$/i.test(item.path);
 
       // Skip video files found in music/audiobook WebDAV folders — only MV folders should contain videos
-      if (isMvFile && !isMvDir) {
+      if (isMvFile && !isMv) {
         this.logger.log(`Skipping video file in non-MV WebDAV folder: ${item.path}`);
         return;
       }
@@ -169,10 +271,10 @@ export class ImportService implements OnModuleInit {
       // Folder ID is null for WebDAV for now as it doesn't map to local folder tree easily
       const nextScanOrder = task ? (task.current || 0) + 1 : undefined;
       const sortFields = this.getTrackSortFields(item.originalPath || item.path, '', nextScanOrder);
-      await this.processTrackData(item, type, '', cachePath, item.path, null, '', sortFields);
+      await this.processTrackData(item, type, '', cachePath, item.path, null, '', sortFields, TrackSource.WEBDAV);
 
       if (task) {
-        if (isMvDir) {
+        if (isMv) {
           task.mvCurrent = (task.mvCurrent || 0) + 1;
         } else {
           task.webdavCurrent = (task.webdavCurrent || 0) + 1;
@@ -180,7 +282,267 @@ export class ImportService implements OnModuleInit {
         task.current = (task.current || 0) + 1;
       }
     });
-    this.logger.log(`WebDAV ${isMvDir ? 'MV' : type} scan completed.`);
+    this.logger.log(
+      `WebDAV scan completed for source: ${target.source.name} [${target.kind}]`,
+    );
+  }
+
+  /**
+   * Run every enabled WebDAV target (one per configured sub-path).
+   * Used by both the initial scan on startup and the standalone "Save and Sync" flow.
+   */
+  private async runWebDavTargets(
+    targets: Array<{ source: WebDavSource; kind: WebDavPathKind; path: string }>,
+    options: { cachePath: string; task?: ImportTask; reason?: string },
+  ): Promise<void> {
+    if (targets.length === 0) return;
+
+    for (const target of targets) {
+      try {
+        await this.runSingleWebDavTarget(target, options.cachePath, options.task ?? null);
+      } catch (e) {
+        this.logger.error(
+          `WebDAV scan failed for source ${target.source.name} [${target.kind}] (${target.source.url}): ${(e as Error).message}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Public entry point for the standalone "Sync WebDAV now" action — kicks off a task that scans
+   * every enabled source and reports progress through the dedicated task map. Returns the task id
+   * so the frontend can poll.
+   */
+  @LogMethod()
+  triggerWebDavSync(): { id: string } {
+    const id = randomUUID();
+    const task: ImportTask = {
+      id,
+      status: TaskStatus.INITIALIZING,
+      mode: 'incremental',
+      type: 'webdav-sync',
+      createdAt: new Date().toISOString(),
+      message: '正在准备 WebDAV 扫描...',
+      total: 0,
+      current: 0,
+      webdavTotal: 0,
+      webdavCurrent: 0,
+      mvTotal: 0,
+      mvCurrent: 0,
+      localTotal: 0,
+      localCurrent: 0,
+    };
+    this.tasks.set(id, task);
+
+    const cachePath = process.env.CACHE_DIR || './music/cover';
+
+    (async () => {
+      try {
+        const targets = await this.webDavConfig.listScanTargets();
+        if (targets.length === 0) {
+          task.status = TaskStatus.SUCCESS;
+          task.message = '没有启用的 WebDAV 路径';
+          return;
+        }
+
+        task.status = TaskStatus.PARSING;
+        task.message = `正在扫描 ${targets.length} 个 WebDAV 路径...`;
+
+        await this.runWebDavTargets(targets, { cachePath, task: task ?? undefined, reason: 'manual' });
+
+        task.status = TaskStatus.SUCCESS;
+        task.message = 'WebDAV 同步完成';
+      } catch (e) {
+        this.logger.error('Manual WebDAV sync failed', e);
+        task.status = TaskStatus.FAILED;
+        task.message = e instanceof Error ? e.message : String(e);
+      }
+    })().catch((e) => {
+      this.logger.error('Unhandled WebDAV sync error', e);
+    });
+
+    return { id };
+  }
+
+  /**
+   * Strip embedded credentials from a URL: http://user:pass@host/x -> http://host/x.
+   * WebDAV download links (getFileDownloadLink) embed the source's username/password
+   * in the URL, while the configured source url does not — so we compare both without them.
+   */
+  private stripUrlCredentials(url: string): string {
+    return (url || '').replace(/^([a-z][a-z0-9+.-]*:\/\/)[^@/]*@/i, '$1');
+  }
+
+  /** Credential-free, trailing-slash-free prefix used to match a source against track.path. */
+  private webdavMatchPrefix(sourceUrl: string): string {
+    return this.stripUrlCredentials((sourceUrl || '').trim()).replace(/\/+$/, '');
+  }
+
+  /**
+   * Find WebDAV tracks belonging to a source. track.path embeds credentials, so we
+   * strip them from both sides and prefix-match. Optionally restrict by status.
+   */
+  private async findWebDavTracksForSource(
+    sourceUrl: string,
+    statuses?: FileStatus[],
+  ): Promise<{ id: number; albumId: number | null }[]> {
+    const prefix = this.webdavMatchPrefix(sourceUrl);
+    if (!prefix) return [];
+    const where: any = { source: TrackSource.WEBDAV };
+    if (statuses && statuses.length > 0) where.status = { in: statuses };
+    const tracks = await this.prisma.track.findMany({
+      where,
+      select: { id: true, path: true, albumId: true },
+    });
+    return tracks
+      .filter((t) => this.stripUrlCredentials(t.path).startsWith(prefix))
+      .map((t) => ({ id: t.id, albumId: t.albumId }));
+  }
+
+  /**
+   * React to WebDAV source list changes (called after sources are saved):
+   * - source removed  → hard-delete its tracks (FK-safe), then clean orphan albums/artists.
+   * - source disabled → soft-trash its tracks (TRASHED, hidden from ACTIVE queries).
+   * - source re-enabled → restore its TRASHED tracks to ACTIVE.
+   *
+   * Aligns with the existing scan's orphan-cleanup behaviour: a disabled source
+   * is effectively "no longer part of the scan", so its tracks end up in the
+   * same TRASHED state as files that disappeared from the library.
+   */
+  @LogMethod()
+  async applyWebDavSourceChanges(
+    oldSources: { id: string; url: string; enabled: boolean }[],
+    newSources: { id: string; url: string; enabled: boolean }[],
+  ): Promise<void> {
+    // Defensive one-time normalization: any leftover DISABLED rows from the
+    // previous FileStatus enum are equivalent to TRASHED for query purposes,
+    // and can't be resurrected by toggling source.enabled once DISABLED is
+    // gone from the enum. Normalize so the toggle logic can see them as TRASHED.
+    await this.normalizeLegacyDisabledTracks();
+
+    const newById = new Map(newSources.map((s) => [s.id, s]));
+
+    for (const oldSrc of oldSources) {
+      if (!this.webdavMatchPrefix(oldSrc.url)) continue;
+      const newSrc = newById.get(oldSrc.id);
+
+      if (!newSrc) {
+        // Source removed → hard delete its tracks (any status), FK-safe, then
+        // clean up albums/artists that no longer have any tracks.
+        const tracks = await this.findWebDavTracksForSource(oldSrc.url);
+        const ids = tracks.map((t) => t.id);
+        const CHUNK = 300;
+        for (let i = 0; i < ids.length; i += CHUNK) {
+          const chunk = ids.slice(i, i + CHUNK);
+          await this.prisma.userTrackLike.deleteMany({ where: { trackId: { in: chunk } } });
+          await this.prisma.userTrackHistory.deleteMany({ where: { trackId: { in: chunk } } });
+          await this.prisma.userAudiobookLike.deleteMany({ where: { trackId: { in: chunk } } });
+          await this.prisma.userAudiobookHistory.deleteMany({ where: { trackId: { in: chunk } } });
+          await this.prisma.track.deleteMany({ where: { id: { in: chunk } } });
+        }
+        if (ids.length > 0) {
+          await this.cleanupOrphanAlbumsHardDelete();
+          await this.cleanupOrphanArtistsHardDelete();
+        }
+        this.logger.log(`Removed WebDAV source ${oldSrc.id}: hard-deleted ${ids.length} track(s).`);
+      } else if (oldSrc.enabled && !newSrc.enabled) {
+        await this.setWebDavTracksStatus(oldSrc.url, FileStatus.ACTIVE, FileStatus.TRASHED);
+      } else if (!oldSrc.enabled && newSrc.enabled) {
+        await this.setWebDavTracksStatus(oldSrc.url, FileStatus.TRASHED, FileStatus.ACTIVE);
+      }
+    }
+  }
+
+  /**
+   * Flip status of a source's WebDAV tracks, then refresh the visibility of their
+   * parent albums/artists (empty albums auto-hide via the ACTIVE-track-count
+   * derivation in updateParentStatus).
+   */
+  private async setWebDavTracksStatus(sourceUrl: string, from: FileStatus, to: FileStatus): Promise<void> {
+    const tracks = await this.findWebDavTracksForSource(sourceUrl, [from]);
+    if (tracks.length === 0) return;
+
+    const ids = tracks.map((t) => t.id);
+    const CHUNK = 300;
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      await this.prisma.track.updateMany({
+        where: { id: { in: ids.slice(i, i + CHUNK) } },
+        data: { status: to, trashedAt: to === FileStatus.TRASHED ? new Date() : null },
+      });
+    }
+
+    const albumIds = new Set(
+      tracks.map((t) => t.albumId).filter((x): x is number => x != null),
+    );
+    for (const albumId of albumIds) {
+      await this.updateParentStatus(albumId, 'album');
+    }
+    this.logger.log(`WebDAV tracks ${from} -> ${to}: ${ids.length} track(s) across ${albumIds.size} album(s).`);
+  }
+
+  /**
+   * One-time cleanup of stale ACTIVE artists: any artist whose every album is
+   * TRASHED (or absent) is itself TRASHED. Triggered once on module init via a
+   * SystemSetting flag, idempotent on subsequent startups.
+   */
+  private async cleanupStaleArtists(): Promise<void> {
+    const FLAG_KEY = 'stale_artists_cleaned';
+    const done = await this.prisma.systemSetting.findUnique({ where: { key: FLAG_KEY } });
+    if (done?.value === 'true') return;
+
+    // Build the set of (artist, type) pairs that have at least one ACTIVE album.
+    const activePairs = await this.prisma.album.groupBy({
+      by: ['artist', 'type'],
+      where: { status: FileStatus.ACTIVE },
+    });
+    const activeKeys = new Set(activePairs.map((p) => `${p.artist}::${p.type}`));
+
+    const activeArtists = await this.prisma.artist.findMany({
+      where: { status: FileStatus.ACTIVE },
+      select: { id: true, name: true, type: true },
+    });
+
+    const staleIds = activeArtists
+      .filter((a) => !activeKeys.has(`${a.name}::${a.type}`))
+      .map((a) => a.id);
+
+    if (staleIds.length > 0) {
+      await this.prisma.artist.updateMany({
+        where: { id: { in: staleIds } },
+        data: { status: FileStatus.TRASHED, trashedAt: new Date() },
+      });
+      this.logger.log(`Cleaned up ${staleIds.length} stale ACTIVE artist(s).`);
+    } else {
+      this.logger.log('No stale ACTIVE artists found.');
+    }
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: FLAG_KEY },
+      update: { value: 'true' },
+      create: { key: FLAG_KEY, value: 'true' },
+    });
+  }
+
+  /**
+   * One-time cleanup: legacy rows with status='DISABLED' (from the old enum)
+   * become 'TRASHED' so they participate in the same resurrection path on
+   * re-enable. Safe to call repeatedly — UPDATE matches by string and is a
+   * no-op when no rows match.
+   */
+  private async normalizeLegacyDisabledTracks(): Promise<void> {
+    try {
+      const result = await this.prisma.track.updateMany({
+        where: { status: 'DISABLED' as any },
+        data: { status: FileStatus.TRASHED, trashedAt: new Date() },
+      });
+      if (result.count > 0) {
+        this.logger.log(`Normalized ${result.count} legacy DISABLED track(s) -> TRASHED.`);
+      }
+    } catch (err) {
+      // Don't block the apply flow if the legacy column doesn't exist or the
+      // string match is rejected by a future Prisma upgrade.
+      this.logger.warn(`normalizeLegacyDisabledTracks skipped: ${(err as Error).message}`);
+    }
   }
 
   private async generateMissingHashes() {
@@ -203,7 +565,7 @@ export class ImportService implements OnModuleInit {
       try {
         // Resolve absolute path using TrackService
         // track.path is URL like /music/Artist/Album/Song.mp3
-        const absolutePath = this.trackService.getFilePath(track.path);
+        const absolutePath = await this.trackService.getFilePath(track.path);
 
         if (absolutePath && fs.existsSync(absolutePath)) {
           const hash = await this.calculateFingerprint(absolutePath);
@@ -234,7 +596,13 @@ export class ImportService implements OnModuleInit {
     mode: 'incremental' | 'full' | 'compact' = 'incremental'
   ): string {
     const id = randomUUID();
-    this.tasks.set(id, { id, status: TaskStatus.INITIALIZING, mode });
+    this.tasks.set(id, {
+      id,
+      status: TaskStatus.INITIALIZING,
+      mode,
+      type: mode,
+      createdAt: new Date().toISOString(),
+    });
 
     const normalizedMusicPaths = this.normalizePathInput(musicPaths);
     const normalizedAudiobookPaths = this.normalizePathInput(audiobookPaths);
@@ -253,20 +621,57 @@ export class ImportService implements OnModuleInit {
   }
 
   @LogMethod()
+  getAllTasks(): ImportTask[] {
+    return Array.from(this.tasks.values()).sort((a, b) => {
+      const at = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const bt = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return bt - at;
+    });
+  }
+
+  @LogMethod()
   getRunningTask(): ImportTask | undefined {
     return Array.from(this.tasks.values()).find(
-      task => task.status === TaskStatus.INITIALIZING || task.status === TaskStatus.PARSING
+      task =>
+        task.status === TaskStatus.INITIALIZING ||
+        task.status === TaskStatus.PREPARING ||
+        task.status === TaskStatus.PARSING
     );
   }
 
   private convertToHttpUrl(localPath: string, type: 'cover' | 'audio' | 'music', basePath: string): string {
     const relativePath = path.relative(basePath, localPath);
     if (type === 'cover') {
-      const filename = path.basename(localPath);
-      return `/covers/${filename}`;
+      // Map the on-disk cover path to its /covers/ URL: resolve relative to cacheDir and
+      // normalize backslashes so the static server can locate the file.
+      const normalizedRelativePath = relativePath.replace(/\\/g, '/');
+      return `/covers/${normalizedRelativePath}`;
     } else {
       return `/${type}/${relativePath}`;
     }
+  }
+
+  /**
+   * Resolve the cover to persist on a track update, honoring the global
+   * metadata-priority policy from MetadataPluginService.
+   * - 'plugin' mode: overwrite with the plugin cover only when a plugin ran and
+   *   returned one; otherwise keep the stored cover (legacy behavior).
+   * - 'embedded' mode: prefer the file's (gap-filled) cover, fall back to the
+   *   stored cover - the plugin only filled it if the file had none.
+   */
+  private resolveCoverForUpdate(
+    metadataSource: MetadataSource,
+    coverUrl: string | null,
+    existingCover: string | null,
+  ): string | null {
+    const pluginMode =
+      this.metadataPluginService.getMetadataPriority() === 'plugin';
+    if (pluginMode) {
+      return metadataSource === MetadataSource.PLUGIN && coverUrl
+        ? coverUrl
+        : existingCover;
+    }
+    return coverUrl || existingCover;
   }
 
   private isMvFile(filePath: string): boolean {
@@ -275,6 +680,128 @@ export class ImportService implements OnModuleInit {
 
   private needsMvTranscode(filePath: string, isWebDAV: boolean): boolean {
     return !isWebDAV && !filePath.toLowerCase().endsWith('.mp4');
+  }
+
+  // ---------- Audio Transcode ----------
+
+  private needsAudioTranscode(filePath: string): boolean {
+    return /\.(wma|ape|dsf|dff|wv|mpc)$/i.test(filePath);
+  }
+
+  private getAudioTranscodedDir(cachePath: string): string {
+    return path.join(cachePath, 'transcoded-audio');
+  }
+
+  private getAudioTranscodedPublicUrl(outputPath: string, cachePath: string): string {
+    // cacheDir is served under /covers/ prefix in main.ts
+    // outputPath is like .../music/cover/transcoded-audio/xxx.mp3
+    // We need to return /covers/transcoded-audio/xxx.mp3
+    const transcodedDir = this.getAudioTranscodedDir(cachePath);
+    const relativePath = path.relative(transcodedDir, outputPath);
+    return `/covers/transcoded-audio/${relativePath}`;
+  }
+
+  private isTranscodedAudioPath(targetPath: string, cachePath: string): boolean {
+    return targetPath.startsWith(this.getAudioTranscodedDir(cachePath));
+  }
+
+  private getAudioTranscodedFilePath(sourcePath: string, cachePath: string): string {
+    const sourceKey = crypto
+      .createHash('sha1')
+      .update(path.resolve(sourcePath))
+      .digest('hex');
+    return path.join(this.getAudioTranscodedDir(cachePath), `${sourceKey}.mp3`);
+  }
+
+  private async ensureAudioAsMp3(
+    sourcePath: string,
+    cachePath: string,
+  ): Promise<MvStorageTarget> {
+    if (!this.needsAudioTranscode(sourcePath)) {
+      return {
+        sourcePath,
+        publicUrl: '',
+      };
+    }
+
+    const outputDir = this.getAudioTranscodedDir(cachePath);
+    const outputPath = this.getAudioTranscodedFilePath(sourcePath, cachePath);
+
+    fs.mkdirSync(outputDir, { recursive: true });
+
+    const sourceStat = fs.statSync(sourcePath);
+    if (fs.existsSync(outputPath)) {
+      const outputStat = fs.statSync(outputPath);
+      if (outputStat.mtimeMs >= sourceStat.mtimeMs) {
+        return {
+          sourcePath: outputPath,
+          publicUrl: this.getAudioTranscodedPublicUrl(outputPath, cachePath),
+        };
+      }
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const ffmpeg = spawn('ffmpeg', [
+        '-y',
+        '-i', sourcePath,
+        '-c:a', 'libmp3lame',
+        '-b:a', '192k',
+        '-ar', '44100',
+        '-ac', '2',
+        '-map_metadata', '0',
+        '-id3v2_version', '3',
+        '-write_xing', '0',
+        outputPath,
+      ]);
+
+      let stderr = '';
+
+      ffmpeg.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+
+      ffmpeg.on('error', (error) => {
+        reject(error);
+      });
+
+      ffmpeg.on('close', (code) => {
+        if (code === 0 && fs.existsSync(outputPath)) {
+          // Verify output file is valid (non-empty and has MP3 header)
+          const outputStat = fs.statSync(outputPath);
+          if (outputStat.size === 0) {
+            reject(new Error('ffmpeg produced empty output file'));
+            return;
+          }
+
+          // Check for MP3 frame sync bytes (0xFFE or 0xFFF at start)
+          const fd = fs.openSync(outputPath, 'r');
+          const header = Buffer.alloc(4);
+          fs.readSync(fd, header, 0, 4, 0);
+          fs.closeSync(fd);
+
+          const isMp3 = (header[0] === 0xFF) && ((header[1] & 0xE0) === 0xE0);
+          if (!isMp3) {
+            this.logger.warn(`[Transcode] Output file does not have valid MP3 header. First bytes: ${header.toString('hex')}. stderr: ${stderr}`);
+            // Don't reject - some formats may have ID3 tags before frames
+          }
+
+          if (stderr) {
+            this.logger.log(`[Transcode] ffmpeg stderr for ${path.basename(sourcePath)}: ${stderr.substring(0, 500)}`);
+          }
+
+          this.logger.log(`[Transcode] Success: ${path.basename(sourcePath)} -> ${path.basename(outputPath)} (${outputStat.size} bytes)`);
+          resolve();
+          return;
+        }
+
+        reject(new Error(stderr || `ffmpeg exited with code ${code}`));
+      });
+    });
+
+    return {
+      sourcePath: outputPath,
+      publicUrl: this.getAudioTranscodedPublicUrl(outputPath, cachePath),
+    };
   }
 
   private getMvTranscodedDir(cachePath: string): string {
@@ -495,7 +1022,7 @@ export class ImportService implements OnModuleInit {
         }
         const info = getBasePathAndType(filePath);
         if (info) {
-          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
+          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(filePath)) {
             this.logger.log(`[Watcher] File added: ${filePath}`);
             await this.handleFileAdd(filePath, info.basePath, info.type, cachePath);
           } else if (/\.(jpg|jpeg|png|webp)$/i.test(filePath)) {
@@ -514,7 +1041,7 @@ export class ImportService implements OnModuleInit {
         const info = getBasePathAndType(filePath);
 
         if (info) {
-          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
+          if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(filePath)) {
             try {
               // 检查函数是否存在
               if (typeof this.handleFileChange !== 'function') {
@@ -540,7 +1067,7 @@ export class ImportService implements OnModuleInit {
           return;
         }
         this.logger.log(`[Watcher] File unlinked: ${filePath}`);
-        if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm)$/i.test(filePath)) {
+        if (/\.(mp3|flac|ogg|wav|m4a|mp4|strm|mkv|avi|webm|aac|wma|opus|ape|aiff|aif|dsf|dff|wv|mpc|alac)$/i.test(filePath)) {
           await this.handleFileUnlink(filePath, musicPaths, audiobookPaths, mvPaths, cachePath);
         } else if (/\.(jpg|jpeg|png|webp)$/i.test(filePath)) {
           await this.handleImageUnlink(filePath, cachePath);
@@ -570,6 +1097,17 @@ export class ImportService implements OnModuleInit {
       return Array.from(new Set(input.map((value) => resolvePathList(value, './')).flat()));
     }
     return resolvePathList(input, './');
+  }
+
+  private isPathInsideAnyBase(targetPath: string, basePaths: string[]): boolean {
+    if (!targetPath || targetPath.startsWith('http')) return false;
+
+    const resolvedTarget = path.resolve(targetPath);
+    return basePaths.some((basePath) => {
+      const resolvedBase = path.resolve(basePath);
+      const relative = path.relative(resolvedBase, resolvedTarget);
+      return relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+    });
   }
 
   private getTrackSortFields(
@@ -645,13 +1183,24 @@ export class ImportService implements OnModuleInit {
         audioUrl = filePath.startsWith('http') ? filePath : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
       }
 
+      // Audio transcode for incompatible formats on resurrection
+      let finalAudioUrl = audioUrl;
+      let transcodedPath: string | null = null;
+      if (!audioUrl.startsWith('http') && this.needsAudioTranscode(filePath)) {
+        const transcodeResult = await this.ensureAudioAsMp3(filePath, cachePath);
+        if (transcodeResult.publicUrl) {
+          finalAudioUrl = transcodeResult.publicUrl;
+          transcodedPath = transcodeResult.sourcePath;
+        }
+      }
+
       const folderId = await this.getFolderId(filePath, basePath, type);
       const sortFields = this.getTrackSortFields(filePath, basePath);
 
       await this.prisma.track.update({
         where: { id: trashedTrack.id },
         data: {
-          path: audioUrl,
+          path: finalAudioUrl,
           folderId: folderId,
           status: FileStatus.ACTIVE,
           trashedAt: null,
@@ -659,6 +1208,8 @@ export class ImportService implements OnModuleInit {
           fileName: sortFields.fileName,
           relativePath: sortFields.relativePath,
           fileCreatedAt: sortFields.fileCreatedAt,
+          transcodedPath: transcodedPath || trashedTrack.transcodedPath,
+          source: TrackSource.FILE,
         }
       });
 
@@ -672,7 +1223,7 @@ export class ImportService implements OnModuleInit {
         const audioUrl = metadata.path.startsWith('http') ? metadata.path : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
         const folderId = await this.getFolderId(metadata.originalPath || filePath, basePath, type);
         const sortFields = this.getTrackSortFields(metadata.originalPath || filePath, basePath);
-        await this.processTrackData(metadata, type, basePath, cachePath, audioUrl, folderId, hash, sortFields);
+        await this.processTrackData(metadata, type, basePath, cachePath, audioUrl, folderId, hash, sortFields, TrackSource.FILE);
       }
     }
   }
@@ -697,40 +1248,69 @@ export class ImportService implements OnModuleInit {
           return;
         }
 
-        const audioUrl = metadata.path.startsWith('http') ? metadata.path : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
+        // Enrich metadata via user-configured plugins
+        const enriched = await this.metadataPluginService.enrich(metadata, type, { cachePath });
+        const metadataSource = (enriched as any).__metadataSource || MetadataSource.EMBEDDED;
+        const metadataProvider = (enriched as any).__metadataProvider || null;
+
+        let audioUrl = enriched.path.startsWith('http') ? enriched.path : this.convertToHttpUrl(filePath, type === TrackType.AUDIOBOOK ? 'audio' : 'music', basePath);
         this.logger.log(`[Watcher] Audio URL: ${audioUrl}`);
 
-        const track = await this.trackService.findByPath(audioUrl);
+        // Audio transcode for incompatible formats on change
+        let finalAudioUrl = audioUrl;
+        let transcodedPath: string | null = null;
+        if (!audioUrl.startsWith('http') && this.needsAudioTranscode(filePath)) {
+          const transcodeResult = await this.ensureAudioAsMp3(filePath, cachePath);
+          if (transcodeResult.publicUrl) {
+            finalAudioUrl = transcodeResult.publicUrl;
+            transcodedPath = transcodeResult.sourcePath;
+          }
+        }
+
+        const track = await this.trackService.findByPath(finalAudioUrl);
+        if (!track) {
+          // Fallback: try to find by original audioUrl
+          const trackByOriginal = await this.trackService.findByPath(audioUrl);
+          if (trackByOriginal) {
+            this.logger.log(`[Watcher] Track found by original path: ${trackByOriginal.id}`);
+          }
+        }
         this.logger.log(`[Watcher] Track found in DB: ${!!track} (id: ${track?.id})`);
 
         const hash = await this.calculateFingerprint(filePath);
 
-        if (track) {
-          const coverUrl = metadata.coverPath ? this.convertToHttpUrl(metadata.coverPath, 'cover', cachePath) : null;
-          const sortFields = this.getTrackSortFields(metadata.originalPath || filePath, basePath);
+        const targetTrack = track || await this.trackService.findByPath(audioUrl);
 
-          this.logger.log(`[Watcher] Updating track ${track.id} - cover: ${coverUrl}, lyrics: ${!!metadata.lyrics}`);
+        if (targetTrack) {
+          const coverUrl = enriched.coverPath ? this.convertToHttpUrl(enriched.coverPath, 'cover', cachePath) : null;
+          const sortFields = this.getTrackSortFields(enriched.originalPath || filePath, basePath);
+
+          this.logger.log(`[Watcher] Updating track ${targetTrack.id} - cover: ${coverUrl}, lyrics: ${!!enriched.lyrics}`);
 
           await this.prisma.track.update({
-            where: { id: track.id },
+            where: { id: targetTrack.id },
             data: {
-              name: metadata.title || path.basename(filePath),
-              duration: Math.round(metadata.duration || 0),
+              name: enriched.title || path.basename(filePath),
+              duration: Math.round(enriched.duration || 0),
               fileHash: hash,
-              fileModifiedAt: metadata?.mtime ? new Date(metadata.mtime) : fs.statSync(filePath).mtime,
-              cover: coverUrl,
-              lyrics: metadata.lyrics || null,
-              artist: metadata.artist || track.artist,
-              album: metadata.album || track.album,
+              fileModifiedAt: enriched?.mtime ? new Date(enriched.mtime) : fs.statSync(filePath).mtime,
+              cover: this.resolveCoverForUpdate(metadataSource, coverUrl, targetTrack.cover),
+              lyrics: enriched.lyrics || null,
+              artist: enriched.artist || targetTrack.artist,
+              album: enriched.album || targetTrack.album,
               fileName: sortFields.fileName,
               relativePath: sortFields.relativePath,
               fileCreatedAt: sortFields.fileCreatedAt,
+              path: finalAudioUrl,
+              transcodedPath: transcodedPath || targetTrack.transcodedPath,
+              metadataSource,
+              metadataProvider,
             }
           });
 
-          this.logger.log(`[Watcher] Successfully updated track metadata: ${track.name}`);
+          this.logger.log(`[Watcher] Successfully updated track metadata: ${targetTrack.name}`);
         } else {
-          this.logger.warn(`[Watcher] Track not found in database for path: ${audioUrl}`);
+          this.logger.warn(`[Watcher] Track not found in database for path: ${finalAudioUrl}`);
         }
       } else {
         this.logger.error(`[Watcher] Failed to extract metadata from: ${filePath}`);
@@ -811,6 +1391,11 @@ export class ImportService implements OnModuleInit {
         }
       });
 
+      // Clean up transcoded audio file if exists
+      if (track.transcodedPath && fs.existsSync(track.transcodedPath)) {
+        fs.unlinkSync(track.transcodedPath);
+      }
+
       if (track.albumId) {
         await this.updateParentStatus(track.albumId, 'album');
       }
@@ -872,7 +1457,7 @@ export class ImportService implements OnModuleInit {
     });
 
     for (const track of tracks) {
-      const absolutePath = this.trackService.getFilePath(track.path);
+      const absolutePath = await this.trackService.getFilePath(track.path);
       if (!absolutePath) continue;
 
       const trackBaseName = path.basename(absolutePath, path.extname(absolutePath));
@@ -904,7 +1489,7 @@ export class ImportService implements OnModuleInit {
     });
 
     for (const track of tracks) {
-      const absolutePath = this.trackService.getFilePath(track.path);
+      const absolutePath = await this.trackService.getFilePath(track.path);
       if (!absolutePath) continue;
 
       const trackBaseName = path.basename(absolutePath, path.extname(absolutePath));
@@ -1025,26 +1610,24 @@ export class ImportService implements OnModuleInit {
       let webdavAudiobookCount = 0;
       let webdavMvCount = 0;
 
-      if (process.env.WEBDAV_MUSIC_URL) {
-        task.message = '正在统计 WebDAV 音乐文件...';
-        const wdScanner = new WebDAVScanner(process.env.WEBDAV_MUSIC_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
-        webdavMusicCount = await wdScanner.count('/');
-      }
-      if (process.env.WEBDAV_AUDIOBOOK_URL) {
-        task.message = '正在统计 WebDAV 有声书文件...';
-        const wdScanner = new WebDAVScanner(process.env.WEBDAV_AUDIOBOOK_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
-        webdavAudiobookCount = await wdScanner.count('/');
-      }
-      if (process.env.WEBDAV_MV_URL) {
-        task.message = '正在统计 WebDAV MV 文件...';
-        const wdScanner = new WebDAVScanner(process.env.WEBDAV_MV_URL, process.env.WEBDAV_USER, process.env.WEBDAV_PASSWORD);
-        webdavMvCount = await wdScanner.count('/');
+      const webdavTargets = await this.webDavConfig.listScanTargets();
+      for (const target of webdavTargets) {
+        task.message = `正在统计 WebDAV ${target.source.name} [${target.kind}]...`;
+        const wdScanner = new WebDAVScanner(
+          target.source.url,
+          target.source.username,
+          target.source.password,
+        );
+        const count = await wdScanner.count(target.path);
+        if (target.kind === 'MUSIC') webdavMusicCount += count;
+        else if (target.kind === 'AUDIOBOOK') webdavAudiobookCount += count;
+        else if (target.kind === 'MV') webdavMvCount += count;
       }
 
       task.localTotal = musicCount + audiobookCount;
       task.webdavTotal = webdavMusicCount + webdavAudiobookCount;
       task.mvTotal = mvCount + webdavMvCount;
-      task.total = task.localTotal + task.webdavTotal + task.mvTotal;
+      task.total = (task.localTotal || 0) + (task.webdavTotal || 0) + (task.mvTotal || 0);
 
       task.localCurrent = 0;
       task.webdavCurrent = 0;
@@ -1073,7 +1656,7 @@ export class ImportService implements OnModuleInit {
         const nextScanOrder = (task.current || 0) + 1;
         const sortFields = this.getTrackSortFields(item.originalPath || item.path, audioBasePath, nextScanOrder);
 
-        const trackId = await this.processTrackData(item, type, audioBasePath, cachePath, audioUrl, folderId, hash, sortFields);
+        const trackId = await this.processTrackData(item, type, audioBasePath, cachePath, audioUrl, folderId, hash, sortFields, isWebDAV ? TrackSource.WEBDAV : TrackSource.FILE);
         if (trackId) processedTrackIds.add(trackId);
 
         if (isWebDAV) {
@@ -1086,6 +1669,9 @@ export class ImportService implements OnModuleInit {
 
       for (const musicPath of musicPaths) {
         await this.scanner.scanMusic(musicPath, async (item) => {
+          if (this.isPathInsideAnyBase(item.originalPath || item.path, audiobookPaths)) {
+            return;
+          }
           task.currentFileName = item.title || path.basename(item.path);
           await processItem(item, TrackType.MUSIC, musicPath);
         });
@@ -1200,6 +1786,11 @@ export class ImportService implements OnModuleInit {
         where: { albumId: { in: ids } },
         data: { albumId: null },
       });
+      await this.prisma.mv.updateMany({
+        where: { albumId: { in: ids } },
+        data: { albumId: null },
+      });
+      await this.prisma.audiobookCollectionAlbum.deleteMany({ where: { albumId: { in: ids } } });
       await this.prisma.userAlbumLike.deleteMany({ where: { albumId: { in: ids } } });
       await this.prisma.userAlbumHistory.deleteMany({ where: { albumId: { in: ids } } });
       await this.prisma.album.deleteMany({ where: { id: { in: ids } } });
@@ -1231,7 +1822,7 @@ export class ImportService implements OnModuleInit {
 
     const missingIds: number[] = [];
     for (const track of tracks) {
-      const absolutePath = this.trackService.getFilePath(track.path);
+      const absolutePath = await this.trackService.getFilePath(track.path);
       if (!absolutePath) continue;
       if (!fs.existsSync(absolutePath)) {
         missingIds.push(track.id);
@@ -1251,6 +1842,10 @@ export class ImportService implements OnModuleInit {
         where: { albumId: album.id, status: FileStatus.ACTIVE }
       });
       if (activeTrackCount === 0) {
+        // 清空所有指向该专辑的外键引用，避免删除时触发外键约束
+        await this.prisma.track.updateMany({ where: { albumId: album.id }, data: { albumId: null } });
+        await this.prisma.mv.updateMany({ where: { albumId: album.id }, data: { albumId: null } });
+        await this.prisma.audiobookCollectionAlbum.deleteMany({ where: { albumId: album.id } });
         await this.prisma.userAlbumLike.deleteMany({ where: { albumId: album.id } });
         await this.prisma.userAlbumHistory.deleteMany({ where: { albumId: album.id } });
         await this.prisma.album.delete({ where: { id: album.id } });
@@ -1484,8 +2079,10 @@ export class ImportService implements OnModuleInit {
           avatar: finalCoverUrl,
           type: TrackType.MUSIC,
           status: FileStatus.ACTIVE,
-          trashedAt: null
-        });
+          trashedAt: null,
+          metadataSource: MetadataSource.EMBEDDED,
+          metadataProvider: null,
+        } as any);
       } else if (art.status === FileStatus.TRASHED) {
         await this.artistService.updateArtist(art.id, { status: FileStatus.ACTIVE, trashedAt: null });
       }
@@ -1505,8 +2102,10 @@ export class ImportService implements OnModuleInit {
         year: item.year ? String(item.year) : null,
         type: TrackType.MUSIC,
         status: FileStatus.ACTIVE,
-        trashedAt: null
-      });
+        trashedAt: null,
+        metadataSource: MetadataSource.EMBEDDED,
+        metadataProvider: null,
+      } as any);
     } else if (album.status === FileStatus.TRASHED) {
       await this.albumService.updateAlbum(album.id, { status: FileStatus.ACTIVE, trashedAt: null });
     }
@@ -1559,17 +2158,43 @@ export class ImportService implements OnModuleInit {
     }
   }
 
-  private async processTrackData(item: ScanResult, type: TrackType, audioBasePath: string, cachePath: string, audioUrl: string, folderId: number | null, hash: string, sortFields: TrackSortFields = {}): Promise<number | null> {
+  private async processTrackData(item: ScanResult, type: TrackType, audioBasePath: string, cachePath: string, audioUrl: string, folderId: number | null, hash: string, sortFields: TrackSortFields = {}, source: TrackSource = TrackSource.FILE): Promise<number | null> {
     // If it's an MV, handle it differently and return early
     if (this.isMvFile(item.path)) {
       const isWebDAV = !hash && audioUrl.startsWith('http'); // Basic heuristic, or we can just pass it
       await this.processMvData(item, audioBasePath, cachePath, audioUrl, hash, isWebDAV, item.originalPath || item.path);
       return null;
     }
+
+    // Enrich metadata via user-configured plugins
+    item = await this.metadataPluginService.enrich(item, type, {
+      cachePath,
+      audioBasePath,
+      audioUrl,
+      folderId,
+      hash,
+    });
+
+    // Determine metadata source for database records
+    const metadataSource = (item as any).__metadataSource || MetadataSource.EMBEDDED;
+    const metadataProvider = (item as any).__metadataProvider || null;
+
+    // Audio transcode for incompatible formats
+    let finalAudioUrl = audioUrl;
+    let transcodedPath: string | null = null;
+    const originalPath = item.originalPath || item.path;
+    if (!audioUrl.startsWith('http') && originalPath && this.needsAudioTranscode(originalPath)) {
+      const transcodeResult = await this.ensureAudioAsMp3(originalPath, cachePath);
+      if (transcodeResult.publicUrl) {
+        finalAudioUrl = transcodeResult.publicUrl;
+        transcodedPath = transcodeResult.sourcePath;
+      }
+    }
+
     const artistName = item.artist || '未知';
     const albumName = item.album || '未知';
     const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
-    const albumGroupArtist = item.albumArtist || artistName;
+    const albumGroupArtist = this.isUnknownMetadata(item.albumArtist) ? artistName : item.albumArtist!;
 
     // 1. Resolve Track Artist (Required for Track.artistId)
     // Support multi-artist parsing: "A & B", "A and B", "A、B"
@@ -1582,18 +2207,45 @@ export class ImportService implements OnModuleInit {
     // Fallback if split results in empty (should not happen if artistName is valid)
     if (individualArtists.length === 0) individualArtists.push(artistName);
 
+    // Pull plugin-driven artist meta once (applied to every artist in the split list)
+    const pluginArtistDescription = (item as any).__artistDescription as string | undefined;
+    const pluginArtistTags = (item as any).__artistTags as string[] | undefined;
+    const pluginArtistTagsJson = pluginArtistTags && pluginArtistTags.length > 0
+      ? JSON.stringify(pluginArtistTags)
+      : undefined;
+
     for (const name of individualArtists) {
       let art = await this.artistService.findByName(name, type, true);
       if (!art) {
         art = await this.artistService.createArtist({
           name: name,
-          avatar: coverUrl, // Use current cover for now
+          avatar: coverUrl,
           type: type,
           status: FileStatus.ACTIVE,
-          trashedAt: null
-        });
+          trashedAt: null,
+          metadataSource,
+          metadataProvider,
+          ...(metadataSource === MetadataSource.PLUGIN
+            ? { description: pluginArtistDescription, tags: pluginArtistTagsJson }
+            : {}),
+        } as any);
       } else if (art.status === FileStatus.TRASHED) {
         await this.artistService.updateArtist(art.id, { status: FileStatus.ACTIVE, trashedAt: null });
+      }
+
+      // For existing artists, only enrich from plugin and never overwrite existing fields
+      if (art && metadataSource === MetadataSource.PLUGIN) {
+        const artistUpdate: Record<string, any> = {};
+        if (pluginArtistDescription && !art.description) {
+          artistUpdate.description = pluginArtistDescription;
+        }
+        if (pluginArtistTagsJson) {
+          const merged = mergeTagJson(art.tags, pluginArtistTags);
+          if (merged) artistUpdate.tags = merged;
+        }
+        if (Object.keys(artistUpdate).length > 0) {
+          art = await this.artistService.updateArtist(art.id, artistUpdate as any);
+        }
       }
 
       if (!trackPrimaryArtist) trackPrimaryArtist = art;
@@ -1615,8 +2267,10 @@ export class ImportService implements OnModuleInit {
             avatar: coverUrl,
             type: type,
             status: FileStatus.ACTIVE,
-            trashedAt: null
-          });
+            trashedAt: null,
+            metadataSource,
+            metadataProvider,
+          } as any);
         } else if (albumArtistEntity.status === FileStatus.TRASHED) {
           await this.artistService.updateArtist(albumArtistEntity.id, { status: FileStatus.ACTIVE, trashedAt: null });
         }
@@ -1625,6 +2279,14 @@ export class ImportService implements OnModuleInit {
 
     // 3. Resolve Album
     let album: Album | null = null;
+    let albumWasCreated = false;
+
+    // Plugin-driven album enrichment values (used for both create and existing-album update)
+    const pluginAlbumDescription = (item as any).__albumDescription as string | undefined;
+    const pluginAlbumTags = (item as any).__albumTags as string[] | undefined;
+    const pluginAlbumTagsJson = pluginAlbumTags && pluginAlbumTags.length > 0
+      ? JSON.stringify(pluginAlbumTags)
+      : undefined;
 
     // Heuristic: If no explicit Album Artist, try to merge with existing album in the same folder
     if (!item.albumArtist && folderId && albumName !== '未知') {
@@ -1654,10 +2316,41 @@ export class ImportService implements OnModuleInit {
           year: item.year ? String(item.year) : null,
           type: type,
           status: FileStatus.ACTIVE,
-          trashedAt: null
-        });
-      } else if (album.status === FileStatus.TRASHED) {
-        await this.albumService.updateAlbum(album.id, { status: FileStatus.ACTIVE, trashedAt: null });
+          trashedAt: null,
+          metadataSource,
+          metadataProvider,
+          ...(metadataSource === MetadataSource.PLUGIN
+            ? { description: pluginAlbumDescription, tags: pluginAlbumTagsJson }
+            : {}),
+        } as any);
+        albumWasCreated = true;
+      }
+    }
+
+    // Enrich an already-existing album (found via the sibling heuristic or by name). Cover is
+    // overwritten when the plugin supplied one so full re-scans actually refresh stale covers,
+    // but the write is skipped when the URL is unchanged to avoid redundant updates on every
+    // full scan. Description stays first-wins and tags are union-merged, matching Track behavior.
+    if (album && !albumWasCreated) {
+      const albumUpdate: Record<string, any> = {};
+      if (album.status === FileStatus.TRASHED) {
+        albumUpdate.status = FileStatus.ACTIVE;
+        albumUpdate.trashedAt = null;
+      }
+      if (metadataSource === MetadataSource.PLUGIN) {
+        if (coverUrl && album.cover !== coverUrl) {
+          albumUpdate.cover = coverUrl;
+        }
+        if (pluginAlbumDescription && !album.description) {
+          albumUpdate.description = pluginAlbumDescription;
+        }
+        if (pluginAlbumTagsJson) {
+          const merged = mergeTagJson(album.tags, pluginAlbumTags);
+          if (merged) albumUpdate.tags = merged;
+        }
+      }
+      if (Object.keys(albumUpdate).length > 0) {
+        album = await this.albumService.updateAlbum(album.id, albumUpdate as any);
       }
     }
 
@@ -1674,7 +2367,7 @@ export class ImportService implements OnModuleInit {
       await this.prisma.track.update({
         where: { id: existingTrack.id },
         data: {
-          path: audioUrl,
+          path: finalAudioUrl,
           folderId: folderId,
           status: FileStatus.ACTIVE,
           trashedAt: null,
@@ -1684,6 +2377,9 @@ export class ImportService implements OnModuleInit {
           name: item.title || path.basename(item.path),
           duration: Math.round(item.duration || 0),
           index: item.track?.no || 0,
+          type: type,
+          artist: artistName,
+          album: albumName,
           episodeNumber: extractEpisodeNumber(item.title || ""),
           lyrics: item.lyrics || null, // Ensure lyrics update too
           fileName: sortFields.fileName,
@@ -1695,7 +2391,14 @@ export class ImportService implements OnModuleInit {
           // artist: artistName, // Optional: Update denormalized artist name if needed, but schema says it's string
           albumId: album.id,
           // album: albumName,   // Optional: Update denormalized album name
-          cover: coverUrl || existingTrack.cover,
+          cover: this.resolveCoverForUpdate(metadataSource, coverUrl, existingTrack.cover),
+          transcodedPath: transcodedPath || existingTrack.transcodedPath,
+          metadataSource,
+          metadataProvider,
+          source,
+          tags: metadataSource === MetadataSource.PLUGIN
+            ? mergeTagJson(existingTrack.tags, (item as any).__trackTags) ?? existingTrack.tags
+            : existingTrack.tags,
         }
       });
 
@@ -1711,7 +2414,7 @@ export class ImportService implements OnModuleInit {
         artist: artistName,
         album: albumName,
         cover: coverUrl,
-        path: audioUrl,
+        path: finalAudioUrl,
         duration: Math.round(item.duration || 0),
         lyrics: item.lyrics || null,
         index: item.track?.no || 0,
@@ -1728,7 +2431,16 @@ export class ImportService implements OnModuleInit {
         folderId: folderId,
         fileHash: hash,
         status: FileStatus.ACTIVE,
-        trashedAt: null
+        trashedAt: null,
+        transcodedPath: transcodedPath,
+        metadataSource,
+        metadataProvider,
+        source,
+        tags: metadataSource === MetadataSource.PLUGIN
+          ? ((item as any).__trackTags && (item as any).__trackTags.length > 0
+              ? JSON.stringify((item as any).__trackTags)
+              : null)
+          : null,
       } as any);
       return createdTrack.id;
     }

@@ -230,7 +230,7 @@ export default function Settings() {
 
       <ScrollView scrollY className='content'>
         <View className='section'>
-          <Text className='section-title'>{t('settings.account')}</Text>
+          <Text className='section-title'>{t('settings.server')}</Text>
           {user?.is_admin && renderActionRow(
             t('settings.admin'),
             t('settings.adminDescription'),
@@ -240,6 +240,26 @@ export default function Settings() {
             t('settings.sourceManage'),
             t('settings.sourceManageDescription'),
             () => Taro.navigateTo({ url: '/pages/source-manage/index' })
+          )}
+          {user?.is_admin && renderActionRow(
+            t('settings.webdavSources'),
+            t('settings.sourceManagementDescription'),
+            () => Taro.navigateTo({ url: '/pages/webdav-sources/index' })
+          )}
+          {user?.is_admin && renderActionRow(
+            t('settings.llmConfig'),
+            t('settings.llmConfigDescription'),
+            () => Taro.navigateTo({ url: '/pages/llm-config/index' })
+          )}
+          {user?.is_admin && renderActionRow(
+            t('settings.ttsConfig'),
+            t('settings.ttsConfigDescription'),
+            () => Taro.navigateTo({ url: '/pages/tts-config/index' })
+          )}
+          {user?.is_admin && renderActionRow(
+            t('settings.pluginCenter'),
+            t('settings.pluginCenterDescription'),
+            () => Taro.navigateTo({ url: '/pages/plugin-center/index' })
           )}
         </View>
 

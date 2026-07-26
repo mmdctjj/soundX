@@ -2,9 +2,9 @@
   flex: 1;
   padding: 30px;
   overflow-y: auto;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background-color: var(--ad-home-bg, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(var(--ad-home-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--ad-home-blur, 20px));
 }
 
 .section {

@@ -1,10 +1,12 @@
-import { Album, AlbumTrackSortBy, Track, getAlbumById, getAlbumTracks, Mv, getMvsByAlbum } from '@soundx/services';
+import { Album, AlbumTrackSortBy, Track, TrackSource, getAlbumById, getAlbumTracks, Mv, getMvsByAlbum, type MiDevice, playMiDevicePlaylist } from '@soundx/services';
 import { Image, ScrollView, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import MiDeviceSelector from '../../components/MiDeviceSelector';
 import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
+import XiaoAiIcon from '../../components/XiaoAiIcon';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { getBaseURL } from '../../utils/request';
@@ -27,6 +29,8 @@ export default function AlbumDetail() {
   const [sortBy, setSortBy] = useState<AlbumTrackSortBy>('fileName');
   const [sort, setSort] = useState<'asc' | 'desc'>('asc');
   const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [isMiDeviceSelectorVisible, setIsMiDeviceSelectorVisible] = useState(false);
+  const [isCastingToMi, setIsCastingToMi] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -90,6 +94,37 @@ export default function AlbumDetail() {
     }
   };
 
+  const handleCastAlbumToMi = async (device: MiDevice) => {
+    if (tracks.length === 0) {
+      Taro.showToast({ title: t('playerPage.miCastNoTrack'), icon: 'none' });
+      return;
+    }
+    setIsCastingToMi(true);
+    try {
+      const baseURL = getBaseURL().replace(/\/$/, '');
+      const trackPayloads = tracks.map((track) => ({
+        url: `${baseURL}/track/stream/${track.id}`,
+        title: `${track.name} - ${track.artist ?? ''}`,
+        duration: track.duration || 0,
+      }));
+      await playMiDevicePlaylist({
+        device_id: device.device_id,
+        tracks: trackPayloads,
+        start_index: 0,
+      });
+      Taro.showToast({
+        title: t('playerPage.miCastPlaylistSuccess', { count: trackPayloads.length, device: device.name }),
+        icon: 'success',
+      });
+      setIsMiDeviceSelectorVisible(false);
+    } catch (e) {
+      console.error('Failed to cast album to Mi device:', e);
+      Taro.showToast({ title: t('playerPage.miCastPlaylistFailed'), icon: 'none' });
+    } finally {
+      setIsCastingToMi(false);
+    }
+  };
+
   if (loading) return <View className='loading'><Text>{t('common.loading')}</Text></View>;
   if (!album) return <View className='error'><Text>{t('common.noData')}</Text></View>;
 
@@ -112,6 +147,11 @@ export default function AlbumDetail() {
                        <View className='album-play-all-btn' onClick={handlePlayAll}>
                            <Text className='album-play-icon icon icon-play' />
                            <Text className='album-play-text'>{t('album.playAll')}</Text>
+                       </View>
+                     )}
+                     {activeTab === 'tracks' && album.type !== 'AUDIOBOOK' && tracks.length > 0 && (
+                       <View className='sort-icon-btn' onClick={() => setIsMiDeviceSelectorVisible(true)}>
+                         <XiaoAiIcon size={18} />
                        </View>
                      )}
                      {activeTab === 'tracks' && album.type === 'AUDIOBOOK' && (
@@ -174,7 +214,14 @@ export default function AlbumDetail() {
                           </View>
                            <Image src={getImageUrl(track.cover)} className='track-cover' mode='aspectFill' />
                            <View className='track-info'>
-                               <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
+                               <View className='track-name-row'>
+                                 <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>
+                                 <Text className='track-source'>
+                                   {track.source === TrackSource.WEBDAV
+                                     ? t('trackList.sourceWebdav')
+                                     : t('trackList.sourceFile')}
+                                 </Text>
+                               </View>
                            </View>
                            <Text className='track-duration'>{formatDuration(track.duration || 0)}</Text>
                        </View>
@@ -228,6 +275,12 @@ export default function AlbumDetail() {
             onLocate={handleLocateCurrent}
             locateDisabled={!currentTrack || !tracks.some((item) => item.id === currentTrack.id)}
          />
+      <MiDeviceSelector
+        visible={isMiDeviceSelectorVisible}
+        onClose={() => setIsMiDeviceSelectorVisible(false)}
+        onSelectDevice={handleCastAlbumToMi}
+        loading={isCastingToMi}
+      />
       <BottomTabBar />
       <MiniPlayer />
     </View>

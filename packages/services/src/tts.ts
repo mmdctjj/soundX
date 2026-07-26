@@ -2,9 +2,22 @@ import { getBaseURL, request } from "./request";
 
 const TTS_BASE_URL = "/tts";
 
+// ===== 类型定义扩展 =====
+
+export interface TtsProvider {
+  /** 服务商标识 */
+  id: string;
+  /** 服务商显示名称 */
+  name: string;
+}
+
 export interface TtsVoice {
-  label: string;
-  value: string;
+  /** 音色ID */
+  id: string;
+  /** 音色名称 */
+  name: string;
+  /** 性别 */
+  gender?: "male" | "female";
 }
 
 export interface TtsFileItem {
@@ -20,6 +33,7 @@ export interface TtsReviewItem {
   title: string;
   author: string;
   voice: string;
+  provider?: string;
   temp_path?: string;
   file_id?: string;
 }
@@ -32,10 +46,46 @@ export interface TtsTask {
   total_chapters: number;
   completed_chapters: number;
   created_at: string;
+  provider?: string;
+  voice?: string;
+  speed?: number;
 }
 
-export const getTtsVoices = (): Promise<TtsVoice[]> => {
-  return request.get(`${TTS_BASE_URL}/api/tasks/voices`);
+export interface CreateTtsTaskRequest {
+  book_name: string;
+  author?: string;
+  file_path: string;
+  /** 服务商标识 */
+  provider: string;
+  /** 音色ID */
+  voice: string;
+  /** 语速 */
+  speed?: number;
+}
+
+// ===== API 函数 =====
+
+/**
+ * 获取所有支持的 TTS 服务商列表
+ */
+export const getTtsProviders = (): Promise<{
+  providers: TtsProvider[];
+}> => {
+  return request.get(`${TTS_BASE_URL}/api/tasks/providers`);
+};
+
+/**
+ * 获取音色列表（按服务商过滤）
+ */
+export const getTtsVoices = (
+  provider: string = "edge"
+): Promise<{
+  provider: string;
+  voices: TtsVoice[];
+}> => {
+  return request.get(`${TTS_BASE_URL}/api/tasks/voices`, {
+    params: { provider },
+  });
 };
 
 export const getTtsLocalFiles = (): Promise<{ success: boolean; files: TtsFileItem[] }> => {
@@ -76,6 +126,7 @@ export const createTtsBatchTasks = (files: Array<{
   title: string;
   author: string;
   voice: string;
+  provider?: string;
   file_id?: string;
   temp_path?: string;
 }>): Promise<{ success: boolean; count: number }> => {
@@ -98,10 +149,15 @@ export const deleteTtsTask = (id: string) => {
   return request.delete(`${TTS_BASE_URL}/api/tasks/${id}`);
 };
 
-export const getTtsPreviewUrl = async (voice: string, text?: string): Promise<string> => {
+export const getTtsPreviewUrl = async (
+  voice: string,
+  provider: string = "edge",
+  text?: string
+): Promise<string> => {
   const baseURL = getBaseURL().replace(/\/$/, "");
   const query = new URLSearchParams({
     voice,
+    provider,
     t: String(Date.now()),
   });
 

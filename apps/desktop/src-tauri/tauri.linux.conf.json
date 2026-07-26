@@ -1,0 +1,10 @@
+{
+  "app": {
+    "windows": [
+      {
+        "decorations": false,
+        "titleBarStyle": "Visible"
+      }
+    ]
+  }
+}

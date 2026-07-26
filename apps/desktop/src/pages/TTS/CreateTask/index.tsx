@@ -7,12 +7,13 @@ import {
   SoundOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import type { TtsFileItem as FileItem, TtsReviewItem as ReviewItem, TtsVoice } from "@soundx/services";
+import type { TtsFileItem as FileItem, TtsReviewItem as ReviewItem, TtsVoice, TtsProvider } from "@soundx/services";
 import {
   createTtsBatchTasks,
   getTtsLocalFiles,
   getTtsPreviewUrl,
   getTtsVoices,
+  getTtsProviders,
   identifyTtsBatch,
   uploadTtsFile,
   plusGetMe,
@@ -47,6 +48,11 @@ const CreateTask: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
+
+  // [NEW] 服务商相关状态
+  const [providers, setProviders] = useState<TtsProvider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<string>("edge");
+
   const [voices, setVoices] = useState<TtsVoice[]>([]);
   const [localFiles, setLocalFiles] = useState<FileItem[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -76,11 +82,30 @@ const CreateTask: React.FC = () => {
     return true;
   };
 
-  const fetchVoices = async () => {
+  // [NEW] 加载服务商列表
+  const fetchProviders = async () => {
     try {
-      const data = await getTtsVoices();
-      if (Array.isArray(data)) {
-        setVoices(data);
+      const data = await getTtsProviders();
+      if (data.providers && Array.isArray(data.providers)) {
+        setProviders(data.providers);
+        if (data.providers.length > 0 && !selectedProvider) {
+          setSelectedProvider(data.providers[0].id);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch providers", err);
+    }
+  };
+
+  // [MODIFIED] 加载音色列表，带 provider 参数
+  const fetchVoices = async (provider: string = selectedProvider) => {
+    try {
+      const data = await getTtsVoices(provider);
+      if (data.voices && Array.isArray(data.voices)) {
+        setVoices(data.voices);
+        if (data.voices.length > 0) {
+          setSelectedVoice(data.voices[0].id);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch voices", err);
@@ -102,19 +127,27 @@ const CreateTask: React.FC = () => {
   };
 
   useEffect(() => {
-    ensureVipAccess().then((ok)=>{ if (ok) { fetchVoices(); fetchLocalFiles(); } });
+    ensureVipAccess().then((ok)=>{ if (ok) { fetchProviders(); fetchLocalFiles(); } });
   }, []);
 
-  const handlePreview = async (voice: string) => {
+  // [NEW] 服务商变更时重新加载音色
+  useEffect(() => {
+    if (selectedProvider) {
+      fetchVoices(selectedProvider);
+    }
+  }, [selectedProvider]);
+
+  // [MODIFIED] 预览传入 provider
+  const handlePreview = async (voice: string, provider: string = selectedProvider) => {
     if (previewLoading) return;
     setPreviewLoading(voice);
     trackEvent({
       feature: "tts",
       eventName: "tts_voice_preview",
-      metadata: { voice },
+      metadata: { voice, provider },
     });
     try {
-      const previewUrl = await getTtsPreviewUrl(voice);
+      const previewUrl = await getTtsPreviewUrl(voice, provider);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -159,6 +192,7 @@ const CreateTask: React.FC = () => {
           title: res.title || res.filename.replace(".txt", ""),
           author: res.author || "Unknown",
           voice: selectedVoice,
+          provider: selectedProvider,
           temp_path: res.temp_path,
           file_id: res.file_id,
         };
@@ -196,7 +230,8 @@ const CreateTask: React.FC = () => {
           full_path: r.full_path,
           title: r.title,
           author: r.author,
-          voice: selectedVoice, // 初始使用页面选择的预设音色
+          voice: selectedVoice,
+          provider: selectedProvider,
         }));
         setReviewData(items);
         setView("review");
@@ -222,6 +257,7 @@ const CreateTask: React.FC = () => {
           title: item.title,
           author: item.author,
           voice: item.voice,
+          provider: item.provider || selectedProvider,
           file_id: item.file_id,
           temp_path: item.temp_path,
         }))
@@ -316,26 +352,45 @@ const CreateTask: React.FC = () => {
       ),
     },
     {
-      title: "针对此本选择音色",
+      title: "服务商",
+      dataIndex: "provider",
+      key: "provider",
+      width: 140,
+      render: (provider: string, record: ReviewItem) => (
+        <Select
+          style={{ width: 120 }}
+          value={provider || selectedProvider}
+          onChange={(val) => updateReviewItem(record.key, "provider", val)}
+        >
+          {providers.map((p) => (
+            <Option key={p.id} value={p.id}>
+              {p.name}
+            </Option>
+          ))}
+        </Select>
+      ),
+    },
+    {
+      title: "音色",
       dataIndex: "voice",
       key: "voice",
-      width: 320,
+      width: 280,
       render: (voice: string, record: ReviewItem) => (
         <Space>
           <Select
-            style={{ width: 220 }}
+            style={{ width: 180 }}
             value={voice}
             onChange={(val) => updateReviewItem(record.key, "voice", val)}
           >
             {voices.map((v) => (
-              <Option key={v.value} value={v.value}>
-                {v.label}
+              <Option key={v.id} value={v.id}>
+                {v.name} {v.gender === "male" ? "(男)" : v.gender === "female" ? "(女)" : ""}
               </Option>
             ))}
           </Select>
           <Button
             icon={<SoundOutlined />}
-            onClick={() => handlePreview(voice)}
+            onClick={() => handlePreview(voice, record.provider || selectedProvider)}
             loading={previewLoading === voice}
           >
             试听
@@ -431,23 +486,37 @@ const CreateTask: React.FC = () => {
               background: "rgba(255,255,255,0.02)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <Text strong>预设音色：</Text>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              {/* [NEW] 服务商选择 */}
+              <Text strong>TTS 服务商：</Text>
+              <Select
+                style={{ width: 160 }}
+                value={selectedProvider}
+                onChange={setSelectedProvider}
+              >
+                {providers.map((p) => (
+                  <Option key={p.id} value={p.id}>
+                    {p.name}
+                  </Option>
+                ))}
+              </Select>
+
+              <Text strong>音色：</Text>
               <Space>
                 <Select
-                  style={{ width: 250 }}
+                  style={{ width: 220 }}
                   value={selectedVoice}
                   onChange={setSelectedVoice}
                 >
                   {voices.map((v) => (
-                    <Option key={v.value} value={v.value}>
-                      {v.label}
+                    <Option key={v.id} value={v.id}>
+                      {v.name} {v.gender === "male" ? "(男)" : v.gender === "female" ? "(女)" : ""}
                     </Option>
                   ))}
                 </Select>
                 <Button
                   icon={<SoundOutlined />}
-                  onClick={() => handlePreview(selectedVoice)}
+                  onClick={() => handlePreview(selectedVoice, selectedProvider)}
                   loading={previewLoading === selectedVoice}
                 >
                   试听音色

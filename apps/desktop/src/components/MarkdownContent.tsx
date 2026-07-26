@@ -1,11 +1,10 @@
 import ReactMarkdown from 'react-markdown';
 import type { ComponentProps, MouseEvent } from 'react';
 import remarkGfm from 'remark-gfm';
+import { open } from "@tauri-apps/plugin-shell";
+import { isTauri } from "../utils/platform";
 
 type MarkdownComponents = NonNullable<ComponentProps<typeof ReactMarkdown>['components']>;
-type IpcRendererBridge = {
-  openExternal: (url: string) => void;
-};
 
 interface MarkdownContentProps {
   children: string;
@@ -28,9 +27,8 @@ const openInDefaultBrowser = (url?: string) => {
   const externalUrl = toExternalUrl(url);
   if (!externalUrl) return;
 
-  const ipcRenderer = (window as Window & { ipcRenderer?: IpcRendererBridge }).ipcRenderer;
-  if (ipcRenderer) {
-    ipcRenderer.openExternal(externalUrl);
+  if (isTauri()) {
+    open(externalUrl).catch(console.error);
     return;
   }
 

@@ -1,11 +1,20 @@
 import MarqueeText from "@/src/components/MarqueeText";
 import PlayingIndicator from "@/src/components/PlayingIndicator";
+import { XiaoAiIcon } from "@/src/components/XiaoAiIcon";
 import { useAuth } from "@/src/context/AuthContext";
 import { PlayMode, usePlayer } from "@/src/context/PlayerContext";
 import { useTheme } from "@/src/context/ThemeContext";
 import { Track, TrackType, UserTrackLike } from "@/src/models";
 import { getImageUrl } from "@/src/utils/image";
 import { trackEvent } from "@/src/services/tracking";
+import {
+  getMiAuthStatus,
+  getMiDevices,
+  getMiQRCode,
+  getMiQRCodeStatus,
+  type MiDevice,
+  playMiDeviceByUrl,
+} from "@soundx/services";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Slider } from "@miblanchard/react-native-slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -20,7 +29,9 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -195,6 +206,13 @@ export function PlayerDetailView({
   const [syncModalVisible, setSyncModalVisible] = useState(false);
   const [moreModalVisible, setMoreModalVisible] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
+  const [miModalVisible, setMiModalVisible] = useState(false);
+  const [miDevices, setMiDevices] = useState<MiDevice[]>([]);
+  const [miLoggedIn, setMiLoggedIn] = useState(false);
+  const [miQRCodeUrl, setMiQRCodeUrl] = useState<string | null>(null);
+  const [miLoading, setMiLoading] = useState(false);
+  const [miCasting, setMiCasting] = useState(false);
+  const miPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const playlistRef = useRef<FlatList>(null);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
@@ -602,6 +620,100 @@ export function PlayerDetailView({
     });
   };
 
+  const stopMiPolling = () => {
+    if (miPollingRef.current) {
+      clearInterval(miPollingRef.current);
+      miPollingRef.current = null;
+    }
+  };
+
+  const startMiQRPolling = (lpUrl: string) => {
+    stopMiPolling();
+    miPollingRef.current = setInterval(async () => {
+      try {
+        const status = await getMiQRCodeStatus(lpUrl);
+        if (status.status === "success") {
+          stopMiPolling();
+          setMiLoggedIn(true);
+          setMiQRCodeUrl(null);
+          Alert.alert(t("playerPage.miLoginRequired"), "扫码登录成功");
+          const res = await getMiDevices();
+          setMiDevices(res.devices || []);
+        } else if (status.status === "expired" || status.status === "error") {
+          stopMiPolling();
+          setMiQRCodeUrl(null);
+        }
+      } catch (e) {
+        // 静默失败，等待下次轮询
+      }
+    }, 2000);
+  };
+
+  const handleOpenMiCast = async () => {
+    setMiModalVisible(true);
+    resetHideTimer();
+    setMiLoading(true);
+    try {
+      const auth = await getMiAuthStatus();
+      setMiLoggedIn(auth.logged_in);
+      if (auth.logged_in) {
+        const res = await getMiDevices();
+        setMiDevices(res.devices || []);
+      } else {
+        const qr = await getMiQRCode();
+        if (qr.already_logged_in) {
+          setMiLoggedIn(true);
+          const res = await getMiDevices();
+          setMiDevices(res.devices || []);
+        } else if (qr.qrcode_url) {
+          setMiQRCodeUrl(qr.qrcode_url);
+          if (qr.status_url) startMiQRPolling(qr.status_url);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load Mi devices:", e);
+      Alert.alert(t("playerPage.loadMiDevicesFailed"));
+    } finally {
+      setMiLoading(false);
+    }
+  };
+
+  const handleCloseMiCast = () => {
+    setMiModalVisible(false);
+    stopMiPolling();
+  };
+
+  const handleCastToMi = async (deviceId: string, deviceName: string) => {
+    if (!currentTrack) {
+      Alert.alert(t("playerPage.miCastNoTrack"));
+      return;
+    }
+    setMiCasting(true);
+    try {
+      const baseURL = (await import("@/src/https")).getBaseURL().replace(/\/$/, "");
+      const quality = currentAudioQuality;
+      const qualityQuery = quality ? `?quality=${quality}` : "";
+      const url = `${baseURL}/track/stream/${currentTrack.id}${qualityQuery}`;
+      const title = `${currentTrack.name} - ${currentTrack.artist ?? ""}`;
+      await playMiDeviceByUrl({ device_id: deviceId, url, title });
+      if (isPlaying) {
+        await pause();
+      }
+      Alert.alert(t("playerPage.miCastSuccess", { device: deviceName }));
+      setMiModalVisible(false);
+      stopMiPolling();
+    } catch (e) {
+      console.error("Failed to cast to Mi device:", e);
+      Alert.alert(t("playerPage.miCastFailed"));
+    } finally {
+      setMiCasting(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => stopMiPolling();
+  }, []);
+
   if (!currentTrack) {
     if (embedded && carModeEnabled) {
       return (
@@ -800,6 +912,98 @@ export function PlayerDetailView({
           controlsBottomOffset={controlsBottomOffset}
           setControlsBottomOffset={setControlsBottomOffset}
         />
+        <Modal
+          visible={miModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={handleCloseMiCast}
+        >
+          <Pressable
+            style={miStyles.backdrop}
+            onPress={handleCloseMiCast}
+          >
+            <Pressable
+              style={[miStyles.sheet, { backgroundColor: colors.card }]}
+              onPress={() => {}}
+            >
+              <Text style={[miStyles.title, { color: colors.text }]}>
+                {t("playerPage.miSpeakerTitle")}
+              </Text>
+              {miLoading ? (
+                <Text style={{ color: colors.secondary, padding: 12 }}>
+                  {t("common.loading")}
+                </Text>
+              ) : miLoggedIn ? (
+                miDevices.length === 0 ? (
+                  <Text style={{ color: colors.secondary, padding: 12 }}>
+                    {t("playerPage.noMiDevices")}
+                  </Text>
+                ) : (
+                  <ScrollView style={{ maxHeight: 360 }}>
+                    {miDevices.map((device) => (
+                      <TouchableOpacity
+                        key={device.device_id}
+                        activeOpacity={0.6}
+                        disabled={miCasting}
+                        onPress={() => handleCastToMi(device.device_id, device.name)}
+                        style={[miStyles.deviceRow, { borderBottomColor: colors.border }]}
+                      >
+                        <View
+                          style={[
+                            miStyles.deviceIcon,
+                            { backgroundColor: colors.primary },
+                          ]}
+                        >
+                          <XiaoAiIcon size={20} color="#fff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.text, fontSize: 15, fontWeight: "600" }}>
+                            {device.name}
+                          </Text>
+                          {!!device.model && (
+                            <Text style={{ color: colors.secondary, fontSize: 12 }}>
+                              {device.model}
+                            </Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )
+              ) : miQRCodeUrl ? (
+                <View style={{ alignItems: "center", paddingVertical: 12 }}>
+                  <Text style={{ color: colors.secondary, marginBottom: 8 }}>
+                    {t("playerPage.miLoginRequired")}
+                  </Text>
+                  <Image
+                    source={{ uri: miQRCodeUrl }}
+                    style={{
+                      width: 180,
+                      height: 180,
+                      borderRadius: 8,
+                      backgroundColor: "#fff",
+                    }}
+                  />
+                  <Text style={{ color: colors.secondary, fontSize: 12, marginTop: 8 }}>
+                    {t("playerPage.miScanQRCode")}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={{ color: colors.secondary, padding: 12 }}>
+                  {t("playerPage.miLoginRequired")}
+                </Text>
+              )}
+              <TouchableOpacity
+                onPress={handleCloseMiCast}
+                style={[miStyles.closeBtn, { backgroundColor: colors.border }]}
+              >
+                <Text style={{ color: colors.text, fontWeight: "600" }}>
+                  {t("common.close")}
+                </Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
         {renderPlaylistModal && <PlaylistModal />}
         {currentTrack.type !== TrackType.AUDIOBOOK && (
           <>
@@ -841,12 +1045,11 @@ export function PlayerDetailView({
         )}
         <TouchableOpacity
           onPress={() => {
-            handleOpenMore();
-            resetHideTimer();
+            handleOpenMiCast();
           }}
           style={styles.likeButton}
         >
-          <Ionicons name="ellipsis-horizontal" size={24} color={colors.text} />
+          <XiaoAiIcon size={24} color={miLoggedIn ? colors.primary : colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -967,6 +1170,16 @@ export function PlayerDetailView({
                   style={styles.landscapeBackBtn}
                 >
                   <Ionicons name="chevron-down" size={30} color={colors.text} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={styles.landscapeMoreBtn}>
+              {!embedded && (
+                <TouchableOpacity
+                  onPress={handleOpenMore}
+                  style={styles.landscapeMoreBtn}
+                >
+                  <Ionicons name="ellipsis-vertical" size={26} color={colors.text} />
                 </TouchableOpacity>
               )}
             </View>
@@ -1445,6 +1658,12 @@ const styles = StyleSheet.create({
     left: 20,
     zIndex: 10,
   },
+  landscapeMoreBtn: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    zIndex: 10,
+  },
   playlistContainer: {
     flex: 1,
   },
@@ -1524,5 +1743,46 @@ const styles = StyleSheet.create({
   landscapeControls: {
     width: "100%",
     justifyContent: "center",
+  },
+});
+
+const miStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  sheet: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 16,
+    padding: 20,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  deviceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  deviceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  closeBtn: {
+    marginTop: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
   },
 });

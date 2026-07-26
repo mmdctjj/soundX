@@ -22,6 +22,18 @@ enum FileStatus {
   TRASHED
 }
 
+enum MetadataSource {
+  EMBEDDED
+  PLUGIN
+  USER_EDITED
+}
+
+// 单曲文件来源：本地文件扫描 / WebDAV 同步
+enum TrackSource {
+  FILE
+  WEBDAV
+}
+
 model Track {
   id        Int      @id @default(autoincrement())
   name      String
@@ -45,6 +57,19 @@ model Track {
   fileHash  String?
   status    FileStatus @default(ACTIVE)
   trashedAt DateTime?
+
+  // Transcoding
+  transcodedPath String?
+
+  // Metadata source tracking
+  metadataSource MetadataSource @default(EMBEDDED)
+  metadataProvider String?
+
+  // 文件来源：本地文件 or WebDAV
+  source    TrackSource @default(FILE)
+
+  // Plugin-driven tags (JSON-serialized string array)
+  tags       String?
 
   // Relations to entity tables (Optional for compatibility with existing string fields)
   artistId  Int?
@@ -73,9 +98,17 @@ model Album {
   cover  String?
   year   String?
   type   TrackType @default(MUSIC)
-  
+
   status    FileStatus @default(ACTIVE)
   trashedAt DateTime?
+
+  // Metadata source tracking
+  metadataSource MetadataSource @default(EMBEDDED)
+  metadataProvider String?
+
+  // Plugin-driven enrichment (JSON-serialized)
+  description String?
+  tags        String?
 
   tracks Track[] 
   mvs    Mv[]
@@ -96,6 +129,14 @@ model Artist {
 
   status    FileStatus @default(ACTIVE)
   trashedAt DateTime?
+
+  // Metadata source tracking
+  metadataSource MetadataSource @default(EMBEDDED)
+  metadataProvider String?
+
+  // Plugin-driven enrichment (JSON-serialized)
+  description String?
+  tags        String?
 
   tracks Track[]
   mvs    Mv[]
@@ -312,6 +353,9 @@ model TtsTask {
   bookName          String           @map("book_name")
   author            String
   filePath          String           @default("") @map("file_path")
+  provider          String           @default("edge")
+  voice             String           @default("zh-CN-XiaoxiaoNeural")
+  speed             Float            @default(1.0)
   totalChapters     Int              @map("total_chapters")
   completedChapters Int              @default(0) @map("completed_chapters")
   status            String           @default("pending")
@@ -361,4 +405,22 @@ model TtsChapterTask {
   outputPath String? @map("output_path")
 
   @@map("tts_chapter_task")
+}
+
+model PluginLog {
+  id          Int      @id @default(autoincrement())
+  pluginId    String
+  pluginName  String?
+  targetPath  String
+  targetType  String
+  input       String
+  output      String?
+  status      String
+  durationMs  Int?
+  message     String?
+  createdAt   DateTime @default(now())
+
+  @@index([targetPath])
+  @@index([pluginId])
+  @@index([createdAt])
 }

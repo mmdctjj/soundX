@@ -1,7 +1,5 @@
-import desktopEn from "./locales/desktop/en.json";
-import desktopZhCN from "./locales/desktop/zh-CN.json";
-import mobileEn from "./locales/mobile/en.json";
-import mobileZhCN from "./locales/mobile/zh-CN.json";
+import commonEn from "./locales/common/en.json";
+import commonZhCN from "./locales/common/zh-CN.json";
 import { createI18nResources, deepMergeTranslations } from "./utils";
 import { FALLBACK_LANGUAGE } from "./constants";
 import type { TranslationTree } from "./types";
@@ -29,31 +27,15 @@ function alignTranslationTree(
 }
 
 export const rawLocaleSlices = {
-  desktop: {
-    "zh-CN": desktopZhCN as TranslationTree,
-    en: desktopEn as TranslationTree,
-  },
-  mobile: {
-    "zh-CN": mobileZhCN as TranslationTree,
-    en: mobileEn as TranslationTree,
+  common: {
+    "zh-CN": commonZhCN as TranslationTree,
+    en: commonEn as TranslationTree,
   },
 };
 
 export const translations = {
-  "zh-CN": alignTranslationTree(
-    deepMergeTranslations(
-      rawLocaleSlices.desktop["zh-CN"],
-      rawLocaleSlices.mobile["zh-CN"],
-    ),
-    "zh-CN",
-  ),
-  en: alignTranslationTree(
-    deepMergeTranslations(
-      rawLocaleSlices.desktop.en,
-      rawLocaleSlices.mobile.en,
-    ),
-    "en",
-  ),
+  "zh-CN": alignTranslationTree(rawLocaleSlices.common["zh-CN"], "zh-CN"),
+  en: alignTranslationTree(rawLocaleSlices.common.en, "en"),
 };
 
 export const resources = createI18nResources(translations);

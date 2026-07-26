@@ -24,6 +24,7 @@ import {
   SearchOutlined,
   SettingOutlined,
   SunOutlined,
+  UnorderedListOutlined,
   WifiOutlined,
 } from "@ant-design/icons";
 import {
@@ -37,6 +38,7 @@ import {
   getImportTask,
   getRunningImportTask,
   getSearchHistory,
+  hasActiveTasks,
   plusDeleteMe,
   plusGetMe,
   plusParticipateInternalTest,
@@ -75,10 +77,12 @@ import { useTheme } from "../../context/ThemeContext";
 import { getBaseURL } from "../../https";
 import { TrackType } from "../../models";
 import { trackEvent } from "../../services/tracking";
+import { invoke } from "@tauri-apps/api/core";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
+import { useSettingsStore } from "../../store/settings";
 import { isEmbySource, isSubsonicSource } from "../../utils";
-import { isWeb, isWindows } from "../../utils/platform";
+import { isTauri, isWeb, isWindows, tauriCloseWindow, tauriMaximizeWindow, tauriMinimizeWindow, tauriOpenExternal } from "../../utils/platform";
 import { usePlayMode } from "../../utils/playMode";
 import SearchResults from "../SearchResults";
 import styles from "./index.module.less";
@@ -383,6 +387,7 @@ const Header: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
   const searchTimerRef = useRef<number | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<any>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [hotSearches, setHotSearches] = useState<
     { keyword: string; count: number }[]
@@ -405,6 +410,28 @@ const Header: React.FC = () => {
   const [, setPlusVipData] = useState<any>(null);
   const [redeemingInternalTestCode, setRedeemingInternalTestCode] =
     useState(false);
+  // 任务中心入口显隐：仅当存在进行中任务时显示
+  const [showTaskCenterEntry, setShowTaskCenterEntry] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const active = await hasActiveTasks();
+        console.log("Checked active tasks:", active);
+        if (!cancelled) setShowTaskCenterEntry(active);
+      } catch (e) {
+        /* 忽略：网络异常时不改变入口状态 */
+        console.warn("Failed to check active tasks", e);
+      }
+    };
+    check();
+    const timer = setInterval(check, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const refreshCurrentUser = async () => {
@@ -463,6 +490,16 @@ const Header: React.FC = () => {
       console.error("Search error:", error);
     }
   };
+
+  // antd 的 css-dev-only-* 类会给内层 <input> 单独设 color 覆盖外层 style，
+  // 这里直接通过 ref 把 token.colorText 写到 input 元素上，inline style 永远胜出。
+  useEffect(() => {
+    const inner: HTMLInputElement | undefined =
+      searchInputRef.current?.input ?? searchInputRef.current;
+    if (inner && inner.tagName === "INPUT") {
+      inner.style.color = token.colorText;
+    }
+  }, [token.colorText]);
 
   const handleLogout = () => {
     logout();
@@ -537,8 +574,8 @@ const Header: React.FC = () => {
     // window.location.reload(); // Removed reload as we now have reactive state
   };
 
-  const iconStyle = { color: token.colorTextSecondary };
-  const actionIconStyle = { color: token.colorText };
+  const iconStyle = { color: "var(--ad-header-text, " + token.colorTextSecondary + ")" };
+  const actionIconStyle = { color: "var(--ad-header-text, " + token.colorText + ")" };
 
   const handleUpdateLibrary = async (
     mode: "incremental" | "full" | "compact",
@@ -843,9 +880,9 @@ const Header: React.FC = () => {
   };
 
   return (
-    <div className={`${styles.header}`}>
+    <div className={`${styles.header}`} data-tauri-drag-region>
       {/* Navigation Controls */}
-      <div className={styles.navControls}>
+      <div className={styles.navControls} data-tauri-no-drag>
         <div className={styles.navGroup}>
           <Tooltip title={t("header.back")}>
             <LeftOutlined
@@ -876,6 +913,7 @@ const Header: React.FC = () => {
         className={styles.searchBar}
         ref={searchContainerRef}
         style={{ display: "flex", alignItems: "center" }}
+        data-tauri-no-drag
       >
         <Tooltip
           title={
@@ -896,6 +934,7 @@ const Header: React.FC = () => {
           </div>
         </Tooltip>
         <Input
+          ref={searchInputRef}
           prefix={
             <SearchOutlined style={{ color: token.colorTextSecondary }} />
           }
@@ -928,7 +967,7 @@ const Header: React.FC = () => {
       </div>
 
       {/* User Actions */}
-      <div className={styles.userActions}>
+      <div className={styles.userActions} data-tauri-no-drag>
         {playMode === TrackType.MUSIC &&
           !isSubsonicSource() &&
           !isEmbySource() && (
@@ -1002,8 +1041,8 @@ const Header: React.FC = () => {
               className={styles.actionIcon}
               style={actionIconStyle}
               onClick={() => {
-                if ((window as any).ipcRenderer) {
-                  (window as any).ipcRenderer.send("window:set-mini");
+                if (isTauri()) {
+                  invoke("create_mini_window").catch(console.error);
                 }
               }}
             />
@@ -1137,6 +1176,20 @@ const Header: React.FC = () => {
             )}
           </div>
         </Tooltip>
+        {showTaskCenterEntry && (
+          <Tooltip title={t("header.taskCenter")}>
+            <div
+              className={styles.actionIcon}
+              style={{ ...actionIconStyle }}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate("/task-center");
+              }}
+            >
+              <UnorderedListOutlined style={{ fontSize: 18 }} />
+            </div>
+          </Tooltip>
+        )}
         <Popover
           content={
             <div className={styles.userMenu}>
@@ -1208,16 +1261,7 @@ const Header: React.FC = () => {
               <div
                 className={styles.userMenuItem}
                 onClick={() => {
-                  if (window.ipcRenderer) {
-                    window.ipcRenderer?.openExternal(
-                      "https://github.com/mmdctjj/AudioDock",
-                    );
-                  } else {
-                    window.open(
-                      "https://github.com/mmdctjj/AudioDock",
-                      "_blank",
-                    );
-                  }
+                  void tauriOpenExternal("https://github.com/mmdctjj/AudioDock");
                 }}
               >
                 <GithubOutlined />
@@ -1279,10 +1323,11 @@ const Header: React.FC = () => {
                     cancelText: t("common.cancel"),
                     onOk: async () => {
                       try {
-                        if ((window as any).ipcRenderer) {
-                          await (window as any).ipcRenderer.invoke(
-                            "cache:clear",
-                          );
+                        if (isTauri()) {
+                          await invoke("cache_clear", {
+                            downloadPath:
+                              useSettingsStore.getState().download.downloadPath,
+                          });
                         }
                         const PRESERVED_KEYS = new Set([
                           "serverAddress",
@@ -1364,19 +1409,19 @@ const Header: React.FC = () => {
           <Flex className={styles.winControls}>
             <div
               className={styles.winControlBtn}
-              onClick={() => window.ipcRenderer?.minimizeWindow?.()}
+              onClick={() => { tauriMinimizeWindow(); }}
             >
               <MinusOutlined />
             </div>
             <div
               className={styles.winControlBtn}
-              onClick={() => window.ipcRenderer?.maximizeWindow?.()}
+              onClick={() => { tauriMaximizeWindow(); }}
             >
               <BorderOutlined />
             </div>
             <div
               className={`${styles.winControlBtn} ${styles.winCloseBtn}`}
-              onClick={() => window.ipcRenderer?.closeWindow?.()}
+              onClick={() => { tauriCloseWindow(); }}
             >
               <CloseOutlined />
             </div>

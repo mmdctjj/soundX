@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "1.1.15",
+  "version": "1.1.22",
   "description": "",
   "author": "mmdctjj <mmdctjj@gmail.com>",
   "repository": {
@@ -37,9 +37,8 @@
     "@nestjs/websockets": "^11.1.9",
     "@soundx/db": "workspace:*",
     "@soundx/utils": "workspace:*",
-    "@types/chokidar": "^2.1.7",
     "chinese-conv": "^4.0.0",
-    "chokidar": "^5.0.0",
+    "chokidar": "^4.0.0",
     "dayjs": "^1.11.19",
     "http-proxy-middleware": "^3.0.5",
     "multer": "^1.4.5-lts.1",
