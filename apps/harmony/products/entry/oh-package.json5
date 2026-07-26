@@ -5,5 +5,9 @@
   "main": "",
   "author": "AudioDock",
   "license": "ISC",
-  "dependencies": {}
+  "dependencies": {
+    "audiodock_common": {
+      "path": "../common/audiodock_common"
+    }
+  }
 }

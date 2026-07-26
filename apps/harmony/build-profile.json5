@@ -16,6 +16,10 @@
     {
       "name": "entry",
       "srcPath": "./products/entry"
+    },
+    {
+      "name": "audiodock_common",
+      "srcPath": "./common/audiodock_common"
     }
   ]
 }
