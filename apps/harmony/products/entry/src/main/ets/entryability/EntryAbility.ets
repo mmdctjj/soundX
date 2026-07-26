@@ -6,6 +6,7 @@ import { Logger } from 'audiodock_common';
 import { kvStore, fileCache, rdbStore } from 'features_storage';
 import { httpClient } from 'features_network';
 import { applySetting } from 'features_i18n';
+import { installPlaybackService } from '../services/playbackService';
 
 const DOMAIN = 0xA001;
 const TAG = 'EntryAbility';
@@ -15,6 +16,7 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, TAG, `onCreate launchParam=${launchParam}`);
     Logger.i(TAG, 'onCreate');
     await this.initialize();
+    installPlaybackService();
     this.loadPage('pages/Index');
   }
 
