@@ -1,4 +1,5 @@
-import ws from '@ohos.net.WebSocket';
+import webSocket from '@ohos.net.webSocket';
+import { BusinessError } from '@ohos.base';
 import { Logger } from 'audiodock_common';
 
 export interface SocketConnectOptions {
@@ -12,7 +13,7 @@ export interface SocketConnectOptions {
 type Listener = (payload: unknown) => void;
 
 export class HarmonySocketService {
-  private wsObj: ws.WebSocket | null = null;
+  private wsObj: webSocket.WebSocket | null = null;
   private url: string = '';
   private connected: boolean = false;
   private manualClose: boolean = false;
@@ -34,8 +35,16 @@ export class HarmonySocketService {
       this.reconnectTimer = null;
     }
     if (this.wsObj) {
-      try { this.wsObj.close({ code: 1000, reason: 'manual' }); } catch { /* noop */ }
+      const wsRef: webSocket.WebSocket = this.wsObj;
       this.wsObj = null;
+      try {
+        const closeResult = wsRef.close({ code: 1000, reason: 'manual' });
+        closeResult.catch((err: BusinessError) => {
+          Logger.w('Socket', `close rejected: ${err.message ?? String(err)}`);
+        });
+      } catch (e) {
+        Logger.w('Socket', `close threw: ${String(e)}`);
+      }
     }
     this.connected = false;
   }
@@ -56,24 +65,31 @@ export class HarmonySocketService {
       Logger.w('Socket', `emit ${event} while disconnected`);
       return;
     }
-    try {
-      this.wsObj.send(JSON.stringify({ event, payload }));
-    } catch (e) {
-      Logger.e('Socket', `emit ${event} failed: ${String(e)}`);
-    }
+    const promise = this.wsObj.send(JSON.stringify({ event, payload }));
+    promise.catch((err: BusinessError) => {
+      Logger.e('Socket', `emit ${event} failed: ${err.message ?? String(err)}`);
+    });
   }
 
   isConnected(): boolean { return this.connected; }
 
   private async openSocket(): Promise<void> {
-    this.wsObj = ws.createWebSocket();
-    this.wsObj.on('open', () => {
+    this.wsObj = webSocket.createWebSocket();
+    this.wsObj.on('open', (err: BusinessError, _value: Object) => {
+      if (err) {
+        Logger.e('Socket', `open error: ${err.message}`);
+        return;
+      }
       this.connected = true;
       this.reconnectAttempt = 0;
       Logger.i('Socket', 'connected');
       this.dispatch('connect', null);
     });
-    this.wsObj.on('message', (data: string | ArrayBuffer) => {
+    this.wsObj.on('message', (err: BusinessError, data: string | ArrayBuffer) => {
+      if (err) {
+        Logger.e('Socket', `message error: ${err.message}`);
+        return;
+      }
       const text = typeof data === 'string' ? data : '';
       if (!text) return;
       try {
@@ -83,20 +99,24 @@ export class HarmonySocketService {
         Logger.w('Socket', `bad message: ${String(e)}`);
       }
     });
-    this.wsObj.on('close', () => {
+    this.wsObj.on('close', (err: BusinessError, _value: webSocket.CloseResult) => {
       this.connected = false;
-      Logger.w('Socket', 'closed');
+      if (err) {
+        Logger.w('Socket', `close error: ${err.message}`);
+      } else {
+        Logger.w('Socket', 'closed');
+      }
       this.dispatch('disconnect', null);
       if (!this.manualClose) this.scheduleReconnect();
     });
-    this.wsObj.on('error', (err: string) => {
-      Logger.e('Socket', `error: ${err}`);
+    this.wsObj.on('error', (err: BusinessError) => {
+      Logger.e('Socket', `error: ${err.message}`);
     });
     try {
       await this.wsObj.connect(this.url, undefined);
     } catch (e) {
       Logger.e('Socket', `connect failed: ${String(e)}`);
-      this.scheduleReconnect();
+      if (!this.manualClose) this.scheduleReconnect();
     }
   }
 
@@ -107,6 +127,7 @@ export class HarmonySocketService {
     Logger.i('Socket', `reconnect in ${delay}ms`);
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
+      if (this.manualClose) return;
       this.openSocket().catch(() => undefined);
     }, delay) as unknown as number;
   }
@@ -125,10 +146,14 @@ export class HarmonySocketService {
     if (opts.token) q.push(`token=${encodeURIComponent(opts.token)}`);
     if (opts.userId !== undefined) q.push(`userId=${encodeURIComponent(String(opts.userId))}`);
     if (opts.deviceName) q.push(`deviceName=${encodeURIComponent(opts.deviceName)}`);
-    if (opts.query) for (const [k, v] of Object.entries(opts.query)) q.push(`${k}=${encodeURIComponent(v)}`);
+    if (opts.query) {
+      for (const [k, v] of Object.entries(opts.query)) {
+        q.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
+      }
+    }
     if (q.length) u += `${u.includes('?') ? '&' : '?'}${q.join('&')}`;
     return u;
   }
 }
 
-export const socketService = new HarmonySocketService();
+export const socketService: HarmonySocketService = new HarmonySocketService();
