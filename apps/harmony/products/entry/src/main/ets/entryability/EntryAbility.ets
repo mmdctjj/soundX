@@ -17,6 +17,14 @@ export default class EntryAbility extends UIAbility {
     Logger.i(TAG, 'onCreate');
     await this.initialize();
     installPlaybackService();
+    try {
+      await this.context.startServiceExtensionAbility({
+        bundleName: this.context.applicationInfo.name,
+        abilityName: 'PlayerServiceAbility',
+      });
+    } catch (e) {
+      Logger.w(TAG, `start PlayerServiceAbility: ${String(e)}`);
+    }
     this.loadPage('pages/Index');
   }
 

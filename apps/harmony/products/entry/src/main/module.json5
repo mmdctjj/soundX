@@ -32,7 +32,15 @@
         ]
       }
     ],
-    "extensionAbilities": [],
+    "extensionAbilities": [
+      {
+        "name": "PlayerServiceAbility",
+        "type": "service",
+        "srcEntry": "./ets/entryability/PlayerServiceAbility.ets",
+        "backgroundModes": ["audio"],
+        "exported": false
+      }
+    ],
     "requestPermissions": [
       {
         "name": "ohos.permission.INTERNET"
