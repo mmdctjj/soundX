@@ -9,6 +9,9 @@
     },
     "features_network": {
       "path": "./features/network"
+    },
+    "features_ui": {
+      "path": "./features/ui"
     }
   },
   "devDependencies": {

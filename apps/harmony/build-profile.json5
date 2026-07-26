@@ -28,6 +28,10 @@
     {
       "name": "features_network",
       "srcPath": "./features/network"
+    },
+    {
+      "name": "features_ui",
+      "srcPath": "./features/ui"
     }
   ]
 }
