@@ -39,60 +39,88 @@ export class HarmonyHttpClient {
       config.headers = { ...config.headers, Authorization: `Bearer ${this.authToken}` };
     }
 
-    const attempt = async (): Promise<HttpResponse<unknown>> => {
-      const httpReq = http.createHttp();
-      const fullUrl = this.buildUrl(config);
+    let attempts = 0;
+    let lastError: HttpError | null = null;
+    while (attempts < (config.retry ? 2 : 1)) {
+      let response: HttpResponse<unknown> | null = null;
       try {
-        const opts: http.HttpRequestOptions = {
-          method: config.method as http.RequestMethod,
-          header: config.headers,
-          readTimeout: config.timeoutMs,
-          connectTimeout: config.timeoutMs,
-          extraData: typeof config.data === 'string' ? config.data
-            : config.data ? JSON.stringify(config.data) : undefined,
-        };
-        const resp = await httpReq.request(fullUrl, opts);
-        let parsed: unknown = resp.result;
-        if (typeof parsed === 'string') {
-          try { parsed = JSON.parse(parsed); } catch { /* keep as string */ }
+        response = await this.attempt(config);
+      } catch (e) {
+        let err = e instanceof HttpError ? e : new HttpError(0, String(e));
+        for (const i of this.errInterceptors) err = await i(err);
+        lastError = err;
+        attempts += 1;
+        if (config.retry && err.status === 0 && attempts < (config.retry ? 2 : 1)) {
+          await new Promise<void>((r) => setTimeout(r, RETRY_DELAY_MS));
+          continue;
         }
-        const out: HttpResponse<unknown> = {
-          status: resp.responseCode,
-          data: parsed,
-          headers: resp.header as Record<string, string>,
-        };
-        let final: HttpResponse<unknown> = out;
-        for (const i of this.resInterceptors) final = await i(final);
-        return final;
-      } finally {
-        httpReq.destroy();
-      }
-    };
-
-    let response: HttpResponse<unknown>;
-    try {
-      response = await attempt();
-    } catch (e) {
-      let err = e instanceof HttpError ? e : new HttpError(0, String(e));
-      for (const i of this.errInterceptors) err = await i(err);
-      if (config.retry && err.status >= 500) {
-        await new Promise<void>((r) => setTimeout(r, RETRY_DELAY_MS));
-        response = await attempt();
-      } else {
         throw err;
       }
+
+      if (response === null) break;
+
+      if (config.retry && response.status >= 500 && attempts < 1) {
+        attempts += 1;
+        await new Promise<void>((r) => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+
+      if (response.status < 200 || response.status >= 300) {
+        const httpErr = HttpError.fromStatus(response.status, response.data as object | null);
+        let finalErr = httpErr;
+        for (const i of this.errInterceptors) finalErr = await i(finalErr);
+        throw finalErr;
+      }
+
+      const env = response.data as BackendEnvelope<T>;
+      if (env && typeof env === 'object' && 'code' in env && 'data' in env) {
+        if (env.code !== 0) {
+          const envErr = new HttpError(response.status, env.message || `code=${env.code}`, env);
+          let finalErr = envErr;
+          for (const i of this.errInterceptors) finalErr = await i(finalErr);
+          throw finalErr;
+        }
+        return env.data;
+      }
+      return response.data as T;
     }
 
-    if (response.status < 200 || response.status >= 300) {
-      throw HttpError.fromStatus(response.status, response.data as object | null);
-    }
+    if (lastError) throw lastError;
+    throw new HttpError(0, 'request failed without response');
+  }
 
-    const env = response.data as BackendEnvelope<T>;
-    if (env && typeof env === 'object' && 'code' in env && 'data' in env) {
-      if (env.code !== 0) throw new HttpError(response.status, env.message || `code=${env.code}`, env);
-      return env.data;
+  private async attempt(config: RequestConfig): Promise<HttpResponse<unknown>> {
+    const httpReq = http.createHttp();
+    const fullUrl = this.buildUrl(config);
+    try {
+      const mergedHeaders: Record<string, string> = {
+        ...this.defaultHeaders,
+        ...config.headers,
+      };
+      const opts: http.HttpRequestOptions = {
+        method: config.method as http.RequestMethod,
+        header: mergedHeaders,
+        readTimeout: config.timeoutMs,
+        connectTimeout: config.timeoutMs,
+        extraData: typeof config.data === 'string' ? config.data
+          : config.data ? JSON.stringify(config.data) : undefined,
+      };
+      const resp = await httpReq.request(fullUrl, opts);
+      let parsed: unknown = resp.result;
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch { /* keep as string */ }
+      }
+      const out: HttpResponse<unknown> = {
+        status: resp.responseCode,
+        data: parsed,
+        headers: resp.header as Record<string, string>,
+      };
+      let final: HttpResponse<unknown> = out;
+      for (const i of this.resInterceptors) final = await i(final);
+      return final;
+    } finally {
+      httpReq.destroy();
     }
-    return response.data as T;
   }
 
   async get<T>(url: string, params?: Record<string, string | number | boolean>): Promise<T> {
