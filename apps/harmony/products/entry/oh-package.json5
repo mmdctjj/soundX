@@ -20,6 +20,9 @@
     },
     "features_i18n": {
       "path": "../features/i18n"
+    },
+    "features_socket": {
+      "path": "../features/socket"
     }
   }
 }
