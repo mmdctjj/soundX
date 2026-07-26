@@ -275,7 +275,7 @@ const FileSourcesSettings: React.FC = () => {
                           setFieldLine(key, idx, e.target.value)
                         }
                         placeholder={t(placeholderKey)}
-                        status={inputStatus}
+                        status={inputStatus as "" | "error" | "warning" | undefined}
                         suffix={
                           inputStatus === "success" ? (
                             <CheckCircleOutlined />
