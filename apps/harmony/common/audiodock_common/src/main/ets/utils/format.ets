@@ -15,6 +15,8 @@ export function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+export { djb2 } from './hash';
+
 export function formatRelativeTime(epochMs: number): string {
   const diff = Date.now() - epochMs;
   const min = Math.floor(diff / 60000);
