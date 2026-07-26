@@ -1,4 +1,8 @@
-import { Button, Input, Popconfirm, Progress, Space, Typography } from "antd";
+import { Button, Input, Popconfirm, Progress, Space, Tag, Typography } from "antd";
+import {
+  DeleteOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import {
   getFileSources,
   saveFileSources,
@@ -250,38 +254,65 @@ const FileSourcesSettings: React.FC = () => {
           <Text strong>{t(labelKey)}</Text>
           <Space direction="vertical" style={{ width: "100%", marginTop: 8 }}>
             {(rows[key] ?? [{ value: "", exists: null }]).map(
-              ({ value }, idx) => (
-                <Space.Compact key={idx} style={{ width: "100%" }}>
-                  <Input
-                    value={value}
-                    onChange={(e) => setFieldLine(key, idx, e.target.value)}
-                    placeholder={t(placeholderKey)}
-                    style={{ width: "calc(100% - 90px)" }}
-                  />
-                  <Popconfirm
-                    title={t("settings.filePathRemoveConfirm", {
-                      path: truncatePath(value),
-                    })}
-                    okText={t("common.confirm")}
-                    cancelText={t("common.cancel")}
-                    okButtonProps={{ danger: true }}
-                    placement="topRight"
-                    onConfirm={() => removeFieldLine(key, idx)}
-                    disabled={(rows[key] ?? []).length <= 1}
-                  >
-                    <Button
-                      danger
-                      disabled={(rows[key] ?? []).length <= 1}
-                    >
-                      {t("common.delete")}
-                    </Button>
-                  </Popconfirm>
-                </Space.Compact>
-              ),
+              ({ value, exists }, idx) => {
+                const list = rows[key] ?? [];
+                const isLast = idx === list.length - 1;
+                const iconWidth = isLast ? 80 : 40;
+                return (
+                  <div key={idx} style={{ width: "100%" }}>
+                    <Space.Compact style={{ width: "100%" }}>
+                      <Input
+                        value={value}
+                        onChange={(e) =>
+                          setFieldLine(key, idx, e.target.value)
+                        }
+                        placeholder={t(placeholderKey)}
+                        style={{
+                          width: `calc(100% - ${iconWidth}px)`,
+                        }}
+                      />
+                      <Popconfirm
+                        title={t("settings.filePathRemoveConfirm", {
+                          path: truncatePath(value),
+                        })}
+                        okText={t("common.confirm")}
+                        cancelText={t("common.cancel")}
+                        okButtonProps={{ danger: true }}
+                        placement="topRight"
+                        onConfirm={() => removeFieldLine(key, idx)}
+                        disabled={list.length <= 1}
+                      >
+                        <Button
+                          type="text"
+                          danger
+                          disabled={list.length <= 1}
+                          icon={<DeleteOutlined />}
+                          aria-label={t("common.delete")}
+                        />
+                      </Popconfirm>
+                      {isLast && (
+                        <Button
+                          type="text"
+                          icon={<PlusOutlined />}
+                          onClick={() => addFieldLine(key)}
+                          aria-label={t("settings.fileSourcesAddPath")}
+                        />
+                      )}
+                    </Space.Compact>
+                    {exists !== null && (
+                      <div style={{ marginTop: 4 }}>
+                        <Tag color={exists ? "success" : "warning"}>
+                          {value || "(empty)"} ·{" "}
+                          {exists
+                            ? t("settings.filePathExists")
+                            : t("settings.filePathMissing")}
+                        </Tag>
+                      </div>
+                    )}
+                  </div>
+                );
+              },
             )}
-            <Button onClick={() => addFieldLine(key)} type="dashed">
-              {t("settings.fileSourcesAddPath")}
-            </Button>
           </Space>
         </div>
       ))}
