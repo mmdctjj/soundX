@@ -1,4 +1,8 @@
 {
   "modelVersion": "5.0.0",
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "@ohos/hypium": "1.0.21",
+    "@ohos/hvigor-ohos-plugin": "5.0.5"
+  }
 }
