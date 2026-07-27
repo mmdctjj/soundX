@@ -23,6 +23,7 @@ export interface PlaylistAddTracksPayload {
 export interface PlaylistApi {
   list(): Promise<PlaylistDto[]>;
   getById(id: string): Promise<PlaylistDetailResp>;
+  search(keyword: string, limit?: number): Promise<PlaylistDto[]>;
   create(name: string): Promise<PlaylistDto>;
   rename(id: string, name: string): Promise<PlaylistDto>;
   remove(id: string): Promise<void>;
@@ -37,6 +38,9 @@ class PlaylistApiImpl implements PlaylistApi {
   }
   async getById(id: string): Promise<PlaylistDetailResp> {
     return httpClient.get<PlaylistDetailResp>(`/playlist/${id}`);
+  }
+  async search(keyword: string, limit: number = 30): Promise<PlaylistDto[]> {
+    return httpClient.get<PlaylistDto[]>('/playlist/search', { keyword, limit });
   }
   async create(name: string): Promise<PlaylistDto> {
     const payload: PlaylistCreatePayload = { name: name };

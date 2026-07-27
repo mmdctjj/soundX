@@ -1,7 +1,7 @@
 import router from '@ohos.router';
 import { kvStore } from 'features_storage';
 import { authStore } from '../context/AuthStore';
-import { hilog } from '@kit.PerformanceAnalysisKit';
+import hilog from '@ohos.hilog';
 
 const DOMAIN = 0xA001;
 const TAG = 'IndexRoute';

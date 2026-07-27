@@ -17,12 +17,13 @@ struct ArtistDetailPage {
   @State loading: boolean = true;
   @State error: string = '';
   @State subTab: number = 0; // 0 = tracks, 1 = albums
-  private id: string = '';
+  private entityId: string = '';
   private theme = buildTheme('light');
 
   aboutToAppear(): void {
-    const p = router.getParams() as Record<string, string>;
-    this.id = p['id'] ?? '';
+    interface RouterParams { id?: string }
+    const p = router.getParams() as RouterParams;
+    this.entityId = p.id ?? '';
     this.load();
   }
 
@@ -100,7 +101,7 @@ struct ArtistDetailPage {
   private async load(): Promise<void> {
     this.loading = true; this.error = '';
     try {
-      this.data = await artistApi.getById(this.id) as ArtistDetail;
+      this.data = await artistApi.getById(this.entityId) as ArtistDetail;
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {

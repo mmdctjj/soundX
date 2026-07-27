@@ -1,16 +1,28 @@
 import { Logger } from 'audiodock_common';
 import { rdbStore } from 'features_storage';
+import type { TrackLikeRow, AlbumLikeRow, TrackHistoryRow } from 'features_storage';
 import { httpClient } from 'features_network';
 import { authStore } from '../context/AuthStore';
 
 export type SyncKind =
   | 'like_track' | 'unlike_track' | 'like_album' | 'unlike_album' | 'history';
 
-interface SyncTask {
-  kind: SyncKind;
-  payload: Record<string, string | number | null>;
+export interface SyncTaskTrackLike { kind: 'like_track'; trackId: string; attempts: number; }
+export interface SyncTaskTrackUnlike { kind: 'unlike_track'; trackId: string; attempts: number; }
+export interface SyncTaskAlbumLike { kind: 'like_album'; albumId: string; attempts: number; }
+export interface SyncTaskAlbumUnlike { kind: 'unlike_album'; albumId: string; attempts: number; }
+export interface SyncTaskHistory {
+  kind: 'history';
+  trackId: string;
+  progress: number;
+  playedAt: number;
+  source: string;
   attempts: number;
 }
+export type SyncTask =
+  | SyncTaskTrackLike | SyncTaskTrackUnlike
+  | SyncTaskAlbumLike | SyncTaskAlbumUnlike
+  | SyncTaskHistory;
 
 export type EventKind = 'trackLike' | 'albumLike' | 'history';
 export type EventPayload =
@@ -21,12 +33,11 @@ type Listener = (payload: EventPayload) => void;
 
 const MAX_ATTEMPTS = 5;
 const DRAIN_INTERVAL_MS = 5000;
-const EMPTY_TOKEN: string | null = null;
 
 export class LikesHistoryService {
   private queue: SyncTask[] = [];
-  private listeners = new Map<EventKind, Set<Listener>>();
-  private timer: number | null = null;
+  private listeners: Map<EventKind, Set<Listener>> = new Map();
+  private timerId: number = -1;
   private draining: boolean = false;
   private currentTask: SyncTask | null = null;
 
@@ -35,93 +46,100 @@ export class LikesHistoryService {
   }
 
   start(): void {
-    if (this.timer !== null) return;
-    this.timer = setInterval(() => {
-      this.drain().catch((e: Error) => Logger.w('LikesHistory', `drain: ${e.message}`));
-    }, DRAIN_INTERVAL_MS) as unknown as number;
+    if (this.timerId !== -1) return;
+    this.timerId = setInterval((): void => {
+      this.drain().catch((e: Error): void => {
+        Logger.w('LikesHistory', `drain: ${e.message}`);
+      });
+    }, DRAIN_INTERVAL_MS);
   }
 
   stop(): void {
-    if (this.timer !== null) {
-      clearInterval(this.timer);
-      this.timer = null;
+    if (this.timerId !== -1) {
+      clearInterval(this.timerId);
+      this.timerId = -1;
     }
   }
 
   // --- Track likes -------------------------------------------------------
-  async likeTrack(id: string): Promise<void> {
-    await rdbStore.likeTrack(id);
-    this.enqueue({ kind: 'like_track', payload: { trackId: id }, attempts: 0 });
-    this.emit('trackLike', { id, liked: true });
+  async likeTrack(trackId: string): Promise<void> {
+    await rdbStore.likeTrack(trackId);
+    const task: SyncTaskTrackLike = { kind: 'like_track', trackId: trackId, attempts: 0 };
+    this.queue.push(task);
+    this.emit('trackLike', { id: trackId, liked: true });
   }
 
-  async unlikeTrack(id: string): Promise<void> {
-    await rdbStore.unlikeTrack(id);
-    this.enqueue({ kind: 'unlike_track', payload: { trackId: id }, attempts: 0 });
-    this.emit('trackLike', { id, liked: false });
+  async unlikeTrack(trackId: string): Promise<void> {
+    await rdbStore.unlikeTrack(trackId);
+    const task: SyncTaskTrackUnlike = { kind: 'unlike_track', trackId: trackId, attempts: 0 };
+    this.queue.push(task);
+    this.emit('trackLike', { id: trackId, liked: false });
   }
 
-  async isTrackLiked(id: string): Promise<boolean> {
-    return rdbStore.isTrackLiked(id);
+  async isTrackLiked(trackId: string): Promise<boolean> {
+    return rdbStore.isTrackLiked(trackId);
   }
 
-  async listLikedTracks() {
+  async listLikedTracks(): Promise<TrackLikeRow[]> {
     return rdbStore.listLikedTracks();
   }
 
   // --- Album likes -------------------------------------------------------
-  async likeAlbum(id: string): Promise<void> {
-    await rdbStore.likeAlbum(id);
-    this.enqueue({ kind: 'like_album', payload: { albumId: id }, attempts: 0 });
-    this.emit('albumLike', { id, liked: true });
+  async likeAlbum(albumId: string): Promise<void> {
+    await rdbStore.likeAlbum(albumId);
+    const task: SyncTaskAlbumLike = { kind: 'like_album', albumId: albumId, attempts: 0 };
+    this.queue.push(task);
+    this.emit('albumLike', { id: albumId, liked: true });
   }
 
-  async unlikeAlbum(id: string): Promise<void> {
-    await rdbStore.unlikeAlbum(id);
-    this.enqueue({ kind: 'unlike_album', payload: { albumId: id }, attempts: 0 });
-    this.emit('albumLike', { id, liked: false });
+  async unlikeAlbum(albumId: string): Promise<void> {
+    await rdbStore.unlikeAlbum(albumId);
+    const task: SyncTaskAlbumUnlike = { kind: 'unlike_album', albumId: albumId, attempts: 0 };
+    this.queue.push(task);
+    this.emit('albumLike', { id: albumId, liked: false });
   }
 
-  async isAlbumLiked(id: string): Promise<boolean> {
-    return rdbStore.isAlbumLiked(id);
+  async isAlbumLiked(albumId: string): Promise<boolean> {
+    return rdbStore.isAlbumLiked(albumId);
   }
 
-  async listLikedAlbums() {
+  async listLikedAlbums(): Promise<AlbumLikeRow[]> {
     return rdbStore.listLikedAlbums();
   }
 
   // --- History -----------------------------------------------------------
   async recordHistory(row: { track_id: string; progress: number; source: string | null }): Promise<void> {
+    const playedAt: number = Date.now();
     await rdbStore.upsertHistory({
       track_id: row.track_id,
       progress: row.progress,
-      played_at: Date.now(),
+      played_at: playedAt,
       source: row.source,
     });
-    this.enqueue({
+    const task: SyncTaskHistory = {
       kind: 'history',
-      payload: {
-        trackId: row.track_id,
-        progress: row.progress,
-        playedAt: Date.now(),
-        source: row.source ?? '',
-      },
+      trackId: row.track_id,
+      progress: row.progress,
+      playedAt: playedAt,
+      source: row.source ?? '',
       attempts: 0,
-    });
+    };
+    this.queue.push(task);
     this.emit('history', { trackId: row.track_id, progress: row.progress, source: row.source });
   }
 
-  async listHistory(limit: number) {
+  async listHistory(limit: number): Promise<TrackHistoryRow[]> {
     return rdbStore.listHistory(limit);
   }
 
   // --- Event bus ---------------------------------------------------------
   on(kind: EventKind, cb: Listener): () => void {
     if (!this.listeners.has(kind)) this.listeners.set(kind, new Set());
-    this.listeners.get(kind)!.add(cb);
-    return () => {
-      const set = this.listeners.get(kind);
-      if (set) set.delete(cb);
+    const set = this.listeners.get(kind) as Set<Listener>;
+    set.add(cb);
+    return (): void => {
+      const s = this.listeners.get(kind);
+      if (s) s.delete(cb);
     };
   }
 
@@ -138,7 +156,7 @@ export class LikesHistoryService {
     if (this.draining) return;
     this.draining = true;
     try {
-      const token = authStore.state_.token;
+      const token: string | null = authStore.state_.token;
       if (!token) {
         if (this.queue.length > 0) {
           Logger.w('LikesHistory', `no auth token, dropping ${this.queue.length} queued tasks`);
@@ -147,19 +165,19 @@ export class LikesHistoryService {
         return;
       }
       while (this.queue.length > 0) {
-        const task = this.queue[0];
+        const task: SyncTask = this.queue[0];
         this.currentTask = task;
         try {
           await this.send(task);
           this.queue.shift();
         } catch (e) {
           task.attempts += 1;
-          Logger.w('LikesHistory', `task ${task.kind} attempt ${task.attempts} failed: ${String(e)}`);
+          const msg: string = e instanceof Error ? e.message : String(e);
+          Logger.w('LikesHistory', `task ${task.kind} attempt ${task.attempts} failed: ${msg}`);
           if (task.attempts >= MAX_ATTEMPTS) {
             Logger.w('LikesHistory', `dropping ${task.kind} after ${MAX_ATTEMPTS} attempts`);
             this.queue.shift();
           } else {
-            // leave at head, bail out so next tick retries
             break;
           }
         } finally {
@@ -173,23 +191,46 @@ export class LikesHistoryService {
 
   private async send(task: SyncTask): Promise<void> {
     switch (task.kind) {
-      case 'like_track':   return httpClient.post('/likes/track', { liked: true,  ...task.payload });
-      case 'unlike_track': return httpClient.post('/likes/track', { liked: false, ...task.payload });
-      case 'like_album':   return httpClient.post('/likes/album', { liked: true,  ...task.payload });
-      case 'unlike_album': return httpClient.post('/likes/album', { liked: false, ...task.payload });
-      case 'history':      return httpClient.post('/track-history', task.payload);
+      case 'like_track': {
+        const body: Record<string, string | number | boolean> = { liked: true, trackId: task.trackId };
+        return httpClient.post('/likes/track', body);
+      }
+      case 'unlike_track': {
+        const body: Record<string, string | number | boolean> = { liked: false, trackId: task.trackId };
+        return httpClient.post('/likes/track', body);
+      }
+      case 'like_album': {
+        const body: Record<string, string | number | boolean> = { liked: true, albumId: task.albumId };
+        return httpClient.post('/likes/album', body);
+      }
+      case 'unlike_album': {
+        const body: Record<string, string | number | boolean> = { liked: false, albumId: task.albumId };
+        return httpClient.post('/likes/album', body);
+      }
+      case 'history': {
+        const body: Record<string, string | number> = {
+          trackId: task.trackId,
+          progress: task.progress,
+          playedAt: task.playedAt,
+          source: task.source,
+        };
+        return httpClient.post('/track-history', body);
+      }
     }
   }
 
   private emit(kind: EventKind, payload: EventPayload): void {
-    const set = this.listeners.get(kind);
+    const set: Set<Listener> | undefined = this.listeners.get(kind);
     if (!set) return;
     for (const cb of set) {
-      try { cb(payload); } catch (e) {
-        Logger.w('LikesHistory', `listener for ${kind} threw: ${String(e)}`);
+      try {
+        cb(payload);
+      } catch (e) {
+        const msg: string = e instanceof Error ? e.message : String(e);
+        Logger.w('LikesHistory', `listener for ${kind} threw: ${msg}`);
       }
     }
   }
 }
 
-export const likesHistory = new LikesHistoryService();
+export const likesHistory: LikesHistoryService = new LikesHistoryService();

@@ -166,8 +166,7 @@ struct SearchPage {
 
   private scheduleSearch(): void {
     if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => this.runSearch(this.keyword),
-      DEBOUNCE_MS) as unknown as number;
+    this.debounceTimer = setTimeout((): void => { this.runSearch(this.keyword); }, DEBOUNCE_MS);
   }
 
   private async loadHot(): Promise<void> {

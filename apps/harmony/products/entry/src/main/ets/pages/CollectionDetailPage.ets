@@ -15,19 +15,20 @@ struct CollectionDetailPage {
   @State loading: boolean = true;
   @State error: string = '';
   @State liked: boolean = false;
-  private id: string = '';
+  private entityId: string = '';
   private theme = buildTheme('light');
   private unsub: () => void = () => {};
 
   aboutToAppear(): void {
-    const p = router.getParams() as Record<string, string>;
-    this.id = p['id'] ?? '';
+    interface RouterParams { id?: string }
+    const p = router.getParams() as RouterParams;
+    this.entityId = p.id ?? '';
     this.load();
     this.unsub = likesHistory.on('albumLike', (e) => {
       const ev = e as { id: string; liked: boolean };
-      if (ev.id === this.id) this.liked = ev.liked;
+      if (ev.id === this.entityId) this.liked = ev.liked;
     });
-    likesHistory.isAlbumLiked(this.id).then((v) => this.liked = v).catch(() => undefined);
+    likesHistory.isAlbumLiked(this.entityId).then((v) => this.liked = v).catch(() => undefined);
   }
 
   aboutToDisappear(): void {
@@ -62,8 +63,8 @@ struct CollectionDetailPage {
         label: this.liked ? t('detail.unlike') : t('detail.like'),
         theme: this.theme, variant: this.liked ? 'secondary' : 'primary',
         onButtonClick: () => {
-          if (this.liked) likesHistory.unlikeAlbum(this.id);
-          else likesHistory.likeAlbum(this.id);
+          if (this.liked) likesHistory.unlikeAlbum(this.entityId);
+          else likesHistory.likeAlbum(this.entityId);
         },
       });
       List() {
@@ -82,7 +83,7 @@ struct CollectionDetailPage {
   private async load(): Promise<void> {
     this.loading = true; this.error = '';
     try {
-      this.data = await collectionApi.getById(this.id) as CollectionDetail;
+      this.data = await collectionApi.getById(this.entityId) as CollectionDetail;
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {

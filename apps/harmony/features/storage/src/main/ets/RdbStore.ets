@@ -142,6 +142,15 @@ export class RdbStore {
     return exists;
   }
 
+  async listLikedAlbums(): Promise<AlbumLikeRow[]> {
+    const rs = await this.ensure().querySql(
+      `SELECT album_id, created_at FROM album_like ORDER BY created_at DESC`);
+    const out: AlbumLikeRow[] = [];
+    while (rs.goToNextRow()) out.push({ album_id: rs.getString(0), created_at: rs.getLong(1) });
+    rs.close();
+    return out;
+  }
+
   // downloaded_track
   async addDownloaded(row: DownloadedRow): Promise<void> {
     await this.ensure().executeSql(

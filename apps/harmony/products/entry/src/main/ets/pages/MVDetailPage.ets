@@ -11,12 +11,13 @@ struct MVDetailPage {
   @State data: MVDto | null = null;
   @State loading: boolean = true;
   @State error: string = '';
-  private id: string = '';
+  private entityId: string = '';
   private theme = buildTheme('light');
 
   aboutToAppear(): void {
-    const p = router.getParams() as Record<string, string>;
-    this.id = p['id'] ?? '';
+    interface RouterParams { id?: string }
+    const p = router.getParams() as RouterParams;
+    this.entityId = p.id ?? '';
     this.load();
   }
 
@@ -52,7 +53,7 @@ struct MVDetailPage {
   private async load(): Promise<void> {
     this.loading = true; this.error = '';
     try {
-      this.data = await mvApi.getById(this.id);
+      this.data = await mvApi.getById(this.entityId);
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
