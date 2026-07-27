@@ -2,21 +2,20 @@ import router from '@ohos.router';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import { t } from 'features_i18n';
 import { formatDuration } from 'audiodock_common';
-import { albumApi } from 'features_network';
-import type { AlbumDto, TrackDto } from 'features_network';
+import { playlistApi } from 'features_network';
+import type { PlaylistDto, TrackDto } from 'features_network';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
 
-interface AlbumDetail extends AlbumDto { tracks: TrackDto[] }
+interface PlaylistDetail extends PlaylistDto { tracks: TrackDto[] }
 
 @Entry
 @Component
-struct AlbumDetailPage {
-  @State data: AlbumDetail | null = null;
+struct PlaylistDetailPage {
+  @State data: PlaylistDetail | null = null;
   @State loading: boolean = true;
   @State error: string = '';
-  @State liked: boolean = false;
   private id: string = '';
   private theme = buildTheme('light');
 
@@ -32,15 +31,11 @@ struct AlbumDetailPage {
         onBack: () => router.back() });
       if (this.loading) {
         Column({ space: 12 }) {
-          SkeletonBlock({ blockHeight: 200, theme: this.theme });
-          SkeletonBlock({ blockWidth: '60%', blockHeight: 24, theme: this.theme });
-          SkeletonBlock({ blockWidth: '40%', blockHeight: 16, theme: this.theme });
+          SkeletonBlock({ blockHeight: 160, theme: this.theme });
+          SkeletonBlock({ blockWidth: '60%', blockHeight: 20, theme: this.theme });
         }.padding(16);
       } else if (this.error || !this.data) {
-        Column() {
-          EmptyView({ message: this.error || t('detail.retry_failed'), theme: this.theme });
-          CommonButton({ label: t('detail.retry'), theme: this.theme, onButtonClick: () => this.load() });
-        }.padding(16);
+        EmptyView({ message: this.error || t('detail.retry_failed'), theme: this.theme });
       } else {
         this.content();
       }
@@ -50,17 +45,19 @@ struct AlbumDetailPage {
   @Builder content() {
     Column({ space: 12 }) {
       Text(this.data!.name).fontSize(22).fontWeight(FontWeight.Bold);
-      Text(`${this.data!.artist ?? ''} · ${this.data!.releaseDate ?? ''}`)
-        .fontSize(13).fontColor(this.theme.colors.textSecondary);
       if (this.data!.description) {
-        Text(this.data!.description)
-          .fontSize(13).fontColor(this.theme.colors.textSecondary)
-          .maxLines(4);
+        Text(this.data!.description).fontSize(13)
+          .fontColor(this.theme.colors.textSecondary).maxLines(4);
       }
       CommonButton({
-        label: this.liked ? t('detail.unlike') : t('detail.like'),
-        theme: this.theme, variant: this.liked ? 'secondary' : 'primary',
-        onButtonClick: () => { /* wired in T19 fix-up commit */ },
+        label: t('player.title'),
+        theme: this.theme, onButtonClick: async () => {
+          if (!this.data || this.data.tracks.length === 0) return;
+          const tracks: Track[] = [];
+          for (const x of this.data.tracks) tracks.push(await resolveTrackToPlayer(x, false));
+          await playerStore.playTrackList(tracks, 0);
+          router.pushUrl({ url: 'pages/PlayerPage' });
+        },
       });
       List() {
         ForEach(this.data!.tracks, (tr: TrackDto) => {
@@ -86,7 +83,7 @@ struct AlbumDetailPage {
   private async load(): Promise<void> {
     this.loading = true; this.error = '';
     try {
-      this.data = await albumApi.getById(this.id) as AlbumDetail;
+      this.data = await playlistApi.getById(this.id) as PlaylistDetail;
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {
