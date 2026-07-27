@@ -1,8 +1,9 @@
 import router from '@ohos.router';
-import { buildTheme, CommonNavBar, EmptyView, SkeletonBlock } from 'features_ui';
+import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import { t } from 'features_i18n';
 import { collectionApi } from 'features_network';
 import type { CollectionDto } from 'features_network';
+import { likesHistory } from '../services/LikesHistoryService';
 
 interface CollectionDetail extends CollectionDto { audiobooks: AudiobookStub[] }
 interface AudiobookStub { id: string; title: string; duration?: number }
@@ -13,13 +14,24 @@ struct CollectionDetailPage {
   @State data: CollectionDetail | null = null;
   @State loading: boolean = true;
   @State error: string = '';
+  @State liked: boolean = false;
   private id: string = '';
   private theme = buildTheme('light');
+  private unsub: () => void = () => {};
 
   aboutToAppear(): void {
     const p = router.getParams() as Record<string, string>;
     this.id = p['id'] ?? '';
     this.load();
+    this.unsub = likesHistory.on('albumLike', (e) => {
+      const ev = e as { id: string; liked: boolean };
+      if (ev.id === this.id) this.liked = ev.liked;
+    });
+    likesHistory.isAlbumLiked(this.id).then((v) => this.liked = v).catch(() => undefined);
+  }
+
+  aboutToDisappear(): void {
+    this.unsub();
   }
 
   build() {
@@ -46,6 +58,14 @@ struct CollectionDetailPage {
         Text(this.data!.description).fontSize(13)
           .fontColor(this.theme.colors.textSecondary).maxLines(4);
       }
+      CommonButton({
+        label: this.liked ? t('detail.unlike') : t('detail.like'),
+        theme: this.theme, variant: this.liked ? 'secondary' : 'primary',
+        onButtonClick: () => {
+          if (this.liked) likesHistory.unlikeAlbum(this.id);
+          else likesHistory.likeAlbum(this.id);
+        },
+      });
       List() {
         ForEach(this.data!.audiobooks, (ab: AudiobookStub) => {
           ListItem() {

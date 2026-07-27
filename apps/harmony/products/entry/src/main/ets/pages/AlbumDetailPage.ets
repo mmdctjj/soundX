@@ -5,6 +5,7 @@ import { formatDuration } from 'audiodock_common';
 import { albumApi } from 'features_network';
 import type { AlbumDto, TrackDto } from 'features_network';
 import { resolveTrackToPlayer } from '../services/trackResolver';
+import { likesHistory } from '../services/LikesHistoryService';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
 
@@ -19,11 +20,21 @@ struct AlbumDetailPage {
   @State liked: boolean = false;
   private id: string = '';
   private theme = buildTheme('light');
+  private unsub: () => void = () => {};
 
   aboutToAppear(): void {
     const p = router.getParams() as Record<string, string>;
     this.id = p['id'] ?? '';
     this.load();
+    this.unsub = likesHistory.on('albumLike', (e) => {
+      const ev = e as { id: string; liked: boolean };
+      if (ev.id === this.id) this.liked = ev.liked;
+    });
+    likesHistory.isAlbumLiked(this.id).then((v) => this.liked = v).catch(() => undefined);
+  }
+
+  aboutToDisappear(): void {
+    this.unsub();
   }
 
   build() {
@@ -60,7 +71,10 @@ struct AlbumDetailPage {
       CommonButton({
         label: this.liked ? t('detail.unlike') : t('detail.like'),
         theme: this.theme, variant: this.liked ? 'secondary' : 'primary',
-        onButtonClick: () => { /* wired in T19 fix-up commit */ },
+        onButtonClick: () => {
+          if (this.liked) likesHistory.unlikeAlbum(this.id);
+          else likesHistory.likeAlbum(this.id);
+        },
       });
       List() {
         ForEach(this.data!.tracks, (tr: TrackDto) => {
