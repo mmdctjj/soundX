@@ -7,13 +7,15 @@ import { authStore } from '../context/AuthStore';
 struct Index {
   async aboutToAppear(): Promise<void> {
     await authStore.loadFromStorage();
-    if (authStore.state_.user) {
-      router.replaceUrl({ url: 'pages/MainPage' });
-    } else if (authStore.state_.serverAddress) {
-      router.replaceUrl({ url: 'pages/LoginPage' });
-    } else {
-      router.replaceUrl({ url: 'pages/SourceSelectPage' });
-    }
+    setTimeout(() => {
+      if (authStore.state_.user) {
+        router.replaceUrl({ url: 'pages/MainPage' });
+      } else if (authStore.state_.serverAddress) {
+        router.replaceUrl({ url: 'pages/LoginPage' });
+      } else {
+        router.replaceUrl({ url: 'pages/SourceSelectPage' });
+      }
+    }, 0);
   }
 
   build() {
