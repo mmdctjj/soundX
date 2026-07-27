@@ -1,20 +1,33 @@
 import router from '@ohos.router';
 import { kvStore } from 'features_storage';
 import { authStore } from '../context/AuthStore';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+
+const DOMAIN = 0xA001;
+const TAG = 'IndexRoute';
 
 @Entry
 @Component
 struct Index {
   async aboutToAppear(): Promise<void> {
-    await authStore.loadFromStorage();
+    hilog.info(DOMAIN, TAG, '[1] aboutToAppear entered');
+    try {
+      await authStore.loadFromStorage();
+      hilog.info(DOMAIN, TAG, `[2] loadFromStorage done user=${String(authStore.state_.user)} server=${authStore.state_.serverAddress}`);
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, `[2] loadFromStorage THREW: ${String(e)}`);
+    }
     setTimeout(() => {
-      if (authStore.state_.user) {
-        router.replaceUrl({ url: 'pages/MainPage' });
-      } else if (authStore.state_.serverAddress) {
-        router.replaceUrl({ url: 'pages/LoginPage' });
-      } else {
-        router.replaceUrl({ url: 'pages/SourceSelectPage' });
-      }
+      hilog.info(DOMAIN, TAG, '[3] setTimeout fired');
+      let target = 'pages/SourceSelectPage';
+      if (authStore.state_.user) target = 'pages/MainPage';
+      else if (authStore.state_.serverAddress) target = 'pages/LoginPage';
+      hilog.info(DOMAIN, TAG, `[4] navigating to ${target}`);
+      router.replaceUrl({ url: target }).then(() => {
+        hilog.info(DOMAIN, TAG, `[5] replaceUrl resolved for ${target}`);
+      }).catch((e: Error) => {
+        hilog.error(DOMAIN, TAG, `[5] replaceUrl REJECTED for ${target}: ${e.message}`);
+      });
     }, 0);
   }
 
