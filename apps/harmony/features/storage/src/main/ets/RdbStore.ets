@@ -7,7 +7,12 @@ const STORE_CONFIG: rdb.StoreConfig = {
   securityLevel: rdb.SecurityLevel.S1,
 };
 
-const SCHEMA: rdb.SqlStatements = [
+interface SqlStatement {
+  sql: string;
+  params: (string | number | null)[];
+}
+
+const SCHEMA: SqlStatement[] = [
   { sql: `CREATE TABLE IF NOT EXISTS track_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     track_id TEXT NOT NULL,

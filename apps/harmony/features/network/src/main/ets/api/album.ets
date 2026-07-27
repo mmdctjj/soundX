@@ -10,26 +10,71 @@ export interface AlbumDetailResp extends AlbumDto { tracks?: TrackDto[] }
 
 export interface AlbumListResp { data: AlbumDto[]; total: number }
 
-type Params = Record<string, string | number | boolean>;
+export interface AlbumListParams {
+  pageSize: number;
+  loadCount: number;
+}
 
-export const albumApi = {
-  async list(params: { pageSize: number; loadCount: number }): Promise<AlbumListResp> {
-    return httpClient.get<AlbumListResp>('/album/list',
-      { pageSize: params.pageSize, loadCount: params.loadCount });
-  },
+export interface AlbumLatestParams {
+  pageSize?: number;
+  random?: boolean;
+}
+
+export interface AlbumApi {
+  list(params: AlbumListParams): Promise<AlbumListResp>;
+  getById(id: string): Promise<AlbumDetailResp>;
+  latest(params: AlbumLatestParams): Promise<AlbumDto[]>;
+  recommended(limit: number): Promise<AlbumDto[]>;
+  search(keyword: string, limit: number): Promise<AlbumDto[]>;
+}
+
+class AlbumApiImpl implements AlbumApi {
+  async list(params: AlbumListParams): Promise<AlbumListResp> {
+    const p = new Map<string, string | number | boolean>();
+    p.set('pageSize', params.pageSize);
+    p.set('loadCount', params.loadCount);
+    const record: Record<string, string | number | boolean> = {};
+    const keys = Array.from(p.keys());
+    for (let i = 0; i < keys.length; i++) {
+      record[keys[i]] = p.get(keys[i])!;
+    }
+    return httpClient.get<AlbumListResp>('/album/list', record);
+  }
   async getById(id: string): Promise<AlbumDetailResp> {
     return httpClient.get<AlbumDetailResp>(`/album/${id}`);
-  },
-  async latest(params: { pageSize?: number; random?: boolean }): Promise<AlbumDto[]> {
-    const p: Params = {};
-    if (params.pageSize !== undefined) p['pageSize'] = params.pageSize;
-    if (params.random !== undefined) p['random'] = params.random;
-    return httpClient.get<AlbumDto[]>('/album/latest', p);
-  },
-  async recommended(limit: number = 20): Promise<AlbumDto[]> {
-    return httpClient.get<AlbumDto[]>('/album/recommended', { limit });
-  },
-  async search(keyword: string, limit: number = 30): Promise<AlbumDto[]> {
-    return httpClient.get<AlbumDto[]>('/album/search', { keyword, limit });
-  },
-};
+  }
+  async latest(params: AlbumLatestParams): Promise<AlbumDto[]> {
+    const p = new Map<string, string | number | boolean>();
+    if (params.pageSize !== undefined) p.set('pageSize', params.pageSize);
+    if (params.random !== undefined) p.set('random', params.random);
+    const record: Record<string, string | number | boolean> = {};
+    const keys = Array.from(p.keys());
+    for (let i = 0; i < keys.length; i++) {
+      record[keys[i]] = p.get(keys[i])!;
+    }
+    return httpClient.get<AlbumDto[]>('/album/latest', record);
+  }
+  async recommended(limit: number): Promise<AlbumDto[]> {
+    const p = new Map<string, string | number | boolean>();
+    p.set('limit', limit);
+    const record: Record<string, string | number | boolean> = {};
+    const keys = Array.from(p.keys());
+    for (let i = 0; i < keys.length; i++) {
+      record[keys[i]] = p.get(keys[i])!;
+    }
+    return httpClient.get<AlbumDto[]>('/album/recommended', record);
+  }
+  async search(keyword: string, limit: number): Promise<AlbumDto[]> {
+    const p = new Map<string, string | number | boolean>();
+    p.set('keyword', keyword);
+    p.set('limit', limit);
+    const record: Record<string, string | number | boolean> = {};
+    const keys = Array.from(p.keys());
+    for (let i = 0; i < keys.length; i++) {
+      record[keys[i]] = p.get(keys[i])!;
+    }
+    return httpClient.get<AlbumDto[]>('/album/search', record);
+  }
+}
+
+export const albumApi: AlbumApi = new AlbumApiImpl();

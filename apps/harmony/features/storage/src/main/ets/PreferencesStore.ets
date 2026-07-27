@@ -15,7 +15,7 @@ export class PreferencesStore implements KeyValueStore {
 
   async get(key: string): Promise<string | null> {
     if (!this.prefs) throw new Error('PreferencesStore not initialized');
-    const v = await this.prefs.get(key, '');
+    const v = await this.prefs.get(key, '') as string;
     return v === '' ? null : v;
   }
 

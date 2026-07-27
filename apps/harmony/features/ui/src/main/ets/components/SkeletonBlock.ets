@@ -2,14 +2,14 @@ import { buildTheme, type Theme } from '../theme/Theme';
 
 @Component
 export struct SkeletonBlock {
-  @Prop width: string | number = '100%';
-  @Prop height: number = 16;
+  @Prop blockWidth: string | number = '100%';
+  @Prop blockHeight: number = 16;
   @Prop radius: number = 4;
   @Prop theme: Theme = buildTheme('light');
 
   build() {
     Row()
-      .width(this.width).height(this.height)
+      .width(this.blockWidth).height(this.blockHeight)
       .backgroundColor(this.theme.colors.surfaceAlt)
       .borderRadius(this.radius);
   }

@@ -1,6 +1,8 @@
 import media from '@ohos.multimedia.media';
+import { BusinessError } from '@ohos.base';
 import { Logger } from 'audiodock_common';
-import type { IAudioPlayer, PlayerEvent, PlayerListener } from './IAudioPlayer';
+import type { IAudioPlayer, PlayerEvent, PlayerListener, PlayerPayload,
+  TimeUpdatePayload, StateChangePayload, ErrorPayload, BufferingPayload } from './IAudioPlayer';
 
 export class AVPlayerBackend implements IAudioPlayer {
   private player: media.AVPlayer | null = null;
@@ -57,10 +59,17 @@ export class AVPlayerBackend implements IAudioPlayer {
   private bindInternal(): void {
     const p = this.player;
     if (!p) return;
-    p.on('timeUpdate', (ms: number) => this.dispatch('timeUpdate', { currentMs: ms, durationMs: p.duration }));
-    p.on('durationUpdate', (ms: number) => this.dispatch('durationUpdate', { currentMs: p.currentTime, durationMs: ms }));
+    p.on('timeUpdate', (ms: number) => {
+      const pl: TimeUpdatePayload = { currentMs: ms, durationMs: p.duration };
+      this.dispatch('timeUpdate', pl);
+    });
+    p.on('durationUpdate', (ms: number) => {
+      const pl: TimeUpdatePayload = { currentMs: p.currentTime, durationMs: ms };
+      this.dispatch('durationUpdate', pl);
+    });
     p.on('stateChange', (s: media.AVPlayerState) => {
-      this.dispatch('stateChange', { state: s });
+      const pl: StateChangePayload = { state: s as string };
+      this.dispatch('stateChange', pl);
       if (s === 'prepared' && this.prepareResolve) {
         const r = this.prepareResolve;
         this.prepareResolve = null;
@@ -73,12 +82,18 @@ export class AVPlayerBackend implements IAudioPlayer {
         r(new Error('AVPlayer prepare failed'));
       }
     });
-    p.on('error', (err: { message: string }) => this.dispatch('error', { message: err.message }));
-    p.on('bufferingUpdate', (info: { value: number }) => this.dispatch('bufferingUpdate', { value: info.value }));
+    p.on('error', (err: BusinessError) => {
+      const pl: ErrorPayload = { message: err.message };
+      this.dispatch('error', pl);
+    });
+    p.on('bufferingUpdate', (_infoType: media.BufferingInfoType, value: number) => {
+      const pl: BufferingPayload = { value: value };
+      this.dispatch('bufferingUpdate', pl);
+    });
     p.on('endOfStream', () => this.dispatch('ended', null));
   }
 
-  private dispatch(event: PlayerEvent, payload: unknown): void {
+  private dispatch(event: PlayerEvent, payload: PlayerPayload): void {
     const set = this.listeners.get(event);
     if (set) for (const cb of set) cb(payload);
     Logger.d('AVPlayer', `${event}`);

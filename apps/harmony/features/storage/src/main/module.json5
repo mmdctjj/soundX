@@ -1,1 +1,1 @@
-{ "module": { "name": "features_storage", "type": "har", "deliveryWithInstall": false } }
+{ "module": { "name": "features_storage", "type": "har", "deviceTypes": ["phone", "tablet"] } }

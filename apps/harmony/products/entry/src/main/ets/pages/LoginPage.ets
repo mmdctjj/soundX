@@ -34,7 +34,7 @@ struct LoginPage {
           label: this.loading ? t('common.loading') : t('common.login'),
           theme: this.theme,
           disabled: this.loading,
-          onClick: (): void => { this.doLogin(); },
+          onButtonClick: (): void => { this.doLogin(); },
         });
         Text(t('login.register_tip'))
           .onClick((): void => { router.replaceUrl({ url: 'pages/SignUpPage' }); })

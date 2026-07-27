@@ -1,5 +1,6 @@
 import { Logger } from 'audiodock_common';
 import { audioBackend } from 'features_player';
+import type { PlayerPayload, TimeUpdatePayload, StateChangePayload } from 'features_player';
 import { playerStore } from '../context/PlayerStore';
 import type { PlayerState } from '../context/PlayerStore';
 
@@ -20,12 +21,12 @@ function mapState(s: string): PlayerState | null {
 }
 
 export function installPlaybackService(): void {
-  audioBackend.on('timeUpdate', (p: unknown) => {
-    const v = p as { currentMs: number; durationMs: number };
+  audioBackend.on('timeUpdate', (p: PlayerPayload) => {
+    const v = p as TimeUpdatePayload;
     playerStore.onTimeUpdate(v.currentMs, v.durationMs);
   });
-  audioBackend.on('stateChange', (p: unknown) => {
-    const v = p as { state: string };
+  audioBackend.on('stateChange', (p: PlayerPayload) => {
+    const v = p as StateChangePayload;
     const mapped = mapState(v.state);
     if (mapped) playerStore.onStateChange(mapped);
   });

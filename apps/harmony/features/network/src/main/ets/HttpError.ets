@@ -10,7 +10,13 @@ export class HttpError extends Error {
   }
 
   static fromStatus(status: number, body: object | null): HttpError {
-    const msg = (body as { message?: string })?.message ?? `HTTP ${status}`;
+    let msg = `HTTP ${status}`;
+    if (body !== null && typeof body === 'object') {
+      const bodyObj = body as Record<string, Object>;
+      if (bodyObj['message'] !== undefined && typeof bodyObj['message'] === 'string') {
+        msg = bodyObj['message'];
+      }
+    }
     return new HttpError(status, msg, body);
   }
 }

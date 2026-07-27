@@ -1,1 +1,1 @@
-{ "module": { "name": "features_socket", "type": "har" } }
+{ "module": { "name": "features_socket", "type": "har", "deviceTypes": ["phone", "tablet"] } }

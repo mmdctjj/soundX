@@ -20,6 +20,9 @@
         "startWindowIcon": "$media:startIcon",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
+        "backgroundModes": [
+          "audioPlayback"
+        ],
         "skills": [
           {
             "entities": [
@@ -30,15 +33,6 @@
             ]
           }
         ]
-      }
-    ],
-    "extensionAbilities": [
-      {
-        "name": "PlayerServiceAbility",
-        "type": "service",
-        "srcEntry": "./ets/entryability/PlayerServiceAbility.ets",
-        "backgroundModes": ["audio"],
-        "exported": false
       }
     ],
     "requestPermissions": [

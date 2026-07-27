@@ -1,1 +1,1 @@
-{ "module": { "name": "features_network", "type": "har" } }
+{ "module": { "name": "features_network", "type": "har", "deviceTypes": ["phone", "tablet"] } }

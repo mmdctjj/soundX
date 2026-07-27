@@ -15,7 +15,15 @@
   "modules": [
     {
       "name": "entry",
-      "srcPath": "./products/entry"
+      "srcPath": "./products/entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
     },
     {
       "name": "audiodock_common",

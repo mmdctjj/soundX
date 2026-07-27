@@ -1,20 +1,17 @@
 import i18n from '@ohos.i18n';
 import { Logger } from 'audiodock_common';
 
-import zhCN from '../resources/locales/zh-CN.json';
-import en from '../resources/locales/en.json';
+import zhCN from './locales/zh-CN';
+import en from './locales/en';
 
 export type Lang = 'zh-CN' | 'en';
 export type LangSetting = 'system' | Lang;
 
 const STORAGE_KEY = 'app_language';
 
-const RESOURCES: Record<Lang, Record<string, unknown>> = {
-  'zh-CN': zhCN as Record<string, unknown>,
-  en: en as Record<string, unknown>,
-};
-
 let currentLang: Lang = 'zh-CN';
+
+const RESOURCES: Object[] = [zhCN, en];
 
 export function detectSystemLang(): Lang {
   const sys = i18n.System.getSystemLanguage();
@@ -32,25 +29,51 @@ export function applySetting(setting: LangSetting): void {
   else setLanguage(setting);
 }
 
-function lookup(dict: Record<string, unknown>, path: string): string | undefined {
+function lookupFromObject(obj: Object, path: string): string | undefined {
   const segments = path.split('.');
-  let node: unknown = dict;
-  for (const segment of segments) {
-    if (node === null || typeof node !== 'object') return undefined;
-    node = (node as Record<string, unknown>)[segment];
+  let current: Object = obj;
+  
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    const currentRecord = current as Record<string, Object>;
+    if (currentRecord === null || currentRecord === undefined) return undefined;
+    
+    const keys = Object.keys(currentRecord);
+    let found = false;
+    for (let j = 0; j < keys.length; j++) {
+      if (keys[j] === segment) {
+        const next = currentRecord[segment];
+        if (i === segments.length - 1) {
+          if (typeof next === 'string') return next;
+          return undefined;
+        }
+        current = next;
+        found = true;
+        break;
+      }
+    }
+    if (!found) return undefined;
   }
-  return typeof node === 'string' ? node : undefined;
+  return undefined;
 }
 
 export function t(key: string, params?: Record<string, string | number>): string {
-  let raw = lookup(RESOURCES[currentLang], key);
-  if (raw === undefined) raw = lookup(RESOURCES['en'], key);
-  if (raw === undefined) raw = lookup(RESOURCES['zh-CN'], key);
+  const resource = currentLang === 'zh-CN' ? RESOURCES[0] : RESOURCES[1];
+  let raw = lookupFromObject(resource, key);
+  if (raw === undefined) raw = lookupFromObject(RESOURCES[1], key);
+  if (raw === undefined) raw = lookupFromObject(RESOURCES[0], key);
   if (raw === undefined) raw = key;
   if (!params) return raw;
-  return raw.replace(/\{(\w+)\}/g, (_, name) => {
-    const v = params[name];
-    return v === undefined ? `{${name}}` : String(v);
+  
+  return raw.replace(/\{(\w+)\}/g, (match: string, name: string): string => {
+    const keys = Object.keys(params);
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i] === name) {
+        const v = params[name];
+        return String(v);
+      }
+    }
+    return `{${name}}`;
   });
 }
 

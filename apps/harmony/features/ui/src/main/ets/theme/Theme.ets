@@ -1,14 +1,14 @@
 import type { ColorPalette, ThemeMode } from './ColorTokens';
 import { lightColors, darkColors, festiveColors } from './ColorTokens';
-import { Spacing, Radius } from './Spacing';
-import { Typography } from './Typography';
+import { Spacing, Radius, type SpacingType, type RadiusType } from './Spacing';
+import { Typography, type TypographyType } from './Typography';
 
 export interface Theme {
   mode: ThemeMode;
   colors: ColorPalette;
-  spacing: typeof Spacing;
-  radius: typeof Radius;
-  typography: typeof Typography;
+  spacing: SpacingType;
+  radius: RadiusType;
+  typography: TypographyType;
 }
 
 export function buildTheme(mode: ThemeMode): Theme {

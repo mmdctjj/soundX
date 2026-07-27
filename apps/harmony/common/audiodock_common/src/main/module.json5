@@ -1,1 +1,1 @@
-{ "module": { "name": "audiodock_common", "type": "har", "deliveryWithInstall": false } }
+{ "module": { "name": "audiodock_common", "type": "har", "deviceTypes": ["phone", "tablet"] } }

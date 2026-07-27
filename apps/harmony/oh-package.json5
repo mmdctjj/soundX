@@ -1,30 +1,15 @@
 {
   "modelVersion": "5.0.0",
   "dependencies": {
-    "audiodock_common": {
-      "path": "./common/audiodock_common"
-    },
-    "features_storage": {
-      "path": "./features/storage"
-    },
-    "features_network": {
-      "path": "./features/network"
-    },
-    "features_ui": {
-      "path": "./features/ui"
-    },
-    "features_i18n": {
-      "path": "./features/i18n"
-    },
-    "features_socket": {
-      "path": "./features/socket"
-    },
-    "features_player": {
-      "path": "./features/player"
-    }
+    "audiodock_common": "file:./common/audiodock_common",
+    "features_storage": "file:./features/storage",
+    "features_network": "file:./features/network",
+    "features_ui": "file:./features/ui",
+    "features_i18n": "file:./features/i18n",
+    "features_socket": "file:./features/socket",
+    "features_player": "file:./features/player"
   },
   "devDependencies": {
-    "@ohos/hypium": "1.0.21",
-    "@ohos/hvigor-ohos-plugin": "5.0.5"
+    "@ohos/hypium": "1.0.21"
   }
 }

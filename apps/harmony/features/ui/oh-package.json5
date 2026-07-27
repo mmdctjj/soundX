@@ -1,0 +1,9 @@
+{
+  "name": "features_ui",
+  "version": "1.0.0",
+  "description": "AudioDock ui feature library",
+  "main": "Index.ets",
+  "author": "AudioDock",
+  "license": "ISC",
+  "dependencies": {}
+}

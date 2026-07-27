@@ -8,32 +8,56 @@ export interface AuthMe { id: string; username: string; nickname?: string }
 export interface LoginResponse { token: string; user: AuthMe; deviceId: string }
 export interface CheckResponse { needRegister: boolean }
 
+export interface ResetPasswordDto {
+  username: string;
+  newPassword: string;
+  deviceName: string;
+}
+
+export interface VerifyDeviceDto {
+  username: string;
+  deviceName: string;
+}
+
+export interface VerifyDeviceResponse {
+  verified: boolean;
+}
+
 export interface AuthApi {
   login(dto: LoginDto): Promise<LoginResponse>;
   register(dto: RegisterDto): Promise<LoginResponse>;
   me(): Promise<AuthMe>;
   check(username: string): Promise<CheckResponse>;
-  resetPassword(dto: { username: string; newPassword: string; deviceName: string }): Promise<void>;
-  verifyDevice(dto: { username: string; deviceName: string }): Promise<{ verified: boolean }>;
+  resetPassword(dto: ResetPasswordDto): Promise<void>;
+  verifyDevice(dto: VerifyDeviceDto): Promise<VerifyDeviceResponse>;
 }
 
-export const authApi: AuthApi = {
+class AuthApiImpl implements AuthApi {
   async login(dto: LoginDto): Promise<LoginResponse> {
     return httpClient.post<LoginResponse>('/auth/login', dto);
-  },
+  }
   async register(dto: RegisterDto): Promise<LoginResponse> {
     return httpClient.post<LoginResponse>('/auth/register', dto);
-  },
+  }
   async me(): Promise<AuthMe> {
     return httpClient.get<AuthMe>('/auth/me');
-  },
+  }
   async check(username: string): Promise<CheckResponse> {
-    return httpClient.get<CheckResponse>('/auth/check', { username });
-  },
-  async resetPassword(dto: { username: string; newPassword: string; deviceName: string }): Promise<void> {
+    const p = new Map<string, string | number | boolean>();
+    p.set('username', username);
+    const record: Record<string, string | number | boolean> = {};
+    const keys = Array.from(p.keys());
+    for (let i = 0; i < keys.length; i++) {
+      record[keys[i]] = p.get(keys[i])!;
+    }
+    return httpClient.get<CheckResponse>('/auth/check', record);
+  }
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
     return httpClient.post<void>('/auth/reset-password', dto);
-  },
-  async verifyDevice(dto: { username: string; deviceName: string }): Promise<{ verified: boolean }> {
-    return httpClient.post<{ verified: boolean }>('/auth/verify-device', dto);
-  },
-};
+  }
+  async verifyDevice(dto: VerifyDeviceDto): Promise<VerifyDeviceResponse> {
+    return httpClient.post<VerifyDeviceResponse>('/auth/verify-device', dto);
+  }
+}
+
+export const authApi: AuthApi = new AuthApiImpl();

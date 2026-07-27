@@ -1,3 +1,5 @@
+import type { HttpError } from './HttpError';
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 export interface RequestConfig {
@@ -23,14 +25,14 @@ export interface BackendEnvelope<T> {
   data: T;
 }
 
-export interface RequestInterceptor {
-  (config: RequestConfig): RequestConfig | Promise<RequestConfig>;
+export abstract class RequestInterceptor {
+  abstract intercept(config: RequestConfig): RequestConfig | Promise<RequestConfig>;
 }
 
-export interface ResponseInterceptor {
-  (response: HttpResponse<unknown>): HttpResponse<unknown> | Promise<HttpResponse<unknown>>;
+export abstract class ResponseInterceptor {
+  abstract intercept(response: HttpResponse<Object>): HttpResponse<Object> | Promise<HttpResponse<Object>>;
 }
 
-export interface ErrorInterceptor {
-  (error: HttpError): HttpError | Promise<HttpError>;
+export abstract class ErrorInterceptor {
+  abstract intercept(error: HttpError): HttpError | Promise<HttpError>;
 }

@@ -1,1 +1,1 @@
-{ "module": { "name": "features_ui", "type": "har" } }
+{ "module": { "name": "features_ui", "type": "har", "deviceTypes": ["phone", "tablet"] } }

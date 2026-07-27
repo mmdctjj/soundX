@@ -6,7 +6,7 @@ export struct CommonButton {
   @Prop variant: 'primary' | 'secondary' | 'ghost' = 'primary';
   @Prop disabled: boolean = false;
   @Prop theme: Theme = buildTheme('light');
-  onClick: () => void = () => {};
+  onButtonClick: () => void = () => {};
 
   build() {
     Button(this.label)
@@ -17,7 +17,7 @@ export struct CommonButton {
       .height(44)
       .padding({ left: 24, right: 24 })
       .enabled(!this.disabled)
-      .onClick(() => this.onClick());
+      .onClick(() => this.onButtonClick());
   }
 
   private bg(): string {

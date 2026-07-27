@@ -1,35 +1,60 @@
-import type AbilityConstant from "@ohos:app.ability.AbilityConstant";
 import UIAbility from "@ohos:app.ability.UIAbility";
-import type Want from "@ohos:app.ability.Want";
+import type AbilityConstant from "@ohos:app.ability.AbilityConstant";
 import hilog from "@ohos:hilog";
+import type Want from "@ohos:app.ability.Want";
 import type window from "@ohos:window";
-import { storage } from "@bundle:com.audiodock.harmony/entry/ets/utils/StorageManager";
+import { Logger } from "@bundle:com.audiodock.harmony/entry@audiodock_common/Index";
+import { kvStore, fileCache, rdbStore } from "@bundle:com.audiodock.harmony/entry@features_storage/Index";
+import { httpClient } from "@bundle:com.audiodock.harmony/entry@features_network/Index";
+import { applySetting } from "@bundle:com.audiodock.harmony/entry@features_i18n/Index";
+import { installPlaybackService } from "@bundle:com.audiodock.harmony/entry/ets/services/playbackService";
+import { installAVSessionService, releaseAVSessionService } from "@bundle:com.audiodock.harmony/entry/ets/services/avSessionService";
+const DOMAIN = 0xA001;
+const TAG = 'EntryAbility';
 export default class EntryAbility extends UIAbility {
-    onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-        hilog.info(0x0000, 'AudioDock', '%{public}s', 'Ability onCreate');
-        // Initialize storage with application context
-        storage.init(this.context);
+    async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
+        hilog.info(DOMAIN, TAG, `onCreate launchParam=${launchParam}`);
+        Logger.i(TAG, 'onCreate');
+        await this.initialize();
+        installPlaybackService();
+        try {
+            await installAVSessionService(this.context);
+        }
+        catch (e) {
+            Logger.w(TAG, `install AVSession: ${String(e)}`);
+        }
+        this.loadPage('pages/Index');
     }
     onDestroy(): void {
-        hilog.info(0x0000, 'AudioDock', '%{public}s', 'Ability onDestroy');
+        Logger.i(TAG, 'onDestroy');
+        releaseAVSessionService();
     }
     onWindowStageCreate(windowStage: window.WindowStage): void {
-        hilog.info(0x0000, 'AudioDock', '%{public}s', 'Ability onWindowStageCreate');
-        windowStage.loadContent('pages/Index', (err) => {
-            if (err.code) {
-                hilog.error(0x0000, 'AudioDock', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err) ?? '');
-                return;
-            }
-            hilog.info(0x0000, 'AudioDock', 'Succeeded in loading the content.');
+        hilog.info(DOMAIN, TAG, 'onWindowStageCreate');
+        windowStage.loadContent('pages/Index', (err: Error) => {
+            if (err)
+                Logger.e(TAG, `loadContent: ${err.message}`);
         });
     }
-    onWindowStageDestroy(): void {
-        hilog.info(0x0000, 'AudioDock', '%{public}s', 'Ability onWindowStageDestroy');
+    private async initialize(): Promise<void> {
+        const ctx = this.context;
+        await kvStore.init(ctx);
+        await fileCache.init(ctx);
+        await rdbStore.init(ctx);
+        const stored = await kvStore.get('serverAddress');
+        if (stored)
+            httpClient.setBaseURL(stored);
+        const token = await kvStore.get(`token_${stored ?? ''}`);
+        if (token)
+            httpClient.setAuthToken(token);
+        const langSetting = await kvStore.get('app_language');
+        if (langSetting === 'zh-CN' || langSetting === 'en')
+            applySetting(langSetting);
+        else
+            applySetting('system');
+        Logger.i(TAG, 'initialize complete');
     }
-    onForeground(): void {
-        hilog.info(0x0000, 'AudioDock', '%{public}s', 'Ability onForeground');
-    }
-    onBackground(): void {
-        hilog.info(0x0000, 'AudioDock', '%{public}s', 'Ability onBackground');
+    private loadPage(path: string): void {
+        hilog.info(DOMAIN, TAG, `would navigate to ${path}`);
     }
 }

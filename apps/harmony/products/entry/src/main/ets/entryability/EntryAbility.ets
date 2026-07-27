@@ -1,4 +1,5 @@
 import UIAbility from '@ohos.app.ability.UIAbility';
+import AbilityConstant from '@ohos.app.ability.AbilityConstant';
 import hilog from '@ohos.hilog';
 import Want from '@ohos.app.ability.Want';
 import { window } from '@kit.ArkUI';
@@ -7,29 +8,28 @@ import { kvStore, fileCache, rdbStore } from 'features_storage';
 import { httpClient } from 'features_network';
 import { applySetting } from 'features_i18n';
 import { installPlaybackService } from '../services/playbackService';
+import { installAVSessionService, releaseAVSessionService } from '../services/avSessionService';
 
 const DOMAIN = 0xA001;
 const TAG = 'EntryAbility';
 
 export default class EntryAbility extends UIAbility {
-  async onCreate(want: Want, launchParam: number): Promise<void> {
+  async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     hilog.info(DOMAIN, TAG, `onCreate launchParam=${launchParam}`);
     Logger.i(TAG, 'onCreate');
     await this.initialize();
     installPlaybackService();
     try {
-      await this.context.startServiceExtensionAbility({
-        bundleName: this.context.applicationInfo.name,
-        abilityName: 'PlayerServiceAbility',
-      });
+      await installAVSessionService(this.context);
     } catch (e) {
-      Logger.w(TAG, `start PlayerServiceAbility: ${String(e)}`);
+      Logger.w(TAG, `install AVSession: ${String(e)}`);
     }
     this.loadPage('pages/Index');
   }
 
   onDestroy(): void {
     Logger.i(TAG, 'onDestroy');
+    releaseAVSessionService();
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {

@@ -25,7 +25,7 @@ struct SourceSelectPage {
         CommonButton({
           label: t('common.next'),
           theme: this.theme,
-          onClick: (): void => { this.saveAndNext(); },
+          onButtonClick: (): void => { this.saveAndNext(); },
         });
       }.padding(16);
     }.width('100%').height('100%').backgroundColor(this.theme.colors.background);

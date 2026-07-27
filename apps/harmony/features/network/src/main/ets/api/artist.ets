@@ -12,23 +12,60 @@ export interface ArtistDetailResp {
 
 export interface ArtistListResp { data: ArtistDto[]; total: number }
 
-type Params = Record<string, string | number | boolean>;
+export interface ArtistListParams {
+  pageSize: number;
+  loadCount: number;
+}
 
-export const artistApi = {
-  async list(params: { pageSize: number; loadCount: number }): Promise<ArtistListResp> {
-    return httpClient.get<ArtistListResp>('/artist/list',
-      { pageSize: params.pageSize, loadCount: params.loadCount });
-  },
+export interface ArtistLatestParams {
+  pageSize?: number;
+  random?: boolean;
+}
+
+export interface ArtistApi {
+  list(params: ArtistListParams): Promise<ArtistListResp>;
+  getById(id: string): Promise<ArtistDetailResp>;
+  latest(params: ArtistLatestParams): Promise<ArtistDto[]>;
+  search(keyword: string, limit: number): Promise<ArtistDto[]>;
+}
+
+class ArtistApiImpl implements ArtistApi {
+  async list(params: ArtistListParams): Promise<ArtistListResp> {
+    const p = new Map<string, string | number | boolean>();
+    p.set('pageSize', params.pageSize);
+    p.set('loadCount', params.loadCount);
+    const record: Record<string, string | number | boolean> = {};
+    const keys = Array.from(p.keys());
+    for (let i = 0; i < keys.length; i++) {
+      record[keys[i]] = p.get(keys[i])!;
+    }
+    return httpClient.get<ArtistListResp>('/artist/list', record);
+  }
   async getById(id: string): Promise<ArtistDetailResp> {
     return httpClient.get<ArtistDetailResp>(`/artist/${id}`);
-  },
-  async latest(params: { pageSize?: number; random?: boolean }): Promise<ArtistDto[]> {
-    const p: Params = {};
-    if (params.pageSize !== undefined) p['pageSize'] = params.pageSize;
-    if (params.random !== undefined) p['random'] = params.random;
-    return httpClient.get<ArtistDto[]>('/artist/latest', p);
-  },
-  async search(keyword: string, limit: number = 30): Promise<ArtistDto[]> {
-    return httpClient.get<ArtistDto[]>('/artist/search', { keyword, limit });
-  },
-};
+  }
+  async latest(params: ArtistLatestParams): Promise<ArtistDto[]> {
+    const p = new Map<string, string | number | boolean>();
+    if (params.pageSize !== undefined) p.set('pageSize', params.pageSize);
+    if (params.random !== undefined) p.set('random', params.random);
+    const record: Record<string, string | number | boolean> = {};
+    const keys = Array.from(p.keys());
+    for (let i = 0; i < keys.length; i++) {
+      record[keys[i]] = p.get(keys[i])!;
+    }
+    return httpClient.get<ArtistDto[]>('/artist/latest', record);
+  }
+  async search(keyword: string, limit: number): Promise<ArtistDto[]> {
+    const p = new Map<string, string | number | boolean>();
+    p.set('keyword', keyword);
+    p.set('limit', limit);
+    const record: Record<string, string | number | boolean> = {};
+    const keys = Array.from(p.keys());
+    for (let i = 0; i < keys.length; i++) {
+      record[keys[i]] = p.get(keys[i])!;
+    }
+    return httpClient.get<ArtistDto[]>('/artist/search', record);
+  }
+}
+
+export const artistApi: ArtistApi = new ArtistApiImpl();
