@@ -32,6 +32,7 @@ export struct LibraryTab {
   @State mode: string = 'MUSIC';
   @State activeTab: string = 'artists';
   @State loading: boolean = true;
+  @State initialLoading: boolean = true;
   @State error: string = '';
   @State tracks: TrackDto[] = [];
   @State artists: ArtistDto[] = [];
@@ -70,6 +71,7 @@ export struct LibraryTab {
    */
   async loadAllData(): Promise<void> {
     this.loading = true;
+    this.initialLoading = true;
     this.error = '';
     try {
       const counts: Record<string, number> = {};
@@ -99,6 +101,7 @@ export struct LibraryTab {
       Logger.e('LibraryTab', `loadAllData failed: ${this.error}`);
     } finally {
       this.loading = false;
+      this.initialLoading = false;
     }
   }
 
@@ -410,7 +413,7 @@ export struct LibraryTab {
   }
 
   build() {
-    if (this.loading) {
+    if (this.initialLoading) {
       this.LoadingSkeleton();
     } else {
       Column() {
