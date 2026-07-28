@@ -42,6 +42,14 @@ test('computeNextVersion: throws on invalid version', () => {
   assert.throws(() => computeNextVersion('not-a-version', 'stable', undefined), /不合法/);
 });
 
+test('computeNextVersion: stable mode subArg=minor from 1.2.22 → 1.3.0', () => {
+  assert.equal(computeNextVersion('1.2.22', 'stable', 'minor'), '1.3.0');
+});
+
+test('computeNextVersion: stable mode subArg=major from 1.2.22 → 2.0.0', () => {
+  assert.equal(computeNextVersion('1.2.22', 'stable', 'major'), '2.0.0');
+});
+
 test('computeNextVersion: throws on invalid mode', () => {
   assert.throws(() => computeNextVersion('1.2.22', 'wrong', undefined), /未知的发布模式/);
 });
@@ -259,7 +267,7 @@ test('parseCliArgs: beta with invalid subArg throws', () => {
   assert.throws(() => parseCliArgs(['beta', 'garbage']), /未知的发布模式/);
 });
 
-const { runReleasePipeline } = require('./release');
+const { runRelease } = require('./release');
 
 function makeExecRecorder(failOn = null) {
   const calls = [];
@@ -277,7 +285,7 @@ test('runRelease: happy path executes build:web → update → prebuild → git'
   const dir = setupFixtures();
   const { exec, calls } = makeExecRecorder();
   try {
-    await runReleasePipeline({
+    await runRelease({
       currentVersion: '1.0.0',
       targetVersion: '1.0.1',
       commitMessage: 'chore(release): release 1.0.1',
@@ -308,7 +316,7 @@ test('runRelease: build:web failure throws before any file write', async () => {
   const { exec } = makeExecRecorder('pnpm --filter sound-x run build:web');
   try {
     await assert.rejects(
-      () => runReleasePipeline({
+      () => runRelease({
         currentVersion: '1.0.0',
         targetVersion: '1.0.1',
         commitMessage: 'x',
@@ -331,7 +339,7 @@ test('runRelease: dryRun skips all side effects', async () => {
   const originalBytes = fs.readFileSync(path.join(dir, 'a.json'));
   const { exec, calls } = makeExecRecorder();
   try {
-    await runReleasePipeline({
+    await runRelease({
       currentVersion: '1.0.0',
       targetVersion: '1.0.1',
       commitMessage: 'x',
@@ -348,4 +356,29 @@ test('runRelease: dryRun skips all side effects', async () => {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('main: stable mode from CLI invocation updates files in fixture repo', async () => {
+  const dir = setupFixtures();
+  // 把当前根 package.json 的 version 临时改成 1.0.0
+  const rootPkg = path.join(dir, 'root.json');
+  fs.writeFileSync(rootPkg, JSON.stringify({ version: '1.0.0' }, null, 2));
+  execSync('git add . && git commit -q -m "add root"', { cwd: dir });
+  const { exec } = makeExecRecorder();
+
+  // 模拟执行 main()：直接调 runRelease 走 happy path
+  await runRelease({
+    currentVersion: '1.0.0',
+    targetVersion: '1.0.1',
+    commitMessage: 'chore(release): release 1.0.1',
+    exec: (cmd) => exec(cmd, { cwd: dir }),
+    dryRun: false,
+    cwd: dir,
+    packages: [path.join(dir, 'a.json')],
+  });
+
+  const updated = JSON.parse(fs.readFileSync(path.join(dir, 'a.json'), 'utf8'));
+  assert.equal(updated.version, '1.0.1');
+
+  fs.rmSync(dir, { recursive: true, force: true });
 });

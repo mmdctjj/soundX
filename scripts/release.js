@@ -3,6 +3,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const readline = require('readline');
 const path = require('path');
+const semver$ = require('semver');
 
 const PACKAGES = [
   'package.json',
@@ -16,144 +17,76 @@ const PACKAGES = [
   'packages/ws/package.json'
 ];
 
-// 1. Get current version
+const STABLE_KEYWORDS = new Set(['patch', 'minor', 'major']);
+const VERSION_RE = /^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?$/;
+
+const defaultExec = (cmd, opts = {}) => execSync(cmd, { stdio: 'inherit', ...opts });
+
+
+// 1. Get current version（CLI 入口内部也会再读取一次，这里供模块加载期引用）
 const rootPkgPath = 'package.json';
 if (!fs.existsSync(rootPkgPath)) {
   console.error('Error: package.json not found in root.');
   process.exit(1);
 }
-const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf8'));
-const currentVersion = rootPkg.version;
-const [major, minor, patch] = currentVersion.split('.').map(Number);
-
-// Helper to increment version
-function incrementVersion(type) {
-  if (type === 'major') return `${major + 1}.0.0`;
-  if (type === 'minor') return `${major}.${minor + 1}.0`;
-  if (type === 'patch') return `${major}.${minor}.${patch + 1}`;
-  return null;
-}
 
 if (require.main === module) {
-  console.log(`Current version: ${currentVersion}`);
-
-  // 2. Determine Target Version
-  const arg = process.argv[2]; // e.g., 'patch', 'minor', '1.0.1'
-
-  if (arg) {
-    let targetVersion = incrementVersion(arg);
-
-    // If arg is not a keyword, assume it's a specific version
-    if (!targetVersion) {
-      if (/^\d+\.\d+\.\d+/.test(arg)) {
-        targetVersion = arg;
-      } else {
-        console.error(`Invalid argument: ${arg}. Use 'patch', 'minor', 'major' or specific version.`);
-        process.exit(1);
-      }
+  (async () => {
+    const args = parseCliArgs(process.argv.slice(2));
+    if (args.help) {
+      console.log('用法：');
+      console.log('  pnpm release              智能 fallback 发布（剥 preid 或 patch+1）');
+      console.log('  pnpm release:beta         发布下一个 beta 版本');
+      console.log('  pnpm release:beta patch   从 stable 推到新 beta 起点');
+      console.log('  pnpm release:beta next    递增当前 beta');
+      console.log('  pnpm release:beta <ver>   指定 beta 版本号');
+      process.exit(0);
     }
 
-    legacyRunRelease(targetVersion);
-  } else {
-    // Interactive Mode
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
+    const rootPkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    const currentVersion = rootPkg.version;
 
-    const nextPatch = incrementVersion('patch');
-    const nextMinor = incrementVersion('minor');
-    const nextMajor = incrementVersion('major');
-
-    console.log('\nSelect release type:');
-    console.log(`1) Patch (${nextPatch})`);
-    console.log(`2) Minor (${nextMinor})`);
-    console.log(`3) Major (${nextMajor})`);
-    console.log(`4) Custom Version`);
-
-    rl.question('\nEnter choice (1-4): ', (choice) => {
-      let targetVersion = null;
-
-      if (choice === '1') targetVersion = nextPatch;
-      else if (choice === '2') targetVersion = nextMinor;
-      else if (choice === '3') targetVersion = nextMajor;
-      else if (choice === '4') {
-        rl.question('Enter custom version: ', (custom) => {
-          if (!/^\d+\.\d+\.\d+/.test(custom)) {
-             console.error('Invalid format.');
-             process.exit(1);
-          }
-          legacyRunRelease(custom);
-          rl.close();
-        });
-        return;
+    let targetVersion;
+    if (args.mode === 'beta') {
+      if (args.customVersion) {
+        targetVersion = args.customVersion;
+      } else if (args.subArg === undefined) {
+        targetVersion = await runBetaInteractive(currentVersion);
       } else {
-        console.log('Cancelled.');
-        process.exit(0);
+        targetVersion = computeNextVersion(currentVersion, 'beta', args.subArg);
       }
-
-      if (targetVersion) {
-        legacyRunRelease(targetVersion);
-      }
-      rl.close();
-    });
-  }
-}
-
-function updateVersions(newVersion) {
-  PACKAGES.forEach(pkgPath => {
-    if (fs.existsSync(pkgPath)) {
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-      if (pkgPath.endsWith('app.json') && pkg.expo) {
-        pkg.expo.version = newVersion;
-      } else {
-        pkg.version = newVersion;
-      }
-      fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
-      console.log(`Updated ${pkgPath} to ${newVersion}`);
     } else {
-      console.warn(`Warning: ${pkgPath} skipping (not found).`);
+      // stable
+      if (args.customVersion) {
+        targetVersion = args.customVersion;
+      } else if (args.subArg) {
+        targetVersion = computeNextVersion(currentVersion, 'stable', args.subArg);
+      } else {
+        targetVersion = await runStableInteractive(currentVersion);
+      }
     }
+
+    const commitMessage = computeCommitMessage(args.mode, args.customVersion || args.subArg, targetVersion);
+    const dryRun = process.env.RELEASE_DRY_RUN === '1';
+
+    if (dryRun) console.log('🔍 DRY-RUN 模式：不执行任何写文件、commit、tag 操作。');
+
+    try {
+      await runRelease({
+        currentVersion,
+        targetVersion,
+        commitMessage,
+        dryRun,
+      });
+    } catch (error) {
+      console.error(`\n${error.message}`);
+      process.exit(1);
+    }
+  })().catch(err => {
+    console.error(`\n❌ 意外错误：${err.message}`);
+    process.exit(1);
   });
 }
-
-function legacyRunRelease(newVersion) {
-  console.log(`\n🚀 Preparing to release version: ${newVersion}\n`);
-
-  // 1. Update files
-  updateVersions(newVersion);
-
-  // 2. Regenerate native projects after app.json version changes
-  try {
-    console.log('\n📱 Running expo prebuild in apps/mobile...');
-    execSync('npx expo prebuild', {
-      cwd: path.resolve('apps/mobile'),
-      stdio: 'inherit',
-    });
-  } catch (error) {
-    console.error('❌ expo prebuild failed:', error.message);
-    process.exit(1);
-  }
-
-  // 3. Commit and Tag
-  try {
-    console.log('\n📦 Committing changes...');
-    execSync('git add .');
-    execSync(`git commit -m "chore(release): bump version to ${newVersion}"`);
-    
-    console.log(`🏷️  Creating tag v${newVersion}...`);
-    execSync(`git tag v${newVersion}`);
-
-    console.log('\n✅ Success! New version created.');
-    console.log('👉 Run this command to publish:');
-    console.log('   git push && git push --tags');
-  } catch (error) {
-    console.error('❌ Git operations failed:', error.message);
-    console.log('You may need to commit/tag manually.');
-  }
-}
-
-const semver$ = require('semver');
 
 function computeNextVersion(currentVersion, mode, subArg) {
   if (mode !== 'beta' && mode !== 'stable') {
@@ -169,11 +102,13 @@ function computeNextVersion(currentVersion, mode, subArg) {
     return subArg;
   }
 
-  // stable 模式：剥离 preid
+  // stable 模式
   if (mode === 'stable') {
     if (parsed.prerelease.length > 0) {
       return `${parsed.major}.${parsed.minor}.${parsed.patch}`;
     }
+    if (subArg === 'minor') return semver$.inc(currentVersion, 'minor');
+    if (subArg === 'major') return semver$.inc(currentVersion, 'major');
     return semver$.inc(currentVersion, 'patch');
   }
 
@@ -198,10 +133,7 @@ function computeCommitMessage(mode, subArg, version) {
   return `chore(release): bump to ${version}`;
 }
 
-module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion, updateVersionsWithRollback, parseCliArgs, runReleasePipeline };
-
-const STABLE_KEYWORDS = new Set(['patch', 'minor', 'major']);
-const VERSION_RE = /^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?$/;
+module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion, updateVersionsWithRollback, parseCliArgs, runRelease };
 
 function parseCliArgs(argv) {
   if (argv.length === 0) {
@@ -304,9 +236,7 @@ function parseVersion(version) {
   return p;
 }
 
-const defaultExec = (cmd, opts = {}) => execSync(cmd, { stdio: 'inherit', ...opts });
-
-async function runReleasePipeline(opts) {
+async function runRelease(opts) {
   const { currentVersion, targetVersion, commitMessage, exec = defaultExec, dryRun = false, cwd = process.cwd(), packages = PACKAGES } = opts;
 
   // 预检
@@ -363,4 +293,66 @@ async function runReleasePipeline(opts) {
   if (/-beta\.\d+$/.test(targetVersion)) {
     console.log('ℹ️  这是 BETA 版本，请确认是否要推送此 tag。');
   }
+}
+
+// ========== 交互模式 ==========
+function runBetaInteractive(currentVersion) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const nextBeta = computeNextVersion(currentVersion, 'beta', 'next');
+  const newCycle = computeNextVersion(currentVersion, 'beta', 'patch');
+  return new Promise((resolve, reject) => {
+    console.log(`\n当前版本：${currentVersion}`);
+    console.log('选择 beta 发布类型：');
+    console.log(`1) 递增当前 beta (${nextBeta})`);
+    console.log(`2) 开始新 beta 周期 (${newCycle})`);
+    console.log('3) 自定义版本号');
+    rl.question('\n请输入选项 (1-3): ', (choice) => {
+      if (choice === '1') { resolve(nextBeta); rl.close(); }
+      else if (choice === '2') { resolve(newCycle); rl.close(); }
+      else if (choice === '3') {
+        rl.question('输入自定义版本号：', (v) => {
+          if (!/^\d+\.\d+\.\d+-beta\.\d+$/.test(v)) {
+            reject(new Error(`版本号格式不合法：${v}`));
+          } else {
+            resolve(v);
+          }
+          rl.close();
+        });
+      } else {
+        reject(new Error('已取消'));
+      }
+    });
+  });
+}
+
+function runStableInteractive(currentVersion) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve, reject) => {
+    const nextPatch = computeNextVersion(currentVersion, 'stable', 'patch');
+    const nextMinor = computeNextVersion(currentVersion, 'stable', 'minor');
+    const nextMajor = computeNextVersion(currentVersion, 'stable', 'major');
+    console.log(`\n当前版本：${currentVersion}`);
+    console.log('选择发布类型：');
+    console.log(`1) Patch (${nextPatch})`);
+    console.log(`2) Minor (${nextMinor})`);
+    console.log(`3) Major (${nextMajor})`);
+    console.log('4) 自定义版本号');
+    rl.question('\n请输入选项 (1-4): ', (choice) => {
+      if (choice === '1') { resolve(nextPatch); rl.close(); }
+      else if (choice === '2') { resolve(nextMinor); rl.close(); }
+      else if (choice === '3') { resolve(nextMajor); rl.close(); }
+      else if (choice === '4') {
+        rl.question('输入自定义版本号：', (v) => {
+          if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?$/.test(v)) {
+            reject(new Error(`版本号格式不合法：${v}`));
+          } else {
+            resolve(v);
+          }
+          rl.close();
+        });
+      } else {
+        reject(new Error('已取消'));
+      }
+    });
+  });
 }
