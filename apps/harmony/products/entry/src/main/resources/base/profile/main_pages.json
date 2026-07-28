@@ -12,6 +12,8 @@
     "pages/SourceManagePage",
     "pages/PlayerPage",
     "pages/SourceSelectPage",
-    "pages/LoginPage"
+    "pages/LoginPage",
+    "pages/LanguagePage",
+    "pages/PlaybackQualityPage"
   ]
 }
