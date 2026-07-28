@@ -19,6 +19,10 @@
 - `apps/harmony/products/entry/src/main/ets/pages/ArtistDetailPage.ets`
 - `apps/harmony/products/entry/src/main/ets/components/AppIcon.ets`（新增 play 图标）
 - `apps/harmony/features/i18n/src/main/ets/I18n.ets`（前置修复占位符正则，见"文案"一节）
+- `apps/harmony/features/network/src/main/ets/api/album.ets`（修返回类型 + 补 3 个方法，见"数据层修复"）
+- `apps/harmony/features/network/src/main/ets/api/artist.ets`（修返回类型）
+- `apps/harmony/features/network/src/main/ets/api/track.ets`（补 byArtist）
+- `apps/harmony/features/network/src/main/ets/api/collection.ets`（`CollectionDto` 补 `items`）
 
 待新增：
 - `apps/harmony/products/entry/src/main/ets/components/DetailHero.ets`
@@ -26,13 +30,38 @@
 - `apps/harmony/products/entry/src/main/ets/components/AlbumCarouselCard.ets`
 - `apps/harmony/products/entry/src/main/ets/components/TrackRow.ets`
 
+## 数据层修复（前置，必做）
+
+写计划时核对后端发现：这两个页面的数据层本身就是坏的，不修的话改完布局也看不到东西。
+
+`HarmonyHttpClient` 会拆掉 `{code,message,data}` 信封直接返回 `data`。而后端实际返回：
+
+| 接口 | 后端实际返回 | harmony 客户端当前假设 | 后果 |
+|---|---|---|---|
+| `GET /album/:id`<br>(`services/api/src/services/album.ts:85`) | 单个 Album，只 include `likedByUsers`/`listenedByUsers`，**无 tracks** | `AlbumDetailResp extends AlbumDto { tracks?: TrackDto[] }` | `this.data!.tracks` 为 undefined，曲目列表恒空 |
+| `GET /artist/:id`<br>(`services/api/src/services/artist.ts:39`) | **裸 Artist 对象**（一句 `findUnique`） | `ArtistDetailResp { artist; albums?; tracks? }` | `this.data!.artist.name` 读 undefined 的属性，页面崩 |
+
+修复方式：**不新增后端接口**，只补 harmony 侧缺失的客户端包装——这些 endpoint 后端早就有，mobile 一直在用。
+
+| 新增/修改 | HTTP | 返回 |
+|---|---|---|
+| `albumApi.getById` 返回类型改为 `AlbumDto` | `GET /album/{id}` | `AlbumDto` |
+| `albumApi.getTracks(id, pageSize, skip, sort, sortBy?)` | `GET /album/{id}/tracks` | `{ list: TrackDto[]; total: number }` |
+| `albumApi.byArtist(artist)` | `GET /album/artist/{artist}` | `AlbumDto[]` |
+| `albumApi.collaborativeByArtist(artist)` | `GET /album/collaborative/{artist}` | `AlbumDto[]` |
+| `artistApi.getById` 返回类型改为 `ArtistDto` | `GET /artist/{id}` | `ArtistDto` |
+| `trackApi.byArtist(artist)` | `GET /track/artist?artist=` | `TrackDto[]` |
+| `CollectionDto` 补 `items?: CollectionAlbumItem[]` | — | `GET /collections` 本就返回 items（`take: 4`） |
+
+`AlbumDetailResp` 与 `ArtistDetailResp` 两个类型随之删除（没有任何后端接口返回这种形状）。
+
+**艺人查询键**：`/album/artist/{artist}` 与 `/track/artist?artist=` 用的是艺人**名字**不是 id。照搬 mobile 的分支——`authStore.state_.sourceType === 'emby'` 时传 id，否则传 `artist.name`。
+
 ## 范围
 
-**做**：视觉结构对齐 + 接上 harmony 已具备的能力（播放全部、点击播放、喜欢、跳转专辑/MV/合集、有声书进度与续播）。
+**做**：视觉结构对齐 + 上述数据层修复 + 接上 harmony 已具备的能力（播放全部、点击播放、喜欢、跳转专辑/MV/合集、有声书进度与续播）。
 
-**不做**：harmony 侧缺少接口或能力的功能——批量下载、上传封面、小爱音箱投屏、有声书排序弹窗、更多操作弹窗、批量多选。这些按钮**不画占位**，避免出现点了没反应的死按钮。
-
-**不新增后端接口**。因此 mobile 艺人页的「合作专辑」区块本次省略（详见"已知差异"）。
+**不做**：harmony 侧缺少能力的功能——批量下载、上传封面、小爱音箱投屏、有声书排序弹窗、更多操作弹窗、批量多选。这些按钮**不画占位**，避免出现点了没反应的死按钮。
 
 ## 专辑详情页
 
@@ -60,7 +89,7 @@ CommonNavBar：‹ 返回   [专辑名]   (右侧 44 占位)
 
 ### 行为
 
-- 数据：`albumApi.getById(entityId)` 返回 `AlbumDetailResp`（含 `tracks`）。不分页、不排序——harmony 无 `getAlbumTracks` 接口，曲目随详情一次返回。
+- 数据：`albumApi.getById(entityId)` 拿专辑本身，`albumApi.getTracks(entityId, 20000, 0, 'asc')` 拿曲目。两个请求用 `Promise.all` 并发，与 mobile 一致。不做分页与排序 UI（`pageSize` 直接给 20000，照搬 mobile 的 `PAGE_SIZE`）。
 - MV：`mvApi.byAlbum(album.name, album.artist)`，失败静默忽略（`catch` 里只 log）。返回非空才渲染 tab 行；为空时不显示 tab，直接列曲目。
 - 播放全部：`resolveTrackToPlayer` 逐条解析成 `Track` → `playerStore.playTrackList(list, startIndex)` → `router.pushUrl('pages/PlayerPage')`。
 - 续播：`album.resumeTrackId` 存在且能在 tracks 中找到时，按钮文案用 `t('albumPage.continuePlaying')`，`startIndex` 指向该曲目，播放后 `playerStore.seek(resumeProgress * 1000)`。否则文案 `t('albumPage.playAll')`，`startIndex = 0`。
@@ -84,6 +113,16 @@ Row（paddingVertical 12，底部 1px border 色 theme.colors.border）
   时长 fontSize 12 textSecondary，formatDuration(duration * 1000)
 ```
 
+**"已听 x%" 的数据来源**：mobile 写的是
+`currentTrack?.id === item.id ? position : (item.progress || item.listenedAsAudiobookByUsers?.[0]?.progress || 0)`，
+但 `/album/:id/tracks` 的 `getTracksByAlbum`（`services/api/src/services/track.ts:423`）只 include
+`artistEntity / albumEntity / likedByUsers`，**没有 include `listenedAsAudiobookByUsers`**，
+Track 上也没有 `progress` 字段。所以后半个分支在 mobile 上恒为 0——实际只有"当前播放的那一首"会显示百分比。
+
+harmony 照此实现即可：仅当 `track.id === currentTrackId` 且专辑是有声书时，
+用 `Math.floor(currentMs / (duration * 1000) * 100)` 算百分比，其余行不显示。
+同理，曲名置灰（`dimmed`）也只对当前播放曲目生效。
+
 ## 艺人详情页
 
 ### 布局
@@ -100,6 +139,7 @@ CommonNavBar：‹ 返回   (标题留空)   (右侧 44 占位)
   「全部专辑 (n)」          albums 非空时显示
     SectionHeader：fontSize 20 bold，左右 padding 20，下边距 15
     横向滚动 Row：AlbumCarouselCard × N
+  「合作专辑 (n)」          collaborativeAlbums 非空时显示，同上样式
   「相关合集 (n)」          artist.type === 'AUDIOBOOK' 且过滤结果非空时显示
     横向滚动卡片，点击 → CollectionDetailPage
   「MV (n)」                mvs 非空时显示
@@ -111,9 +151,12 @@ CommonNavBar：‹ 返回   (标题留空)   (右侧 44 占位)
 
 ### 行为
 
-- 数据：`artistApi.getById(entityId)` 一次返回 `{ artist, albums, tracks }`，不额外请求专辑/曲目。
+- 数据：先 `artistApi.getById(entityId)` 拿 `ArtistDto`，再用艺人查询键并发拉三份——
+  `albumApi.byArtist(key)`、`albumApi.collaborativeByArtist(key)`、`trackApi.byArtist(key)`。
+  查询键：`authStore.state_.sourceType === 'emby' ? entityId : artist.name`（照搬 mobile）。
+  查询键为空字符串时跳过这三个请求。
 - MV：`mvApi.byArtist(artist.name)`，失败静默忽略。
-- 相关合集：`collectionApi.list(userId)` → 过滤出「`items` 中存在某个 `item.album.id` 属于该艺人专辑 id 集合」的合集。逻辑照搬 mobile。`userId` 取自 `authStore.state_.user`（`user` 为 null 时该区块不显示），与 `LibraryPage.ets` 现有取法一致。
+- 相关合集：`collectionApi.list(userId)` → 过滤出「`items` 中存在某个 `item.album.id` 属于该艺人专辑 id 集合（含合作专辑）」的合集。逻辑照搬 mobile。`userId` 取自 `authStore.state_.user`（`user` 为 null 时该区块不显示），与 `LibraryPage.ets` 现有取法一致。
 - 有声书判断用 `artist.type === 'AUDIOBOOK'`，而非 mobile 的全局音乐/有声书模式开关（harmony 的 mode 是各 tab 页的局部 `@State`，详情页拿不到）。
 - 专辑卡片点击 → `router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id } })`（现有行为，保留）。
 
@@ -212,12 +255,13 @@ raw.replace(/\{\{?(\w+)\}\}?/g, ...)
 
 ## 已知差异（本次不做，留作后续）
 
-1. **艺人页「合作专辑」区块缺失** —— 需要在 `features_network` 新增 `getCollaborativeAlbumsByArtist`（后端 `GET /album/collaborative/{artist}` 已存在）。
-2. 右上角「更多」操作弹窗（上传封面 / 添加到歌单 / 合集管理）。
-3. 批量多选 + 批量下载 / 批量加入歌单。
-4. 小爱音箱投屏。
-5. 有声书曲目排序弹窗（依赖 `getAlbumTracks` 分页排序接口）。
-6. 曲目列表分页加载与「定位当前播放」悬浮按钮。
+1. 右上角「更多」操作弹窗（上传封面 / 添加到歌单 / 合集管理）。
+2. 批量多选 + 批量下载 / 批量加入歌单。
+3. 小爱音箱投屏。
+4. 有声书曲目排序弹窗（`/album/:id/tracks` 已支持 `sort`/`sortBy` 参数，缺的只是 UI）。
+5. 曲目列表分页加载与「定位当前播放」悬浮按钮（本次跟 mobile 一样一次拉 20000 条）。
+6. 「相关合集」只能匹配到每个合集的前 4 个专辑——后端 `GET /collections` 的 `items` 带 `take: 4`
+   （`services/api/src/services/audiobook-collection.ts:54`）。mobile 有同样的限制，本次保持一致不额外修。
 
 ## 验证
 
