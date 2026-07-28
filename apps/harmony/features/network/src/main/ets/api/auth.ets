@@ -5,7 +5,9 @@ export interface RegisterDto {
   username: string; password: string; nickname?: string; deviceName?: string;
 }
 export interface AuthMe { id: string; username: string; nickname?: string }
-export interface LoginResponse { token: string; user: AuthMe; deviceId: string }
+export interface DeviceInfo { id: number }
+// 后端 data 是 user 平铺 + token + 可选 device（auth.controller.ts login/register）
+export interface LoginResponse extends AuthMe { token: string; device?: DeviceInfo }
 export interface CheckResponse { needRegister: boolean }
 
 export interface ResetPasswordDto {

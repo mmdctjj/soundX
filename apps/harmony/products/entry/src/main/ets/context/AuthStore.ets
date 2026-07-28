@@ -96,15 +96,16 @@ export class AuthStore {
 
   private async persist(res: LoginResponse): Promise<void> {
     const url = httpClient.getBaseURL();
+    const user: AuthMe = { id: String(res.id), username: res.username, nickname: res.nickname };
     this.state = {
       serverAddress: url,
       sourceType: this.state.sourceType,
       token: res.token,
-      user: res.user,
+      user: user,
     };
     await kvStore.set(`token_${url}`, res.token);
-    await kvStore.set(`user_${url}`, JSON.stringify(res.user));
-    await kvStore.set(`device_${url}`, res.deviceId);
+    await kvStore.set(`user_${url}`, JSON.stringify(user));
+    if (res.device) await kvStore.set(`device_${url}`, String(res.device.id));
     httpClient.setAuthToken(res.token);
     this.notify();
   }

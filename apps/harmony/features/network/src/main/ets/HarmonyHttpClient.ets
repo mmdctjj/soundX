@@ -104,9 +104,11 @@ export class HarmonyHttpClient {
 
       const env = response.data as BackendEnvelope<T>;
       if (env && typeof env === 'object') {
-        if (env.code !== undefined && env.data !== undefined) {
+        // 后端所有响应都带 code（含错误响应，错误时无 data 字段）
+        if (env.code !== undefined) {
           const code = env.code;
-          if (code !== 0) {
+          // 后端成功约定是 code: 200（services/api/src/common/const.ts ISuccessResponse）
+          if (code !== 200) {
             const message = env.message !== undefined ? env.message : `code=${code}`;
             const envErr = new HttpError(response.status, message, env);
             let finalErr = envErr;
