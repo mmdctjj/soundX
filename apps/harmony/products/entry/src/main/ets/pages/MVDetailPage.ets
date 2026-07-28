@@ -1,5 +1,6 @@
 import router from '@ohos.router';
 import { buildTheme, CommonNavBar, EmptyView, SkeletonBlock } from 'features_ui';
+import type { ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
 import { formatDuration } from 'audiodock_common';
 import { mvApi } from 'features_network';
@@ -12,9 +13,15 @@ struct MVDetailPage {
   @State loading: boolean = true;
   @State error: string = '';
   private entityId: string = '';
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   private theme = buildTheme('light');
 
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
   aboutToAppear(): void {
+    this.theme = buildTheme(this.themeMode);
     interface RouterParams { id?: string }
     const p = router.getParams() as RouterParams;
     this.entityId = p.id ?? '';

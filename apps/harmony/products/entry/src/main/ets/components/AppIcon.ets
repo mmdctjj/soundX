@@ -58,7 +58,7 @@ export function getIconResource(name: AppIconName): Resource {
 export struct AppIcon {
   @Prop name: AppIconName = 'plus';
   @Prop iconSize: number = 20;
-  @Prop color: string = '#2c3e50';
+  @Prop color: string = '#000000';
 
   build() {
     SymbolGlyph(getIconResource(this.name))

@@ -1,5 +1,5 @@
 import router from '@ohos.router';
-import { buildTheme, CommonNavBar, CommonButton, type Theme } from 'features_ui';
+import { buildTheme, CommonNavBar, CommonButton, type Theme, type ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
 import { httpClient } from 'features_network';
 import { kvStore } from 'features_storage';
@@ -9,7 +9,16 @@ import { kvStore } from 'features_storage';
 struct SourceSelectPage {
   @State serverUrl: string = '';
   @State serverName: string = '';
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   private theme: Theme = buildTheme('light');
+
+  aboutToAppear(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
 
   build() {
     Column() {

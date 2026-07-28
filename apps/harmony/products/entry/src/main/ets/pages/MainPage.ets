@@ -16,6 +16,8 @@ import { likesHistory } from '../services/LikesHistoryService';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
+import { buildTheme, withAlpha } from 'features_ui';
+import type { Theme, ThemeMode } from 'features_ui';
 
 const PAGE_SIZE: number = 8;
 
@@ -42,10 +44,17 @@ export struct HomeTab {
   @State mode: string = 'MUSIC';
   @State isRadioMode: boolean = false;
   @State likedIds: string[] = [];
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  private theme: Theme = buildTheme('light');
   private userId: string = '';
 
   aboutToAppear() {
+    this.theme = buildTheme(this.themeMode);
     this.initData();
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
   }
 
   async initData(): Promise<void> {
@@ -197,10 +206,10 @@ export struct HomeTab {
       CoverImage({
         path: artist.avatar,
         imgWidth: 80, imgHeight: 80, radius: 40,
-        fallbackText: artist.name, fallbackBg: '#007DFF',
+        fallbackText: artist.name,
       })
       Text(artist.name)
-        .fontSize(13).fontColor('#2c3e50').margin({ top: 8 })
+        .fontSize(13).fontColor(this.theme.colors.text).margin({ top: 8 })
         .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
         .textAlign(TextAlign.Center).width(80)
     }
@@ -215,14 +224,14 @@ export struct HomeTab {
         CoverImage({
           path: album.cover,
           imgWidth: 120, imgHeight: 120, radius: 10,
-          fallbackText: album.name, fallbackBg: '#5B8FF9',
+          fallbackText: album.name,
         })
         if (showProgress && album.progress !== undefined && album.progress > 0) {
           Stack() {
             Row().width('100%').height(3)
               .backgroundColor('rgba(255,255,255,0.3)').borderRadius(1.5)
             Row().width(album.progress + '%').height(3)
-              .backgroundColor('#007DFF').borderRadius(1.5)
+              .backgroundColor(this.theme.colors.primary).borderRadius(1.5)
           }
           .width(120).margin({ top: -8, bottom: 8 })
         }
@@ -230,12 +239,12 @@ export struct HomeTab {
       .width(120).height(120)
 
       Text(album.name)
-        .fontSize(14).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
+        .fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.theme.colors.text)
         .margin({ top: showProgress ? 0 : 8, bottom: 4 })
         .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(120)
 
       Text(album.artist ?? '')
-        .fontSize(12).fontColor('#95a5a6')
+        .fontSize(12).fontColor(this.theme.colors.textSecondary)
         .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(120)
     }
     .margin({ right: 16 })
@@ -248,14 +257,14 @@ export struct HomeTab {
       CoverImage({
         path: track.cover,
         imgWidth: 50, imgHeight: 50, radius: 4,
-        fallbackText: track.name, fallbackBg: '#52B54B',
+        fallbackText: track.name,
       })
       Column() {
         Text(track.name)
-          .fontSize(14).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
+          .fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.theme.colors.text)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
         Text(track.artist ?? '')
-          .fontSize(12).fontColor('#95a5a6').margin({ top: 4 })
+          .fontSize(12).fontColor(this.theme.colors.textSecondary).margin({ top: 4 })
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
       }
       .layoutWeight(1).margin({ left: 12 }).alignItems(HorizontalAlign.Start)
@@ -263,14 +272,14 @@ export struct HomeTab {
       Button() {
         AppIcon({
           name: 'heart', iconSize: 16,
-          color: this.isLiked(String(track.id)) ? '#ff4d6d' : '#95a5a6',
+          color: this.isLiked(String(track.id)) ? this.theme.colors.primary : this.theme.colors.textSecondary,
         })
       }
       .backgroundColor(Color.Transparent).width(32).height(32)
       .onClick(() => this.toggleLike(String(track.id)))
     }
     .width(260).padding(10)
-    .backgroundColor('#f8f9fa').borderRadius(8)
+    .backgroundColor(this.theme.colors.surface).borderRadius(8)
     .margin({ right: 12, bottom: 10 })
     .onClick(() => this.playTrack(track, queue))
   }
@@ -279,9 +288,9 @@ export struct HomeTab {
   SectionHeader(title: string, sectionId: string) {
     Row() {
       Text(title)
-        .fontSize(18).fontWeight(FontWeight.Bold).fontColor('#2c3e50').layoutWeight(1)
+        .fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text).layoutWeight(1)
       Button() {
-        AppIcon({ name: 'arrow-clockwise', iconSize: 16, color: '#2c3e50' })
+        AppIcon({ name: 'arrow-clockwise', iconSize: 16, color: this.theme.colors.text })
       }
       .backgroundColor(Color.Transparent).width(32).height(32)
       .onClick(() => this.loadData())
@@ -298,22 +307,22 @@ export struct HomeTab {
       Column() {
         Row() {
           Text(t('homePage.title'))
-            .fontSize(24).fontWeight(FontWeight.Bold).fontColor('#2c3e50')
+            .fontSize(24).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
           Row() {
             if (this.mode === 'MUSIC') {
               Button() {
-                AppIcon({ name: 'radio', iconSize: 18, color: this.isRadioMode ? '#007DFF' : '#2c3e50' })
+                AppIcon({ name: 'radio', iconSize: 18, color: this.isRadioMode ? this.theme.colors.primary : this.theme.colors.text })
               }
               .width(36).height(36)
-              .backgroundColor(this.isRadioMode ? '#007DFF20' : '#f0f0f0')
+              .backgroundColor(this.isRadioMode ? withAlpha(this.theme.colors.primary, '20') : this.theme.colors.surface)
               .borderRadius(18).margin({ right: 8 })
-              .borderWidth(this.isRadioMode ? 1 : 0).borderColor('#007DFF40')
+              .borderWidth(this.isRadioMode ? 1 : 0).borderColor(withAlpha(this.theme.colors.primary, '40'))
               .onClick(() => this.toggleRadioMode())
             }
             Button() {
-              AppIcon({ name: 'headphones', iconSize: 18, color: '#2c3e50' })
+              AppIcon({ name: 'headphones', iconSize: 18, color: this.theme.colors.text })
             }
-            .width(36).height(36).backgroundColor('#f0f0f0').borderRadius(18)
+            .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
             .onClick(() => this.toggleMode())
           }
         }
@@ -322,12 +331,12 @@ export struct HomeTab {
         .justifyContent(FlexAlign.SpaceBetween)
 
         Row() {
-          AppIcon({ name: 'plus', iconSize: 16, color: '#95a5a6' }).margin({ right: 8 })
-          Text(t('homePage.searchPlaceholder')).fontSize(14).fontColor('#95a5a6')
+          AppIcon({ name: 'plus', iconSize: 16, color: this.theme.colors.textSecondary }).margin({ right: 8 })
+          Text(t('homePage.searchPlaceholder')).fontSize(14).fontColor(this.theme.colors.textSecondary)
         }
         .width('100%').height(44)
         .padding({ left: 16, right: 16 }).margin({ left: 16, right: 16 })
-        .backgroundColor('#f8f9fa').borderRadius(10)
+        .backgroundColor(this.theme.colors.surface).borderRadius(10)
         .onClick(() => this.navigateToSearch())
 
         if (this.error.length > 0) {
@@ -369,8 +378,8 @@ export struct HomeTab {
 
             ListItem() {
               Row() {
-                AppIcon({ name: 'folder', iconSize: 16, color: '#007DFF' }).margin({ right: 8 })
-                Text(t('homePage.adjustOrder')).fontSize(14).fontColor('#007DFF')
+                AppIcon({ name: 'folder', iconSize: 16, color: this.theme.colors.primary }).margin({ right: 8 })
+                Text(t('homePage.adjustOrder')).fontSize(14).fontColor(this.theme.colors.primary)
               }
               .width('100%').padding(20).justifyContent(FlexAlign.Center)
             }
@@ -379,18 +388,18 @@ export struct HomeTab {
           .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
         }
       }
-      .width('100%').height('100%').backgroundColor('#ffffff')
+      .width('100%').height('100%').backgroundColor(this.theme.colors.background)
     }
   }
 
   @Builder
   ErrorState() {
     Column({ space: 12 }) {
-      Text(t('common.error')).fontSize(16).fontColor('#2c3e50')
-      Text(this.error).fontSize(12).fontColor('#95a5a6')
+      Text(t('common.error')).fontSize(16).fontColor(this.theme.colors.text)
+      Text(this.error).fontSize(12).fontColor(this.theme.colors.textSecondary)
         .maxLines(3).textAlign(TextAlign.Center)
       Button(t('common.retry'))
-        .backgroundColor('#007DFF').borderRadius(18)
+        .backgroundColor(this.theme.colors.primary).fontColor(this.theme.colors.onPrimary).borderRadius(18)
         .onClick(() => this.loadData())
     }
     .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center).padding(24)
@@ -411,27 +420,27 @@ export struct HomeTab {
   LoadingSkeleton() {
     Column() {
       Row() {
-        Row().width(100).height(28).borderRadius(8).backgroundColor('#e8e8e8')
-        Row().width(80).height(36).borderRadius(18).backgroundColor('#e8e8e8')
+        Row().width(100).height(28).borderRadius(8).backgroundColor(this.theme.colors.border)
+        Row().width(80).height(36).borderRadius(18).backgroundColor(this.theme.colors.border)
       }
       .width('100%').padding({ left: 16, right: 16, top: 20 })
       .justifyContent(FlexAlign.SpaceBetween)
 
       Row().width('90%').height(44).borderRadius(10)
-        .backgroundColor('#e8e8e8').margin({ left: 16, right: 16, top: 16 })
+        .backgroundColor(this.theme.colors.border).margin({ left: 16, right: 16, top: 16 })
 
       ForEach([1, 2, 3], (index: number) => {
         Column() {
           Row().width(120).height(24).borderRadius(8)
-            .backgroundColor('#e8e8e8').margin({ left: 16, bottom: 12 })
+            .backgroundColor(this.theme.colors.border).margin({ left: 16, bottom: 12 })
           Row() {
             ForEach([1, 2, 3, 4], (i: number) => {
               Column() {
                 Row()
                   .width(i === 1 ? 80 : 100).height(i === 1 ? 80 : 100)
                   .borderRadius(i === 1 ? 40 : 8)
-                  .backgroundColor('#e8e8e8').margin({ bottom: 8 })
-                Row().width(60).height(14).borderRadius(4).backgroundColor('#e8e8e8')
+                  .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
+                Row().width(60).height(14).borderRadius(4).backgroundColor(this.theme.colors.border)
               }
               .margin({ right: 16 })
             }, (i: number) => `sk-i-${i}`)
@@ -441,7 +450,7 @@ export struct HomeTab {
         .margin({ top: 16 }).alignItems(HorizontalAlign.Start)
       }, (index: number) => `sk-${index}`)
     }
-    .width('100%').height('100%').backgroundColor('#ffffff')
+    .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
 }
 
@@ -449,15 +458,25 @@ export struct HomeTab {
 @Component
 struct MainPage {
   @State currentIndex: number = 0;
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  private theme: Theme = buildTheme('light');
+
+  aboutToAppear(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
 
   @Builder
   TabBuilder(title: string, index: number, icon: AppIconName) {
     Column() {
-      AppIcon({ name: icon, iconSize: 24, color: this.currentIndex === index ? '#007DFF' : '#95a5a6' })
+      AppIcon({ name: icon, iconSize: 24, color: this.currentIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive })
         .margin({ bottom: 4 })
       Text(title)
         .fontSize(12)
-        .fontColor(this.currentIndex === index ? '#007DFF' : '#95a5a6')
+        .fontColor(this.currentIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive)
         .fontWeight(this.currentIndex === index ? FontWeight.Bold : FontWeight.Normal)
     }
     .width('100%').height(56).justifyContent(FlexAlign.Center)
@@ -490,6 +509,6 @@ struct MainPage {
 
       MiniPlayer().margin({ bottom: 56 })
     }
-    .width('100%').height('100%').backgroundColor('#f5f5f5')
+    .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
 }

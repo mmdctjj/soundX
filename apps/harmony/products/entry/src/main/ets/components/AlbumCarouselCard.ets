@@ -23,8 +23,7 @@ export struct AlbumCarouselCard {
           imgHeight: 120,
           radius: 10,
           fallbackText: this.name,
-          fallbackBg: '#5B8FF9',
-        })
+                  })
         if (this.progress > 0) {
           Stack({ alignContent: Alignment.Start }) {
             Row()

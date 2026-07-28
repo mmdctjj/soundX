@@ -17,3 +17,6 @@ export function buildTheme(mode: ThemeMode): Theme {
 }
 
 export const defaultTheme = buildTheme('light');
+
+/** AppStorage 中主题模式的 key，配合 @StorageLink 实现一键切换主题 */
+export const THEME_MODE_KEY = 'themeMode';

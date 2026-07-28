@@ -44,8 +44,7 @@ export struct TrackRow {
         imgHeight: 20,
         radius: 2,
         fallbackText: this.name,
-        fallbackBg: '#52B54B',
-      })
+              })
 
       Row() {
         Text(this.name)

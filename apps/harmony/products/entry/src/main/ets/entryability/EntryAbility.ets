@@ -54,6 +54,12 @@ export default class EntryAbility extends UIAbility {
     if (langSetting === 'zh-CN' || langSetting === 'en') applySetting(langSetting);
     else applySetting('system');
 
+    // 恢复用户选择的主题模式，供各页面 @StorageLink('themeMode') 响应
+    const themeMode = await kvStore.get('themeMode');
+    if (themeMode === 'light' || themeMode === 'dark' || themeMode === 'festive') {
+      AppStorage.setOrCreate('themeMode', themeMode);
+    }
+
     Logger.i(TAG, 'initialize complete');
   }
 

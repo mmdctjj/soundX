@@ -1,5 +1,6 @@
 import router from '@ohos.router';
 import { buildTheme, CommonNavBar, EmptyView } from 'features_ui';
+import type { ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
 import { trackApi, albumApi, artistApi, playlistApi } from 'features_network';
 import type { TrackDto, AlbumDto, ArtistDto, PlaylistDto } from 'features_network';
@@ -22,12 +23,18 @@ struct SearchPage {
   @State playlists: PlaylistDto[] = [];
   @State searching: boolean = false;
   @State hot: string[] = [];
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   private theme = buildTheme('light');
   private debounceTimer: number | null = null;
   private reqSeq: number = 0;
 
   aboutToAppear(): void {
+    this.theme = buildTheme(this.themeMode);
     this.loadHot();
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
   }
 
   aboutToDisappear(): void {

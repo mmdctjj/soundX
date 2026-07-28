@@ -1,6 +1,6 @@
 import router from '@ohos.router';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
-import type { Theme } from 'features_ui';
+import type { Theme, ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
 import { Logger } from 'audiodock_common';
 import { albumApi, artistApi, trackApi, collectionApi, mvApi } from 'features_network';
@@ -31,10 +31,16 @@ struct ArtistDetailPage {
   @State error: string = '';
   @State currentTrackId: string = '';
   private entityId: string = '';
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   private theme: Theme = buildTheme('light');
   private unsubPlayer: () => void = () => {};
 
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
   aboutToAppear(): void {
+    this.theme = buildTheme(this.themeMode);
     interface RouterParams { id?: string }
     const p = router.getParams() as RouterParams;
     this.entityId = p.id ?? '';

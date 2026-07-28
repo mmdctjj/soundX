@@ -1,4 +1,6 @@
 import { getImageUrl } from '../utils/image';
+import { buildTheme } from 'features_ui';
+import type { Theme, ThemeMode } from 'features_ui';
 
 @Component
 export struct CoverImage {
@@ -7,12 +9,18 @@ export struct CoverImage {
   @Prop imgHeight: number = 60;
   @Prop radius: number | string = 8;
   @Prop fallbackText: string = '?';
-  @Prop fallbackBg: string = '#52B54B';
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  private theme: Theme = buildTheme('light');
   @State failed: boolean = false;
   @State currentUrl: string = '';
 
   aboutToAppear() {
+    this.theme = buildTheme(this.themeMode);
     this.currentUrl = getImageUrl(this.path);
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
   }
 
   // path 变化时刷新 URL 并清掉失败态（切歌换封面依赖这个）
@@ -26,13 +34,13 @@ export struct CoverImage {
     Column() {
       Text((this.fallbackText || '?').substring(0, 1))
         .fontSize(20)
-        .fontColor('#FFFFFF')
+        .fontColor(this.theme.colors.textSecondary)
         .fontWeight(FontWeight.Bold)
     }
     .width(this.imgWidth)
     .height(this.imgHeight)
     .borderRadius(this.radius)
-    .backgroundColor(this.fallbackBg)
+    .backgroundColor(this.theme.colors.surface)
     .justifyContent(FlexAlign.Center)
   }
 

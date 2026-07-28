@@ -28,8 +28,7 @@ export struct DetailHero {
           imgHeight: this.heroSize,
           radius: this.circle ? this.heroSize / 2 : 10,
           fallbackText: this.title,
-          fallbackBg: '#5B8FF9',
-        })
+                  })
         if (this.progress > 0) {
           Stack({ alignContent: Alignment.Start }) {
             Row()

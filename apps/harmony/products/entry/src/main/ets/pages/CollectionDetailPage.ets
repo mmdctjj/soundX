@@ -1,5 +1,6 @@
 import router from '@ohos.router';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
+import type { ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
 import { collectionApi } from 'features_network';
 import type { CollectionDetailResp, CollectionAlbumItem } from 'features_network';
@@ -14,10 +15,16 @@ struct CollectionDetailPage {
   @State error: string = '';
   @State liked: boolean = false;
   private entityId: string = '';
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   private theme = buildTheme('light');
   private unsub: () => void = () => {};
 
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
   aboutToAppear(): void {
+    this.theme = buildTheme(this.themeMode);
     interface RouterParams { id?: string }
     const p = router.getParams() as RouterParams;
     this.entityId = p.id ?? '';

@@ -1,7 +1,7 @@
-export { buildTheme, defaultTheme } from './src/main/ets/theme/Theme';
+export { buildTheme, defaultTheme, THEME_MODE_KEY } from './src/main/ets/theme/Theme';
 export type { Theme } from './src/main/ets/theme/Theme';
 export type { ColorPalette, ThemeMode } from './src/main/ets/theme/ColorTokens';
-export { lightColors, darkColors, festiveColors } from './src/main/ets/theme/ColorTokens';
+export { lightColors, darkColors, festiveColors, withAlpha } from './src/main/ets/theme/ColorTokens';
 export { Spacing, Radius } from './src/main/ets/theme/Spacing';
 export { Typography, FontWeight } from './src/main/ets/theme/Typography';
 export { CommonButton } from './src/main/ets/components/CommonButton';

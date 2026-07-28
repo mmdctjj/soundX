@@ -12,6 +12,8 @@ import { authStore } from '../context/AuthStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
+import { buildTheme } from 'features_ui';
+import type { Theme, ThemeMode } from 'features_ui';
 
 const FULL_PAGE: number = 200;
 
@@ -37,10 +39,17 @@ export struct LibraryTab {
   @State collections: CollectionDto[] = [];
   @State mvs: MVDto[] = [];
   @State tabCounts: Record<string, number> = {};
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  private theme: Theme = buildTheme('light');
   private userId: string = '';
 
   aboutToAppear() {
+    this.theme = buildTheme(this.themeMode);
     this.initData();
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
   }
 
   async initData(): Promise<void> {
@@ -191,10 +200,10 @@ export struct LibraryTab {
           Text(tab.label + (this.getTabCount(tab.key) > 0 ? ' ' + this.getTabCount(tab.key) : ''))
             .fontSize(13)
             .fontWeight(this.activeTab === tab.key ? FontWeight.Bold : FontWeight.Normal)
-            .fontColor(this.activeTab === tab.key ? '#FFFFFF' : '#2c3e50')
+            .fontColor(this.activeTab === tab.key ? this.theme.colors.onPrimary : this.theme.colors.text)
         }
         .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-        .backgroundColor(this.activeTab === tab.key ? '#007DFF' : Color.Transparent)
+        .backgroundColor(this.activeTab === tab.key ? this.theme.colors.primary : Color.Transparent)
         .borderRadius(16)
         .onClick(() => this.switchTab(tab.key))
       }, (tab: TabInfo) => tab.key)
@@ -210,15 +219,15 @@ export struct LibraryTab {
       CoverImage({
         path: track.cover,
         imgWidth: 48, imgHeight: 48, radius: 8,
-        fallbackText: track.name, fallbackBg: '#52B54B',
+        fallbackText: track.name,
       })
         .margin({ right: 12 })
       Column() {
         Text(track.name)
-          .fontSize(15).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
+          .fontSize(15).fontWeight(FontWeight.Medium).fontColor(this.theme.colors.text)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(200)
         Text(`${track.artist ?? ''} · ${track.album ?? ''}`)
-          .fontSize(12).fontColor('#95a5a6').margin({ top: 4 })
+          .fontSize(12).fontColor(this.theme.colors.textSecondary).margin({ top: 4 })
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(200)
       }
       .layoutWeight(1).alignItems(HorizontalAlign.Start)
@@ -237,10 +246,10 @@ export struct LibraryTab {
             CoverImage({
               path: artist.avatar,
               imgWidth: 80, imgHeight: 80, radius: 40,
-              fallbackText: artist.name, fallbackBg: '#007DFF',
+              fallbackText: artist.name,
             })
             Text(artist.name)
-              .fontSize(13).fontColor('#2c3e50').margin({ top: 8 })
+              .fontSize(13).fontColor(this.theme.colors.text).margin({ top: 8 })
               .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
               .textAlign(TextAlign.Center).width(80)
           }
@@ -261,14 +270,14 @@ export struct LibraryTab {
             CoverImage({
               path: album.cover,
               imgWidth: 100, imgHeight: 100, radius: 10,
-              fallbackText: album.name, fallbackBg: '#5B8FF9',
+              fallbackText: album.name,
             })
             Text(album.name)
-              .fontSize(13).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
+              .fontSize(13).fontWeight(FontWeight.Medium).fontColor(this.theme.colors.text)
               .margin({ top: 8, bottom: 4 })
               .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
             Text(album.artist ?? '')
-              .fontSize(11).fontColor('#95a5a6')
+              .fontSize(11).fontColor(this.theme.colors.textSecondary)
               .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
           }
           .margin({ bottom: 16 })
@@ -288,10 +297,10 @@ export struct LibraryTab {
             CoverImage({
               path: collection.cover,
               imgWidth: 100, imgHeight: 100, radius: 10,
-              fallbackText: collection.name, fallbackBg: '#FF9500',
+              fallbackText: collection.name,
             })
             Text(collection.name)
-              .fontSize(13).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
+              .fontSize(13).fontWeight(FontWeight.Medium).fontColor(this.theme.colors.text)
               .margin({ top: 8, bottom: 4 })
               .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
           }
@@ -312,14 +321,14 @@ export struct LibraryTab {
             CoverImage({
               path: mv.cover,
               imgWidth: 100, imgHeight: 100, radius: 10,
-              fallbackText: mv.name, fallbackBg: '#E74C3C',
+              fallbackText: mv.name,
             })
             Text(mv.name)
-              .fontSize(13).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
+              .fontSize(13).fontWeight(FontWeight.Medium).fontColor(this.theme.colors.text)
               .margin({ top: 8, bottom: 4 })
               .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
             Text(mv.artist ?? t('common.unknownArtist'))
-              .fontSize(11).fontColor('#95a5a6').width(100)
+              .fontSize(11).fontColor(this.theme.colors.textSecondary).width(100)
           }
           .margin({ bottom: 16 })
           .onClick(() => this.navigateToMv(String(mv.id)))
@@ -333,11 +342,11 @@ export struct LibraryTab {
   ContentBuilder() {
     if (this.error.length > 0) {
       Column({ space: 12 }) {
-        Text(t('common.error')).fontSize(16).fontColor('#2c3e50')
-        Text(this.error).fontSize(12).fontColor('#95a5a6')
+        Text(t('common.error')).fontSize(16).fontColor(this.theme.colors.text)
+        Text(this.error).fontSize(12).fontColor(this.theme.colors.textSecondary)
           .maxLines(3).textAlign(TextAlign.Center)
         Button(t('common.retry'))
-          .backgroundColor('#007DFF').borderRadius(18)
+          .backgroundColor(this.theme.colors.primary).fontColor(this.theme.colors.onPrimary).borderRadius(18)
           .onClick(() => this.loadAllData())
       }
       .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center).padding(24)
@@ -374,30 +383,30 @@ export struct LibraryTab {
   LoadingSkeleton() {
     Column() {
       Row() {
-        Row().width(100).height(28).borderRadius(8).backgroundColor('#e8e8e8')
-        Row().width(80).height(36).borderRadius(18).backgroundColor('#e8e8e8')
+        Row().width(100).height(28).borderRadius(8).backgroundColor(this.theme.colors.border)
+        Row().width(80).height(36).borderRadius(18).backgroundColor(this.theme.colors.border)
       }
       .width('100%').padding({ left: 16, right: 16, top: 20 })
       .justifyContent(FlexAlign.SpaceBetween)
 
       Row().width('90%').height(36).borderRadius(18)
-        .backgroundColor('#e8e8e8').margin({ left: 16, right: 16, top: 16 })
+        .backgroundColor(this.theme.colors.border).margin({ left: 16, right: 16, top: 16 })
 
       ForEach([1, 2, 3, 4], (index: number) => {
         Row() {
           Row().width(48).height(48).borderRadius(8)
-            .backgroundColor('#e8e8e8').margin({ right: 12 })
+            .backgroundColor(this.theme.colors.border).margin({ right: 12 })
           Column() {
             Row().width(120).height(16).borderRadius(8)
-              .backgroundColor('#e8e8e8').margin({ bottom: 8 })
-            Row().width(80).height(12).borderRadius(6).backgroundColor('#e8e8e8')
+              .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
+            Row().width(80).height(12).borderRadius(6).backgroundColor(this.theme.colors.border)
           }
           .layoutWeight(1)
         }
         .width('100%').padding({ top: 8, bottom: 8, left: 16, right: 16 })
       }, (index: number) => `lib-sk-${index}`)
     }
-    .width('100%').height('100%').backgroundColor('#ffffff')
+    .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
 
   build() {
@@ -407,19 +416,19 @@ export struct LibraryTab {
       Column() {
         Row() {
           Text(t('libraryPage.title'))
-            .fontSize(24).fontWeight(FontWeight.Bold).fontColor('#2c3e50')
+            .fontSize(24).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
           Row() {
             Button() {
-              AppIcon({ name: 'plus', iconSize: 18, color: '#2c3e50' })
+              AppIcon({ name: 'plus', iconSize: 18, color: this.theme.colors.text })
             }
-            .width(36).height(36).backgroundColor('#f0f0f0').borderRadius(18)
+            .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
             .margin({ right: 8 })
             .onClick(() => this.navigateToSearch())
 
             Button() {
-              AppIcon({ name: 'headphones', iconSize: 18, color: '#2c3e50' })
+              AppIcon({ name: 'headphones', iconSize: 18, color: this.theme.colors.text })
             }
-            .width(36).height(36).backgroundColor('#f0f0f0').borderRadius(18)
+            .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
             .onClick(() => this.toggleMode())
           }
         }
@@ -430,7 +439,7 @@ export struct LibraryTab {
         this.TabBarBuilder()
         this.ContentBuilder()
       }
-      .width('100%').height('100%').backgroundColor('#ffffff')
+      .width('100%').height('100%').backgroundColor(this.theme.colors.background)
     }
   }
 }

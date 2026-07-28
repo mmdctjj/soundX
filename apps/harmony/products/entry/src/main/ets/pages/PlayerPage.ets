@@ -1,6 +1,6 @@
 import router from '@ohos.router';
 import { buildTheme } from 'features_ui';
-import type { Theme } from 'features_ui';
+import type { Theme, ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
 import { formatDuration } from 'audiodock_common';
 import { trackApi } from 'features_network';
@@ -28,6 +28,7 @@ struct PlayerPage {
   @State private showLyrics: boolean = false;
   @State private showPlaylist: boolean = false;
   @State private liked: boolean = false;
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   private theme: Theme = buildTheme('light');
   private lyricScroller: Scroller = new Scroller();
   private lastTrackId: string = '';
@@ -35,7 +36,12 @@ struct PlayerPage {
   private unsub: () => void = () => {};
   private unsubLike: () => void = () => {};
 
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
   aboutToAppear(): void {
+    this.theme = buildTheme(this.themeMode);
     this.unsub = playerStore.subscribe(() => {
       this.view = playerStore.view();
       const cur = this.current();

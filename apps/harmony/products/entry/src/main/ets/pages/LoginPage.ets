@@ -1,5 +1,5 @@
 import router from '@ohos.router';
-import { buildTheme, CommonNavBar, CommonButton, type Theme } from 'features_ui';
+import { buildTheme, CommonNavBar, CommonButton, type Theme, type ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
 import { HttpError } from 'features_network';
 import { authStore } from '../context/AuthStore';
@@ -11,7 +11,16 @@ struct LoginPage {
   @State password: string = '';
   @State errorMsg: string = '';
   @State loading: boolean = false;
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   private theme: Theme = buildTheme('light');
+
+  aboutToAppear(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
 
   build() {
     Column() {
@@ -29,7 +38,7 @@ struct LoginPage {
           .onChange((v: string): void => { this.password = v; })
           .type(InputType.Password)
           .borderRadius(8).padding(12);
-        if (this.errorMsg) Text(this.errorMsg).fontColor('#E53935');
+        if (this.errorMsg) Text(this.errorMsg).fontColor(this.theme.colors.error);
         CommonButton({
           label: this.loading ? t('common.loading') : t('common.login'),
           theme: this.theme,

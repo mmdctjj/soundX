@@ -7,6 +7,8 @@ import type { PlaylistDto, TrackDto, AlbumDto } from 'features_network';
 import { AppIcon } from '../components/AppIcon';
 import { CoverImage } from '../components/CoverImage';
 import { authStore } from '../context/AuthStore';
+import { buildTheme, withAlpha } from 'features_ui';
+import type { Theme, ThemeMode } from 'features_ui';
 
 // ArkTS strict 拒绝内联对象字面量类型，所以用 class 显式表达
 // “三态联合”，再用 `kind` 区分渲染。
@@ -83,9 +85,16 @@ export struct PersonalTab {
   @State avatar: string = '';
   @State userId: string = '';
   @State rows: ListRow[] = [];
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  private theme: Theme = buildTheme('light');
 
   aboutToAppear() {
+    this.theme = buildTheme(this.themeMode);
     this.initData();
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
   }
 
   async initData(): Promise<void> {
@@ -209,13 +218,13 @@ export struct PersonalTab {
           Text(tab.label)
             .fontSize(15)
             .fontWeight(this.activeTab === tab.key ? FontWeight.Bold : FontWeight.Normal)
-            .fontColor(this.activeTab === tab.key ? '#007DFF' : '#95a5a6')
+            .fontColor(this.activeTab === tab.key ? this.theme.colors.primary : this.theme.colors.textSecondary)
         }
         .layoutWeight(1)
         .padding({ top: 12, bottom: 12 })
         .border({
           width: { bottom: this.activeTab === tab.key ? 2 : 0 },
-          color: '#007DFF',
+          color: this.theme.colors.primary,
         })
         .onClick(() => this.switchTab(tab.key))
       }, (tab: TabInfo) => tab.key)
@@ -228,15 +237,15 @@ export struct PersonalTab {
     if (this.activeTab === 'favorites' || this.activeTab === 'history') {
       Row() {
         Button(t('personal.album'))
-          .backgroundColor(this.activeSubTab === 'album' ? '#007DFF20' : Color.Transparent)
-          .fontColor(this.activeSubTab === 'album' ? '#007DFF' : '#95a5a6')
+          .backgroundColor(this.activeSubTab === 'album' ? withAlpha(this.theme.colors.primary, '20') : Color.Transparent)
+          .fontColor(this.activeSubTab === 'album' ? this.theme.colors.primary : this.theme.colors.textSecondary)
           .borderRadius(16).height(32)
           .onClick(() => this.switchSubTab('album'))
 
         if (this.mode !== 'AUDIOBOOK') {
           Button(t('personal.track'))
-            .backgroundColor(this.activeSubTab === 'track' ? '#007DFF20' : Color.Transparent)
-            .fontColor(this.activeSubTab === 'track' ? '#007DFF' : '#95a5a6')
+            .backgroundColor(this.activeSubTab === 'track' ? withAlpha(this.theme.colors.primary, '20') : Color.Transparent)
+            .fontColor(this.activeSubTab === 'track' ? this.theme.colors.primary : this.theme.colors.textSecondary)
             .borderRadius(16).height(32)
             .margin({ left: 8 })
             .onClick(() => this.switchSubTab('track'))
@@ -254,17 +263,17 @@ export struct PersonalTab {
       CoverImage({
         path: row.cover(),
         imgWidth: 50, imgHeight: 50, radius: 8,
-        fallbackText: row.name(), fallbackBg: '#52B54B',
+        fallbackText: row.name(),
       }).margin({ right: 12 })
 
       Column() {
         Text(row.name())
-          .fontSize(15).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
+          .fontSize(15).fontWeight(FontWeight.Medium).fontColor(this.theme.colors.text)
           .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(200)
 
         if (row.kind !== 'playlist') {
           Text(row.subtitle())
-            .fontSize(12).fontColor('#95a5a6').margin({ top: 4 })
+            .fontSize(12).fontColor(this.theme.colors.textSecondary).margin({ top: 4 })
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(200)
         }
       }
@@ -298,18 +307,18 @@ export struct PersonalTab {
       ForEach([1, 2, 3, 4, 5], (index: number) => {
         Row() {
           Row().width(50).height(50).borderRadius(8)
-            .backgroundColor('#e8e8e8').margin({ right: 12 })
+            .backgroundColor(this.theme.colors.border).margin({ right: 12 })
           Column() {
             Row().width(120).height(16).borderRadius(8)
-              .backgroundColor('#e8e8e8').margin({ bottom: 8 })
-            Row().width(80).height(12).borderRadius(6).backgroundColor('#e8e8e8')
+              .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
+            Row().width(80).height(12).borderRadius(6).backgroundColor(this.theme.colors.border)
           }
           .layoutWeight(1)
         }
         .width('100%').padding({ top: 10, bottom: 10, left: 16, right: 16 })
       }, (index: number) => `psk-${index}`)
     }
-    .width('100%').height('100%').backgroundColor('#ffffff')
+    .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
 
   build() {
@@ -319,19 +328,19 @@ export struct PersonalTab {
       Column() {
         Row() {
           Text(t('navTabs.mine'))
-            .fontSize(24).fontWeight(FontWeight.Bold).fontColor('#2c3e50')
+            .fontSize(24).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
           Row() {
             Button() {
-              AppIcon({ name: 'folder', iconSize: 22, color: '#2c3e50' })
+              AppIcon({ name: 'folder', iconSize: 22, color: this.theme.colors.text })
             }
-            .width(36).height(36).backgroundColor('#f0f0f0').borderRadius(18)
+            .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
             .margin({ right: 8 })
             .onClick(() => this.navigateToSourceManage())
 
             Button() {
-              AppIcon({ name: 'folder', iconSize: 22, color: '#2c3e50' })
+              AppIcon({ name: 'folder', iconSize: 22, color: this.theme.colors.text })
             }
-            .width(36).height(36).backgroundColor('#f0f0f0').borderRadius(18)
+            .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
             .onClick(() => this.navigateToSettings())
           }
         }
@@ -345,10 +354,9 @@ export struct PersonalTab {
               path: this.avatar,
               imgWidth: 80, imgHeight: 80, radius: 40,
               fallbackText: this.username || '?',
-              fallbackBg: '#007DFF',
-            })
+                          })
             Stack({ alignContent: Alignment.Center }) {
-              AppIcon({ name: 'camera', iconSize: 12, color: '#2c3e50' })
+              AppIcon({ name: 'camera', iconSize: 12, color: '#000000' })
             }
             .width(24).height(24).borderRadius(12).backgroundColor('#FFFFFF')
           }
@@ -357,7 +365,7 @@ export struct PersonalTab {
           Column() {
             Row() {
               Text(this.username || t('common.notLoggedIn'))
-                .fontSize(18).fontWeight(FontWeight.Bold).fontColor('#2c3e50')
+                .fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
               if (this.userId.length > 0) {
                 AppIcon({ name: 'crown', iconSize: 20, color: '#FFD700' }).margin({ left: 6 })
               }
@@ -366,11 +374,11 @@ export struct PersonalTab {
 
             Row() {
               Button(this.mode === 'MUSIC' ? t('nav.library') : t('nav.personal'))
-                .backgroundColor('#f0f0f0').fontColor('#2c3e50')
+                .backgroundColor(this.theme.colors.surface).fontColor(this.theme.colors.text)
                 .borderRadius(16).height(32).margin({ right: 8 })
                 .onClick(() => this.toggleMode())
               Button('退出')
-                .backgroundColor('#ff4d4f20').fontColor('#ff4d4f')
+                .backgroundColor(withAlpha(this.theme.colors.error, '20')).fontColor(this.theme.colors.error)
                 .borderRadius(16).height(32)
                 .onClick(() => this.logout())
             }
@@ -385,17 +393,17 @@ export struct PersonalTab {
 
         if (this.error.length > 0) {
           Column({ space: 12 }) {
-            Text(t('common.error')).fontSize(16).fontColor('#2c3e50')
-            Text(this.error).fontSize(12).fontColor('#95a5a6')
+            Text(t('common.error')).fontSize(16).fontColor(this.theme.colors.text)
+            Text(this.error).fontSize(12).fontColor(this.theme.colors.textSecondary)
               .maxLines(3).textAlign(TextAlign.Center)
             Button(t('common.retry'))
-              .backgroundColor('#007DFF').borderRadius(18)
+              .backgroundColor(this.theme.colors.primary).fontColor(this.theme.colors.onPrimary).borderRadius(18)
               .onClick(() => this.loadData())
           }
           .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center).padding(24)
         } else if (this.rows.length === 0) {
           Column() {
-            Text(t('common.noData')).fontSize(14).fontColor('#95a5a6').margin({ top: 40 })
+            Text(t('common.noData')).fontSize(14).fontColor(this.theme.colors.textSecondary).margin({ top: 40 })
           }
           .width('100%').layoutWeight(1)
         } else {
@@ -410,7 +418,7 @@ export struct PersonalTab {
           .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
         }
       }
-      .width('100%').height('100%').backgroundColor('#ffffff')
+      .width('100%').height('100%').backgroundColor(this.theme.colors.background)
     }
   }
 }

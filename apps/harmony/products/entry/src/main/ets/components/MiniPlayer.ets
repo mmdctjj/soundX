@@ -1,6 +1,6 @@
 import router from '@ohos.router';
 import { buildTheme } from 'features_ui';
-import type { Theme } from 'features_ui';
+import type { Theme, ThemeMode } from 'features_ui';
 import { playerStore } from '../context/PlayerStore';
 import type { PlayerStateView, Track } from '../context/PlayerStore';
 import { CoverImage } from './CoverImage';
@@ -15,10 +15,16 @@ import { AppIcon } from './AppIcon';
 @Component
 export struct MiniPlayer {
   @State private view: PlayerStateView = playerStore.view();
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   private theme: Theme = buildTheme('light');
   private unsub: () => void = () => {};
 
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
   aboutToAppear(): void {
+    this.theme = buildTheme(this.themeMode);
     this.unsub = playerStore.subscribe(() => {
       this.view = playerStore.view();
     });
