@@ -73,7 +73,7 @@ struct PlaybackQualityPage {
         .width(40)
         .height(40)
         .backgroundColor(Color.Transparent)
-        .onClick(() => router.back())
+        .onClick((): void => router.back())
 
         Text(this.getTitle())
           .fontSize(18)
@@ -89,7 +89,7 @@ struct PlaybackQualityPage {
 
       // Quality options list
       Column() {
-        ForEach(this.options, (option: QualityOption) => {
+        ForEach(this.options, (option: QualityOption): void => {
           Row() {
             Column() {
               Text(t(option.labelKey))
@@ -116,8 +116,8 @@ struct PlaybackQualityPage {
           .padding({ top: 16, bottom: 16 })
           .borderWidth({ bottom: 0.5 })
           .borderColor(this.theme.colors.border)
-          .onClick(() => this.handleSelect(option.value))
-        }, (option: QualityOption) => option.value)
+          .onClick((): void => this.handleSelect(option.value))
+        }, (option: QualityOption): string => option.value)
       }
       .width('100%')
       .padding({ left: 20, right: 20 })

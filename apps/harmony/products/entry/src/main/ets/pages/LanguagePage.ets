@@ -60,7 +60,7 @@ struct LanguagePage {
         .width(40)
         .height(40)
         .backgroundColor(Color.Transparent)
-        .onClick(() => router.back())
+        .onClick((): void => router.back())
 
         Text(t('settings.language'))
           .fontSize(18)
@@ -76,7 +76,7 @@ struct LanguagePage {
 
       // Language list
       Column() {
-        ForEach(this.options, (option: LangOption) => {
+        ForEach(this.options, (option: LangOption): void => {
           Row() {
             Text(option.label)
               .fontSize(16)
@@ -94,8 +94,8 @@ struct LanguagePage {
           .padding({ top: 16, bottom: 16 })
           .borderWidth({ bottom: 0.5 })
           .borderColor(this.theme.colors.border)
-          .onClick(() => this.handleSelect(option.code))
-        }, (option: LangOption) => option.code)
+          .onClick((): void => this.handleSelect(option.code))
+        }, (option: LangOption): string => option.code)
       }
       .width('100%')
       .padding({ left: 20, right: 20 })

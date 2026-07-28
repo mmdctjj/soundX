@@ -177,7 +177,7 @@ struct SettingsPage {
         .switchPointColor('#f4f3f4')
         .enabled(!disabled)
         .opacity(disabled ? 0.5 : 1)
-        .onChange((isOn: boolean) => onChange(isOn))
+        .onChange((isOn: boolean): void => onChange(isOn))
     }
     .width('100%')
     .padding({ top: 15, bottom: 15 })
@@ -234,7 +234,7 @@ struct SettingsPage {
         .width(40)
         .height(40)
         .backgroundColor(Color.Transparent)
-        .onClick(() => this.goBack())
+        .onClick((): void => this.goBack())
 
         Text(t('settings.title'))
           .fontSize(20)
@@ -256,7 +256,7 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.sourceManage'),
             t('settings.sourceManageDescription'),
-            () => router.pushUrl({ url: 'pages/SourceManagePage' }),
+            (): void => router.pushUrl({ url: 'pages/SourceManagePage' }),
           )
 
           // ═══ 通用 Section ═══
@@ -266,14 +266,14 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.language'),
             t('settings.languageDescription'),
-            () => router.pushUrl({ url: 'pages/LanguagePage' }),
+            (): void => router.pushUrl({ url: 'pages/LanguagePage' }),
           )
 
           // 内网播放品质
           this.ActionRow(
             t('settings.internalPlaybackQuality'),
             t('settings.internalPlaybackQualityDescription'),
-            () => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'internal' } }),
+            (): void => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'internal' } }),
             this.getQualityLabel(this.internalQuality),
           )
 
@@ -281,7 +281,7 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.externalPlaybackQuality'),
             t('settings.externalPlaybackQualityDescription'),
-            () => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'external' } }),
+            (): void => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'external' } }),
             this.getQualityLabel(this.externalQuality),
           )
 
@@ -290,7 +290,7 @@ struct SettingsPage {
             t('settings.carMode'),
             t('settings.carModeDescription'),
             this.carModeEnabled,
-            (val: boolean) => this.handleCarModeChange(val),
+            (val: boolean): void => this.handleCarModeChange(val),
           )
 
           // 跟随系统主题
@@ -298,7 +298,7 @@ struct SettingsPage {
             t('settings.autoTheme'),
             t('settings.autoThemeDescription'),
             this.autoTheme,
-            (val: boolean) => this.handleAutoThemeChange(val),
+            (val: boolean): void => this.handleAutoThemeChange(val),
           )
 
           // 深色模式
@@ -307,7 +307,7 @@ struct SettingsPage {
               t('settings.darkMode'),
               t('settings.darkModeDescription'),
               this.themeMode === 'dark',
-              (val: boolean) => this.handleDarkModeChange(val),
+              (val: boolean): void => this.handleDarkModeChange(val),
               this.autoTheme,
             )
 
@@ -316,7 +316,7 @@ struct SettingsPage {
               t('settings.festiveTheme'),
               t('settings.festiveThemeDescription'),
               this.themeMode === 'festive',
-              (val: boolean) => this.handleFestiveChange(val),
+              (val: boolean): void => this.handleFestiveChange(val),
               this.autoTheme,
             )
           }
@@ -327,7 +327,7 @@ struct SettingsPage {
             t('settings.autoOrientation'),
             t('settings.autoOrientationDescription'),
             this.autoOrientation,
-            (val: boolean) => this.handleAutoOrientationChange(val),
+            (val: boolean): void => this.handleAutoOrientationChange(val),
           )
 
           // 语音助手
@@ -335,7 +335,7 @@ struct SettingsPage {
             t('settings.voiceAssistant'),
             t('settings.voiceAssistantDescription'),
             this.voiceAssistantEnabled,
-            (val: boolean) => this.handleVoiceAssistantChange(val),
+            (val: boolean): void => this.handleVoiceAssistantChange(val),
           )
 
           // 推荐偏好
@@ -360,7 +360,7 @@ struct SettingsPage {
               .width('100%')
               .height(28)
               .margin({ top: 8 })
-              .onChange((value: number) => this.handleRatioChange(value))
+              .onChange((value: number): void => this.handleRatioChange(value))
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)
@@ -374,7 +374,7 @@ struct SettingsPage {
               t('settings.audiobookMode'),
               t('settings.audiobookModeDescription'),
               this.audiobookMode,
-              (val: boolean) => this.handleAudiobookModeChange(val),
+              (val: boolean): void => this.handleAudiobookModeChange(val),
             )
           }
 
@@ -383,7 +383,7 @@ struct SettingsPage {
             t('settings.relayPlay'),
             t('settings.relayPlayDescription'),
             this.acceptRelay,
-            (val: boolean) => this.handleRelayChange(val),
+            (val: boolean): void => this.handleRelayChange(val),
           )
 
           // 同步控制
@@ -391,7 +391,7 @@ struct SettingsPage {
             t('settings.syncControl'),
             t('settings.syncControlDescription'),
             this.acceptSync,
-            (val: boolean) => this.handleSyncChange(val),
+            (val: boolean): void => this.handleSyncChange(val),
           )
 
           // 边听边存
@@ -399,7 +399,7 @@ struct SettingsPage {
             t('settings.cacheWhilePlaying'),
             t('settings.cacheWhilePlayingDescription'),
             this.cacheEnabled,
-            (val: boolean) => this.handleCacheChange(val),
+            (val: boolean): void => this.handleCacheChange(val),
           )
 
           // ═══ 存储管理 Section ═══
@@ -408,19 +408,19 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.coverCache'),
             t('settings.tapToClear'),
-            () => {},
+            (): void => {},
           )
 
           this.ActionRow(
             t('settings.musicCache'),
             t('settings.tapToClear'),
-            () => {},
+            (): void => {},
           )
 
           this.ActionRow(
             t('settings.audiobookCache'),
             t('settings.tapToClear'),
-            () => {},
+            (): void => {},
           )
 
           // ═══ 关于 Section ═══
@@ -429,26 +429,26 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.productUpdates'),
             t('settings.productUpdatesDescription'),
-            () => {},
+            (): void => {},
           )
 
           this.ActionRow(
             t('settings.checkUpdate'),
             t('settings.checkUpdateDescription'),
-            () => {},
+            (): void => {},
           )
 
           this.ActionRow(
             t('settings.joinBetaTest'),
             t('settings.betaTestDescription'),
-            () => {},
+            (): void => {},
           )
 
           this.SwitchRow(
             t('settings.experienceProgram'),
             t('settings.experienceProgramDescription'),
             this.experienceProgramEnabled,
-            (val: boolean) => { this.experienceProgramEnabled = val; this.updateBoolSetting('experienceProgramEnabled', val); },
+            (val: boolean): void => { this.experienceProgramEnabled = val; this.updateBoolSetting('experienceProgramEnabled', val); },
           )
 
           // ═══ 退出登录 ═══
@@ -461,7 +461,7 @@ struct SettingsPage {
             .fontWeight(FontWeight.Medium)
             .borderRadius(12)
             .margin({ top: 30 })
-            .onClick(() => this.logout())
+            .onClick((): void => this.logout())
 
           // Footer version
           Text(`AudioDock HarmonyOS v${this.version}`)
