@@ -1,4 +1,4 @@
-import { httpClient } from './HttpClient';
+import { httpClient } from 'features_network';
 
 const PLACEHOLDER = 'https://picsum.photos/seed/placeholder/200/200';
 

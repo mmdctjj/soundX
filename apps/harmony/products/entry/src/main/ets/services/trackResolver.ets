@@ -14,8 +14,10 @@ export async function resolveTrackToPlayer(track: TrackDto, isExternal: boolean)
 }
 
 function toPlayerTrack(t: TrackDto, url: string): Track {
+  // PlayerStore.Track 是播放器内部模型，沿用 title/coverUrl；
+  // 后端 TrackDto 的字段是 name/cover，在这里做一次映射。
   return {
-    id: t.id, title: t.title, artist: t.artist, album: t.album,
-    duration: t.duration, coverUrl: t.coverUrl, ext: t.ext, url,
+    id: t.id, title: t.name, artist: t.artist, album: t.album,
+    duration: t.duration, coverUrl: t.cover, ext: t.ext, url,
   };
 }

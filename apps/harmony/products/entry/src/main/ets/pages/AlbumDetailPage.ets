@@ -62,7 +62,7 @@ struct AlbumDetailPage {
   @Builder content() {
     Column({ space: 12 }) {
       Text(this.data!.name).fontSize(22).fontWeight(FontWeight.Bold);
-      Text(`${this.data!.artist ?? ''} · ${this.data!.releaseDate ?? ''}`)
+      Text(`${this.data!.artist ?? ''} · ${this.data!.year ?? ''}`)
         .fontSize(13).fontColor(this.theme.colors.textSecondary);
       if (this.data!.description) {
         Text(this.data!.description)
@@ -81,7 +81,7 @@ struct AlbumDetailPage {
         ForEach(this.data!.tracks, (tr: TrackDto) => {
           ListItem() {
             Row() {
-              Text(tr.title).layoutWeight(1).fontSize(15);
+              Text(tr.name).layoutWeight(1).fontSize(15);
               Text(formatDuration((tr.duration ?? 0) * 1000))
                 .fontSize(12).fontColor(this.theme.colors.textSecondary);
             }.padding(12);

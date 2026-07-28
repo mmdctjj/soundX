@@ -1,65 +1,28 @@
 import router from '@ohos.router';
+import { kvStore } from 'features_storage';
+import { t } from 'features_i18n';
+import { Logger } from 'audiodock_common';
+import {
+  artistApi, albumApi, trackApi, collectionApi, mvApi,
+} from 'features_network';
+import type { ArtistDto, AlbumDto, TrackDto, CollectionDto, MVDto } from 'features_network';
 import { AppIcon } from '../components/AppIcon';
 import { CoverImage } from '../components/CoverImage';
-import { storage } from '../utils/StorageManager';
-import { httpClient } from '../utils/HttpClient';
-import { t } from 'features_i18n';
-import {
-  getArtistList,
-  loadMoreAlbum,
-  loadMoreTrack,
-  Artist,
-  Album,
-  Track,
-  LikeUser,
-  getCollections,
-  getMvList
-} from '../utils/ApiService';
+import { authStore } from '../context/AuthStore';
+import { resolveTrackToPlayer } from '../services/trackResolver';
+import { playerStore } from '../context/PlayerStore';
+import type { Track } from '../context/PlayerStore';
+
+const FULL_PAGE: number = 200;
 
 class TabInfo {
   key: string = '';
   label: string = '';
-  showInMusic: boolean = true;
-  showInAudiobook: boolean = true;
 
-  constructor(key: string, label: string, showInMusic: boolean, showInAudiobook: boolean) {
+  constructor(key: string, label: string) {
     this.key = key;
     this.label = label;
-    this.showInMusic = showInMusic;
-    this.showInAudiobook = showInAudiobook;
   }
-}
-
-class TrackData implements Track {
-  id: number | string = '';
-  name: string = '';
-  artist: string = '';
-  cover: string = '';
-  album: string = '';
-  liked: boolean = false;
-  likedByUsers: Array<LikeUser> = [];
-}
-
-class ArtistData implements Artist {
-  id: number | string = '';
-  name: string = '';
-  avatar: string = '';
-  cover: string = '';
-}
-
-class AlbumData implements Album {
-  id: number | string = '';
-  name: string = '';
-  artist: string = '';
-  cover: string = '';
-  type: string = '';
-  progress: number = 0;
-  resumeTrackId: number | string = '';
-  resumeProgress: number = 0;
-}
-
-class LikeUserData implements LikeUser {
-  userId: number | string = '';
 }
 
 @Component
@@ -67,301 +30,157 @@ export struct LibraryTab {
   @State mode: string = 'MUSIC';
   @State activeTab: string = 'artists';
   @State loading: boolean = true;
-  @State tracks: Track[] = [];
-  @State artists: Artist[] = [];
-  @State albums: Album[] = [];
-  @State collections: Array<Record<string, Object>> = [];
-  @State mvs: Array<Record<string, Object>> = [];
-  @State userId: string = '';
+  @State error: string = '';
+  @State tracks: TrackDto[] = [];
+  @State artists: ArtistDto[] = [];
+  @State albums: AlbumDto[] = [];
+  @State collections: CollectionDto[] = [];
+  @State mvs: MVDto[] = [];
   @State tabCounts: Record<string, number> = {};
+  private userId: string = '';
 
   aboutToAppear() {
     this.initData();
   }
 
-  async initData() {
+  async initData(): Promise<void> {
+    this.userId = authStore.state_.user?.id ?? '';
     try {
-      const savedAddress = await storage.getItem('serverAddress');
-      const savedToken = savedAddress ? await storage.getItem('token_' + savedAddress) : null;
-      const savedUser = await storage.getItem('currentUser');
-
-      if (savedAddress) {
-        httpClient.setBaseURL(savedAddress);
-      }
-      if (savedToken) {
-        httpClient.setToken(savedToken);
-      }
-      if (savedUser) {
-        const user = JSON.parse(savedUser) as Record<string, Object>;
-        this.userId = String(user['id'] || '');
-      }
-
-      const savedMode = await storage.getItem('playMode');
-      if (savedMode) {
-        this.mode = savedMode;
-      }
+      const savedMode = await kvStore.get('playMode');
+      if (savedMode) this.mode = savedMode;
     } catch (e) {
-      console.error('Failed to init library data:', e);
+      Logger.w('LibraryTab', `read playMode failed: ${String(e)}`);
     }
-
-    this.loadAllData();
+    await this.loadAllData();
   }
 
-  async loadAllData() {
+  /**
+   * 统计各 tab 数量 + 加载当前 tab 内容。
+   * 注意：旧实现这里只有 try/catch 没有 finally，一旦计数请求失败，
+   * loading 永远停在 true，声仓页就卡死在骨架屏。现在统一在 finally 收口。
+   */
+  async loadAllData(): Promise<void> {
     this.loading = true;
-
+    this.error = '';
     try {
-      const counts: Record<string, number> = new Object() as Record<string, number>;
+      const counts: Record<string, number> = {};
+      const isMusic = this.mode === 'MUSIC';
 
-      if (this.mode === 'MUSIC') {
-        const trackParams: Record<string, string> = new Object() as Record<string, string>;
-        trackParams['pageSize'] = '1';
-        trackParams['loadCount'] = '0';
-        trackParams['type'] = 'MUSIC';
+      const artistCount = await artistApi.loadMore({ pageSize: 1, loadCount: 0, type: this.mode });
+      counts['artists'] = artistCount.total;
 
-        const artistParams: Record<string, string> = new Object() as Record<string, string>;
-        artistParams['pageSize'] = '1';
-        artistParams['loadCount'] = '0';
-        artistParams['type'] = 'MUSIC';
+      const albumCount = await albumApi.loadMore({ pageSize: 1, loadCount: 0, type: this.mode });
+      counts['albums'] = albumCount.total;
 
-        const albumParams: Record<string, string> = new Object() as Record<string, string>;
-        albumParams['pageSize'] = '1';
-        albumParams['loadCount'] = '0';
-        albumParams['type'] = 'MUSIC';
+      if (isMusic) {
+        const trackCount = await trackApi.loadMore({ pageSize: 1, loadCount: 0, type: 'MUSIC' });
+        counts['songs'] = trackCount.total;
 
-        const promiseResults = await Promise.all([
-          loadMoreTrack(trackParams),
-          getArtistList(1, 0, 'MUSIC', undefined),
-          loadMoreAlbum(albumParams),
-          getMvList(1, 0)
-        ]);
-
-        const trackRes = promiseResults[0] as Record<string, Object>;
-        const artistRes = promiseResults[1] as Record<string, Object>;
-        const albumRes = promiseResults[2] as Record<string, Object>;
-        const mvRes = promiseResults[3] as Record<string, Object>;
-
-        if (trackRes['code'] === 200 && trackRes['data']) {
-          const dataObj = trackRes['data'] as Record<string, Object>;
-          counts['songs'] = dataObj.total as number || (dataObj.list as Array<Object>).length || 0;
-        }
-
-        if (artistRes['code'] === 200 && artistRes['data']) {
-          const dataObj = artistRes['data'] as Record<string, Object>;
-          counts['artists'] = dataObj.total as number || (dataObj.list as Array<Object>).length || 0;
-        }
-
-        if (albumRes['code'] === 200 && albumRes['data']) {
-          const dataObj = albumRes['data'] as Record<string, Object>;
-          counts['albums'] = dataObj.total as number || (dataObj.list as Array<Object>).length || 0;
-        }
-
-        if (mvRes && mvRes['list']) {
-          const mvList = mvRes['list'] as Array<Object>;
-          counts['mvs'] = mvList.length || 0;
-        }
-
-        this.tabCounts = counts;
-        await this.loadTabData();
-      } else {
-        const artistRes = await getArtistList(1, 0, 'AUDIOBOOK', undefined) as Record<string, Object>;
-        const abAlbumParams: Record<string, string> = new Object() as Record<string, string>;
-        abAlbumParams['pageSize'] = '1';
-        abAlbumParams['loadCount'] = '0';
-        abAlbumParams['type'] = 'AUDIOBOOK';
-        const albumRes = await loadMoreAlbum(abAlbumParams) as Record<string, Object>;
-        let collectionRes: Record<string, Object> = new Object() as Record<string, Object>;
-        if (this.userId.length > 0) {
-          collectionRes = await getCollections(this.userId) as Record<string, Object>;
-        }
-
-        if (artistRes['code'] === 200 && artistRes['data']) {
-          const dataObj = artistRes['data'] as Record<string, Object>;
-          counts['artists'] = dataObj.total as number || (dataObj.list as Array<Object>).length || 0;
-        }
-
-        if (albumRes['code'] === 200 && albumRes['data']) {
-          const dataObj = albumRes['data'] as Record<string, Object>;
-          counts['albums'] = dataObj.total as number || (dataObj.list as Array<Object>).length || 0;
-        }
-
-        if (collectionRes['code'] === 200 && collectionRes['data']) {
-          const colData = collectionRes['data'] as Array<Object>;
-          counts['collections'] = colData.length || 0;
-        }
-
-        this.tabCounts = counts;
-        await this.loadTabData();
+        const mvCount = await mvApi.list({ pageSize: 1, skip: 0 });
+        counts['mvs'] = mvCount.total;
+      } else if (this.userId.length > 0) {
+        const cols = await collectionApi.list(this.userId);
+        counts['collections'] = cols.length;
       }
-    } catch (error) {
-      console.error('Failed to load library counts:', error);
-    }
-  }
 
-  async loadTabData() {
-    this.loading = true;
-
-    try {
-      if (this.activeTab === 'songs' && this.mode === 'MUSIC') {
-        const trackParams2: Record<string, string> = new Object() as Record<string, string>;
-        trackParams2['pageSize'] = '200';
-        trackParams2['loadCount'] = '0';
-        trackParams2['type'] = 'MUSIC';
-        const res = await loadMoreTrack(trackParams2);
-        const data = res as Record<string, Object>;
-        if (data['code'] === 200 && data['data']) {
-          const dataObj = data['data'] as Record<string, Object>;
-          const list = dataObj['list'] as Array<Record<string, Object>>;
-          const mapped: Track[] = [];
-          for (let i = 0; i < list.length; i++) {
-            const item = list[i];
-            const track = new TrackData();
-            track.id = item.id as number | string || '';
-            track.name = item.name as string || '';
-            track.artist = item.artist as string || '';
-            track.cover = item.cover as string || '';
-            track.album = item.album as string || '';
-            track.liked = item.liked as boolean || false;
-            const likedUsers = item.likedByUsers as Array<Record<string, Object>> || [];
-            for (let j = 0; j < likedUsers.length; j++) {
-              const likedUser = new LikeUserData();
-              likedUser.userId = likedUsers[j].userId as number | string || '';
-              track.likedByUsers.push(likedUser);
-            }
-            mapped.push(track);
-          }
-          mapped.sort((a, b) => a.name.localeCompare(b.name));
-          this.tracks = mapped;
-        }
-      } else if (this.activeTab === 'artists') {
-        const res = await getArtistList(200, 0, this.mode, undefined);
-        const data = res as Record<string, Object>;
-        if (data['code'] === 200 && data['data']) {
-          const dataObj = data['data'] as Record<string, Object>;
-          const list = dataObj['list'] as Array<Record<string, Object>>;
-          const mapped: Artist[] = [];
-          for (let i = 0; i < list.length; i++) {
-            const item = list[i];
-            const artist = new ArtistData();
-            artist.id = item.id as number | string || '';
-            artist.name = item.name as string || '';
-            artist.avatar = item.avatar as string || '';
-            artist.cover = item.cover as string || '';
-            mapped.push(artist);
-          }
-          mapped.sort((a, b) => a.name.localeCompare(b.name));
-          this.artists = mapped;
-        }
-      } else if (this.activeTab === 'albums') {
-        const albumParams2: Record<string, string> = new Object() as Record<string, string>;
-        albumParams2['pageSize'] = '200';
-        albumParams2['loadCount'] = '0';
-        albumParams2['type'] = this.mode;
-        const res = await loadMoreAlbum(albumParams2);
-        const data = res as Record<string, Object>;
-        if (data['code'] === 200 && data['data']) {
-          const dataObj = data['data'] as Record<string, Object>;
-          const list = dataObj['list'] as Array<Record<string, Object>>;
-          const mapped: Album[] = [];
-          for (let i = 0; i < list.length; i++) {
-            const item = list[i];
-            const album = new AlbumData();
-            album.id = item.id as number | string || '';
-            album.name = item.name as string || '';
-            album.artist = item.artist as string || '';
-            album.cover = item.cover as string || '';
-            album.type = item.type as string || '';
-            album.progress = item.progress as number || 0;
-            album.resumeTrackId = item.resumeTrackId as number | string || '';
-            album.resumeProgress = item.resumeProgress as number || 0;
-            mapped.push(album);
-          }
-          mapped.sort((a, b) => a.name.localeCompare(b.name));
-          this.albums = mapped;
-        }
-      } else if (this.activeTab === 'collections' && this.mode === 'AUDIOBOOK' && this.userId.length > 0) {
-        const res = await getCollections(this.userId);
-        const data = res as Record<string, Object>;
-        if (data.code === 200 && data.data) {
-          this.collections = data.data as Array<Record<string, Object>>;
-        }
-      } else if (this.activeTab === 'mvs' && this.mode === 'MUSIC') {
-        const res = await getMvList(200, 0) as Record<string, Object>;
-        if (res && res['list']) {
-          this.mvs = res['list'] as Array<Record<string, Object>>;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load tab data:', error);
+      this.tabCounts = counts;
+      await this.loadTabData();
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+      Logger.e('LibraryTab', `loadAllData failed: ${this.error}`);
     } finally {
       this.loading = false;
     }
   }
 
-  toggleMode() {
-    this.mode = this.mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC';
-    storage.setItem('playMode', this.mode);
-    this.activeTab = 'artists';
+  async loadTabData(): Promise<void> {
     this.loading = true;
-    this.loadAllData();
+    this.error = '';
+    try {
+      if (this.activeTab === 'songs' && this.mode === 'MUSIC') {
+        const res = await trackApi.loadMore({ pageSize: FULL_PAGE, loadCount: 0, type: 'MUSIC' });
+        const list = res.list.slice();
+        list.sort((a: TrackDto, b: TrackDto) => a.name.localeCompare(b.name));
+        this.tracks = list;
+      } else if (this.activeTab === 'artists') {
+        const res = await artistApi.loadMore({ pageSize: FULL_PAGE, loadCount: 0, type: this.mode });
+        const list = res.list.slice();
+        list.sort((a: ArtistDto, b: ArtistDto) => a.name.localeCompare(b.name));
+        this.artists = list;
+      } else if (this.activeTab === 'albums') {
+        const res = await albumApi.loadMore({ pageSize: FULL_PAGE, loadCount: 0, type: this.mode });
+        const list = res.list.slice();
+        list.sort((a: AlbumDto, b: AlbumDto) => a.name.localeCompare(b.name));
+        this.albums = list;
+      } else if (this.activeTab === 'collections' && this.mode === 'AUDIOBOOK' && this.userId.length > 0) {
+        this.collections = await collectionApi.list(this.userId);
+      } else if (this.activeTab === 'mvs' && this.mode === 'MUSIC') {
+        const res = await mvApi.list({ pageSize: FULL_PAGE, skip: 0 });
+        this.mvs = res.list;
+      }
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+      Logger.e('LibraryTab', `loadTabData failed: ${this.error}`);
+    } finally {
+      this.loading = false;
+    }
   }
 
-  switchTab(tab: string) {
+  async toggleMode(): Promise<void> {
+    this.mode = this.mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC';
+    await kvStore.set('playMode', this.mode);
+    this.activeTab = 'artists';
+    await this.loadAllData();
+  }
+
+  switchTab(tab: string): void {
     this.activeTab = tab;
-    this.loading = true;
     this.loadTabData();
   }
 
-  navigateToSearch() {
-    // TODO
+  navigateToSearch(): void {
+    router.pushUrl({ url: 'pages/SearchPage' });
   }
 
-  navigateToFolder() {
-    // TODO
+  navigateToArtist(id: string): void {
+    router.pushUrl({ url: 'pages/ArtistDetailPage', params: { id: id } });
   }
 
-  navigateToArtist(artistId: number | string) {
-    // TODO
+  navigateToAlbum(id: string): void {
+    router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id: id } });
   }
 
-  navigateToAlbum(albumId: number | string) {
-    // TODO
+  navigateToCollection(id: string): void {
+    router.pushUrl({ url: 'pages/CollectionDetailPage', params: { id: id } });
   }
 
-  navigateToCollection(collectionId: string) {
-    // TODO
+  navigateToMv(id: string): void {
+    router.pushUrl({ url: 'pages/MVDetailPage', params: { id: id } });
   }
 
-  navigateToMv(mvId: string) {
-    // TODO
-  }
-
-  playTrack(track: Track) {
-    // TODO
-  }
-
-  playAllTracks() {
-    // TODO: enqueue this.tracks and start playback
+  async playFrom(index: number): Promise<void> {
+    try {
+      const list: Track[] = [];
+      for (const item of this.tracks) list.push(await resolveTrackToPlayer(item, false));
+      await playerStore.playTrackList(list, index);
+      router.pushUrl({ url: 'pages/PlayerPage' });
+    } catch (e) {
+      Logger.w('LibraryTab', `play failed: ${String(e)}`);
+    }
   }
 
   getVisibleTabs(): TabInfo[] {
     const tabs: TabInfo[] = [];
-    if (this.mode === 'MUSIC') {
-      tabs.push(new TabInfo('songs', t('nav.tracks'), true, false));
-    }
-    tabs.push(new TabInfo('artists', t('nav.artists'), true, true));
-    tabs.push(new TabInfo('albums', t('nav.albums'), true, true));
-    if (this.mode === 'MUSIC') {
-      tabs.push(new TabInfo('mvs', 'MV', true, false));
-    }
-    if (this.mode === 'AUDIOBOOK') {
-      tabs.push(new TabInfo('collections', t('nav.collections'), false, true));
-    }
+    if (this.mode === 'MUSIC') tabs.push(new TabInfo('songs', t('nav.tracks')));
+    tabs.push(new TabInfo('artists', t('nav.artists')));
+    tabs.push(new TabInfo('albums', t('nav.albums')));
+    if (this.mode === 'MUSIC') tabs.push(new TabInfo('mvs', 'MV'));
+    if (this.mode === 'AUDIOBOOK') tabs.push(new TabInfo('collections', t('nav.collections')));
     return tabs;
   }
 
   getTabCount(key: string): number {
-    return this.tabCounts[key] || 0;
+    return this.tabCounts[key] ?? 0;
   }
 
   @Builder
@@ -378,7 +197,7 @@ export struct LibraryTab {
         .backgroundColor(this.activeTab === tab.key ? '#007DFF' : Color.Transparent)
         .borderRadius(16)
         .onClick(() => this.switchTab(tab.key))
-      })
+      }, (tab: TabInfo) => tab.key)
     }
     .width('100%')
     .padding({ left: 16, right: 16, bottom: 8 })
@@ -386,269 +205,168 @@ export struct LibraryTab {
   }
 
   @Builder
-  SongItemBuilder(track: Track) {
+  SongItemBuilder(track: TrackDto, index: number) {
     Row() {
       CoverImage({
         path: track.cover,
-        imgWidth: 48,
-        imgHeight: 48,
-        radius: 8,
-        fallbackText: track.name,
-        fallbackBg: '#52B54B'
+        imgWidth: 48, imgHeight: 48, radius: 8,
+        fallbackText: track.name, fallbackBg: '#52B54B',
       })
         .margin({ right: 12 })
-
       Column() {
         Text(track.name)
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#2c3e50')
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width(200)
-
-        Text(track.artist + ' · ' + track.album)
-          .fontSize(12)
-          .fontColor('#95a5a6')
-          .margin({ top: 4 })
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width(200)
+          .fontSize(15).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
+          .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(200)
+        Text(`${track.artist ?? ''} · ${track.album ?? ''}`)
+          .fontSize(12).fontColor('#95a5a6').margin({ top: 4 })
+          .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(200)
       }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      Button() {
-        AppIcon({ name: 'plus', iconSize: 16, color: '#007DFF' })
-      }
-      .backgroundColor(Color.Transparent)
-      .width(36)
-      .height(36)
+      .layoutWeight(1).alignItems(HorizontalAlign.Start)
     }
     .width('100%')
     .padding({ top: 8, bottom: 8, left: 16, right: 16 })
-    .onClick(() => this.playTrack(track))
+    .onClick(() => this.playFrom(index))
   }
 
   @Builder
   ArtistGridBuilder() {
     Grid() {
-      ForEach(this.artists, (artist: Artist) => {
+      ForEach(this.artists, (artist: ArtistDto) => {
         GridItem() {
           Column() {
             CoverImage({
-              path: artist.avatar || artist.cover,
-              imgWidth: 80,
-              imgHeight: 80,
-              radius: 40,
-              fallbackText: artist.name,
-              fallbackBg: '#007DFF'
+              path: artist.avatar,
+              imgWidth: 80, imgHeight: 80, radius: 40,
+              fallbackText: artist.name, fallbackBg: '#007DFF',
             })
-
             Text(artist.name)
-              .fontSize(13)
-              .fontColor('#2c3e50')
-              .margin({ top: 8 })
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .textAlign(TextAlign.Center)
-              .width(80)
+              .fontSize(13).fontColor('#2c3e50').margin({ top: 8 })
+              .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+              .textAlign(TextAlign.Center).width(80)
           }
           .margin({ bottom: 16 })
-          .onClick(() => this.navigateToArtist(artist.id))
+          .onClick(() => this.navigateToArtist(String(artist.id)))
         }
-      })
+      }, (artist: ArtistDto) => String(artist.id))
     }
-    .columnsTemplate('1fr 1fr 1fr')
-    .columnsGap(16)
-    .rowsGap(16)
-    .padding(16)
+    .columnsTemplate('1fr 1fr 1fr').columnsGap(16).rowsGap(16).padding(16)
   }
 
   @Builder
   AlbumGridBuilder() {
     Grid() {
-      ForEach(this.albums, (album: Album) => {
+      ForEach(this.albums, (album: AlbumDto) => {
         GridItem() {
           Column() {
             CoverImage({
               path: album.cover,
-              imgWidth: 100,
-              imgHeight: 100,
-              radius: 10,
-              fallbackText: album.name,
-              fallbackBg: '#5B8FF9'
+              imgWidth: 100, imgHeight: 100, radius: 10,
+              fallbackText: album.name, fallbackBg: '#5B8FF9',
             })
-
             Text(album.name)
-              .fontSize(13)
-              .fontWeight(FontWeight.Medium)
-              .fontColor('#2c3e50')
+              .fontSize(13).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
               .margin({ top: 8, bottom: 4 })
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .width(100)
-
-            Text(album.artist)
-              .fontSize(11)
-              .fontColor('#95a5a6')
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .width(100)
+              .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
+            Text(album.artist ?? '')
+              .fontSize(11).fontColor('#95a5a6')
+              .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
           }
           .margin({ bottom: 16 })
-          .onClick(() => this.navigateToAlbum(album.id))
+          .onClick(() => this.navigateToAlbum(String(album.id)))
         }
-      })
+      }, (album: AlbumDto) => String(album.id))
     }
-    .columnsTemplate('1fr 1fr 1fr')
-    .columnsGap(16)
-    .rowsGap(16)
-    .padding(16)
+    .columnsTemplate('1fr 1fr 1fr').columnsGap(16).rowsGap(16).padding(16)
   }
 
   @Builder
   CollectionGridBuilder() {
     Grid() {
-      ForEach(this.collections, (collection: Record<string, Object>) => {
+      ForEach(this.collections, (collection: CollectionDto) => {
         GridItem() {
           Column() {
             CoverImage({
-              path: String(collection.cover || ''),
-              imgWidth: 100,
-              imgHeight: 100,
-              radius: 10,
-              fallbackText: String(collection.name || ''),
-              fallbackBg: '#FF9500'
+              path: collection.cover,
+              imgWidth: 100, imgHeight: 100, radius: 10,
+              fallbackText: collection.name, fallbackBg: '#FF9500',
             })
-
-            Text(String(collection.name || ''))
-              .fontSize(13)
-              .fontWeight(FontWeight.Medium)
-              .fontColor('#2c3e50')
+            Text(collection.name)
+              .fontSize(13).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
               .margin({ top: 8, bottom: 4 })
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .width(100)
-
-            Text('共 ' + this.getCollectionCount(collection) + ' 项')
-              .fontSize(11)
-              .fontColor('#95a5a6')
-              .width(100)
+              .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
           }
           .margin({ bottom: 16 })
           .onClick(() => this.navigateToCollection(String(collection.id)))
         }
-      })
+      }, (collection: CollectionDto) => String(collection.id))
     }
-    .columnsTemplate('1fr 1fr 1fr')
-    .columnsGap(16)
-    .rowsGap(16)
-    .padding(16)
-  }
-
-  getCollectionNameFirstChar(collection: Record<string, Object>): string {
-    const name = collection.name as string || '';
-    if (name.length > 0) {
-      return name.substring(0, 1);
-    }
-    return '?';
-  }
-
-  getCollectionCount(collection: Record<string, Object>): number {
-    return 0;
+    .columnsTemplate('1fr 1fr 1fr').columnsGap(16).rowsGap(16).padding(16)
   }
 
   @Builder
   MvGridBuilder() {
     Grid() {
-      ForEach(this.mvs, (mv: Record<string, Object>) => {
+      ForEach(this.mvs, (mv: MVDto) => {
         GridItem() {
           Column() {
             CoverImage({
-              path: String(mv.cover || ''),
-              imgWidth: 100,
-              imgHeight: 100,
-              radius: 10,
-              fallbackText: String(mv.name || ''),
-              fallbackBg: '#E74C3C'
+              path: mv.cover,
+              imgWidth: 100, imgHeight: 100, radius: 10,
+              fallbackText: mv.name, fallbackBg: '#E74C3C',
             })
-
-            Text(String(mv.name || ''))
-              .fontSize(13)
-              .fontWeight(FontWeight.Medium)
-              .fontColor('#2c3e50')
+            Text(mv.name)
+              .fontSize(13).fontWeight(FontWeight.Medium).fontColor('#2c3e50')
               .margin({ top: 8, bottom: 4 })
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .width(100)
-
-            Text(String(mv.artist || '未知艺人'))
-              .fontSize(11)
-              .fontColor('#95a5a6')
-              .width(100)
+              .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(100)
+            Text(mv.artist ?? t('common.unknownArtist'))
+              .fontSize(11).fontColor('#95a5a6').width(100)
           }
           .margin({ bottom: 16 })
           .onClick(() => this.navigateToMv(String(mv.id)))
         }
-      })
+      }, (mv: MVDto) => String(mv.id))
     }
-    .columnsTemplate('1fr 1fr 1fr')
-    .columnsGap(16)
-    .rowsGap(16)
-    .padding(16)
-  }
-
-  getMvNameFirstChar(mv: Record<string, Object>): string {
-    const name = String(mv['name'] || '');
-    if (name.length > 0) {
-      return name.substring(0, 1);
-    }
-    return '?';
+    .columnsTemplate('1fr 1fr 1fr').columnsGap(16).rowsGap(16).padding(16)
   }
 
   @Builder
   ContentBuilder() {
-    if (this.activeTab === 'songs') {
-      List() {
-        ForEach(this.tracks, (track: Track) => {
-          ListItem() {
-            this.SongItemBuilder(track);
-          }
-        })
+    if (this.error.length > 0) {
+      Column({ space: 12 }) {
+        Text(t('common.error')).fontSize(16).fontColor('#2c3e50')
+        Text(this.error).fontSize(12).fontColor('#95a5a6')
+          .maxLines(3).textAlign(TextAlign.Center)
+        Button(t('common.retry'))
+          .backgroundColor('#007DFF').borderRadius(18)
+          .onClick(() => this.loadAllData())
       }
-      .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
-      .edgeEffect(EdgeEffect.Spring)
+      .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center).padding(24)
+    } else if (this.activeTab === 'songs') {
+      List() {
+        ForEach(this.tracks, (track: TrackDto, index: number) => {
+          ListItem() {
+            this.SongItemBuilder(track, index);
+          }
+        }, (track: TrackDto) => String(track.id))
+      }
+      .width('100%').layoutWeight(1)
+      .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
     } else if (this.activeTab === 'artists') {
       Scroll() {
         this.ArtistGridBuilder()
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
+      }.width('100%').layoutWeight(1).scrollBar(BarState.Off)
     } else if (this.activeTab === 'albums') {
       Scroll() {
         this.AlbumGridBuilder()
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
+      }.width('100%').layoutWeight(1).scrollBar(BarState.Off)
     } else if (this.activeTab === 'collections') {
       Scroll() {
         this.CollectionGridBuilder()
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
-    } else if (this.activeTab === 'mvs') {
+      }.width('100%').layoutWeight(1).scrollBar(BarState.Off)
+    } else {
       Scroll() {
         this.MvGridBuilder()
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
+      }.width('100%').layoutWeight(1).scrollBar(BarState.Off)
     }
   }
 
@@ -656,61 +374,30 @@ export struct LibraryTab {
   LoadingSkeleton() {
     Column() {
       Row() {
-        Row()
-          .width(100)
-          .height(28)
-          .borderRadius(8)
-          .backgroundColor('#e8e8e8')
-
-        Row()
-          .width(80)
-          .height(36)
-          .borderRadius(18)
-          .backgroundColor('#e8e8e8')
+        Row().width(100).height(28).borderRadius(8).backgroundColor('#e8e8e8')
+        Row().width(80).height(36).borderRadius(18).backgroundColor('#e8e8e8')
       }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 20 })
+      .width('100%').padding({ left: 16, right: 16, top: 20 })
       .justifyContent(FlexAlign.SpaceBetween)
 
-      Row()
-        .width('90%')
-        .height(36)
-        .borderRadius(18)
-        .backgroundColor('#e8e8e8')
-        .margin({ left: 16, right: 16, top: 16 })
+      Row().width('90%').height(36).borderRadius(18)
+        .backgroundColor('#e8e8e8').margin({ left: 16, right: 16, top: 16 })
 
       ForEach([1, 2, 3, 4], (index: number) => {
         Row() {
-          Row()
-            .width(48)
-            .height(48)
-            .borderRadius(8)
-            .backgroundColor('#e8e8e8')
-            .margin({ right: 12 })
-
+          Row().width(48).height(48).borderRadius(8)
+            .backgroundColor('#e8e8e8').margin({ right: 12 })
           Column() {
-            Row()
-              .width(120)
-              .height(16)
-              .borderRadius(8)
-              .backgroundColor('#e8e8e8')
-              .margin({ bottom: 8 })
-
-            Row()
-              .width(80)
-              .height(12)
-              .borderRadius(6)
-              .backgroundColor('#e8e8e8')
+            Row().width(120).height(16).borderRadius(8)
+              .backgroundColor('#e8e8e8').margin({ bottom: 8 })
+            Row().width(80).height(12).borderRadius(6).backgroundColor('#e8e8e8')
           }
           .layoutWeight(1)
         }
-        .width('100%')
-        .padding({ top: 8, bottom: 8, left: 16, right: 16 })
-      })
+        .width('100%').padding({ top: 8, bottom: 8, left: 16, right: 16 })
+      }, (index: number) => `lib-sk-${index}`)
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor('#ffffff')
+    .width('100%').height('100%').backgroundColor('#ffffff')
   }
 
   build() {
@@ -720,54 +407,19 @@ export struct LibraryTab {
       Column() {
         Row() {
           Text(t('libraryPage.title'))
-            .fontSize(24)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#2c3e50')
-
+            .fontSize(24).fontWeight(FontWeight.Bold).fontColor('#2c3e50')
           Row() {
-            if (this.mode === 'MUSIC' && this.activeTab === 'songs') {
-              Button() {
-                AppIcon({ name: 'plus', iconSize: 16, color: '#2c3e50' })
-              }
-              .width(36)
-              .height(36)
-              .backgroundColor('#f0f0f0')
-              .borderRadius(18)
-              .margin({ right: 8 })
-              .onClick(() => this.playAllTracks())
-            }
-
-            Button() {
-              AppIcon({ name: 'folder', iconSize: 18, color: '#2c3e50' })
-            }
-            .width(36)
-            .height(36)
-            .backgroundColor('#f0f0f0')
-            .borderRadius(18)
-            .margin({ right: 8 })
-            .onClick(() => this.navigateToFolder())
-
             Button() {
               AppIcon({ name: 'plus', iconSize: 18, color: '#2c3e50' })
             }
-            .width(36)
-            .height(36)
-            .backgroundColor('#f0f0f0')
-            .borderRadius(18)
+            .width(36).height(36).backgroundColor('#f0f0f0').borderRadius(18)
             .margin({ right: 8 })
             .onClick(() => this.navigateToSearch())
 
             Button() {
-              AppIcon({
-                name: this.mode === 'MUSIC' ? 'headphones' : 'headphones',
-                iconSize: 18,
-                color: '#2c3e50'
-              })
+              AppIcon({ name: 'headphones', iconSize: 18, color: '#2c3e50' })
             }
-            .width(36)
-            .height(36)
-            .backgroundColor('#f0f0f0')
-            .borderRadius(18)
+            .width(36).height(36).backgroundColor('#f0f0f0').borderRadius(18)
             .onClick(() => this.toggleMode())
           }
         }
@@ -778,9 +430,7 @@ export struct LibraryTab {
         this.TabBarBuilder()
         this.ContentBuilder()
       }
-      .width('100%')
-      .height('100%')
-      .backgroundColor('#ffffff')
+      .width('100%').height('100%').backgroundColor('#ffffff')
     }
   }
 }

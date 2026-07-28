@@ -23,7 +23,7 @@ struct MVDetailPage {
 
   build() {
     Column() {
-      CommonNavBar({ title: this.data?.title ?? '', theme: this.theme,
+      CommonNavBar({ title: this.data?.name ?? '', theme: this.theme,
         onBack: () => router.back() });
       if (this.loading) {
         Column({ space: 12 }) {
@@ -42,7 +42,7 @@ struct MVDetailPage {
     Column({ space: 12 }) {
       // Cover stand-in for <video> playback; P3 wires the real player.
       SkeletonBlock({ blockHeight: 220, theme: this.theme });
-      Text(this.data!.title).fontSize(22).fontWeight(FontWeight.Bold);
+      Text(this.data!.name).fontSize(22).fontWeight(FontWeight.Bold);
       Text(this.data!.artist ?? '').fontSize(14)
         .fontColor(this.theme.colors.textSecondary);
       Text(formatDuration((this.data!.duration ?? 0) * 1000))

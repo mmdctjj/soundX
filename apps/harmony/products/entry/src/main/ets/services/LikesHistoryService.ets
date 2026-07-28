@@ -1,7 +1,7 @@
 import { Logger } from 'audiodock_common';
 import { rdbStore } from 'features_storage';
 import type { TrackLikeRow, AlbumLikeRow, TrackHistoryRow } from 'features_storage';
-import { httpClient } from 'features_network';
+import { userDataApi } from 'features_network';
 import { authStore } from '../context/AuthStore';
 
 export type SyncKind =
@@ -202,64 +202,19 @@ export class LikesHistoryService {
   }
 
   private async send(task: SyncTask): Promise<void> {
+    // 路由对齐后端真实控制器（services/api/src/controllers/），
+    // 旧的 /likes/track、/likes/album、/track-history 在后端并不存在。
     switch (task.kind) {
-      case 'like_track': {
-        const m = new Map<string, string | number | boolean>();
-        m.set('liked', true);
-        m.set('trackId', task.trackId);
-        const body: Record<string, string | number | boolean> = {};
-        const keys = Array.from(m.keys());
-        for (let i = 0; i < keys.length; i++) {
-          body[keys[i]] = m.get(keys[i])!;
-        }
-        return httpClient.post('/likes/track', body);
-      }
-      case 'unlike_track': {
-        const m = new Map<string, string | number | boolean>();
-        m.set('liked', false);
-        m.set('trackId', task.trackId);
-        const body: Record<string, string | number | boolean> = {};
-        const keys = Array.from(m.keys());
-        for (let i = 0; i < keys.length; i++) {
-          body[keys[i]] = m.get(keys[i])!;
-        }
-        return httpClient.post('/likes/track', body);
-      }
-      case 'like_album': {
-        const m = new Map<string, string | number | boolean>();
-        m.set('liked', true);
-        m.set('albumId', task.albumId);
-        const body: Record<string, string | number | boolean> = {};
-        const keys = Array.from(m.keys());
-        for (let i = 0; i < keys.length; i++) {
-          body[keys[i]] = m.get(keys[i])!;
-        }
-        return httpClient.post('/likes/album', body);
-      }
-      case 'unlike_album': {
-        const m = new Map<string, string | number | boolean>();
-        m.set('liked', false);
-        m.set('albumId', task.albumId);
-        const body: Record<string, string | number | boolean> = {};
-        const keys = Array.from(m.keys());
-        for (let i = 0; i < keys.length; i++) {
-          body[keys[i]] = m.get(keys[i])!;
-        }
-        return httpClient.post('/likes/album', body);
-      }
-      case 'history': {
-        const m = new Map<string, string | number>();
-        m.set('trackId', task.trackId);
-        m.set('progress', task.progress);
-        m.set('playedAt', task.playedAt);
-        m.set('source', task.source);
-        const body: Record<string, string | number> = {};
-        const keys = Array.from(m.keys());
-        for (let i = 0; i < keys.length; i++) {
-          body[keys[i]] = m.get(keys[i])!;
-        }
-        return httpClient.post('/track-history', body);
-      }
+      case 'like_track':
+        return userDataApi.likeTrack(String(task.trackId));
+      case 'unlike_track':
+        return userDataApi.unlikeTrack(String(task.trackId));
+      case 'like_album':
+        return userDataApi.likeAlbum(String(task.albumId));
+      case 'unlike_album':
+        return userDataApi.unlikeAlbum(String(task.albumId));
+      case 'history':
+        return userDataApi.recordTrackPlay(String(task.trackId), task.progress);
     }
   }
 

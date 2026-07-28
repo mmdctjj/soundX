@@ -1,70 +1,74 @@
 import { httpClient } from '../HarmonyHttpClient';
+import type { LoadMoreResp } from '../types';
 import type { TrackDto } from './track';
 import type { AlbumDto } from './album';
 
+/**
+ * 字段名对齐后端 Prisma model Artist（packages/db/prisma/schema.prisma）:
+ * id / name / avatar / type / bg_cover / description。
+ * 后端不返回 avatarUrl。
+ */
 export interface ArtistDto {
-  id: string; name: string; avatarUrl?: string; description?: string;
+  id: string; name: string; avatar?: string; type?: string;
+  bg_cover?: string; description?: string;
 }
 
 export interface ArtistDetailResp {
   artist: ArtistDto; albums?: AlbumDto[]; tracks?: TrackDto[];
 }
 
-export interface ArtistListResp { data: ArtistDto[]; total: number }
-
-export interface ArtistListParams {
+export interface ArtistLoadMoreParams {
   pageSize: number;
   loadCount: number;
+  type?: string;
+  sortBy?: string;
 }
 
 export interface ArtistLatestParams {
+  type: string;
   pageSize?: number;
   random?: boolean;
 }
 
 export interface ArtistApi {
-  list(params: ArtistListParams): Promise<ArtistListResp>;
+  list(): Promise<ArtistDto[]>;
+  loadMore(params: ArtistLoadMoreParams): Promise<LoadMoreResp<ArtistDto>>;
   getById(id: string): Promise<ArtistDetailResp>;
   latest(params: ArtistLatestParams): Promise<ArtistDto[]>;
   search(keyword: string, limit: number): Promise<ArtistDto[]>;
 }
 
 class ArtistApiImpl implements ArtistApi {
-  async list(params: ArtistListParams): Promise<ArtistListResp> {
-    const p = new Map<string, string | number | boolean>();
-    p.set('pageSize', params.pageSize);
-    p.set('loadCount', params.loadCount);
-    const record: Record<string, string | number | boolean> = {};
-    const keys = Array.from(p.keys());
-    for (let i = 0; i < keys.length; i++) {
-      record[keys[i]] = p.get(keys[i])!;
-    }
-    return httpClient.get<ArtistListResp>('/artist/list', record);
+  async list(): Promise<ArtistDto[]> {
+    return httpClient.get<ArtistDto[]>('/artist/list');
   }
+
+  async loadMore(params: ArtistLoadMoreParams): Promise<LoadMoreResp<ArtistDto>> {
+    const q: Record<string, string | number | boolean> = {};
+    q['pageSize'] = params.pageSize;
+    q['loadCount'] = params.loadCount;
+    if (params.type !== undefined) q['type'] = params.type;
+    if (params.sortBy !== undefined) q['sortBy'] = params.sortBy;
+    return httpClient.get<LoadMoreResp<ArtistDto>>('/artist/load-more', q);
+  }
+
   async getById(id: string): Promise<ArtistDetailResp> {
     return httpClient.get<ArtistDetailResp>(`/artist/${id}`);
   }
+
   async latest(params: ArtistLatestParams): Promise<ArtistDto[]> {
-    const p = new Map<string, string | number | boolean>();
-    if (params.pageSize !== undefined) p.set('pageSize', params.pageSize);
-    if (params.random !== undefined) p.set('random', params.random);
-    const record: Record<string, string | number | boolean> = {};
-    const keys = Array.from(p.keys());
-    for (let i = 0; i < keys.length; i++) {
-      record[keys[i]] = p.get(keys[i])!;
-    }
-    return httpClient.get<ArtistDto[]>('/artist/latest', record);
+    const q: Record<string, string | number | boolean> = {};
+    q['type'] = params.type;
+    if (params.pageSize !== undefined) q['pageSize'] = params.pageSize;
+    if (params.random !== undefined) q['random'] = params.random;
+    return httpClient.get<ArtistDto[]>('/artist/latest', q);
   }
+
   async search(keyword: string, limit: number): Promise<ArtistDto[]> {
-    const p = new Map<string, string | number | boolean>();
-    p.set('keyword', keyword);
-    p.set('limit', limit);
-    const record: Record<string, string | number | boolean> = {};
-    const keys = Array.from(p.keys());
-    for (let i = 0; i < keys.length; i++) {
-      record[keys[i]] = p.get(keys[i])!;
-    }
-    return httpClient.get<ArtistDto[]>('/artist/search', record);
+    const q: Record<string, string | number | boolean> = {};
+    q['keyword'] = keyword;
+    q['limit'] = limit;
+    return httpClient.get<ArtistDto[]>('/artist/search', q);
   }
 }
 

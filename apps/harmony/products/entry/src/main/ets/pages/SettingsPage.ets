@@ -1,6 +1,7 @@
 import router from '@ohos.router';
-import { storage } from '../utils/StorageManager';
-import { httpClient } from '../utils/HttpClient';
+import { kvStore } from 'features_storage';
+import { Logger } from 'audiodock_common';
+import { authStore } from '../context/AuthStore';
 
 @Entry
 @Component
@@ -16,17 +17,11 @@ struct SettingsPage {
 
   async loadSettings() {
     try {
-      const address = await storage.getItem('serverAddress');
-      const type = await storage.getItem('sourceType');
-      const userStr = await storage.getItem('currentUser');
-      this.serverAddress = address || '';
-      this.serverType = type || '';
-      if (userStr) {
-        const user = JSON.parse(userStr) as Record<string, Object>;
-        this.username = String(user['username'] || '');
-      }
+      this.serverAddress = authStore.state_.serverAddress;
+      this.serverType = authStore.state_.sourceType;
+      this.username = authStore.state_.user?.username ?? '';
     } catch (e) {
-      console.error('Load settings failed:', e);
+      Logger.w('SettingsPage', `load settings failed: ${String(e)}`);
     }
   }
 
@@ -40,17 +35,14 @@ struct SettingsPage {
 
   async logout() {
     try {
-      const savedAddress = await storage.getItem('serverAddress');
-      if (savedAddress) {
-        await storage.removeItem('token_' + savedAddress);
-      }
-      await storage.removeItem('currentUser');
-      await storage.removeItem('serverAddress');
-      await storage.removeItem('sourceType');
-      httpClient.setToken('');
+      // authStore.logout() 负责清 token_/user_/device_ 并重置内存态；
+      // 这里再清掉数据源选择，让用户回到数据源选择页。
+      await authStore.logout();
+      await kvStore.delete('serverAddress');
+      await kvStore.delete('selectedSourceType');
       router.replaceUrl({ url: 'pages/SourceSelectPage' });
     } catch (e) {
-      console.error('Logout error:', e);
+      Logger.e('SettingsPage', `logout failed: ${String(e)}`);
     }
   }
 

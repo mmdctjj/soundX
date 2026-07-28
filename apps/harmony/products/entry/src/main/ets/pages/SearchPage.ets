@@ -106,7 +106,7 @@ struct SearchPage {
       List() {
         ForEach(this.tracks, (tr: TrackDto) => {
           ListItem() {
-            Text(tr.title).fontSize(15).padding(12);
+            Text(tr.name).fontSize(15).padding(12);
           }
           .onClick(async () => {
             const resolved = await resolveTrackToPlayer(tr, false);
@@ -173,6 +173,16 @@ struct SearchPage {
     this.hot = await rdbStore.listSearchKeywords(20);
   }
 
+  private async searchPlaylists(keyword: string): Promise<PlaylistDto[]> {
+    const all = await playlistApi.list();
+    const lower = keyword.toLowerCase();
+    const hit: PlaylistDto[] = [];
+    for (let i = 0; i < all.length && hit.length < RESULT_LIMIT; i++) {
+      if (all[i].name.toLowerCase().includes(lower)) hit.push(all[i]);
+    }
+    return hit;
+  }
+
   private async runSearch(kw: string): Promise<void> {
     const trimmed = kw.trim();
     if (trimmed.length === 0) return;
@@ -183,7 +193,8 @@ struct SearchPage {
       trackApi.search({ keyword: trimmed, limit: RESULT_LIMIT }),
       albumApi.search(trimmed, RESULT_LIMIT),
       artistApi.search(trimmed, RESULT_LIMIT),
-      playlistApi.search(trimmed, RESULT_LIMIT),
+      // 后端没有 /playlists/search 路由，改为拉全量后在本地过滤（播放列表数量很少）。
+      this.searchPlaylists(trimmed),
     ]);
     if (seq !== this.reqSeq) return; // a newer request superseded this one
     this.tracks = results[0].status === 'fulfilled' ? results[0].value : [];

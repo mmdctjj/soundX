@@ -1,6 +1,13 @@
 import router from '@ohos.router';
-import { storage } from '../utils/StorageManager';
-import { httpClient } from '../utils/HttpClient';
+import { kvStore } from 'features_storage';
+import { Logger } from 'audiodock_common';
+import { authStore } from '../context/AuthStore';
+
+interface ServerRecord {
+  address?: string;
+  type?: string;
+  name?: string;
+}
 
 class ServerData {
   address: string = '';
@@ -22,23 +29,21 @@ struct SourceManagePage {
   async loadServers() {
     this.loading = true;
     try {
-      const savedServers = await storage.getItem('servers');
-      this.currentAddress = await storage.getItem('serverAddress') || '';
-      if (savedServers) {
-        const parsed = JSON.parse(savedServers) as Array<Record<string, Object>>;
+      this.currentAddress = authStore.state_.serverAddress;
+      const parsed = await kvStore.getJSON<ServerRecord[]>('servers');
+      if (parsed) {
         const mapped: ServerData[] = [];
-        for (let i = 0; i < parsed.length; i++) {
-          const item = parsed[i];
+        for (const item of parsed) {
           const server = new ServerData();
-          server.address = String(item['address'] || '');
-          server.type = String(item['type'] || '');
-          server.name = String(item['name'] || '');
+          server.address = item.address ?? '';
+          server.type = item.type ?? '';
+          server.name = item.name ?? '';
           mapped.push(server);
         }
         this.servers = mapped;
       }
     } catch (e) {
-      console.error('Load servers failed:', e);
+      Logger.w('SourceManagePage', `load servers failed: ${String(e)}`);
     } finally {
       this.loading = false;
     }
@@ -46,14 +51,13 @@ struct SourceManagePage {
 
   async selectServer(server: ServerData) {
     try {
-      await storage.setItem('serverAddress', server.address);
-      await storage.setItem('sourceType', server.type);
-      httpClient.setBaseURL(server.address);
-      this.currentAddress = server.address;
-      // Navigate to login
+      // switchServer 会写入 serverAddress、重设 baseURL 并载入该服务器下的 token/user。
+      await authStore.switchServer(server.address);
+      await kvStore.set('selectedSourceType', server.type);
+      this.currentAddress = authStore.state_.serverAddress;
       router.pushUrl({ url: 'pages/LoginPage', params: { sourceType: server.type } });
     } catch (e) {
-      console.error('Select server failed:', e);
+      Logger.e('SourceManagePage', `select server failed: ${String(e)}`);
     }
   }
 

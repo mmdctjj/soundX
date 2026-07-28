@@ -2,16 +2,13 @@ import router from '@ohos.router';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import { t } from 'features_i18n';
 import { collectionApi } from 'features_network';
-import type { CollectionDto } from 'features_network';
+import type { CollectionDetailResp, CollectionAlbumItem } from 'features_network';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
-
-interface CollectionDetail extends CollectionDto { audiobooks: AudiobookStub[] }
-interface AudiobookStub { id: string; title: string; duration?: number }
 
 @Entry
 @Component
 struct CollectionDetailPage {
-  @State data: CollectionDetail | null = null;
+  @State data: CollectionDetailResp | null = null;
   @State loading: boolean = true;
   @State error: string = '';
   @State liked: boolean = false;
@@ -55,10 +52,6 @@ struct CollectionDetailPage {
   @Builder content() {
     Column({ space: 12 }) {
       Text(this.data!.name).fontSize(22).fontWeight(FontWeight.Bold);
-      if (this.data!.description) {
-        Text(this.data!.description).fontSize(13)
-          .fontColor(this.theme.colors.textSecondary).maxLines(4);
-      }
       CommonButton({
         label: this.liked ? t('detail.unlike') : t('detail.like'),
         theme: this.theme, variant: this.liked ? 'secondary' : 'primary',
@@ -68,14 +61,18 @@ struct CollectionDetailPage {
         },
       });
       List() {
-        ForEach(this.data!.audiobooks, (ab: AudiobookStub) => {
+        ForEach(this.data!.items ?? [], (it: CollectionAlbumItem) => {
           ListItem() {
             Row() {
-              Text(ab.title).layoutWeight(1).fontSize(15);
+              Text(it.album?.name ?? '').layoutWeight(1).fontSize(15);
             }.padding(12);
           }
-          .onClick(() => { /* audiobook detail deferred to P4 */ });
-        }, (ab: AudiobookStub) => ab.id);
+          .onClick(() => {
+            if (it.album) {
+              router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id: it.album.id } });
+            }
+          });
+        }, (it: CollectionAlbumItem) => it.id);
       }.layoutWeight(1);
     }.padding(16);
   }
@@ -83,7 +80,7 @@ struct CollectionDetailPage {
   private async load(): Promise<void> {
     this.loading = true; this.error = '';
     try {
-      this.data = await collectionApi.getById(this.entityId) as CollectionDetail;
+      this.data = await collectionApi.getById(this.entityId);
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {

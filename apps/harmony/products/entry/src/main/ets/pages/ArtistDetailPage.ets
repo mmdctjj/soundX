@@ -67,7 +67,7 @@ struct ArtistDetailPage {
           ForEach(this.data!.tracks, (tr: TrackDto) => {
             ListItem() {
               Row() {
-                Text(tr.title).layoutWeight(1).fontSize(15);
+                Text(tr.name).layoutWeight(1).fontSize(15);
                 Text(formatDuration((tr.duration ?? 0) * 1000))
                   .fontSize(12).fontColor(this.theme.colors.textSecondary);
               }.padding(12);
