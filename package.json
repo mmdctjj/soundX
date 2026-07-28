@@ -30,6 +30,7 @@
   "license": "ISC",
   "dependencies": {
     "@soundx/utils": "workspace:^",
+    "semver": "^7.8.5",
     "webdav": "^5.9.0"
   },
   "devDependencies": {
