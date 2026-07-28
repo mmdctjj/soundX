@@ -66,7 +66,7 @@ test('computeCommitMessage: beta custom version', () => {
   assert.equal(computeCommitMessage('beta', '1.2.24-beta.1', '1.2.24-beta.1'), 'chore(release): bump to 1.2.24-beta.1');
 });
 
-const { execSync } = require('node:child_process');
+const { execSync } = require('child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -150,6 +150,10 @@ function setupFixtures() {
   fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ name: 'a', version: '1.0.0' }, null, 2) + '\n');
   fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ name: 'b', version: '1.0.0' }, null, 2) + '\n');
   fs.writeFileSync(path.join(dir, 'app.json'), JSON.stringify({ expo: { name: 'app', version: '1.0.0' } }, null, 2) + '\n');
+  execSync('git init -q', { cwd: dir });
+  execSync('git config user.email "test@test.com"', { cwd: dir });
+  execSync('git config user.name "Test"', { cwd: dir });
+  execSync('git add . && git commit -q -m init', { cwd: dir });
   return dir;
 }
 
@@ -253,4 +257,95 @@ test('parseCliArgs: unknown mode throws', () => {
 
 test('parseCliArgs: beta with invalid subArg throws', () => {
   assert.throws(() => parseCliArgs(['beta', 'garbage']), /未知的发布模式/);
+});
+
+const { runReleasePipeline } = require('./release');
+
+function makeExecRecorder(failOn = null) {
+  const calls = [];
+  const exec = (cmd, opts = {}) => {
+    calls.push({ cmd, opts });
+    if (failOn && cmd.startsWith(failOn)) {
+      throw new Error(`mocked failure: ${cmd}`);
+    }
+    return '';
+  };
+  return { exec: exec.bind(null), calls };
+}
+
+test('runRelease: happy path executes build:web → update → prebuild → git', async () => {
+  const dir = setupFixtures();
+  const { exec, calls } = makeExecRecorder();
+  try {
+    await runReleasePipeline({
+      currentVersion: '1.0.0',
+      targetVersion: '1.0.1',
+      commitMessage: 'chore(release): release 1.0.1',
+      exec: (cmd) => exec(cmd, { cwd: dir }),
+      dryRun: false,
+      cwd: dir,
+      packages: [path.join(dir, 'a.json')],
+    });
+    const cmds = calls.map(c => c.cmd);
+    const idx = (s) => cmds.findIndex(c => c.includes(s));
+    assert.ok(idx('build:web') < idx('expo prebuild'), 'build:web before prebuild');
+    assert.ok(idx('expo prebuild') < idx('git add'), 'prebuild before git add');
+    assert.ok(idx('git add') < idx('git commit'), 'git add before git commit');
+    assert.ok(idx('git commit') < idx('git tag'), 'git commit before git tag');
+    assert.ok(cmds.some(c => c.includes('build:web')), 'should run build:web');
+    assert.ok(cmds.some(c => c.includes('expo prebuild')), 'should run expo prebuild');
+    assert.ok(cmds.some(c => c.startsWith('git add')), 'should git add');
+    assert.ok(cmds.some(c => c.startsWith('git commit')), 'should git commit');
+    assert.ok(cmds.some(c => c.startsWith('git tag')), 'should git tag');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('runRelease: build:web failure throws before any file write', async () => {
+  const dir = setupFixtures();
+  const originalBytes = fs.readFileSync(path.join(dir, 'a.json'));
+  const { exec } = makeExecRecorder('pnpm --filter sound-x run build:web');
+  try {
+    await assert.rejects(
+      () => runReleasePipeline({
+        currentVersion: '1.0.0',
+        targetVersion: '1.0.1',
+        commitMessage: 'x',
+        exec: (cmd) => exec(cmd, { cwd: dir }),
+        dryRun: false,
+        cwd: dir,
+        packages: [path.join(dir, 'a.json')],
+      }),
+      /desktop build:web 失败/
+    );
+    const after = fs.readFileSync(path.join(dir, 'a.json'));
+    assert.equal(after.equals(originalBytes), true, 'file must be unchanged');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('runRelease: dryRun skips all side effects', async () => {
+  const dir = setupFixtures();
+  const originalBytes = fs.readFileSync(path.join(dir, 'a.json'));
+  const { exec, calls } = makeExecRecorder();
+  try {
+    await runReleasePipeline({
+      currentVersion: '1.0.0',
+      targetVersion: '1.0.1',
+      commitMessage: 'x',
+      exec: (cmd) => exec(cmd, { cwd: dir }),
+      dryRun: true,
+      cwd: dir,
+      packages: [path.join(dir, 'a.json')],
+    });
+    const after = fs.readFileSync(path.join(dir, 'a.json'));
+    assert.equal(after.equals(originalBytes), true, 'file must be unchanged in dry-run');
+    // 预检 + 步骤 0 在 dry-run 下也会跑（避免环境不可用时不报错），但写文件与 prebuild/commit/tag 不会跑
+    assert.ok(!calls.some(c => c.cmd.startsWith('git commit')), 'no git commit in dry-run');
+    assert.ok(!calls.some(c => c.cmd.startsWith('git tag')), 'no git tag in dry-run');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

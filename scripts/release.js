@@ -53,7 +53,7 @@ if (require.main === module) {
       }
     }
 
-    runRelease(targetVersion);
+    legacyRunRelease(targetVersion);
   } else {
     // Interactive Mode
     const rl = readline.createInterface({
@@ -83,7 +83,7 @@ if (require.main === module) {
              console.error('Invalid format.');
              process.exit(1);
           }
-          runRelease(custom);
+          legacyRunRelease(custom);
           rl.close();
         });
         return;
@@ -93,7 +93,7 @@ if (require.main === module) {
       }
 
       if (targetVersion) {
-        runRelease(targetVersion);
+        legacyRunRelease(targetVersion);
       }
       rl.close();
     });
@@ -117,7 +117,7 @@ function updateVersions(newVersion) {
   });
 }
 
-function runRelease(newVersion) {
+function legacyRunRelease(newVersion) {
   console.log(`\n🚀 Preparing to release version: ${newVersion}\n`);
 
   // 1. Update files
@@ -198,7 +198,7 @@ function computeCommitMessage(mode, subArg, version) {
   return `chore(release): bump to ${version}`;
 }
 
-module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion, updateVersionsWithRollback, parseCliArgs };
+module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion, updateVersionsWithRollback, parseCliArgs, runReleasePipeline };
 
 const STABLE_KEYWORDS = new Set(['patch', 'minor', 'major']);
 const VERSION_RE = /^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?$/;
@@ -302,4 +302,65 @@ function parseVersion(version) {
   const p = semver$.parse(version);
   if (!p) throw new Error(`版本号格式不合法：${version}`);
   return p;
+}
+
+const defaultExec = (cmd, opts = {}) => execSync(cmd, { stdio: 'inherit', ...opts });
+
+async function runReleasePipeline(opts) {
+  const { currentVersion, targetVersion, commitMessage, exec = defaultExec, dryRun = false, cwd = process.cwd(), packages = PACKAGES } = opts;
+
+  // 预检
+  if (checkWorkingTreeDirty(cwd)) {
+    throw new Error('工作区有未提交的修改，请先 commit 或 stash 后再发布。');
+  }
+  if (checkExistingTag(targetVersion, cwd)) {
+    throw new Error(`标签 v${targetVersion} 已存在，请更换版本号后重试。`);
+  }
+
+  // 步骤 0: 前置预检
+  try {
+    console.log('\n📦 步骤 0/4：运行 desktop build:web 预检…');
+    exec('pnpm --filter sound-x run build:web', { cwd, stdio: 'inherit' });
+  } catch (error) {
+    throw new Error(`desktop build:web 失败，未修改任何版本号。错误详情：${error.message}`);
+  }
+
+  // 步骤 1: 同步更新版本号（带回滚）
+  let syncResult;
+  try {
+    console.log(`\n📝 步骤 1/4：同步更新 ${packages.length} 个 package.json 到 ${targetVersion}…`);
+    syncResult = updateVersionsWithRollback(targetVersion, packages, { dryRun });
+  } catch (error) {
+    throw error;
+  }
+
+  if (dryRun) {
+    return;
+  }
+
+  // 步骤 2: expo prebuild
+  try {
+    console.log('\n📱 步骤 2/4：运行 expo prebuild…');
+    exec('npx expo prebuild', { cwd: path.join(cwd, 'apps/mobile'), stdio: 'inherit' });
+  } catch (error) {
+    syncResult.rollback();
+    throw new Error(`expo prebuild 失败：${error.message}。已回滚 package.json。请检查 apps/mobile/ios 和 apps/mobile/android 是否需要手动清理。`);
+  }
+
+  // 步骤 3: git add / commit / tag
+  try {
+    console.log('\n📦 步骤 3/4：提交并打 tag…');
+    exec('git add .', { cwd, stdio: 'inherit' });
+    exec(`git commit -m "${commitMessage}"`, { cwd, stdio: 'inherit' });
+    exec(`git tag v${targetVersion}`, { cwd, stdio: 'inherit' });
+  } catch (error) {
+    throw new Error(`git 操作失败：${error.message}。手动修复：git reset HEAD~1 && git tag -d v${targetVersion}`);
+  }
+
+  console.log('\n✅ 发布完成！');
+  console.log('👉 运行以下命令推送：');
+  console.log('   git push && git push --tags');
+  if (/-beta\.\d+$/.test(targetVersion)) {
+    console.log('ℹ️  这是 BETA 版本，请确认是否要推送此 tag。');
+  }
 }
