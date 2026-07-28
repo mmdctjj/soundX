@@ -235,7 +235,7 @@ function updateVersionsWithRollback(newVersion, filePaths, options = {}) {
         console.error(`❌ 回滚 ${filePath} 失败：${rollbackError.message}`);
       }
     }
-    throw new Error(`更新 ${error.message}。已回滚所有 package.json 到原版本。`);
+    throw new Error(`更新 ${error.message} 失败。已回滚所有 package.json 到原版本。`);
   }
 
   return {
