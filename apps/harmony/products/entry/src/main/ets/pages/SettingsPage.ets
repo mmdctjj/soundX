@@ -256,7 +256,7 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.sourceManage'),
             t('settings.sourceManageDescription'),
-            (): void => router.pushUrl({ url: 'pages/SourceManagePage' }),
+            () => router.pushUrl({ url: 'pages/SourceManagePage' }),
           )
 
           // ═══ 通用 Section ═══
@@ -266,14 +266,14 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.language'),
             t('settings.languageDescription'),
-            (): void => router.pushUrl({ url: 'pages/LanguagePage' }),
+            () => router.pushUrl({ url: 'pages/LanguagePage' }),
           )
 
           // 内网播放品质
           this.ActionRow(
             t('settings.internalPlaybackQuality'),
             t('settings.internalPlaybackQualityDescription'),
-            (): void => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'internal' } }),
+            () => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'internal' } }),
             this.getQualityLabel(this.internalQuality),
           )
 
@@ -281,7 +281,7 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.externalPlaybackQuality'),
             t('settings.externalPlaybackQualityDescription'),
-            (): void => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'external' } }),
+            () => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'external' } }),
             this.getQualityLabel(this.externalQuality),
           )
 
@@ -461,7 +461,7 @@ struct SettingsPage {
             .fontWeight(FontWeight.Medium)
             .borderRadius(12)
             .margin({ top: 30 })
-            .onClick((): void => this.logout())
+            .onClick(() => this.logout())
 
           // Footer version
           Text(`AudioDock HarmonyOS v${this.version}`)

@@ -94,7 +94,7 @@ struct LanguagePage {
           .padding({ top: 16, bottom: 16 })
           .borderWidth({ bottom: 0.5 })
           .borderColor(this.theme.colors.border)
-          .onClick((): void => this.handleSelect(option.code))
+          .onClick(() => this.handleSelect(option.code))
         }, (option: LangOption): string => option.code)
       }
       .width('100%')

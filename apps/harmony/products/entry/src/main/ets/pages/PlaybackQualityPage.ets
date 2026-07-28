@@ -116,7 +116,7 @@ struct PlaybackQualityPage {
           .padding({ top: 16, bottom: 16 })
           .borderWidth({ bottom: 0.5 })
           .borderColor(this.theme.colors.border)
-          .onClick((): void => this.handleSelect(option.value))
+          .onClick(() => this.handleSelect(option.value))
         }, (option: QualityOption): string => option.value)
       }
       .width('100%')
