@@ -15,11 +15,11 @@ export type {
   TrackLoadMoreParams, TrackSearchParams, TrackLatestParams,
 } from './track';
 export type {
-  AlbumDto, AlbumDetailResp, AlbumListResp, AlbumApi,
+  AlbumDto, AlbumTracksResp, AlbumListResp, AlbumApi,
   AlbumLoadMoreParams, AlbumLatestParams, AlbumRecommendParams,
 } from './album';
 export type {
-  ArtistDto, ArtistDetailResp, ArtistApi,
+  ArtistDto, ArtistApi,
   ArtistLoadMoreParams, ArtistLatestParams,
 } from './artist';
 export type { PlaylistDto, PlaylistDetailResp, PlaylistApi } from './playlist';

@@ -14,7 +14,10 @@ export interface AlbumDto {
   progress?: number; resumeTrackId?: string; resumeProgress?: number;
 }
 
-export interface AlbumDetailResp extends AlbumDto { tracks?: TrackDto[] }
+/**
+ * GET /album/{id}/tracks 的返回形状（services/api/src/controllers/album.ts:425）。
+ */
+export interface AlbumTracksResp { list: TrackDto[]; total: number }
 
 export interface AlbumListResp { data: AlbumDto[]; total: number }
 
@@ -40,7 +43,11 @@ export interface AlbumRecommendParams {
 export interface AlbumApi {
   list(): Promise<AlbumDto[]>;
   loadMore(params: AlbumLoadMoreParams): Promise<LoadMoreResp<AlbumDto>>;
-  getById(id: string): Promise<AlbumDetailResp>;
+  /** GET /album/{id} 只返回专辑本身，不含 tracks —— 曲目要另调 getTracks。 */
+  getById(id: string): Promise<AlbumDto>;
+  getTracks(id: string, pageSize: number, skip: number, sort: string, sortBy?: string): Promise<AlbumTracksResp>;
+  byArtist(artist: string): Promise<AlbumDto[]>;
+  collaborativeByArtist(artist: string): Promise<AlbumDto[]>;
   latest(params: AlbumLatestParams): Promise<AlbumDto[]>;
   recommend(params: AlbumRecommendParams): Promise<AlbumDto[]>;
   search(keyword: string, limit: number): Promise<AlbumDto[]>;
@@ -60,8 +67,25 @@ class AlbumApiImpl implements AlbumApi {
     return httpClient.get<LoadMoreResp<AlbumDto>>('/album/load-more', q);
   }
 
-  async getById(id: string): Promise<AlbumDetailResp> {
-    return httpClient.get<AlbumDetailResp>(`/album/${id}`);
+  async getById(id: string): Promise<AlbumDto> {
+    return httpClient.get<AlbumDto>(`/album/${id}`);
+  }
+
+  async getTracks(id: string, pageSize: number, skip: number, sort: string, sortBy?: string): Promise<AlbumTracksResp> {
+    const q: Record<string, string | number | boolean> = {};
+    q['pageSize'] = pageSize;
+    q['skip'] = skip;
+    q['sort'] = sort;
+    if (sortBy !== undefined) q['sortBy'] = sortBy;
+    return httpClient.get<AlbumTracksResp>(`/album/${id}/tracks`, q);
+  }
+
+  async byArtist(artist: string): Promise<AlbumDto[]> {
+    return httpClient.get<AlbumDto[]>(`/album/artist/${encodeURIComponent(artist)}`);
+  }
+
+  async collaborativeByArtist(artist: string): Promise<AlbumDto[]> {
+    return httpClient.get<AlbumDto[]>(`/album/collaborative/${encodeURIComponent(artist)}`);
   }
 
   async latest(params: AlbumLatestParams): Promise<AlbumDto[]> {

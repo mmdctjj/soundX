@@ -41,6 +41,8 @@ export interface TrackApi {
   list(): Promise<TrackDto[]>;
   loadMore(params: TrackLoadMoreParams): Promise<LoadMoreResp<TrackDto>>;
   getById(id: string): Promise<TrackDto>;
+  /** GET /track/artist?artist= —— 按艺人「名字」查，不是 id。 */
+  byArtist(artist: string): Promise<TrackDto[]>;
   search(params: TrackSearchParams): Promise<TrackDto[]>;
   latest(params: TrackLatestParams): Promise<TrackDto[]>;
   recommend(params: TrackLatestParams): Promise<TrackDto[]>;
@@ -64,6 +66,12 @@ class TrackApiImpl implements TrackApi {
 
   async getById(id: string): Promise<TrackDto> {
     return httpClient.get<TrackDto>(`/track/${id}`);
+  }
+
+  async byArtist(artist: string): Promise<TrackDto[]> {
+    const q: Record<string, string | number | boolean> = {};
+    q['artist'] = artist;
+    return httpClient.get<TrackDto[]>('/track/artist', q);
   }
 
   async search(params: TrackSearchParams): Promise<TrackDto[]> {

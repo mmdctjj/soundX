@@ -1,7 +1,5 @@
 import { httpClient } from '../HarmonyHttpClient';
 import type { LoadMoreResp } from '../types';
-import type { TrackDto } from './track';
-import type { AlbumDto } from './album';
 
 /**
  * 字段名对齐后端 Prisma model Artist（packages/db/prisma/schema.prisma）:
@@ -13,10 +11,12 @@ export interface ArtistDto {
   bg_cover?: string; description?: string;
 }
 
-export interface ArtistDetailResp {
-  artist: ArtistDto; albums?: AlbumDto[]; tracks?: TrackDto[];
-}
-
+/**
+ * 注意：GET /artist/{id} 返回的是裸 Artist 对象（services/api/src/services/artist.ts:39），
+ * 不带 albums / tracks。艺人的专辑与曲目要分别调
+ * albumApi.byArtist / albumApi.collaborativeByArtist / trackApi.byArtist，
+ * 且它们用的是艺人「名字」而不是 id。
+ */
 export interface ArtistLoadMoreParams {
   pageSize: number;
   loadCount: number;
@@ -33,7 +33,7 @@ export interface ArtistLatestParams {
 export interface ArtistApi {
   list(): Promise<ArtistDto[]>;
   loadMore(params: ArtistLoadMoreParams): Promise<LoadMoreResp<ArtistDto>>;
-  getById(id: string): Promise<ArtistDetailResp>;
+  getById(id: string): Promise<ArtistDto>;
   latest(params: ArtistLatestParams): Promise<ArtistDto[]>;
   search(keyword: string, limit: number): Promise<ArtistDto[]>;
 }
@@ -52,8 +52,8 @@ class ArtistApiImpl implements ArtistApi {
     return httpClient.get<LoadMoreResp<ArtistDto>>('/artist/load-more', q);
   }
 
-  async getById(id: string): Promise<ArtistDetailResp> {
-    return httpClient.get<ArtistDetailResp>(`/artist/${id}`);
+  async getById(id: string): Promise<ArtistDto> {
+    return httpClient.get<ArtistDto>(`/artist/${id}`);
   }
 
   async latest(params: ArtistLatestParams): Promise<ArtistDto[]> {

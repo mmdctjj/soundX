@@ -5,13 +5,18 @@ import type { AlbumDto } from './album';
  * 后端控制器前缀是 @Controller("collections")（services/api/src/controllers/audiobook-collection.ts），
  * 不是 /audiobook-collection。字段名对齐 Prisma model AudiobookCollection: id / name / cover / type。
  */
-export interface CollectionDto {
-  id: string; name: string; cover?: string; type?: string;
-}
-
 /** /collections/:id 返回 items，每项 include album。 */
 export interface CollectionAlbumItem {
   id: string; order?: number; album?: AlbumDto;
+}
+
+export interface CollectionDto {
+  id: string; name: string; cover?: string; type?: string;
+  /**
+   * GET /collections 也会带 items（services/api/src/services/audiobook-collection.ts:49），
+   * 但只取前 4 条（take: 4）。
+   */
+  items?: CollectionAlbumItem[];
 }
 
 export interface CollectionDetailResp extends CollectionDto {

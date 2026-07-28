@@ -105,8 +105,7 @@ Row（paddingVertical 12，底部 1px border 色 theme.colors.border）
     其他        → 序号（index + 1），fontSize 14 textSecondary
   小封面 20×20，圆角 2
   信息区 layoutWeight 1，左右 margin 10
-    曲名 fontSize 16，单行省略；
-      有声书且已听过时字色 textSecondary（表示"已读"），否则 text
+    曲名 fontSize 16 色 text，单行省略
     来源标签 fontSize 10 textSecondary，左 margin 6：
       source === 'WEBDAV' → t('trackList.sourceWebdav')，否则 t('trackList.sourceFile')
   （有声书且已听进度 > 0）"已听 x%" fontSize 10 primary，右 margin 10
@@ -121,7 +120,9 @@ Track 上也没有 `progress` 字段。所以后半个分支在 mobile 上恒为
 
 harmony 照此实现即可：仅当 `track.id === currentTrackId` 且专辑是有声书时，
 用 `Math.floor(currentMs / (duration * 1000) * 100)` 算百分比，其余行不显示。
-同理，曲名置灰（`dimmed`）也只对当前播放曲目生效。
+
+同理，mobile 的「已听曲目曲名置灰」用的是同一批恒为 falsy 的字段，实际从不生效——
+harmony 不实现置灰，曲名一律用 `theme.colors.text`。
 
 ## 艺人详情页
 

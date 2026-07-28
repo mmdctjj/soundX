@@ -65,7 +65,9 @@ export function t(key: string, params?: Record<string, string | number>): string
   if (raw === undefined) raw = key;
   if (!params) return raw;
   
-  return raw.replace(/\{(\w+)\}/g, (match: string, name: string): string => {
+  // locale 资源是从 mobile 的 i18next 文案同步过来的，占位符写法是 {{name}}；
+  // 同时兼容单层 {name}，两种都替换。
+  return raw.replace(/\{\{?(\w+)\}\}?/g, (match: string, name: string): string => {
     const keys = Object.keys(params);
     for (let i = 0; i < keys.length; i++) {
       if (keys[i] === name) {
@@ -73,7 +75,7 @@ export function t(key: string, params?: Record<string, string | number>): string
         return String(v);
       }
     }
-    return `{${name}}`;
+    return match;
   });
 }
 

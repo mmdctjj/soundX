@@ -13,7 +13,8 @@ export type AppIconName =
   | 'radio'
   | 'arrow-clockwise'
   | 'plus'
-  | 'heart';
+  | 'heart'
+  | 'play';
 
 const ICON_MAP: Record<AppIconName, Resource> = {
   'home': $r('sys.symbol.house'),
@@ -26,6 +27,7 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'arrow-clockwise': $r('sys.symbol.arrow_clockwise'),
   'plus': $r('sys.symbol.plus'),
   'heart': $r('sys.symbol.heart'),
+  'play': $r('sys.symbol.play_fill'),
 };
 
 export function getIconResource(name: AppIconName): Resource {
