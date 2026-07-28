@@ -11,6 +11,7 @@ export interface Track {
   url: string;
   ext?: string;
   coverUrl?: string;
+  lyrics?: string;
 }
 
 export type PlayMode = 'SEQUENCE' | 'LOOP_LIST' | 'LOOP_SINGLE' | 'SHUFFLE';
@@ -127,6 +128,13 @@ export class PlayerStore {
 
   setMode(mode: PlayMode): void { this.playMode = mode; this.notify(); }
 
+  // 对齐 mobile 的 togglePlayMode 循环顺序
+  togglePlayMode(): void {
+    const order: PlayMode[] = ['SEQUENCE', 'SHUFFLE', 'LOOP_LIST', 'LOOP_SINGLE'];
+    const next = order[(order.indexOf(this.playMode) + 1) % order.length];
+    this.setMode(next);
+  }
+
   clear(): void {
     this.queue = []; this.currentIndex = -1;
     this.currentMs = 0; this.durationMs = 0;
@@ -147,6 +155,7 @@ export class PlayerStore {
       this.state = 'playing'; this.isPlaying = true;
       this.durationMs = t.duration ?? 0;
       this.currentMs = 0;
+      this.setLyricsText(t.lyrics ?? '');
       Logger.i('PlayerStore', `playing ${t.id} ${t.title}`);
       this.notify();
     } catch (e) {

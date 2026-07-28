@@ -10,6 +10,7 @@ export interface TrackDto {
   id: string; name: string; artist?: string; album?: string;
   duration?: number; cover?: string; ext?: string;
   source?: string; index?: number; type?: string;
+  lyrics?: string;
   likedByUsers?: LikedByUser[];
 }
 

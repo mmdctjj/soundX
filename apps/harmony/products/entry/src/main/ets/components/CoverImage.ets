@@ -2,7 +2,7 @@ import { getImageUrl } from '../utils/image';
 
 @Component
 export struct CoverImage {
-  @Prop path: string | null = null;
+  @Prop @Watch('onPathChange') path: string | null = null;
   @Prop imgWidth: number = 60;
   @Prop imgHeight: number = 60;
   @Prop radius: number | string = 8;
@@ -13,6 +13,12 @@ export struct CoverImage {
 
   aboutToAppear() {
     this.currentUrl = getImageUrl(this.path);
+  }
+
+  // path 变化时刷新 URL 并清掉失败态（切歌换封面依赖这个）
+  onPathChange() {
+    this.currentUrl = getImageUrl(this.path);
+    this.failed = false;
   }
 
   @Builder

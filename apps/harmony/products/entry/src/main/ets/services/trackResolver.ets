@@ -19,5 +19,6 @@ function toPlayerTrack(t: TrackDto, url: string): Track {
   return {
     id: t.id, title: t.name, artist: t.artist, album: t.album,
     duration: t.duration, coverUrl: t.cover, ext: t.ext, url,
+    lyrics: t.lyrics,
   };
 }
