@@ -123,14 +123,14 @@ class SourceSelectPage extends ViewPU {
                     let componentCall = new CommonButton(this, {
                         label: t('common.next'),
                         theme: this.theme,
-                        onClick: (): void => { this.saveAndNext(); },
+                        onButtonClick: (): void => { this.saveAndNext(); },
                     }, undefined, elmtId, () => { }, { page: "products/entry/src/main/ets/pages/SourceSelectPage.ets", line: 25, col: 9 });
                     ViewPU.create(componentCall);
                     let paramsLambda = () => {
                         return {
                             label: t('common.next'),
                             theme: this.theme,
-                            onClick: (): void => { this.saveAndNext(); }
+                            onButtonClick: (): void => { this.saveAndNext(); }
                         };
                     };
                     componentCall.paramsGenerator_ = paramsLambda;

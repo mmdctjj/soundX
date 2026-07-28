@@ -3,7 +3,7 @@ import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from
 import { t } from 'features_i18n';
 import { collectionApi } from 'features_network';
 import type { CollectionDto } from 'features_network';
-import { likesHistory } from '../services/LikesHistoryService';
+import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
 
 interface CollectionDetail extends CollectionDto { audiobooks: AudiobookStub[] }
 interface AudiobookStub { id: string; title: string; duration?: number }
@@ -25,7 +25,7 @@ struct CollectionDetailPage {
     this.entityId = p.id ?? '';
     this.load();
     this.unsub = likesHistory.on('albumLike', (e) => {
-      const ev = e as { id: string; liked: boolean };
+      const ev = e as EventPayloadId;
       if (ev.id === this.entityId) this.liked = ev.liked;
     });
     likesHistory.isAlbumLiked(this.entityId).then((v) => this.liked = v).catch(() => undefined);

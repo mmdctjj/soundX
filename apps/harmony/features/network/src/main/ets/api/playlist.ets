@@ -20,6 +20,11 @@ export interface PlaylistAddTracksPayload {
   trackIds: string[];
 }
 
+export interface PlaylistSearchParams {
+  keyword: string;
+  limit: number;
+}
+
 export interface PlaylistApi {
   list(): Promise<PlaylistDto[]>;
   getById(id: string): Promise<PlaylistDetailResp>;
@@ -40,7 +45,15 @@ class PlaylistApiImpl implements PlaylistApi {
     return httpClient.get<PlaylistDetailResp>(`/playlist/${id}`);
   }
   async search(keyword: string, limit: number = 30): Promise<PlaylistDto[]> {
-    return httpClient.get<PlaylistDto[]>('/playlist/search', { keyword, limit });
+    const p = new Map<string, string | number | boolean>();
+    p.set('keyword', keyword);
+    p.set('limit', limit);
+    const record: Record<string, string | number | boolean> = {};
+    const keys = Array.from(p.keys());
+    for (let i = 0; i < keys.length; i++) {
+      record[keys[i]] = p.get(keys[i])!;
+    }
+    return httpClient.get<PlaylistDto[]>('/playlist/search', record);
   }
   async create(name: string): Promise<PlaylistDto> {
     const payload: PlaylistCreatePayload = { name: name };

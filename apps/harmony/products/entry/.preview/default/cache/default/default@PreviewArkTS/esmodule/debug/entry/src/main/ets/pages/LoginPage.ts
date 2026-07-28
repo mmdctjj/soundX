@@ -176,7 +176,7 @@ class LoginPage extends ViewPU {
                         label: this.loading ? t('common.loading') : t('common.login'),
                         theme: this.theme,
                         disabled: this.loading,
-                        onClick: (): void => { this.doLogin(); },
+                        onButtonClick: (): void => { this.doLogin(); },
                     }, undefined, elmtId, () => { }, { page: "products/entry/src/main/ets/pages/LoginPage.ets", line: 33, col: 9 });
                     ViewPU.create(componentCall);
                     let paramsLambda = () => {
@@ -184,7 +184,7 @@ class LoginPage extends ViewPU {
                             label: this.loading ? t('common.loading') : t('common.login'),
                             theme: this.theme,
                             disabled: this.loading,
-                            onClick: (): void => { this.doLogin(); }
+                            onButtonClick: (): void => { this.doLogin(); }
                         };
                     };
                     componentCall.paramsGenerator_ = paramsLambda;

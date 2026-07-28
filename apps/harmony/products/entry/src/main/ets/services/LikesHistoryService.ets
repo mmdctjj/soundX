@@ -25,9 +25,16 @@ export type SyncTask =
   | SyncTaskHistory;
 
 export type EventKind = 'trackLike' | 'albumLike' | 'history';
-export type EventPayload =
-  | { id: string; liked: boolean }
-  | { trackId: string; progress: number; source: string | null };
+
+export interface EventPayloadId { id: string; liked: boolean; }
+export interface EventPayloadHistory { trackId: string; progress: number; source: string | null; }
+export type EventPayload = EventPayloadId | EventPayloadHistory;
+
+export interface RecordHistoryRow {
+  track_id: string;
+  progress: number;
+  source: string | null;
+}
 
 type Listener = (payload: EventPayload) => void;
 
@@ -66,14 +73,16 @@ export class LikesHistoryService {
     await rdbStore.likeTrack(trackId);
     const task: SyncTaskTrackLike = { kind: 'like_track', trackId: trackId, attempts: 0 };
     this.queue.push(task);
-    this.emit('trackLike', { id: trackId, liked: true });
+    const payload: EventPayloadId = { id: trackId, liked: true };
+    this.emit('trackLike', payload);
   }
 
   async unlikeTrack(trackId: string): Promise<void> {
     await rdbStore.unlikeTrack(trackId);
     const task: SyncTaskTrackUnlike = { kind: 'unlike_track', trackId: trackId, attempts: 0 };
     this.queue.push(task);
-    this.emit('trackLike', { id: trackId, liked: false });
+    const payload: EventPayloadId = { id: trackId, liked: false };
+    this.emit('trackLike', payload);
   }
 
   async isTrackLiked(trackId: string): Promise<boolean> {
@@ -89,14 +98,16 @@ export class LikesHistoryService {
     await rdbStore.likeAlbum(albumId);
     const task: SyncTaskAlbumLike = { kind: 'like_album', albumId: albumId, attempts: 0 };
     this.queue.push(task);
-    this.emit('albumLike', { id: albumId, liked: true });
+    const payload: EventPayloadId = { id: albumId, liked: true };
+    this.emit('albumLike', payload);
   }
 
   async unlikeAlbum(albumId: string): Promise<void> {
     await rdbStore.unlikeAlbum(albumId);
     const task: SyncTaskAlbumUnlike = { kind: 'unlike_album', albumId: albumId, attempts: 0 };
     this.queue.push(task);
-    this.emit('albumLike', { id: albumId, liked: false });
+    const payload: EventPayloadId = { id: albumId, liked: false };
+    this.emit('albumLike', payload);
   }
 
   async isAlbumLiked(albumId: string): Promise<boolean> {
@@ -108,7 +119,7 @@ export class LikesHistoryService {
   }
 
   // --- History -----------------------------------------------------------
-  async recordHistory(row: { track_id: string; progress: number; source: string | null }): Promise<void> {
+  async recordHistory(row: RecordHistoryRow): Promise<void> {
     const playedAt: number = Date.now();
     await rdbStore.upsertHistory({
       track_id: row.track_id,
@@ -125,7 +136,8 @@ export class LikesHistoryService {
       attempts: 0,
     };
     this.queue.push(task);
-    this.emit('history', { trackId: row.track_id, progress: row.progress, source: row.source });
+    const payload: EventPayloadHistory = { trackId: row.track_id, progress: row.progress, source: row.source };
+    this.emit('history', payload);
   }
 
   async listHistory(limit: number): Promise<TrackHistoryRow[]> {
@@ -192,28 +204,60 @@ export class LikesHistoryService {
   private async send(task: SyncTask): Promise<void> {
     switch (task.kind) {
       case 'like_track': {
-        const body: Record<string, string | number | boolean> = { liked: true, trackId: task.trackId };
+        const m = new Map<string, string | number | boolean>();
+        m.set('liked', true);
+        m.set('trackId', task.trackId);
+        const body: Record<string, string | number | boolean> = {};
+        const keys = Array.from(m.keys());
+        for (let i = 0; i < keys.length; i++) {
+          body[keys[i]] = m.get(keys[i])!;
+        }
         return httpClient.post('/likes/track', body);
       }
       case 'unlike_track': {
-        const body: Record<string, string | number | boolean> = { liked: false, trackId: task.trackId };
+        const m = new Map<string, string | number | boolean>();
+        m.set('liked', false);
+        m.set('trackId', task.trackId);
+        const body: Record<string, string | number | boolean> = {};
+        const keys = Array.from(m.keys());
+        for (let i = 0; i < keys.length; i++) {
+          body[keys[i]] = m.get(keys[i])!;
+        }
         return httpClient.post('/likes/track', body);
       }
       case 'like_album': {
-        const body: Record<string, string | number | boolean> = { liked: true, albumId: task.albumId };
+        const m = new Map<string, string | number | boolean>();
+        m.set('liked', true);
+        m.set('albumId', task.albumId);
+        const body: Record<string, string | number | boolean> = {};
+        const keys = Array.from(m.keys());
+        for (let i = 0; i < keys.length; i++) {
+          body[keys[i]] = m.get(keys[i])!;
+        }
         return httpClient.post('/likes/album', body);
       }
       case 'unlike_album': {
-        const body: Record<string, string | number | boolean> = { liked: false, albumId: task.albumId };
+        const m = new Map<string, string | number | boolean>();
+        m.set('liked', false);
+        m.set('albumId', task.albumId);
+        const body: Record<string, string | number | boolean> = {};
+        const keys = Array.from(m.keys());
+        for (let i = 0; i < keys.length; i++) {
+          body[keys[i]] = m.get(keys[i])!;
+        }
         return httpClient.post('/likes/album', body);
       }
       case 'history': {
-        const body: Record<string, string | number> = {
-          trackId: task.trackId,
-          progress: task.progress,
-          playedAt: task.playedAt,
-          source: task.source,
-        };
+        const m = new Map<string, string | number>();
+        m.set('trackId', task.trackId);
+        m.set('progress', task.progress);
+        m.set('playedAt', task.playedAt);
+        m.set('source', task.source);
+        const body: Record<string, string | number> = {};
+        const keys = Array.from(m.keys());
+        for (let i = 0; i < keys.length; i++) {
+          body[keys[i]] = m.get(keys[i])!;
+        }
         return httpClient.post('/track-history', body);
       }
     }

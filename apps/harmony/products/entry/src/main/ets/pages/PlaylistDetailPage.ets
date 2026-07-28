@@ -5,7 +5,7 @@ import { formatDuration } from 'audiodock_common';
 import { playlistApi } from 'features_network';
 import type { PlaylistDto, TrackDto } from 'features_network';
 import { resolveTrackToPlayer } from '../services/trackResolver';
-import { likesHistory } from '../services/LikesHistoryService';
+import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
 
@@ -28,7 +28,7 @@ struct PlaylistDetailPage {
     this.entityId = p.id ?? '';
     this.load();
     this.unsub = likesHistory.on('albumLike', (e) => {
-      const ev = e as { id: string; liked: boolean };
+      const ev = e as EventPayloadId;
       if (ev.id === this.entityId) this.liked = ev.liked;
     });
     likesHistory.isAlbumLiked(this.entityId).then((v) => this.liked = v).catch(() => undefined);
