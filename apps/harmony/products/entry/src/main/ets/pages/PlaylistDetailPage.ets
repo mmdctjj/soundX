@@ -8,6 +8,7 @@ import { resolveTrackToPlayer } from '../services/trackResolver';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
+import { MiniPlayer } from '../components/MiniPlayer';
 
 interface PlaylistDetail extends PlaylistDto { tracks: TrackDto[] }
 
@@ -46,12 +47,14 @@ struct PlaylistDetailPage {
         Column({ space: 12 }) {
           SkeletonBlock({ blockHeight: 160, theme: this.theme });
           SkeletonBlock({ blockWidth: '60%', blockHeight: 20, theme: this.theme });
-        }.padding(16);
+        }.padding(16).layoutWeight(1);
       } else if (this.error || !this.data) {
-        EmptyView({ message: this.error || t('detail.retry_failed'), theme: this.theme });
+        EmptyView({ message: this.error || t('detail.retry_failed'), theme: this.theme })
+          .layoutWeight(1);
       } else {
         this.content();
       }
+      MiniPlayer()
     }.width('100%').height('100%').backgroundColor(this.theme.colors.background);
   }
 
@@ -98,7 +101,7 @@ struct PlaylistDetailPage {
           });
         }, (tr: TrackDto) => tr.id);
       }.layoutWeight(1);
-    }.padding(16);
+    }.padding(16).layoutWeight(1);
   }
 
   private async load(): Promise<void> {

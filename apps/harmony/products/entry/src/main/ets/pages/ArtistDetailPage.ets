@@ -9,6 +9,7 @@ import { DetailHero } from '../components/DetailHero';
 import { SectionHeader } from '../components/SectionHeader';
 import { AlbumCarouselCard } from '../components/AlbumCarouselCard';
 import { TrackRow } from '../components/TrackRow';
+import { MiniPlayer } from '../components/MiniPlayer';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
@@ -68,9 +69,11 @@ struct ArtistDetailPage {
           })
         }
         .padding(16)
+        .layoutWeight(1)
       } else {
         this.Content()
       }
+      MiniPlayer()
     }
     .width('100%')
     .height('100%')
@@ -265,6 +268,7 @@ struct ArtistDetailPage {
       }, (i: number) => String(i))
     }
     .width('100%')
+    .layoutWeight(1)
     .alignItems(HorizontalAlign.Center)
     .padding(20)
   }

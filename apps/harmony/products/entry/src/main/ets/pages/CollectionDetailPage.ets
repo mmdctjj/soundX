@@ -4,6 +4,7 @@ import { t } from 'features_i18n';
 import { collectionApi } from 'features_network';
 import type { CollectionDetailResp, CollectionAlbumItem } from 'features_network';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
+import { MiniPlayer } from '../components/MiniPlayer';
 
 @Entry
 @Component
@@ -40,12 +41,14 @@ struct CollectionDetailPage {
         Column({ space: 12 }) {
           SkeletonBlock({ blockHeight: 160, theme: this.theme });
           SkeletonBlock({ blockWidth: '60%', blockHeight: 20, theme: this.theme });
-        }.padding(16);
+        }.padding(16).layoutWeight(1);
       } else if (this.error || !this.data) {
-        EmptyView({ message: this.error || t('detail.retry_failed'), theme: this.theme });
+        EmptyView({ message: this.error || t('detail.retry_failed'), theme: this.theme })
+          .layoutWeight(1);
       } else {
         this.content();
       }
+      MiniPlayer()
     }.width('100%').height('100%').backgroundColor(this.theme.colors.background);
   }
 
@@ -74,7 +77,7 @@ struct CollectionDetailPage {
           });
         }, (it: CollectionAlbumItem) => it.id);
       }.layoutWeight(1);
-    }.padding(16);
+    }.padding(16).layoutWeight(1);
   }
 
   private async load(): Promise<void> {

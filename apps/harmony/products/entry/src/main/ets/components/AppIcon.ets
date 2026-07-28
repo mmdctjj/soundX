@@ -14,7 +14,10 @@ export type AppIconName =
   | 'arrow-clockwise'
   | 'plus'
   | 'heart'
-  | 'play';
+  | 'play'
+  | 'pause'
+  | 'skip-back'
+  | 'skip-forward';
 
 const ICON_MAP: Record<AppIconName, Resource> = {
   'home': $r('sys.symbol.house'),
@@ -28,6 +31,9 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'plus': $r('sys.symbol.plus'),
   'heart': $r('sys.symbol.heart'),
   'play': $r('sys.symbol.play_fill'),
+  'pause': $r('sys.symbol.pause_fill'),
+  'skip-back': $r('sys.symbol.backward_end_fill'),
+  'skip-forward': $r('sys.symbol.forward_end_fill'),
 };
 
 export function getIconResource(name: AppIconName): Resource {

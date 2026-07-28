@@ -6,6 +6,7 @@ import type { TrackDto, AlbumDto, ArtistDto, PlaylistDto } from 'features_networ
 import { rdbStore } from 'features_storage';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
+import { MiniPlayer } from '../components/MiniPlayer';
 
 const DEBOUNCE_MS = 300;
 const RESULT_LIMIT = 30;
@@ -54,6 +55,7 @@ struct SearchPage {
       } else {
         this.resultsView();
       }
+      MiniPlayer()
     }.width('100%').height('100%').backgroundColor(this.theme.colors.background);
   }
 
