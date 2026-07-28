@@ -140,3 +140,79 @@ test('parseVersion: valid version returns parsed object', () => {
 test('parseVersion: invalid version throws Chinese error', () => {
   assert.throws(() => parseVersion('garbage'), /版本号格式不合法/);
 });
+
+const { updateVersionsWithRollback } = require('./release');
+
+const PACKAGES_FOR_TEST = ['a.json', 'b.json'];
+
+function setupFixtures() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'release-sync-'));
+  fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ name: 'a', version: '1.0.0' }, null, 2) + '\n');
+  fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ name: 'b', version: '1.0.0' }, null, 2) + '\n');
+  fs.writeFileSync(path.join(dir, 'app.json'), JSON.stringify({ expo: { name: 'app', version: '1.0.0' } }, null, 2) + '\n');
+  return dir;
+}
+
+test('updateVersionsWithRollback: updates version field on plain JSON', () => {
+  const dir = setupFixtures();
+  try {
+    const result = updateVersionsWithRollback('2.0.0', [path.join(dir, 'a.json')], { dryRun: false });
+    const updated = JSON.parse(fs.readFileSync(path.join(dir, 'a.json'), 'utf8'));
+    assert.equal(updated.version, '2.0.0');
+    assert.deepEqual(result.updated, [path.join(dir, 'a.json')]);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('updateVersionsWithRollback: updates expo.version on app.json-like files', () => {
+  const dir = setupFixtures();
+  try {
+    updateVersionsWithRollback('2.0.0', [path.join(dir, 'app.json')], { dryRun: false });
+    const updated = JSON.parse(fs.readFileSync(path.join(dir, 'app.json'), 'utf8'));
+    assert.equal(updated.expo.version, '2.0.0');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('updateVersionsWithRollback: rollback restores original bytes', () => {
+  const dir = setupFixtures();
+  const originalBytes = fs.readFileSync(path.join(dir, 'a.json'));
+  const result = updateVersionsWithRollback('2.0.0', [path.join(dir, 'a.json')], { dryRun: false });
+  result.rollback();
+  const after = fs.readFileSync(path.join(dir, 'a.json'));
+  assert.equal(after.equals(originalBytes), true);
+});
+
+test('updateVersionsWithRollback: dryRun does not write', () => {
+  const dir = setupFixtures();
+  const originalBytes = fs.readFileSync(path.join(dir, 'a.json'));
+  try {
+    const result = updateVersionsWithRollback('2.0.0', [path.join(dir, 'a.json')], { dryRun: true });
+    const after = fs.readFileSync(path.join(dir, 'a.json'));
+    assert.equal(after.equals(originalBytes), true);
+    assert.deepEqual(result.updated, []);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('updateVersionsWithRollback: write failure triggers rollback and rethrows', () => {
+  const dir = setupFixtures();
+  const originalBytes = fs.readFileSync(path.join(dir, 'a.json'));
+  // 让 b.json 不可写：把目录设为只读（macOS 上用 chmod）
+  fs.chmodSync(path.join(dir, 'b.json'), 0o444);
+  try {
+    assert.throws(
+      () => updateVersionsWithRollback('2.0.0', [path.join(dir, 'a.json'), path.join(dir, 'b.json')], { dryRun: false }),
+      /更新 EACCES.*已回滚所有 package.json 到原版本/
+    );
+    // a.json 应被回滚
+    const after = fs.readFileSync(path.join(dir, 'a.json'));
+    assert.equal(after.equals(originalBytes), true);
+  } finally {
+    fs.chmodSync(path.join(dir, 'b.json'), 0o644);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

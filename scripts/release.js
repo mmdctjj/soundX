@@ -198,7 +198,55 @@ function computeCommitMessage(mode, subArg, version) {
   return `chore(release): bump to ${version}`;
 }
 
-module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion };
+module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion, updateVersionsWithRollback };
+
+function updateVersionsWithRollback(newVersion, filePaths, options = {}) {
+  const { dryRun = false } = options;
+  const originals = new Map();
+  const updated = [];
+
+  try {
+    for (const filePath of filePaths) {
+      if (!fs.existsSync(filePath)) {
+        console.warn(`⚠️ 跳过不存在的文件：${filePath}`);
+        continue;
+      }
+      originals.set(filePath, fs.readFileSync(filePath));
+      const pkg = JSON.parse(originals.get(filePath).toString('utf8'));
+      if (filePath.endsWith('app.json') && pkg.expo) {
+        pkg.expo.version = newVersion;
+      } else {
+        pkg.version = newVersion;
+      }
+      if (dryRun) {
+        console.log(`[dry-run] would update ${filePath} to version ${newVersion}`);
+        continue;
+      }
+      fs.writeFileSync(filePath, JSON.stringify(pkg, null, 2) + '\n');
+      updated.push(filePath);
+      console.log(`Updated ${filePath} to ${newVersion}`);
+    }
+  } catch (error) {
+    // 回滚已修改的文件
+    for (const filePath of updated) {
+      try {
+        fs.writeFileSync(filePath, originals.get(filePath));
+      } catch (rollbackError) {
+        console.error(`❌ 回滚 ${filePath} 失败：${rollbackError.message}`);
+      }
+    }
+    throw new Error(`更新 ${error.message}。已回滚所有 package.json 到原版本。`);
+  }
+
+  return {
+    updated,
+    rollback() {
+      for (const filePath of updated) {
+        fs.writeFileSync(filePath, originals.get(filePath));
+      }
+    },
+  };
+}
 
 function checkWorkingTreeDirty(cwd = process.cwd()) {
   const out = execSync('git status --porcelain', { cwd, encoding: 'utf8' });
