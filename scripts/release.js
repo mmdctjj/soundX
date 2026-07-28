@@ -198,4 +198,24 @@ function computeCommitMessage(mode, subArg, version) {
   return `chore(release): bump to ${version}`;
 }
 
-module.exports = { computeNextVersion, computeCommitMessage };
+module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion };
+
+function checkWorkingTreeDirty(cwd = process.cwd()) {
+  const out = execSync('git status --porcelain', { cwd, encoding: 'utf8' });
+  return out.trim().length > 0;
+}
+
+function checkExistingTag(version, cwd = process.cwd()) {
+  try {
+    execSync(`git rev-parse v${version}`, { cwd, stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function parseVersion(version) {
+  const p = semver$.parse(version);
+  if (!p) throw new Error(`版本号格式不合法：${version}`);
+  return p;
+}
