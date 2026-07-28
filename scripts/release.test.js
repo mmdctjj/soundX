@@ -216,3 +216,41 @@ test('updateVersionsWithRollback: write failure triggers rollback and rethrows',
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+const { parseCliArgs } = require('./release');
+
+test('parseCliArgs: no args → stable mode', () => {
+  assert.deepEqual(parseCliArgs([]), { mode: 'stable', subArg: undefined, customVersion: undefined, help: false });
+});
+
+test('parseCliArgs: beta → beta mode', () => {
+  assert.deepEqual(parseCliArgs(['beta']), { mode: 'beta', subArg: undefined, customVersion: undefined, help: false });
+});
+
+test('parseCliArgs: beta patch → beta with subArg patch', () => {
+  assert.deepEqual(parseCliArgs(['beta', 'patch']), { mode: 'beta', subArg: 'patch', customVersion: undefined, help: false });
+});
+
+test('parseCliArgs: beta next → beta with subArg next', () => {
+  assert.deepEqual(parseCliArgs(['beta', 'next']), { mode: 'beta', subArg: 'next', customVersion: undefined, help: false });
+});
+
+test('parseCliArgs: beta with explicit version', () => {
+  assert.deepEqual(parseCliArgs(['beta', '1.2.24-beta.1']), { mode: 'beta', subArg: undefined, customVersion: '1.2.24-beta.1', help: false });
+});
+
+test('parseCliArgs: stable patch → stable with subArg patch', () => {
+  assert.deepEqual(parseCliArgs(['patch']), { mode: 'stable', subArg: 'patch', customVersion: undefined, help: false });
+});
+
+test('parseCliArgs: unknown subArg for stable → custom version', () => {
+  assert.deepEqual(parseCliArgs(['1.2.30']), { mode: 'stable', subArg: undefined, customVersion: '1.2.30', help: false });
+});
+
+test('parseCliArgs: unknown mode throws', () => {
+  assert.throws(() => parseCliArgs(['nope']), /未知的发布模式/);
+});
+
+test('parseCliArgs: beta with invalid subArg throws', () => {
+  assert.throws(() => parseCliArgs(['beta', 'garbage']), /未知的发布模式/);
+});

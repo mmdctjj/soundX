@@ -198,7 +198,43 @@ function computeCommitMessage(mode, subArg, version) {
   return `chore(release): bump to ${version}`;
 }
 
-module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion, updateVersionsWithRollback };
+module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion, updateVersionsWithRollback, parseCliArgs };
+
+const STABLE_KEYWORDS = new Set(['patch', 'minor', 'major']);
+const VERSION_RE = /^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?$/;
+
+function parseCliArgs(argv) {
+  if (argv.length === 0) {
+    return { mode: 'stable', subArg: undefined, customVersion: undefined, help: false };
+  }
+  const [first, second] = argv;
+
+  if (first === 'beta') {
+    if (second === undefined) {
+      return { mode: 'beta', subArg: undefined, customVersion: undefined, help: false };
+    }
+    if (second === 'patch' || second === 'next') {
+      return { mode: 'beta', subArg: second, customVersion: undefined, help: false };
+    }
+    if (VERSION_RE.test(second) && /-beta\.\d+$/.test(second)) {
+      return { mode: 'beta', subArg: undefined, customVersion: second, help: false };
+    }
+    throw new Error(`未知的发布模式：${second}。可用模式：beta（运行 release:beta）或留空（运行 release）。`);
+  }
+
+  if (first === '-h' || first === '--help') {
+    return { mode: 'stable', subArg: undefined, customVersion: undefined, help: true };
+  }
+
+  // stable 模式分支
+  if (STABLE_KEYWORDS.has(first)) {
+    return { mode: 'stable', subArg: first, customVersion: undefined, help: false };
+  }
+  if (VERSION_RE.test(first)) {
+    return { mode: 'stable', subArg: undefined, customVersion: first, help: false };
+  }
+  throw new Error(`未知的发布模式：${first}。可用模式：beta（运行 release:beta）或留空（运行 release）。`);
+}
 
 function updateVersionsWithRollback(newVersion, filePaths, options = {}) {
   const { dryRun = false } = options;
