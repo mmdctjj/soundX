@@ -1,7 +1,12 @@
 import router from '@ohos.router';
 import { MiniPlayer } from '../components/MiniPlayer';
+import { AppIcon, AppIconName } from '../components/AppIcon';
+import { CoverImage } from '../components/CoverImage';
 import { httpClient } from '../utils/HttpClient';
 import { storage } from '../utils/StorageManager';
+import { t } from 'features_i18n';
+import { LibraryTab } from './LibraryPage';
+import { PersonalTab } from './PersonalPage';
 import {
   getLatestArtists,
   getRecentAlbums,
@@ -261,17 +266,14 @@ struct HomeTab {
   @Builder
   ArtistCard(artist: Artist) {
     Column() {
-      Column() {
-        Text(artist.name.substring(0, 1))
-          .fontSize(30)
-          .fontColor('#FFFFFF')
-          .fontWeight(FontWeight.Bold)
-      }
-      .width(80)
-      .height(80)
-      .borderRadius(40)
-      .backgroundColor('#007DFF')
-      .justifyContent(FlexAlign.Center)
+      CoverImage({
+        path: artist.avatar || artist.cover,
+        imgWidth: 80,
+        imgHeight: 80,
+        radius: 40,
+        fallbackText: artist.name,
+        fallbackBg: '#007DFF'
+      })
 
       Text(artist.name)
         .fontSize(13)
@@ -289,35 +291,36 @@ struct HomeTab {
   @Builder
   AlbumCard(album: Album, showProgress: boolean) {
     Column() {
-      Column() {
-        Text(album.name.substring(0, 1))
-          .fontSize(40)
-          .fontColor('#FFFFFF')
-          .fontWeight(FontWeight.Bold)
+      Stack({ alignContent: Alignment.Bottom }) {
+        CoverImage({
+          path: album.cover,
+          imgWidth: 120,
+          imgHeight: 120,
+          radius: 10,
+          fallbackText: album.name,
+          fallbackBg: '#5B8FF9'
+        })
+
+        if (showProgress && album.progress !== undefined && album.progress > 0) {
+          Stack() {
+            Row()
+              .width('100%')
+              .height(3)
+              .backgroundColor('rgba(255,255,255,0.3)')
+              .borderRadius(1.5)
+
+            Row()
+              .width(album.progress + '%')
+              .height(3)
+              .backgroundColor('#007DFF')
+              .borderRadius(1.5)
+          }
+          .width(120)
+          .margin({ top: -8, bottom: 8 })
+        }
       }
       .width(120)
       .height(120)
-      .borderRadius(10)
-      .backgroundColor('#5B8FF9')
-      .justifyContent(FlexAlign.Center)
-
-      if (showProgress && album.progress !== undefined && album.progress > 0) {
-        Stack() {
-          Row()
-            .width('100%')
-            .height(3)
-            .backgroundColor('rgba(255,255,255,0.3)')
-            .borderRadius(1.5)
-
-          Row()
-            .width(album.progress + '%')
-            .height(3)
-            .backgroundColor('#007DFF')
-            .borderRadius(1.5)
-        }
-        .width(120)
-        .margin({ top: -8, bottom: 8 })
-      }
 
       Text(album.name)
         .fontSize(14)
@@ -342,17 +345,14 @@ struct HomeTab {
   @Builder
   TrackCard(track: Track) {
     Row() {
-      Column() {
-        Text(track.name.substring(0, 1))
-          .fontSize(20)
-          .fontColor('#FFFFFF')
-          .fontWeight(FontWeight.Bold)
-      }
-      .width(50)
-      .height(50)
-      .borderRadius(4)
-      .backgroundColor('#52B54B')
-      .justifyContent(FlexAlign.Center)
+      CoverImage({
+        path: track.cover,
+        imgWidth: 50,
+        imgHeight: 50,
+        radius: 4,
+        fallbackText: track.name,
+        fallbackBg: '#52B54B'
+      })
 
       Column() {
         Text(track.name)
@@ -377,8 +377,11 @@ struct HomeTab {
 
       Row() {
         Button() {
-          Text(this.isTrackLiked(track) ? '❤' : '🤍')
-            .fontSize(16)
+          AppIcon({
+            name: 'heart',
+            iconSize: 16,
+            color: this.isTrackLiked(track) ? '#ff4d6d' : '#95a5a6'
+          })
         }
         .backgroundColor(Color.Transparent)
         .width(32)
@@ -386,8 +389,7 @@ struct HomeTab {
         .onClick(() => this.toggleLike(track.id))
 
         Button() {
-          Text('➕')
-            .fontSize(16)
+          AppIcon({ name: 'plus', iconSize: 16, color: '#95a5a6' })
         }
         .backgroundColor(Color.Transparent)
         .width(32)
@@ -414,9 +416,7 @@ struct HomeTab {
       Row() {
         if (sectionId === 'tracks') {
           Button() {
-            Text('▶')
-              .fontSize(14)
-              .fontColor('#FFFFFF')
+            AppIcon({ name: 'plus', iconSize: 14, color: '#FFFFFF' })
           }
           .width(28)
           .height(28)
@@ -426,8 +426,7 @@ struct HomeTab {
         }
 
         Button() {
-          Text('↻')
-            .fontSize(16)
+          AppIcon({ name: 'arrow-clockwise', iconSize: 16, color: '#2c3e50' })
         }
         .backgroundColor(Color.Transparent)
         .width(32)
@@ -448,7 +447,7 @@ struct HomeTab {
     } else {
       Column() {
         Row() {
-          Text('AudioDock')
+          Text(t('homePage.title'))
             .fontSize(24)
             .fontWeight(FontWeight.Bold)
             .fontColor('#2c3e50')
@@ -456,8 +455,7 @@ struct HomeTab {
           Row() {
             if (this.mode === 'MUSIC') {
               Button() {
-                Text(this.isRadioMode ? '📻' : '⭕')
-                  .fontSize(18)
+                AppIcon({ name: 'radio', iconSize: 18, color: this.isRadioMode ? '#007DFF' : '#2c3e50' })
               }
               .width(36)
               .height(36)
@@ -470,8 +468,11 @@ struct HomeTab {
             }
 
             Button() {
-              Text(this.mode === 'MUSIC' ? '🎵' : '🎧')
-                .fontSize(18)
+              AppIcon({
+                name: this.mode === 'MUSIC' ? 'headphones' : 'headphones',
+                iconSize: 18,
+                color: '#2c3e50'
+              })
             }
             .width(36)
             .height(36)
@@ -485,7 +486,10 @@ struct HomeTab {
         .justifyContent(FlexAlign.SpaceBetween)
 
         Row() {
-          Text('🔍 搜索音乐、专辑、艺人...')
+          AppIcon({ name: 'plus', iconSize: 16, color: '#95a5a6' })
+            .margin({ right: 8 })
+
+          Text(t('homePage.searchPlaceholder'))
             .fontSize(14)
             .fontColor('#95a5a6')
         }
@@ -537,11 +541,10 @@ struct HomeTab {
 
           ListItem() {
             Row() {
-              Text('⚙️')
-                .fontSize(16)
+              AppIcon({ name: 'folder', iconSize: 16, color: '#007DFF' })
                 .margin({ right: 8 })
 
-              Text('调整板块顺序')
+              Text(t('homePage.adjustOrder'))
                 .fontSize(14)
                 .fontColor('#007DFF')
             }
@@ -644,80 +647,15 @@ struct HomeTab {
   }
 }
 
-@Component
-struct LibraryTab {
-  navigateToLibrary() {
-    router.pushUrl({ url: 'pages/LibraryPage' });
-  }
-
-  build() {
-    Column() {
-      Text('🎵 音乐库')
-        .fontSize(24)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#2c3e50')
-        .margin({ top: 40, bottom: 20 })
-
-      Button('进入音乐库')
-        .width('60%')
-        .height(48)
-        .backgroundColor('#007DFF')
-        .borderRadius(12)
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF')
-        .margin({ top: 16 })
-        .onClick(() => this.navigateToLibrary())
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor('#ffffff')
-    .justifyContent(FlexAlign.Start)
-  }
-}
-
-@Component
-struct PersonalTab {
-  navigateToPersonal() {
-    router.pushUrl({ url: 'pages/PersonalPage' });
-  }
-
-  build() {
-    Column() {
-      Text('👤 我的')
-        .fontSize(24)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#2c3e50')
-        .margin({ top: 40, bottom: 20 })
-
-      Button('进入个人中心')
-        .width('60%')
-        .height(48)
-        .backgroundColor('#007DFF')
-        .borderRadius(12)
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF')
-        .margin({ top: 16 })
-        .onClick(() => this.navigateToPersonal())
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor('#ffffff')
-    .justifyContent(FlexAlign.Start)
-  }
-}
-
 @Entry
 @Component
 struct MainPage {
   @State currentIndex: number = 0;
 
   @Builder
-  TabBuilder(title: string, index: number, icon: string, activeIcon: string) {
+  TabBuilder(title: string, index: number, icon: AppIconName) {
     Column() {
-      Text(this.currentIndex === index ? activeIcon : icon)
-        .fontSize(24)
+      AppIcon({ name: icon, iconSize: 24, color: this.currentIndex === index ? '#007DFF' : '#95a5a6' })
         .margin({ bottom: 4 })
 
       Text(title)
@@ -736,23 +674,23 @@ struct MainPage {
         TabContent() {
           HomeTab()
         }
-        .tabBar(this.TabBuilder('首页', 0, '🏠', '🏠'))
+        .tabBar(this.TabBuilder(t('navTabs.recommend'), 0, 'home'))
 
         TabContent() {
           LibraryTab()
         }
-        .tabBar(this.TabBuilder('音乐库', 1, '📚', '📚'))
+        .tabBar(this.TabBuilder(t('navTabs.soundcang'), 1, 'headphones'))
 
         TabContent() {
           PersonalTab()
         }
-        .tabBar(this.TabBuilder('我的', 2, '👤', '👤'))
+        .tabBar(this.TabBuilder(t('navTabs.mine'), 2, 'person'))
       }
       .width('100%')
       .height('100%')
       .barWidth('100%')
       .barHeight(56)
-      .animationDuration(300)
+        .animationDuration(300)
       .onChange((index: number) => {
         this.currentIndex = index;
       })

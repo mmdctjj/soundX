@@ -1,6 +1,9 @@
 import router from '@ohos.router';
+import { AppIcon } from '../components/AppIcon';
+import { CoverImage } from '../components/CoverImage';
 import { storage } from '../utils/StorageManager';
 import { httpClient } from '../utils/HttpClient';
+import { t } from 'features_i18n';
 import {
   getCurrentUser,
   getPlaylists,
@@ -23,9 +26,8 @@ class TabInfo {
   }
 }
 
-@Entry
 @Component
-struct PersonalPage {
+export struct PersonalTab {
   @State mode: string = 'MUSIC';
   @State activeTab: string = 'playlists';
   @State activeSubTab: string = 'album';
@@ -168,11 +170,11 @@ struct PersonalPage {
   }
 
   navigateToSettings() {
-    // TODO
+    router.pushUrl({ url: 'pages/SettingsPage' });
   }
 
   navigateToSourceManage() {
-    // TODO
+    router.pushUrl({ url: 'pages/SourceManagePage' });
   }
 
   navigateToMember() {
@@ -220,9 +222,9 @@ struct PersonalPage {
 
   getTabs(): TabInfo[] {
     return [
-      new TabInfo('playlists', '播放列表'),
-      new TabInfo('favorites', '收藏'),
-      new TabInfo('history', '历史'),
+      new TabInfo('playlists', t('nav.playlists')),
+      new TabInfo('favorites', t('nav.favorites')),
+      new TabInfo('history', t('nav.listened')),
     ];
   }
 
@@ -239,27 +241,27 @@ struct PersonalPage {
       ForEach(this.getTabs(), (tab: TabInfo) => {
         Column() {
           Text(tab.label)
-            .fontSize(14)
+            .fontSize(15)
             .fontWeight(this.activeTab === tab.key ? FontWeight.Bold : FontWeight.Normal)
             .fontColor(this.activeTab === tab.key ? '#007DFF' : '#95a5a6')
         }
-        .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-        .borderWidth(this.activeTab === tab.key ? 2 : 0)
-        .borderColor('#007DFF')
-        .borderRadius(20)
+        .layoutWeight(1)
+        .padding({ top: 12, bottom: 12 })
+        .border({
+          width: { bottom: this.activeTab === tab.key ? 2 : 0 },
+          color: '#007DFF'
+        })
         .onClick(() => this.switchTab(tab.key))
       })
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-    .justifyContent(FlexAlign.SpaceAround)
   }
 
   @Builder
   SubTabBuilder() {
     if (this.activeTab === 'favorites' || this.activeTab === 'history') {
       Row() {
-        Button('专辑')
+        Button(t('personal.album'))
           .backgroundColor(this.activeSubTab === 'album' ? '#007DFF20' : Color.Transparent)
           .fontColor(this.activeSubTab === 'album' ? '#007DFF' : '#95a5a6')
           .borderRadius(16)
@@ -267,7 +269,7 @@ struct PersonalPage {
           .onClick(() => this.switchSubTab('album'))
 
         if (this.mode !== 'AUDIOBOOK') {
-          Button('单曲')
+          Button(t('personal.track'))
             .backgroundColor(this.activeSubTab === 'track' ? '#007DFF20' : Color.Transparent)
             .fontColor(this.activeSubTab === 'track' ? '#007DFF' : '#95a5a6')
             .borderRadius(16)
@@ -285,18 +287,15 @@ struct PersonalPage {
   @Builder
   ListItemBuilder(item: Record<string, Object>) {
     Row() {
-      Column() {
-        Text(String(item.name || '').substring(0, 1))
-          .fontSize(20)
-          .fontColor('#FFFFFF')
-          .fontWeight(FontWeight.Bold)
-      }
-      .width(50)
-      .height(50)
-      .borderRadius(8)
-      .backgroundColor('#52B54B')
-      .justifyContent(FlexAlign.Center)
-      .margin({ right: 12 })
+      CoverImage({
+        path: String(item.cover || ''),
+        imgWidth: 50,
+        imgHeight: 50,
+        radius: 8,
+        fallbackText: String(item.name || ''),
+        fallbackBg: '#52B54B'
+      })
+        .margin({ right: 12 })
 
       Column() {
         Text(String(item.name || ''))
@@ -376,26 +375,24 @@ struct PersonalPage {
     } else {
       Column() {
         Row() {
-          Text('我的')
+          Text(t('navTabs.mine'))
             .fontSize(24)
             .fontWeight(FontWeight.Bold)
             .fontColor('#2c3e50')
 
           Row() {
             Button() {
-              Text('🔍')
-                .fontSize(18)
+              AppIcon({ name: 'folder', iconSize: 22, color: '#2c3e50' })
             }
             .width(36)
             .height(36)
             .backgroundColor('#f0f0f0')
             .borderRadius(18)
             .margin({ right: 8 })
-            .onClick(() => this.navigateToSearch())
+            .onClick(() => this.navigateToSourceManage())
 
             Button() {
-              Text('⚙️')
-                .fontSize(18)
+              AppIcon({ name: 'folder', iconSize: 22, color: '#2c3e50' })
             }
             .width(36)
             .height(36)
@@ -408,46 +405,66 @@ struct PersonalPage {
         .padding({ left: 16, right: 16, top: 16, bottom: 8 })
         .justifyContent(FlexAlign.SpaceBetween)
 
-        Column() {
-          Column() {
-            Text(this.username.substring(0, 1))
-              .fontSize(36)
-              .fontColor('#FFFFFF')
-              .fontWeight(FontWeight.Bold)
+        Row() {
+          Stack({ alignContent: Alignment.BottomEnd }) {
+            CoverImage({
+              path: String(this.user['avatar'] || ''),
+              imgWidth: 80,
+              imgHeight: 80,
+              radius: 40,
+              fallbackText: this.username,
+              fallbackBg: '#007DFF'
+            })
+
+            Stack({ alignContent: Alignment.Center }) {
+              AppIcon({ name: 'camera', iconSize: 12, color: '#2c3e50' })
+            }
+            .width(24)
+            .height(24)
+            .borderRadius(12)
+            .backgroundColor('#FFFFFF')
           }
           .width(80)
           .height(80)
-          .borderRadius(40)
-          .backgroundColor('#007DFF')
-          .justifyContent(FlexAlign.Center)
 
-          Text(this.username || '未登录')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#2c3e50')
+          Column() {
+            Row() {
+              Text(this.username || t('common.notLoggedIn'))
+                .fontSize(18)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#2c3e50')
+
+              if (this.userId.length > 0) {
+                AppIcon({ name: 'crown', iconSize: 20, color: '#FFD700' })
+                  .margin({ left: 6 })
+              }
+            }
+            .alignItems(VerticalAlign.Center)
+
+            Row() {
+              Button(this.mode === 'MUSIC' ? t('nav.library') : t('nav.personal'))
+                .backgroundColor('#f0f0f0')
+                .fontColor('#2c3e50')
+                .borderRadius(16)
+                .height(32)
+                .margin({ right: 8 })
+                .onClick(() => this.toggleMode())
+
+              Button('退出')
+                .backgroundColor('#ff4d4f20')
+                .fontColor('#ff4d4f')
+                .borderRadius(16)
+                .height(32)
+                .onClick(() => this.logout())
+            }
             .margin({ top: 12 })
-
-          Row() {
-            Button(this.mode === 'MUSIC' ? '🎵 音乐' : '🎧 有声书')
-              .backgroundColor('#f0f0f0')
-              .fontColor('#2c3e50')
-              .borderRadius(16)
-              .height(32)
-              .margin({ right: 8 })
-              .onClick(() => this.toggleMode())
-
-            Button('📤 退出')
-              .backgroundColor('#ff4d4f20')
-              .fontColor('#ff4d4f')
-              .borderRadius(16)
-              .height(32)
-              .onClick(() => this.logout())
           }
-          .margin({ top: 12 })
+          .layoutWeight(1)
+          .margin({ left: 16 })
+          .alignItems(HorizontalAlign.Start)
         }
         .width('100%')
-        .padding(20)
-        .alignItems(HorizontalAlign.Center)
+        .padding({ left: 16, right: 16, top: 16, bottom: 16 })
 
         this.TabBarBuilder()
         this.SubTabBuilder()
@@ -466,7 +483,7 @@ struct PersonalPage {
 
         if (this.getListData().length === 0) {
           Column() {
-            Text('暂无数据')
+            Text(t('common.noData'))
               .fontSize(14)
               .fontColor('#95a5a6')
               .margin({ top: 40 })

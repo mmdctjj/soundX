@@ -1,6 +1,9 @@
 import router from '@ohos.router';
+import { AppIcon } from '../components/AppIcon';
+import { CoverImage } from '../components/CoverImage';
 import { storage } from '../utils/StorageManager';
 import { httpClient } from '../utils/HttpClient';
+import { t } from 'features_i18n';
 import {
   getArtistList,
   loadMoreAlbum,
@@ -59,9 +62,8 @@ class LikeUserData implements LikeUser {
   userId: number | string = '';
 }
 
-@Entry
 @Component
-struct LibraryPage {
+export struct LibraryTab {
   @State mode: string = 'MUSIC';
   @State activeTab: string = 'artists';
   @State loading: boolean = true;
@@ -338,18 +340,22 @@ struct LibraryPage {
     // TODO
   }
 
+  playAllTracks() {
+    // TODO: enqueue this.tracks and start playback
+  }
+
   getVisibleTabs(): TabInfo[] {
     const tabs: TabInfo[] = [];
     if (this.mode === 'MUSIC') {
-      tabs.push(new TabInfo('songs', '全部曲目', true, false));
+      tabs.push(new TabInfo('songs', t('nav.tracks'), true, false));
     }
-    tabs.push(new TabInfo('artists', '全部艺人', true, true));
-    tabs.push(new TabInfo('albums', '全部专辑', true, true));
+    tabs.push(new TabInfo('artists', t('nav.artists'), true, true));
+    tabs.push(new TabInfo('albums', t('nav.albums'), true, true));
     if (this.mode === 'MUSIC') {
       tabs.push(new TabInfo('mvs', 'MV', true, false));
     }
     if (this.mode === 'AUDIOBOOK') {
-      tabs.push(new TabInfo('collections', '收藏', false, true));
+      tabs.push(new TabInfo('collections', t('nav.collections'), false, true));
     }
     return tabs;
   }
@@ -382,18 +388,15 @@ struct LibraryPage {
   @Builder
   SongItemBuilder(track: Track) {
     Row() {
-      Column() {
-        Text(track.name.substring(0, 1))
-          .fontSize(20)
-          .fontColor('#FFFFFF')
-          .fontWeight(FontWeight.Bold)
-      }
-      .width(48)
-      .height(48)
-      .borderRadius(8)
-      .backgroundColor('#52B54B')
-      .justifyContent(FlexAlign.Center)
-      .margin({ right: 12 })
+      CoverImage({
+        path: track.cover,
+        imgWidth: 48,
+        imgHeight: 48,
+        radius: 8,
+        fallbackText: track.name,
+        fallbackBg: '#52B54B'
+      })
+        .margin({ right: 12 })
 
       Column() {
         Text(track.name)
@@ -416,9 +419,7 @@ struct LibraryPage {
       .alignItems(HorizontalAlign.Start)
 
       Button() {
-        Text('▶')
-          .fontSize(14)
-          .fontColor('#007DFF')
+        AppIcon({ name: 'plus', iconSize: 16, color: '#007DFF' })
       }
       .backgroundColor(Color.Transparent)
       .width(36)
@@ -435,17 +436,14 @@ struct LibraryPage {
       ForEach(this.artists, (artist: Artist) => {
         GridItem() {
           Column() {
-            Column() {
-              Text(artist.name.substring(0, 1))
-                .fontSize(30)
-                .fontColor('#FFFFFF')
-                .fontWeight(FontWeight.Bold)
-            }
-            .width(80)
-            .height(80)
-            .borderRadius(40)
-            .backgroundColor('#007DFF')
-            .justifyContent(FlexAlign.Center)
+            CoverImage({
+              path: artist.avatar || artist.cover,
+              imgWidth: 80,
+              imgHeight: 80,
+              radius: 40,
+              fallbackText: artist.name,
+              fallbackBg: '#007DFF'
+            })
 
             Text(artist.name)
               .fontSize(13)
@@ -473,17 +471,14 @@ struct LibraryPage {
       ForEach(this.albums, (album: Album) => {
         GridItem() {
           Column() {
-            Column() {
-              Text(album.name.substring(0, 1))
-                .fontSize(36)
-                .fontColor('#FFFFFF')
-                .fontWeight(FontWeight.Bold)
-            }
-            .width(100)
-            .height(100)
-            .borderRadius(10)
-            .backgroundColor('#5B8FF9')
-            .justifyContent(FlexAlign.Center)
+            CoverImage({
+              path: album.cover,
+              imgWidth: 100,
+              imgHeight: 100,
+              radius: 10,
+              fallbackText: album.name,
+              fallbackBg: '#5B8FF9'
+            })
 
             Text(album.name)
               .fontSize(13)
@@ -518,17 +513,14 @@ struct LibraryPage {
       ForEach(this.collections, (collection: Record<string, Object>) => {
         GridItem() {
           Column() {
-            Column() {
-              Text(this.getCollectionNameFirstChar(collection))
-                .fontSize(36)
-                .fontColor('#FFFFFF')
-                .fontWeight(FontWeight.Bold)
-            }
-            .width(100)
-            .height(100)
-            .borderRadius(10)
-            .backgroundColor('#FF9500')
-            .justifyContent(FlexAlign.Center)
+            CoverImage({
+              path: String(collection.cover || ''),
+              imgWidth: 100,
+              imgHeight: 100,
+              radius: 10,
+              fallbackText: String(collection.name || ''),
+              fallbackBg: '#FF9500'
+            })
 
             Text(String(collection.name || ''))
               .fontSize(13)
@@ -573,17 +565,14 @@ struct LibraryPage {
       ForEach(this.mvs, (mv: Record<string, Object>) => {
         GridItem() {
           Column() {
-            Column() {
-              Text(this.getMvNameFirstChar(mv))
-                .fontSize(36)
-                .fontColor('#FFFFFF')
-                .fontWeight(FontWeight.Bold)
-            }
-            .width(100)
-            .height(100)
-            .borderRadius(10)
-            .backgroundColor('#E74C3C')
-            .justifyContent(FlexAlign.Center)
+            CoverImage({
+              path: String(mv.cover || ''),
+              imgWidth: 100,
+              imgHeight: 100,
+              radius: 10,
+              fallbackText: String(mv.name || ''),
+              fallbackBg: '#E74C3C'
+            })
 
             Text(String(mv.name || ''))
               .fontSize(13)
@@ -730,15 +719,26 @@ struct LibraryPage {
     } else {
       Column() {
         Row() {
-          Text('音乐库')
+          Text(t('libraryPage.title'))
             .fontSize(24)
             .fontWeight(FontWeight.Bold)
             .fontColor('#2c3e50')
 
           Row() {
+            if (this.mode === 'MUSIC' && this.activeTab === 'songs') {
+              Button() {
+                AppIcon({ name: 'plus', iconSize: 16, color: '#2c3e50' })
+              }
+              .width(36)
+              .height(36)
+              .backgroundColor('#f0f0f0')
+              .borderRadius(18)
+              .margin({ right: 8 })
+              .onClick(() => this.playAllTracks())
+            }
+
             Button() {
-              Text('📁')
-                .fontSize(18)
+              AppIcon({ name: 'folder', iconSize: 18, color: '#2c3e50' })
             }
             .width(36)
             .height(36)
@@ -748,8 +748,7 @@ struct LibraryPage {
             .onClick(() => this.navigateToFolder())
 
             Button() {
-              Text('🔍')
-                .fontSize(18)
+              AppIcon({ name: 'plus', iconSize: 18, color: '#2c3e50' })
             }
             .width(36)
             .height(36)
@@ -759,8 +758,11 @@ struct LibraryPage {
             .onClick(() => this.navigateToSearch())
 
             Button() {
-              Text(this.mode === 'MUSIC' ? '🎵' : '🎧')
-                .fontSize(18)
+              AppIcon({
+                name: this.mode === 'MUSIC' ? 'headphones' : 'headphones',
+                iconSize: 18,
+                color: '#2c3e50'
+              })
             }
             .width(36)
             .height(36)
