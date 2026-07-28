@@ -187,4 +187,15 @@ function computeNextVersion(currentVersion, mode, subArg) {
   return `${baseInc}-beta.1`;
 }
 
-module.exports = { computeNextVersion };
+function computeCommitMessage(mode, subArg, version) {
+  if (mode === 'stable') {
+    return `chore(release): release ${version}`;
+  }
+  // beta 模式
+  if (subArg === 'patch') {
+    return `chore(release): start ${version} cycle`;
+  }
+  return `chore(release): bump to ${version}`;
+}
+
+module.exports = { computeNextVersion, computeCommitMessage };

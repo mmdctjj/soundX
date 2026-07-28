@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { computeNextVersion } = require('./release');
+const { computeNextVersion, computeCommitMessage } = require('./release');
 
 test('computeNextVersion: stable mode from stable 1.2.22 → 1.2.23', () => {
   assert.equal(computeNextVersion('1.2.22', 'stable', undefined), '1.2.23');
@@ -44,4 +44,24 @@ test('computeNextVersion: throws on invalid version', () => {
 
 test('computeNextVersion: throws on invalid mode', () => {
   assert.throws(() => computeNextVersion('1.2.22', 'wrong', undefined), /未知的发布模式/);
+});
+
+test('computeCommitMessage: stable release', () => {
+  assert.equal(computeCommitMessage('stable', undefined, '1.2.23'), 'chore(release): release 1.2.23');
+});
+
+test('computeCommitMessage: beta auto-increment', () => {
+  assert.equal(computeCommitMessage('beta', 'next', '1.2.23-beta.2'), 'chore(release): bump to 1.2.23-beta.2');
+});
+
+test('computeCommitMessage: beta subArg=patch (start cycle)', () => {
+  assert.equal(computeCommitMessage('beta', 'patch', '1.2.23-beta.1'), 'chore(release): start 1.2.23-beta.1 cycle');
+});
+
+test('computeCommitMessage: beta subArg=undefined from stable', () => {
+  assert.equal(computeCommitMessage('beta', undefined, '1.2.23-beta.1'), 'chore(release): bump to 1.2.23-beta.1');
+});
+
+test('computeCommitMessage: beta custom version', () => {
+  assert.equal(computeCommitMessage('beta', '1.2.24-beta.1', '1.2.24-beta.1'), 'chore(release): bump to 1.2.24-beta.1');
 });
