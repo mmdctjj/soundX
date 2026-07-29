@@ -10,7 +10,7 @@ export struct CoverImage {
   @Prop radius: number | string = 8;
   @Prop fallbackText: string = '?';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
   @State failed: boolean = false;
   @State currentUrl: string = '';
 

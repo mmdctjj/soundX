@@ -22,7 +22,7 @@ class QualityOption {
 @Component
 struct PlaybackQualityPage {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
   @State isInternal: boolean = true;
   @State selectedQuality: string = 'high';
 

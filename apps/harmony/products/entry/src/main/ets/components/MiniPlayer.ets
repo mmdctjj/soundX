@@ -16,7 +16,7 @@ import { AppIcon } from './AppIcon';
 export struct MiniPlayer {
   @State private view: PlayerStateView = playerStore.view();
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
   private unsub: () => void = () => {};
 
   onThemeModeChange(): void {

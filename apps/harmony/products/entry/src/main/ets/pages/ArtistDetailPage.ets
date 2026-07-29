@@ -32,7 +32,7 @@ struct ArtistDetailPage {
   @State currentTrackId: string = '';
   private entityId: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
   private unsubPlayer: () => void = () => {};
 
   onThemeModeChange(): void {

@@ -19,7 +19,7 @@ class LangOption {
 @Component
 struct LanguagePage {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
   @State selectedLang: string = 'system';
 
   private options: LangOption[] = [

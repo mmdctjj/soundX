@@ -30,7 +30,7 @@ struct LoginPage {
   @State password: string = '';
   @State confirmPassword: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);

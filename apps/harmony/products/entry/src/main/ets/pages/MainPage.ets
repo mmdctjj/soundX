@@ -45,7 +45,7 @@ export struct HomeTab {
   @State isRadioMode: boolean = false;
   @State likedIds: string[] = [];
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
   private userId: string = '';
 
   aboutToAppear() {
@@ -459,7 +459,7 @@ export struct HomeTab {
 struct MainPage {
   @State currentIndex: number = 0;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);

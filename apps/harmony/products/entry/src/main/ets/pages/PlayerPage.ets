@@ -29,7 +29,7 @@ struct PlayerPage {
   @State private showPlaylist: boolean = false;
   @State private liked: boolean = false;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
   private lyricScroller: Scroller = new Scroller();
   private lastTrackId: string = '';
   private lastLyricIndex: number = -1;

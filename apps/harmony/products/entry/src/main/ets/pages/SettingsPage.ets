@@ -11,7 +11,7 @@ import { getInternalQuality, getExternalQuality } from '../services/trackQuality
 @Component
 struct SettingsPage {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
 
   // General settings state
   @State autoTheme: boolean = false;

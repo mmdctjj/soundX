@@ -24,7 +24,7 @@ struct SourceManagePage {
   @State currentAddress: string = '';
   @State loading: boolean = true;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
 
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);

@@ -86,7 +86,7 @@ export struct PersonalTab {
   @State userId: string = '';
   @State rows: ListRow[] = [];
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  private theme: Theme = buildTheme('light');
+  @State theme: Theme = buildTheme('light');
 
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);
