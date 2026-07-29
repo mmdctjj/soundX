@@ -444,12 +444,12 @@ export struct HomeTab {
         .justifyContent(FlexAlign.SpaceBetween)
 
         Row() {
-          AppIcon({ name: 'plus', iconSize: 16, color: this.theme.colors.textSecondary }).margin({ right: 8 })
           Text(t('homePage.searchPlaceholder')).fontSize(14).fontColor(this.theme.colors.textSecondary)
         }
         .width('100%').height(44)
         .padding({ left: 16, right: 16 }).margin({ left: 16, right: 16 })
         .backgroundColor(this.theme.colors.surface).borderRadius(10)
+        .justifyContent(FlexAlign.Start).alignItems(VerticalAlign.Center)
         .onClick(() => this.navigateToSearch())
 
         if (this.error.length > 0) {
@@ -499,7 +499,7 @@ export struct HomeTab {
                 .onClick(() => this.navigateToSectionOrder())
               }
             }
-            .width('100%')
+            .width('100%').height('100%')
             .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
           }
           .width('100%').layoutWeight(1)
