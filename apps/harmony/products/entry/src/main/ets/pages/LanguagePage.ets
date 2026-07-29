@@ -19,6 +19,7 @@ class LangOption {
 @Component
 struct LanguagePage {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
   @State selectedLang: string = 'system';
 

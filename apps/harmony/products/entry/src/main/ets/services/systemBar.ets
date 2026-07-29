@@ -28,6 +28,5 @@ export function applySystemBar(mode: ThemeMode): void {
   mainWindow.setWindowSystemBarProperties(props)
     .catch((e: Error) => Logger.w('SystemBar', `apply failed: ${e.message}`));
   // 窗口背景色同步到最底层，确保底部小横条（home indicator）区域也跟随主题
-  mainWindow.setWindowBackgroundColor(theme.colors.background)
-    .catch((e: Error) => Logger.w('SystemBar', `setWindowBackgroundColor failed: ${e.message}`));
+  mainWindow.setWindowBackgroundColor(theme.colors.background);
 }

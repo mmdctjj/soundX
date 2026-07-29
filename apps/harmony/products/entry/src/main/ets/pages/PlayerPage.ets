@@ -41,6 +41,7 @@ struct PlayerPage {
   @State private showMore: boolean = false;
   @State private liked: boolean = false;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
   private lyricScroller: Scroller = new Scroller();
   private lastTrackId: string = '';

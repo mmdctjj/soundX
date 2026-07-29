@@ -12,6 +12,7 @@ import { applySystemBar } from '../services/systemBar';
 @Component
 struct SettingsPage {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
 
   // General settings state

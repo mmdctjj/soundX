@@ -48,6 +48,7 @@ export struct HomeTab {
   @State isRadioMode: boolean = false;
   @State likedIds: string[] = [];
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @StorageProp('appLang') @Watch('onLangChange') appLang: string = 'zh-CN';
   // 调整顺序页保存时会写入该值，触发首页按最新 section_order 重排。
   @StorageLink('sectionOrderVersion') @Watch('onSectionOrderChange') sectionOrderVersion: number = 0;
   @State theme: Theme = buildTheme('light');
@@ -60,6 +61,11 @@ export struct HomeTab {
 
   onThemeModeChange(): void {
     this.theme = buildTheme(this.themeMode);
+  }
+
+  onLangChange(): void {
+    // 语言切换后重建 section 标题（title 是 loadData 时通过 t() 计算的）
+    this.loadData();
   }
 
   async initData(): Promise<void> {
@@ -571,6 +577,7 @@ export struct HomeTab {
 struct MainPage {
   @State currentIndex: number = 0;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
 
   aboutToAppear(): void {

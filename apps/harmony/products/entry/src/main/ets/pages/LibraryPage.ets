@@ -41,6 +41,7 @@ export struct LibraryTab {
   @State mvs: MVDto[] = [];
   @State tabCounts: Record<string, number> = {};
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
   private userId: string = '';
 

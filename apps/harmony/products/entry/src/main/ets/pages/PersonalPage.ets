@@ -95,6 +95,7 @@ export struct PersonalTab {
   @State newPlaylistName: string = '';
   @State creating: boolean = false;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
 
   aboutToAppear() {

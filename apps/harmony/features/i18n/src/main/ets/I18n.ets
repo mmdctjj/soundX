@@ -8,6 +8,8 @@ export type Lang = 'zh-CN' | 'en';
 export type LangSetting = 'system' | Lang;
 
 const STORAGE_KEY = 'app_language';
+/** AppStorage key，组件通过 @StorageProp(APP_LANG_KEY) 订阅语言变化以触发重渲染 */
+export const APP_LANG_KEY = 'appLang';
 
 let currentLang: Lang = 'zh-CN';
 
@@ -21,6 +23,8 @@ export function detectSystemLang(): Lang {
 
 export function setLanguage(lang: Lang): void {
   currentLang = lang;
+  // 写入 AppStorage 触发所有 @StorageProp('appLang') 组件重渲染
+  AppStorage.setOrCreate(APP_LANG_KEY, lang);
   Logger.i('I18n', `lang=${lang}`);
 }
 
