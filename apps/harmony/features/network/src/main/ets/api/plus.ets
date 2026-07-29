@@ -53,6 +53,38 @@ export interface CreatePaymentResponse {
   alipayPay?: object | null;
 }
 
+export interface VipStatusResponse {
+  isVip: boolean;
+  tier: string;
+  expiresAt: string | null;
+}
+
+export interface CouponsResponse {
+  data: CouponItem[];
+  total: number;
+}
+
+interface SendCodeRequest {
+  phone: string;
+}
+
+interface LoginRequest {
+  phone: string;
+  code: string;
+}
+
+interface CreatePaymentBody {
+  userId: string;
+  plan: string;
+  method: string;
+  price: number;
+  couponCode?: string;
+}
+
+interface UserIdParams {
+  userId: string;
+}
+
 let plusToken: string | null = null;
 
 export function setPlusAuthToken(token: string | null): void {
@@ -63,14 +95,15 @@ export function getPlusAuthToken(): string | null {
   return plusToken;
 }
 
-async function plusRequest<T>(method: string, path: string, data?: object, params?: Record<string, string>): Promise<T> {
+async function plusRequest<T>(method: string, path: string, data?: object, params?: object): Promise<T> {
   const httpReq = http.createHttp();
   let url = `${PLUS_BASE_URL}${path}`;
   if (params) {
     const parts: string[] = [];
     const keys = Object.keys(params);
     for (let i = 0; i < keys.length; i++) {
-      parts.push(`${encodeURIComponent(keys[i])}=${encodeURIComponent(params[keys[i]])}`);
+      const value = (params as Record<string, string>)[keys[i]];
+      parts.push(`${encodeURIComponent(keys[i])}=${encodeURIComponent(value)}`);
     }
     if (parts.length > 0) url += `?${parts.join('&')}`;
   }
@@ -108,20 +141,23 @@ export interface PlusApi {
   getVipCurrentLowestPrice(): Promise<VipCurrentLowestPriceData>;
   getMyCoupons(): Promise<CouponItem[]>;
   createPayment(userId: string, plan: string, method: string, price: number, couponCode?: string): Promise<CreatePaymentResponse>;
-  getVipStatus(userId: string): Promise<{ isVip: boolean; tier: string; expiresAt: string | null }>;
+  getVipStatus(userId: string): Promise<VipStatusResponse>;
 }
 
 class PlusApiImpl implements PlusApi {
   async sendCode(phone: string): Promise<void> {
-    await plusRequest<object>('POST', '/auth/send-code', { phone });
+    const req: SendCodeRequest = { phone };
+    await plusRequest<object>('POST', '/auth/send-code', req);
   }
 
   async login(phone: string, code: string): Promise<PlusLoginResponse> {
-    return plusRequest<PlusLoginResponse>('POST', '/auth/login', { phone, code });
+    const req: LoginRequest = { phone, code };
+    return plusRequest<PlusLoginResponse>('POST', '/auth/login', req);
   }
 
   async getMe(userId: string): Promise<PlusUserProfile> {
-    return plusRequest<PlusUserProfile>('GET', '/users/me', undefined, { userId });
+    const params: UserIdParams = { userId };
+    return plusRequest<PlusUserProfile>('GET', '/users/me', undefined, params);
   }
 
   async getVipCurrentLowestPrice(): Promise<VipCurrentLowestPriceData> {
@@ -129,18 +165,19 @@ class PlusApiImpl implements PlusApi {
   }
 
   async getMyCoupons(): Promise<CouponItem[]> {
-    const res = await plusRequest<{ data: CouponItem[]; total: number }>('GET', '/coupons/mine');
+    const res = await plusRequest<CouponsResponse>('GET', '/coupons/mine');
     return res?.data ?? [];
   }
 
   async createPayment(userId: string, plan: string, method: string, price: number, couponCode?: string): Promise<CreatePaymentResponse> {
-    const body: Record<string, string | number> = { userId, plan, method, price };
-    if (couponCode) body['couponCode'] = couponCode;
+    const body: CreatePaymentBody = { userId, plan, method, price };
+    if (couponCode) body.couponCode = couponCode;
     return plusRequest<CreatePaymentResponse>('POST', '/payment/create', body);
   }
 
-  async getVipStatus(userId: string): Promise<{ isVip: boolean; tier: string; expiresAt: string | null }> {
-    return plusRequest<{ isVip: boolean; tier: string; expiresAt: string | null }>('GET', '/vip/status', undefined, { userId });
+  async getVipStatus(userId: string): Promise<VipStatusResponse> {
+    const params: UserIdParams = { userId };
+    return plusRequest<VipStatusResponse>('GET', '/vip/status', undefined, params);
   }
 }
 

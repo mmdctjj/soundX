@@ -16,6 +16,7 @@ export interface ColorPalette {
   tabBar: string;
   tabBarActive: string;
   tabBarInactive: string;
+  card: string;
 }
 
 // 与 apps/mobile/src/context/ThemeContext.tsx 保持一致
@@ -35,6 +36,7 @@ export const lightColors: ColorPalette = {
   tabBar: '#FFFFFFFF',
   tabBarActive: '#FF000000',
   tabBarInactive: '#FF888888',
+  card: '#FFFFFFFF',
 };
 
 export const darkColors: ColorPalette = {
@@ -53,6 +55,7 @@ export const darkColors: ColorPalette = {
   tabBar: '#FF000000',
   tabBarActive: '#FFFFFFFF',
   tabBarInactive: '#FF666666',
+  card: '#FF1A1A1A',
 };
 
 export const festiveColors: ColorPalette = {
@@ -71,6 +74,7 @@ export const festiveColors: ColorPalette = {
   tabBar: '#FF8E1C1C',
   tabBarActive: '#FFD4AF37',
   tabBarInactive: '#FFEF9A9A',
+  card: '#FF9E2626',
 };
 
 /** 给 '#AARRGGBB' 颜色替换透明度，如 withAlpha(primary, '33') */
