@@ -28,7 +28,7 @@ export struct CommonNavBar {
       Row().width(44);
     }
     .width('100%').height(56)
-    .backgroundColor(this.theme.colors.surface)
+    .backgroundColor(Color.Transparent)
     .padding({ left: 4, right: 4 });
   }
 }

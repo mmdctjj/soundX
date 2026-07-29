@@ -1,4 +1,5 @@
 import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
@@ -14,9 +15,19 @@ import { CoverImage } from '../components/CoverImage';
 import { AppIcon } from '../components/AppIcon';
 import type { AppIconName } from '../components/AppIcon';
 
+class MoreOption {
+  key: string = '';
+  label: string = '';
+
+  constructor(key: string, label: string) {
+    this.key = key;
+    this.label = label;
+  }
+}
+
 /**
  * 播放器详情页，布局与行为对齐 mobile 的 PlayerDetailView（竖屏）：
- * 顶部仅返回（chevron-down）；中部封面 200×200（点按切换歌词）/ 歌词列表
+ * 顶部左侧返回（chevron-down）、右侧更多按钮（⋮，打开选项半模态）；中部封面 200×200（点按切换歌词）/ 歌词列表
  * （高亮当前行并自动滚动居中，点按切回封面）；底部信息行（曲名+艺人+喜欢）、
  * 进度条（松手 seek）、控制行（播放模式 / 上一首 / 播放暂停 / 下一首 / 播放列表）。
  * 播放列表用半模态展示，点击行跳转播放。
@@ -27,6 +38,7 @@ struct PlayerPage {
   @State private view: PlayerStateView = playerStore.view();
   @State private showLyrics: boolean = false;
   @State private showPlaylist: boolean = false;
+  @State private showMore: boolean = false;
   @State private liked: boolean = false;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State theme: Theme = buildTheme('light');
@@ -124,6 +136,11 @@ struct PlayerPage {
       height: '60%',
       dragBar: true,
       backgroundColor: this.theme.colors.background,
+    })
+    .bindSheet($$this.showMore, this.moreSheet(), {
+      height: '55%',
+      dragBar: true,
+      backgroundColor: this.theme.colors.surface,
     });
   }
 
@@ -133,6 +150,12 @@ struct PlayerPage {
         .width(44).height(44)
         .onClick(() => router.back());
       Row().layoutWeight(1);
+      Text('⋮')
+        .fontSize(22)
+        .fontColor(this.theme.colors.text)
+        .width(44).height(44)
+        .textAlign(TextAlign.Center)
+        .onClick(() => { this.showMore = true; });
     }
     .width('100%').height(56)
     .padding({ left: 10, right: 10 });
@@ -349,6 +372,63 @@ struct PlayerPage {
     .width('100%')
     .height('100%')
     .padding({ left: 4, right: 4 });
+  }
+
+  @Builder moreSheet() {
+    Column() {
+      Text(t('playerMore.moreOptions'))
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text)
+        .margin({ top: 8, bottom: 8 });
+      List() {
+        ForEach(this.getMoreOptions(), (opt: MoreOption) => {
+          ListItem() {
+            Row() {
+              Text(opt.label)
+                .fontSize(15)
+                .fontColor(this.theme.colors.text)
+                .layoutWeight(1);
+              Text('›')
+                .fontSize(20)
+                .fontColor(this.theme.colors.textSecondary);
+            }
+            .width('100%')
+            .padding({ top: 16, bottom: 16, left: 20, right: 20 })
+            .onClick(() => this.onMoreOption(opt.key));
+          }
+        }, (opt: MoreOption) => opt.key)
+      }
+      .layoutWeight(1)
+      .scrollBar(BarState.Off);
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ left: 4, right: 4 });
+  }
+
+  private getMoreOptions(): MoreOption[] {
+    return [
+      new MoreOption('artist', t('playerMore.artistDetails')),
+      new MoreOption('album', t('playerMore.albumDetails')),
+      new MoreOption('track', t('playerMore.trackDetails')),
+      new MoreOption('sleepTimer', t('playerMore.sleepTimer')),
+      new MoreOption('addToPlaylist', t('playerMore.addToPlaylist')),
+      new MoreOption('download', t('playerMore.download')),
+      new MoreOption('lyricsSize', t('playerMore.adjustLyricsSize')),
+      new MoreOption('controlPosition', t('playerMore.controlPosition')),
+    ];
+  }
+
+  private onMoreOption(key: string): void {
+    this.showMore = false;
+    // 鸿蒙端 Track 模型暂不携带 artistId/albumId，详情跳转与下载/定时/EQ 等
+    // 依赖的后端能力尚未接入，先统一给出优雅提示，后续逐项接通。
+    if (key === 'artist' || key === 'album') {
+      promptAction.showToast({ message: '详情跳转暂未在鸿蒙端开放' });
+    } else {
+      promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
+    }
   }
 
   private loadSingle(trackId: string): void {

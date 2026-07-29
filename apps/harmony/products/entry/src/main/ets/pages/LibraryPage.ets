@@ -198,22 +198,40 @@ export struct LibraryTab {
   @Builder
   TabBarBuilder() {
     Row() {
-      ForEach(this.getVisibleTabs(), (tab: TabInfo) => {
-        Column() {
-          Text(tab.label + (this.getTabCount(tab.key) > 0 ? ' ' + this.getTabCount(tab.key) : ''))
-            .fontSize(13)
-            .fontWeight(this.activeTab === tab.key ? FontWeight.Bold : FontWeight.Normal)
-            .fontColor(this.activeTab === tab.key ? this.theme.colors.onPrimary : this.theme.colors.text)
-        }
-        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-        .backgroundColor(this.activeTab === tab.key ? this.theme.colors.primary : Color.Transparent)
-        .borderRadius(16)
-        .onClick(() => this.switchTab(tab.key))
-      }, (tab: TabInfo) => tab.key)
+      Row() {
+        ForEach(this.getVisibleTabs(), (tab: TabInfo) => {
+          Row() {
+            Text() {
+              Span(tab.label)
+                .fontSize(14)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(this.activeTab === tab.key ? this.theme.colors.onPrimary : this.theme.colors.textSecondary)
+              if (this.getTabCount(tab.key) > 0) {
+                Span(' ' + this.getTabCount(tab.key))
+                  .fontSize(11)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(this.activeTab === tab.key ? this.theme.colors.onPrimary : this.theme.colors.textSecondary)
+              }
+            }
+          }
+          .layoutWeight(1)
+          .height('100%')
+          .borderRadius(18)
+          .justifyContent(FlexAlign.Center)
+          .backgroundColor(this.activeTab === tab.key ? this.theme.colors.primary : Color.Transparent)
+          .onClick(() => this.switchTab(tab.key))
+        }, (tab: TabInfo) => tab.key)
+      }
+      .width('100%')
+      .height(40)
+      .padding(2)
+      .borderRadius(20)
+      .borderWidth(1)
+      .borderColor(this.theme.colors.border)
+      .backgroundColor(this.theme.colors.surface)
     }
     .width('100%')
-    .padding({ left: 16, right: 16, bottom: 8 })
-    .justifyContent(FlexAlign.Start)
+    .padding({ left: 20, right: 20, bottom: 15 })
   }
 
   @Builder
