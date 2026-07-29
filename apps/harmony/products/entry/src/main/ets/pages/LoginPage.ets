@@ -164,6 +164,8 @@ struct LoginPage {
       .fontSize(14)
       .fontWeight(FontWeight.Medium)
       .fontColor(this.theme.colors.text)
+      .textAlign(TextAlign.Start)
+      .alignSelf(ItemAlign.Start)
       .margin({ bottom: 5, top: 4 })
   }
 
