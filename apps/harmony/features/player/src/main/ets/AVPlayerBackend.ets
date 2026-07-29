@@ -20,12 +20,16 @@ export class AVPlayerBackend implements IAudioPlayer {
 
   async load(url: string, _headers?: Record<string, string>): Promise<void> {
     const p = await this.ensure();
+    // 同一来源已加载则直接复用，避免重复 prepare
+    if (this.currentUrl === url && p.url === url) {
+      return;
+    }
     this.currentUrl = url;
-    if (p.url !== url) p.url = url;
     return new Promise<void>((resolve, reject) => {
       this.prepareResolve = resolve;
       this.prepareReject = reject;
-      p.prepare();
+      // 设置 url 后播放器进入 initialized 态，prepare 在 stateChange 回调里触发
+      p.url = url;
     });
   }
 
@@ -70,7 +74,9 @@ export class AVPlayerBackend implements IAudioPlayer {
     p.on('stateChange', (s: media.AVPlayerState) => {
       const pl: StateChangePayload = { state: s as string };
       this.dispatch('stateChange', pl);
-      if (s === 'prepared' && this.prepareResolve) {
+      if (s === 'initialized') {
+        p.prepare();
+      } else if (s === 'prepared' && this.prepareResolve) {
         const r = this.prepareResolve;
         this.prepareResolve = null;
         this.prepareReject = null;

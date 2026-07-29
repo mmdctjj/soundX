@@ -195,6 +195,27 @@ export struct LibraryTab {
     return this.tabCounts[key] ?? 0;
   }
 
+  // 骨架屏参数：与各 tab 真实网格/列表尺寸保持一致
+  private skRange(): number[] {
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  }
+
+  private skSize(): number {
+    return this.activeTab === 'artists' ? 80 : 100;
+  }
+
+  private skRadius(): number {
+    return this.activeTab === 'artists' ? 40 : 10;
+  }
+
+  private skTextW(): number {
+    return this.activeTab === 'artists' ? 80 : 100;
+  }
+
+  private skHasSub(): boolean {
+    return this.activeTab === 'albums' || this.activeTab === 'mvs';
+  }
+
   @Builder
   TabBarBuilder() {
     Row() {
@@ -404,40 +425,43 @@ export struct LibraryTab {
   ContentSkeleton() {
     if (this.activeTab === 'songs') {
       Column() {
-        ForEach([1, 2, 3, 4, 5, 6], (index: number) => {
+        ForEach(this.skRange(), (index: number) => {
           Row() {
             Row().width(48).height(48).borderRadius(8)
               .backgroundColor(this.theme.colors.border).margin({ right: 12 })
             Column() {
-              Row().width(120).height(16).borderRadius(8)
+              Row().width(160).height(15).borderRadius(6)
                 .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
-              Row().width(80).height(12).borderRadius(6).backgroundColor(this.theme.colors.border)
+              Row().width(120).height(12).borderRadius(6).backgroundColor(this.theme.colors.border)
             }
             .layoutWeight(1).alignItems(HorizontalAlign.Start)
           }
           .width('100%').padding({ top: 8, bottom: 8, left: 16, right: 16 })
         }, (index: number) => `sk-song-${index}`)
       }
-      .width('100%').layoutWeight(1)
+      .width('100%').layoutWeight(1).alignItems(HorizontalAlign.Start)
     } else {
       Scroll() {
         Grid() {
-          ForEach([1, 2, 3, 4, 5, 6], (index: number) => {
+          ForEach(this.skRange(), (index: number) => {
             GridItem() {
               Column() {
-                Row().width(80).height(80)
-                  .borderRadius(this.activeTab === 'artists' ? 40 : 10)
+                Row().width(this.skSize()).height(this.skSize()).borderRadius(this.skRadius())
                   .backgroundColor(this.theme.colors.border)
-                Row().width(60).height(12).borderRadius(6)
+                Row().width(this.skTextW()).height(13).borderRadius(6)
                   .backgroundColor(this.theme.colors.border).margin({ top: 8 })
+                if (this.skHasSub()) {
+                  Row().width(this.skTextW()).height(11).borderRadius(6)
+                    .backgroundColor(this.theme.colors.border).margin({ top: 4 })
+                }
               }
               .margin({ bottom: 16 })
             }
           }, (index: number) => `sk-grid-${index}`)
         }
-        .columnsTemplate('1fr 1fr 1fr').columnsGap(16).rowsGap(16).padding(16)
+        .columnsTemplate('1fr 1fr 1fr').columnsGap(16).rowsGap(16).padding(16).width('100%')
       }
-      .width('100%').layoutWeight(1).scrollBar(BarState.Off)
+      .width('100%').layoutWeight(1).scrollBar(BarState.Off).align(Alignment.Top)
     }
   }
 

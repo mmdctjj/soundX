@@ -6,6 +6,7 @@ import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
 import { getInternalQuality, getExternalQuality } from '../services/trackQuality';
+import { applySystemBar } from '../services/systemBar';
 
 @Entry
 @Component
@@ -82,6 +83,7 @@ struct SettingsPage {
   setThemeMode(mode: ThemeMode): void {
     this.themeWriteGuard = true;
     AppStorage.setOrCreate('themeMode', mode);
+    applySystemBar(mode);
     kvStore.set('themeMode', mode);
     // 重建通常在一帧内完成，保留一个保守窗口；窗口结束前不再处理任何 onChange
     if (this.themeGuardTimer !== null) {
