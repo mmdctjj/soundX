@@ -28,6 +28,8 @@ class Section {
   artists: ArtistDto[] = [];
   albums: AlbumDto[] = [];
   tracks: TrackDto[] = [];
+  // 局部刷新时递增，配合 ForEach key 强制重建对应版块，避免只改数据不重渲染。
+  version: number = 0;
 
   constructor(id: string, title: string, type: string) {
     this.id = id;
@@ -40,11 +42,14 @@ class Section {
 export struct HomeTab {
   @State sections: Section[] = [];
   @State loading: boolean = true;
+  @State refreshing: boolean = false;
   @State error: string = '';
   @State mode: string = 'MUSIC';
   @State isRadioMode: boolean = false;
   @State likedIds: string[] = [];
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  // 调整顺序页保存时会写入该值，触发首页按最新 section_order 重排。
+  @StorageLink('sectionOrderVersion') @Watch('onSectionOrderChange') sectionOrderVersion: number = 0;
   @State theme: Theme = buildTheme('light');
   private userId: string = '';
 
@@ -67,11 +72,12 @@ export struct HomeTab {
     } catch (e) {
       Logger.w('HomeTab', `read playMode failed: ${String(e)}`);
     }
+    this.loading = true;
     await this.loadData();
+    this.loading = false;
   }
 
   async loadData(): Promise<void> {
-    this.loading = true;
     this.error = '';
     try {
       const isMusic = this.mode === 'MUSIC';
@@ -119,14 +125,111 @@ export struct HomeTab {
         }
       }
 
+      await this.sortWithSavedOrder(built);
       this.sections = built;
     } catch (e) {
       // 之前这里只 console.error，导致首页静默变成一片空白，看不出是网络挂了。
       this.error = e instanceof Error ? e.message : String(e);
       Logger.e('HomeTab', `load failed: ${this.error}`);
-    } finally {
-      this.loading = false;
     }
+  }
+
+  // 按用户在「调整顺序」页保存的 section_order 对版块排序（对齐 mobile AsyncStorage 逻辑）。
+  private async sortWithSavedOrder(list: Section[]): Promise<void> {
+    try {
+      const order = await kvStore.getJSON<string[]>('section_order');
+      if (order) {
+        list.sort((a: Section, b: Section): number => {
+          const ia = order.indexOf(a.id);
+          const ib = order.indexOf(b.id);
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        });
+      }
+    } catch (e) {
+      Logger.w('HomeTab', `load section order failed: ${String(e)}`);
+    }
+  }
+
+  onSectionOrderChange(): void {
+    this.reapplyOrder();
+  }
+
+  private async reapplyOrder(): Promise<void> {
+    if (this.sections.length === 0) return;
+    const list = this.sections.slice();
+    await this.sortWithSavedOrder(list);
+    this.sections = list;
+  }
+
+  // 下拉刷新：整页重载（对齐 mobile RefreshControl + onRefresh）。
+  async onPullRefresh(): Promise<void> {
+    try {
+      const savedMode = await kvStore.get('playMode');
+      if (savedMode) this.mode = savedMode;
+    } catch (e) {
+      Logger.w('HomeTab', `read playMode failed: ${String(e)}`);
+    }
+    await this.loadData();
+    this.refreshing = false;
+  }
+
+  // 版块刷新按钮：只局部重载对应版块，不触发整页骨架屏（对齐 mobile refreshSection）。
+  async refreshSection(sectionId: string): Promise<void> {
+    try {
+      if (sectionId === 'artists') {
+        const artists = await artistApi.latest({ type: this.mode, random: true, pageSize: PAGE_SIZE });
+        if (artists.length > 0) {
+          this.replaceSectionData('artists', (s: Section): void => { s.artists = artists; });
+        }
+      } else if (sectionId === 'recent') {
+        const recent = await albumApi.latest({ type: this.mode, random: true, pageSize: PAGE_SIZE });
+        if (recent.length > 0) {
+          this.replaceSectionData('recent', (s: Section): void => { s.albums = recent; });
+        }
+      } else if (sectionId === 'recommended') {
+        const recommended = await albumApi.recommend({ type: this.mode, pageSize: PAGE_SIZE });
+        if (recommended.length > 0) {
+          this.replaceSectionData('recommended', (s: Section): void => { s.albums = recommended; });
+        }
+      } else if (sectionId === 'tracks') {
+        const tracks = await trackApi.latest({ type: 'MUSIC', random: true, pageSize: PAGE_SIZE });
+        if (tracks.length > 0) {
+          this.replaceSectionData('tracks', (s: Section): void => { s.tracks = tracks; });
+          await this.refreshLikedIds(tracks);
+        }
+      } else if (sectionId === 'history') {
+        const history = await userDataApi.albumHistory({ pageSize: PAGE_SIZE, loadCount: 0, type: 'AUDIOBOOK' });
+        const albums: AlbumDto[] = [];
+        for (const item of history.list) {
+          if (item.album) albums.push(item.album);
+        }
+        if (albums.length > 0) {
+          this.replaceSectionData('history', (s: Section): void => { s.albums = albums; });
+        }
+      }
+    } catch (e) {
+      Logger.w('HomeTab', `refreshSection ${sectionId} failed: ${String(e)}`);
+    }
+  }
+
+  private replaceSectionData(id: string, apply: (s: Section) => void): void {
+    const next: Section[] = [];
+    for (const s of this.sections) {
+      if (s.id === id) {
+        const copy = new Section(s.id, s.title, s.type);
+        copy.artists = s.artists;
+        copy.albums = s.albums;
+        copy.tracks = s.tracks;
+        copy.version = s.version + 1;
+        apply(copy);
+        next.push(copy);
+      } else {
+        next.push(s);
+      }
+    }
+    this.sections = next;
   }
 
   private async refreshLikedIds(tracks: TrackDto[]): Promise<void> {
@@ -175,6 +278,10 @@ export struct HomeTab {
 
   navigateToSearch(): void {
     router.pushUrl({ url: 'pages/SearchPage' });
+  }
+
+  navigateToSectionOrder(): void {
+    router.pushUrl({ url: 'pages/SectionOrderPage' });
   }
 
   navigateToArtist(id: string): void {
@@ -293,7 +400,7 @@ export struct HomeTab {
         AppIcon({ name: 'arrow-clockwise', iconSize: 16, color: this.theme.colors.text })
       }
       .backgroundColor(Color.Transparent).width(32).height(32)
-      .onClick(() => this.loadData())
+      .onClick(() => this.refreshSection(sectionId))
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 20, bottom: 12 })
@@ -342,50 +449,55 @@ export struct HomeTab {
         if (this.error.length > 0) {
           this.ErrorState();
         } else {
-          List() {
-            ForEach(this.sections, (section: Section) => {
-              ListItem() {
-                Column() {
-                  this.SectionHeader(section.title, section.id)
-                  Scroll() {
-                    Row() {
-                      if (section.type === 'artist') {
-                        ForEach(section.artists, (item: ArtistDto) => {
-                          this.ArtistCard(item);
-                        }, (item: ArtistDto) => String(item.id))
-                      } else if (section.type === 'album') {
-                        ForEach(section.albums, (item: AlbumDto) => {
-                          this.AlbumCard(item, section.id === 'history');
-                        }, (item: AlbumDto) => String(item.id))
-                      } else {
-                        ForEach(this.chunkTracks(section.tracks), (chunk: TrackDto[], ci: number) => {
-                          Column() {
-                            ForEach(chunk, (track: TrackDto) => {
-                              this.TrackCard(track, section.tracks);
-                            }, (track: TrackDto) => String(track.id))
-                          }
-                        }, (chunk: TrackDto[], ci: number) => `chunk-${ci}`)
+          Refresh({ refreshing: $$this.refreshing }) {
+            List() {
+              ForEach(this.sections, (section: Section) => {
+                ListItem() {
+                  Column() {
+                    this.SectionHeader(section.title, section.id)
+                    Scroll() {
+                      Row() {
+                        if (section.type === 'artist') {
+                          ForEach(section.artists, (item: ArtistDto) => {
+                            this.ArtistCard(item);
+                          }, (item: ArtistDto) => String(item.id))
+                        } else if (section.type === 'album') {
+                          ForEach(section.albums, (item: AlbumDto) => {
+                            this.AlbumCard(item, section.id === 'history');
+                          }, (item: AlbumDto) => String(item.id))
+                        } else {
+                          ForEach(this.chunkTracks(section.tracks), (chunk: TrackDto[], ci: number) => {
+                            Column() {
+                              ForEach(chunk, (track: TrackDto) => {
+                                this.TrackCard(track, section.tracks);
+                              }, (track: TrackDto) => String(track.id))
+                            }
+                          }, (chunk: TrackDto[], ci: number) => `chunk-${ci}`)
+                        }
                       }
+                      .padding({ left: 16, right: 16 })
                     }
-                    .padding({ left: 16, right: 16 })
+                    .scrollBar(BarState.Off)
+                    .scrollable(ScrollDirection.Horizontal)
                   }
-                  .scrollBar(BarState.Off)
-                  .scrollable(ScrollDirection.Horizontal)
+                  .width('100%').alignItems(HorizontalAlign.Start)
                 }
-                .width('100%').alignItems(HorizontalAlign.Start)
-              }
-            }, (section: Section) => section.id)
+              }, (section: Section) => `${section.id}-${section.version}`)
 
-            ListItem() {
-              Row() {
-                AppIcon({ name: 'folder', iconSize: 16, color: this.theme.colors.primary }).margin({ right: 8 })
-                Text(t('homePage.adjustOrder')).fontSize(14).fontColor(this.theme.colors.primary)
+              ListItem() {
+                Row() {
+                  AppIcon({ name: 'list', iconSize: 16, color: this.theme.colors.primary }).margin({ right: 8 })
+                  Text(t('homePage.adjustOrder')).fontSize(14).fontColor(this.theme.colors.primary)
+                }
+                .width('100%').padding(20).justifyContent(FlexAlign.Center)
+                .onClick(() => this.navigateToSectionOrder())
               }
-              .width('100%').padding(20).justifyContent(FlexAlign.Center)
             }
+            .width('100%')
+            .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
           }
           .width('100%').layoutWeight(1)
-          .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
+          .onRefreshing((): void => { this.onPullRefresh(); })
         }
       }
       .width('100%').height('100%').backgroundColor(this.theme.colors.background)

@@ -14,6 +14,7 @@
     "pages/SourceSelectPage",
     "pages/LoginPage",
     "pages/LanguagePage",
-    "pages/PlaybackQualityPage"
+    "pages/PlaybackQualityPage",
+    "pages/SectionOrderPage"
   ]
 }
