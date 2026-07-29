@@ -547,26 +547,67 @@ export struct HomeTab {
       Row().width('90%').height(44).borderRadius(10)
         .backgroundColor(this.theme.colors.border).margin({ left: 16, right: 16, top: 16 })
 
-      ForEach([1, 2, 3], (index: number) => {
-        Column() {
-          Row().width(120).height(24).borderRadius(8)
-            .backgroundColor(this.theme.colors.border).margin({ left: 16, bottom: 12 })
-          Row() {
-            ForEach([1, 2, 3, 4], (i: number) => {
-              Column() {
-                Row()
-                  .width(i === 1 ? 80 : 100).height(i === 1 ? 80 : 100)
-                  .borderRadius(i === 1 ? 40 : 8)
-                  .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
-                Row().width(60).height(14).borderRadius(4).backgroundColor(this.theme.colors.border)
-              }
-              .margin({ right: 16 })
-            }, (i: number) => `sk-i-${i}`)
-          }
-          .padding({ left: 16 })
+      // 版块 1：艺术家（圆形头像）
+      Column() {
+        Row().width(120).height(24).borderRadius(8)
+          .backgroundColor(this.theme.colors.border).margin({ left: 16, bottom: 12 })
+        Row() {
+          ForEach([1, 2, 3, 4], (i: number) => {
+            Column() {
+              Row().width(80).height(80).borderRadius(40)
+                .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
+              Row().width(60).height(14).borderRadius(4).backgroundColor(this.theme.colors.border)
+            }
+            .margin({ right: 16 })
+          }, (i: number) => `sk-a-${i}`)
         }
-        .margin({ top: 16 }).alignItems(HorizontalAlign.Start)
-      }, (index: number) => `sk-${index}`)
+        .padding({ left: 16 })
+      }
+      .margin({ top: 16 }).alignItems(HorizontalAlign.Start)
+
+      // 版块 2：单曲（横向卡片）
+      Column() {
+        Row().width(120).height(24).borderRadius(8)
+          .backgroundColor(this.theme.colors.border).margin({ left: 16, bottom: 12 })
+        Row() {
+          ForEach([1, 2], (i: number) => {
+            Row() {
+              Row().width(50).height(50).borderRadius(4)
+                .backgroundColor(this.theme.colors.border).margin({ right: 12 })
+              Column() {
+                Row().width(100).height(14).borderRadius(4)
+                  .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
+                Row().width(70).height(12).borderRadius(4).backgroundColor(this.theme.colors.border)
+              }
+              .alignItems(HorizontalAlign.Start)
+            }
+            .width(260).padding(10).borderRadius(8)
+            .backgroundColor(this.theme.colors.surface).margin({ right: 12 })
+          }, (i: number) => `sk-t-${i}`)
+        }
+        .padding({ left: 16 })
+      }
+      .margin({ top: 16 }).alignItems(HorizontalAlign.Start)
+
+      // 版块 3：专辑（方形封面）
+      Column() {
+        Row().width(120).height(24).borderRadius(8)
+          .backgroundColor(this.theme.colors.border).margin({ left: 16, bottom: 12 })
+        Row() {
+          ForEach([1, 2, 3, 4], (i: number) => {
+            Column() {
+              Row().width(120).height(120).borderRadius(10)
+                .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
+              Row().width(100).height(14).borderRadius(4)
+                .backgroundColor(this.theme.colors.border).margin({ bottom: 4 })
+              Row().width(70).height(12).borderRadius(4).backgroundColor(this.theme.colors.border)
+            }
+            .margin({ right: 16 })
+          }, (i: number) => `sk-al-${i}`)
+        }
+        .padding({ left: 16 })
+      }
+      .margin({ top: 16 }).alignItems(HorizontalAlign.Start)
     }
     .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }

@@ -452,7 +452,7 @@ export struct LibraryTab {
                 Row().width(this.skTextW()).height(13).borderRadius(6)
                   .backgroundColor(this.theme.colors.border).margin({ top: 8 })
                 if (this.skHasSub()) {
-                  Row().width(this.skTextW()).height(11).borderRadius(6)
+                  Row().width(Math.round(this.skTextW() / 2)).height(11).borderRadius(6)
                     .backgroundColor(this.theme.colors.border).margin({ top: 4 })
                 }
               }
