@@ -610,6 +610,7 @@ export struct HomeTab {
       .margin({ top: 16 }).alignItems(HorizontalAlign.Start)
     }
     .width('100%').height('100%').backgroundColor(this.theme.colors.background)
+    .alignItems(HorizontalAlign.Start)
   }
 }
 
