@@ -67,9 +67,30 @@ struct SettingsPage {
     await kvStore.set(key, value ? 'true' : 'false');
   }
 
+  // 主题写入守卫：AppStorage 更新触发的重建会让 SwitchRow 内的 Toggle
+  // 多发一次 onChange(false)。若不拦下，会把刚切过去的主题又写回 light。
+  private themeWriteGuard: boolean = false;
+  private themeGuardTimer: number | null = null;
+
+  aboutToDisappear() {
+    if (this.themeGuardTimer !== null) {
+      clearTimeout(this.themeGuardTimer);
+      this.themeGuardTimer = null;
+    }
+  }
+
   setThemeMode(mode: ThemeMode): void {
+    this.themeWriteGuard = true;
     AppStorage.setOrCreate('themeMode', mode);
     kvStore.set('themeMode', mode);
+    // 重建通常在一帧内完成，保留一个保守窗口；窗口结束前不再处理任何 onChange
+    if (this.themeGuardTimer !== null) {
+      clearTimeout(this.themeGuardTimer);
+    }
+    this.themeGuardTimer = setTimeout((): void => {
+      this.themeWriteGuard = false;
+      this.themeGuardTimer = null;
+    }, 100);
   }
 
   handleAutoThemeChange(val: boolean) {
@@ -79,6 +100,9 @@ struct SettingsPage {
 
   handleDarkModeChange(val: boolean) {
     if (this.autoTheme) return;
+    if (this.themeWriteGuard) {
+      return;
+    }
     if (val) {
       if (this.themeMode !== 'dark') {
         this.setThemeMode('dark');
@@ -90,6 +114,9 @@ struct SettingsPage {
 
   handleFestiveChange(val: boolean) {
     if (this.autoTheme) return;
+    if (this.themeWriteGuard) {
+      return;
+    }
     if (val) {
       if (this.themeMode !== 'festive') {
         this.setThemeMode('festive');
