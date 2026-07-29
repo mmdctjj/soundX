@@ -60,7 +60,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d  # v3
         with:
           version: 8
 
@@ -156,7 +156,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets (Mac x64, append)
-        uses: softprops/action-gh-release@v2.4.1
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090  # v2.4.1
         if: matrix.platform == 'mac' && matrix.arch == 'x64' && startsWith(github.ref, 'refs/tags/')
         with:
           files: |
@@ -166,7 +166,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets (Mac arm64, with changelog, makes latest)
-        uses: softprops/action-gh-release@v2.4.1
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090  # v2.4.1
         if: matrix.platform == 'mac' && matrix.arch == 'arm64' && startsWith(github.ref, 'refs/tags/')
         with:
           files: |
@@ -178,7 +178,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets (Win/Linux)
-        uses: softprops/action-gh-release@v2.4.1
+        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090  # v2.4.1
         if: matrix.platform != 'mac' && startsWith(github.ref, 'refs/tags/')
         with:
           files: |
