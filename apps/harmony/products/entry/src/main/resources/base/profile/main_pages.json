@@ -15,6 +15,10 @@
     "pages/LoginPage",
     "pages/LanguagePage",
     "pages/PlaybackQualityPage",
-    "pages/SectionOrderPage"
+    "pages/SectionOrderPage",
+    "pages/MemberLoginPage",
+    "pages/MemberBenefitsPage",
+    "pages/MemberDetailPage",
+    "pages/MemberPaymentSuccessPage"
   ]
 }

@@ -1,6 +1,7 @@
 export { HarmonyHttpClient, httpClient } from './src/main/ets/HarmonyHttpClient';
 export { HttpError } from './src/main/ets/HttpError';
-export { authApi, userApi, trackApi, albumApi, artistApi, playlistApi, collectionApi, mvApi, userDataApi }
+export { authApi, userApi, trackApi, albumApi, artistApi, playlistApi, collectionApi, mvApi, userDataApi,
+  plusApi, setPlusAuthToken, getPlusAuthToken }
   from './src/main/ets/api';
 export type {
   RequestConfig, HttpResponse,
@@ -31,3 +32,7 @@ export type {
   UserDataApi, LoadMoreQuery,
   TrackLikeItem, AlbumLikeItem, TrackHistoryItem, AlbumHistoryItem,
 } from './src/main/ets/api';
+export type {
+  PlusApi, PlusLoginResponse, PlusUserProfile, VipCurrentLowestPriceData,
+  VipPlanPrice, CouponItem, CreatePaymentResponse,
+} from './src/main/ets/api/plus';

@@ -7,6 +7,7 @@ export { playlistApi } from './playlist';
 export { collectionApi } from './collection';
 export { mvApi } from './mv';
 export { userDataApi } from './userData';
+export { plusApi, setPlusAuthToken, getPlusAuthToken } from './plus';
 
 export type { LoginDto, RegisterDto, AuthMe, LoginResponse, CheckResponse, AuthApi } from './auth';
 export type { UserItem, UserApi } from './user';

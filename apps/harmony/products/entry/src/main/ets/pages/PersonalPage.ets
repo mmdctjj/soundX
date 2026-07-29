@@ -260,8 +260,13 @@ export struct PersonalTab {
     promptAction.showToast({ message: '头像修改暂未在鸿蒙端开放' });
   }
 
-  onCrownClick(): void {
-    promptAction.showToast({ message: '会员功能暂未在鸿蒙端开放' });
+  async onCrownClick(): Promise<void> {
+    const plusUserId = await kvStore.get('plus_user_id');
+    if (plusUserId) {
+      router.pushUrl({ url: 'pages/MemberDetailPage' });
+    } else {
+      router.pushUrl({ url: 'pages/MemberLoginPage' });
+    }
   }
 
   getTabs(): TabInfo[] {
