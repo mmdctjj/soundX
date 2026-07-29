@@ -9,7 +9,7 @@ export async function resolveTrackToPlayer(track: TrackDto, isExternal: boolean)
     return toPlayerTrack(track, await fileCache.audioPath(track.id, ext));
   }
   const q = isExternal ? await getExternalQuality() : await getInternalQuality();
-  const url = await resolveTrackUrl(track.id, q);
+  const url = await resolveTrackUrl(track.id, q, track.path);
   return toPlayerTrack(track, url);
 }
 

@@ -1,4 +1,5 @@
 import media from '@ohos.multimedia.media';
+import fs from '@ohos.file.fs';
 import { BusinessError } from '@ohos.base';
 import { Logger } from 'audiodock_common';
 import type { IAudioPlayer, PlayerEvent, PlayerListener, PlayerPayload,
@@ -8,6 +9,8 @@ export class AVPlayerBackend implements IAudioPlayer {
   private player: media.AVPlayer | null = null;
   private listeners = new Map<PlayerEvent, Set<PlayerListener>>();
   private currentUrl: string = '';
+  // 本地缓存文件通过 fdSrc 播放，需要持有并在切歌/释放时关闭 fd
+  private currentFd: number = -1;
   private prepareResolve: (() => void) | null = null;
   private prepareReject: ((err: Error) => void) | null = null;
 
@@ -18,10 +21,20 @@ export class AVPlayerBackend implements IAudioPlayer {
     return this.player;
   }
 
+  private closeFd(): void {
+    if (this.currentFd >= 0) {
+      try { fs.closeSync(this.currentFd); } catch (_e) { /* ignore */ }
+      this.currentFd = -1;
+    }
+  }
+
   async load(url: string, _headers?: Record<string, string>): Promise<void> {
     const p = await this.ensure();
-    // 同一来源已加载则直接复用，避免重复 prepare
-    if (this.currentUrl === url && p.url === url) {
+    // AVPlayer.url 只接受 http(s) 网络地址；本地缓存文件必须走 fdSrc
+    const isNetwork = url.startsWith('http://') || url.startsWith('https://');
+    // 同一来源已加载则直接复用，避免重复 prepare（error 态不复用，允许重试）
+    if (this.currentUrl === url && p.state !== 'error' &&
+      (isNetwork ? p.url === url : this.currentFd >= 0)) {
       return;
     }
     // 切歌时必须先回到 idle 态，否则 AVPlayer 状态机不允许直接设置 url
@@ -30,6 +43,7 @@ export class AVPlayerBackend implements IAudioPlayer {
       try { await p.stop(); } catch (_e) { /* ignore */ }
       try { await p.reset(); } catch (_e) { /* ignore */ }
     }
+    this.closeFd();
     this.currentUrl = url;
     Logger.i('AVPlayer', `load url=${url}`);
     return new Promise<void>((resolve, reject) => {
@@ -43,8 +57,24 @@ export class AVPlayerBackend implements IAudioPlayer {
       }, 15000);
       this.prepareResolve = () => { clearTimeout(timer); resolve(); };
       this.prepareReject = (e: Error) => { clearTimeout(timer); reject(e); };
-      // 设置 url 后播放器进入 initialized 态，prepare 在 stateChange 回调里触发
-      p.url = url;
+      try {
+        if (isNetwork) {
+          // 设置 url 后播放器进入 initialized 态，prepare 在 stateChange 回调里触发
+          p.url = url;
+        } else {
+          const file = fs.openSync(url, fs.OpenMode.READ_ONLY);
+          this.currentFd = file.fd;
+          const size = fs.statSync(url).size;
+          // fdSrc 同样进入 initialized 态，复用同一套 prepare 流程
+          p.fdSrc = { fd: file.fd, offset: 0, length: size };
+        }
+      } catch (e) {
+        clearTimeout(timer);
+        this.prepareResolve = null;
+        this.prepareReject = null;
+        this.closeFd();
+        reject(e instanceof Error ? e : new Error(String(e)));
+      }
     });
   }
 
@@ -52,6 +82,8 @@ export class AVPlayerBackend implements IAudioPlayer {
   async pause(): Promise<void> { await (await this.ensure()).pause(); }
   async stop(): Promise<void> { await (await this.ensure()).stop(); }
   async release(): Promise<void> {
+    this.closeFd();
+    this.currentUrl = '';
     if (this.player) { await this.player.release(); this.player = null; }
   }
   async seek(positionMs: number): Promise<void> {

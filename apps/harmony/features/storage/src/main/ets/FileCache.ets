@@ -46,7 +46,13 @@ export class FileCache {
   }
 
   async hasAudio(trackId: string, ext: string): Promise<boolean> {
-    return fs.access(await this.audioPath(trackId, ext)).then(() => true).catch(() => false);
+    // 注意：API 11+ 的 fs.access 不再抛异常，而是 resolve 出 boolean，
+    // 之前 .then(() => true) 的写法会把 false 也吞掉，导致永远返回 true。
+    try {
+      return await fs.access(await this.audioPath(trackId, ext));
+    } catch (_e) {
+      return false;
+    }
   }
 
   async downloadAudio(

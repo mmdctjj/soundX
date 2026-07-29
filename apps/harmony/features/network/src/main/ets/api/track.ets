@@ -11,6 +11,8 @@ export interface TrackDto {
   duration?: number; cover?: string; ext?: string;
   source?: string; index?: number; type?: string;
   lyrics?: string;
+  /** 外部源曲目是 http(s) 直链；本地曲目是服务器上的相对/绝对文件路径 */
+  path?: string;
   likedByUsers?: LikedByUser[];
 }
 
