@@ -86,16 +86,60 @@ export const useCheckUpdate = () => {
   return { checkUpdate, updateInfo, cancelUpdate, loading };
 };
 
+/**
+ * semver 比对，支持预发布版本（如 1.2.3-beta.1）。
+ * 返回 1: v1 > v2，0: 相等，-1: v1 < v2
+ * 规则：主版本号逐段比较；相同时有 prerelease 的一方更小
+ * （1.2.3-beta.1 < 1.2.3），两边都有 prerelease 则逐段比较标识符，
+ * 数字段按数值比，非数字段按字典序，数字段小于非数字段。
+ */
 function compareVersions(v1: string, v2: string) {
-  const p1 = v1.split('.').map(Number);
-  const p2 = v2.split('.').map(Number);
-  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
-    const n1 = p1[i] || 0;
-    const n2 = p2[i] || 0;
+  const [core1, pre1] = splitVersion(v1);
+  const [core2, pre2] = splitVersion(v2);
+
+  for (let i = 0; i < 3; i++) {
+    const n1 = core1[i] || 0;
+    const n2 = core2[i] || 0;
     if (n1 > n2) return 1;
     if (n1 < n2) return -1;
   }
+
+  // core 相同：无 prerelease 的一方更大
+  if (!pre1.length && !pre2.length) return 0;
+  if (!pre1.length) return 1;
+  if (!pre2.length) return -1;
+
+  for (let i = 0; i < Math.max(pre1.length, pre2.length); i++) {
+    const a = pre1[i];
+    const b = pre2[i];
+    // 段数少的一方更小（beta.1 < beta.1.1）
+    if (a === undefined) return -1;
+    if (b === undefined) return 1;
+    const numA = /^\d+$/.test(a) ? Number(a) : null;
+    const numB = /^\d+$/.test(b) ? Number(b) : null;
+    if (numA !== null && numB !== null) {
+      if (numA !== numB) return numA > numB ? 1 : -1;
+    } else if (numA !== null) {
+      return -1; // 数字段 < 非数字段
+    } else if (numB !== null) {
+      return 1;
+    } else if (a !== b) {
+      return a > b ? 1 : -1;
+    }
+  }
   return 0;
+}
+
+function splitVersion(v: string): [number[], string[]] {
+  // 丢弃 build metadata（+ 之后的部分），不参与优先级比较
+  const withoutBuild = v.split('+')[0];
+  const dash = withoutBuild.indexOf('-');
+  const core = dash === -1 ? withoutBuild : withoutBuild.slice(0, dash);
+  const pre = dash === -1 ? '' : withoutBuild.slice(dash + 1);
+  return [
+    core.split('.').map((n) => Number(n) || 0),
+    pre ? pre.split('.') : [],
+  ];
 }
 
 function getPlatform() {

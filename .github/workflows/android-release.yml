@@ -110,7 +110,8 @@ jobs:
           files: |
             ${{ steps.prepare_apk.outputs.apk_path }}
           generate_release_notes: false
-          make_latest: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ !contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
