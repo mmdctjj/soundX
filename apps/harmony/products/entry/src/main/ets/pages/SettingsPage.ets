@@ -79,12 +79,24 @@ struct SettingsPage {
 
   handleDarkModeChange(val: boolean) {
     if (this.autoTheme) return;
-    this.setThemeMode(val ? 'dark' : 'light');
+    if (val) {
+      if (this.themeMode !== 'dark') {
+        this.setThemeMode('dark');
+      }
+    } else if (this.themeMode === 'dark') {
+      this.setThemeMode('light');
+    }
   }
 
   handleFestiveChange(val: boolean) {
     if (this.autoTheme) return;
-    this.setThemeMode(val ? 'festive' : 'light');
+    if (val) {
+      if (this.themeMode !== 'festive') {
+        this.setThemeMode('festive');
+      }
+    } else if (this.themeMode === 'festive') {
+      this.setThemeMode('light');
+    }
   }
 
   handleAutoOrientationChange(val: boolean) {
