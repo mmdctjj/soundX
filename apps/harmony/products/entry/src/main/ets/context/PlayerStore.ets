@@ -153,7 +153,8 @@ export class PlayerStore {
       await audioBackend.load(t.url);
       await audioBackend.play();
       this.state = 'playing'; this.isPlaying = true;
-      this.durationMs = t.duration ?? 0;
+      // 后端 duration 字段单位是秒，PlayerStore 内部统一用毫秒
+      this.durationMs = (t.duration ?? 0) * 1000;
       this.currentMs = 0;
       this.setLyricsText(t.lyrics ?? '');
       Logger.i('PlayerStore', `playing ${t.id} ${t.title}`);

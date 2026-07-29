@@ -24,18 +24,33 @@ export class AVPlayerBackend implements IAudioPlayer {
     if (this.currentUrl === url && p.url === url) {
       return;
     }
+    // 切歌时必须先回到 idle 态，否则 AVPlayer 状态机不允许直接设置 url
+    const st = p.state;
+    if (st !== 'idle') {
+      try { await p.stop(); } catch (_e) { /* ignore */ }
+      try { await p.reset(); } catch (_e) { /* ignore */ }
+    }
     this.currentUrl = url;
+    Logger.i('AVPlayer', `load url=${url}`);
     return new Promise<void>((resolve, reject) => {
-      this.prepareResolve = resolve;
-      this.prepareReject = reject;
+      const timer = setTimeout(() => {
+        if (this.prepareReject) {
+          const r = this.prepareReject;
+          this.prepareResolve = null;
+          this.prepareReject = null;
+          r(new Error('AVPlayer prepare timeout (15s)'));
+        }
+      }, 15000);
+      this.prepareResolve = () => { clearTimeout(timer); resolve(); };
+      this.prepareReject = (e: Error) => { clearTimeout(timer); reject(e); };
       // 设置 url 后播放器进入 initialized 态，prepare 在 stateChange 回调里触发
       p.url = url;
     });
   }
 
-  async play(): Promise<void> { (await this.ensure()).play(); }
-  async pause(): Promise<void> { (await this.ensure()).pause(); }
-  async stop(): Promise<void> { (await this.ensure()).stop(); }
+  async play(): Promise<void> { await (await this.ensure()).play(); }
+  async pause(): Promise<void> { await (await this.ensure()).pause(); }
+  async stop(): Promise<void> { await (await this.ensure()).stop(); }
   async release(): Promise<void> {
     if (this.player) { await this.player.release(); this.player = null; }
   }
@@ -75,7 +90,9 @@ export class AVPlayerBackend implements IAudioPlayer {
       const pl: StateChangePayload = { state: s as string };
       this.dispatch('stateChange', pl);
       if (s === 'initialized') {
-        p.prepare();
+        p.prepare().catch((e: BusinessError) => {
+          Logger.e('AVPlayer', `prepare error: ${e.message}`);
+        });
       } else if (s === 'prepared' && this.prepareResolve) {
         const r = this.prepareResolve;
         this.prepareResolve = null;
@@ -91,6 +108,13 @@ export class AVPlayerBackend implements IAudioPlayer {
     p.on('error', (err: BusinessError) => {
       const pl: ErrorPayload = { message: err.message };
       this.dispatch('error', pl);
+      // 若 load 还在等 prepare 完成，直接 reject 防止 Promise 永远挂起
+      if (this.prepareReject) {
+        const r = this.prepareReject;
+        this.prepareResolve = null;
+        this.prepareReject = null;
+        r(new Error(`AVPlayer error: ${err.message}`));
+      }
     });
     p.on('bufferingUpdate', (_infoType: media.BufferingInfoType, value: number) => {
       const pl: BufferingPayload = { value: value };

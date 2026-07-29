@@ -25,6 +25,10 @@ export function installPlaybackService(): void {
     const v = p as TimeUpdatePayload;
     playerStore.onTimeUpdate(v.currentMs, v.durationMs);
   });
+  audioBackend.on('durationUpdate', (p: PlayerPayload) => {
+    const v = p as TimeUpdatePayload;
+    if (v.durationMs > 0) playerStore.onTimeUpdate(v.currentMs, v.durationMs);
+  });
   audioBackend.on('stateChange', (p: PlayerPayload) => {
     const v = p as StateChangePayload;
     const mapped = mapState(v.state);
