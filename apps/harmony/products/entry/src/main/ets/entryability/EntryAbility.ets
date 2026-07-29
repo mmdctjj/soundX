@@ -7,6 +7,7 @@ import { Logger } from 'audiodock_common';
 import { kvStore, fileCache, rdbStore } from 'features_storage';
 import { httpClient } from 'features_network';
 import { applySetting } from 'features_i18n';
+import { buildTheme, type ThemeMode } from 'features_ui';
 import { installPlaybackService } from '../services/playbackService';
 import { installAVSessionService, releaseAVSessionService } from '../services/avSessionService';
 
@@ -37,6 +38,31 @@ export default class EntryAbility extends UIAbility {
     windowStage.loadContent('pages/Index', (err: Error) => {
       if (err) Logger.e(TAG, `loadContent: ${err.message}`);
     });
+    windowStage.getMainWindow().then((win: window.Window) => {
+      const mode: ThemeMode = AppStorage.get<ThemeMode>('themeMode') ?? 'light';
+      this.applySystemBar(win, mode);
+      try {
+        AppStorage.subscribeToChangesOf('themeMode', () => {
+          const m: ThemeMode = AppStorage.get<ThemeMode>('themeMode') ?? 'light';
+          this.applySystemBar(win, m);
+        });
+      } catch (e) {
+        Logger.w(TAG, `subscribe themeMode: ${String(e)}`);
+      }
+    }).catch((e: Error) => Logger.w(TAG, `getMainWindow: ${e.message}`));
+  }
+
+  // 让系统状态栏与底部小横条区域的背景色跟随主题，图标使用主题文字反差色。
+  private applySystemBar(win: window.Window, mode: ThemeMode): void {
+    const theme = buildTheme(mode);
+    const props: window.SystemBarProperties = {
+      statusBarColor: theme.colors.background,
+      navigationBarColor: theme.colors.background,
+      statusBarContentColor: theme.colors.text,
+      navigationBarContentColor: theme.colors.text,
+    };
+    win.setWindowSystemBarProperties(props)
+      .catch((e: Error) => Logger.w(TAG, `setSystemBar: ${e.message}`));
   }
 
   private async initialize(): Promise<void> {

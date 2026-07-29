@@ -17,8 +17,8 @@ export async function getExternalQuality(): Promise<Quality> {
 }
 
 export async function resolveTrackUrl(trackId: string, quality: Quality): Promise<string> {
-  const all = await trackApi.playbackQualities(trackId);
-  const pick = all.find((q) => q.level === quality) ?? all[0];
-  if (!pick) throw new Error(`no playback quality for ${trackId}`);
-  return pick.url;
+  // 对齐 mobile buildTrackPlaybackUrl：直接用 baseURL 拼出绝对流媒体地址。
+  // 后端 playback-qualities 返回的 url 可能是相对路径，AVPlayer 无法直接播放，
+  // 从而导致点了播放但系统没有声音。
+  return trackApi.streamUrl(trackId, quality);
 }

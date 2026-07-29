@@ -401,66 +401,78 @@ export struct LibraryTab {
   }
 
   @Builder
-  LoadingSkeleton() {
-    Column() {
-      Row() {
-        Row().width(100).height(28).borderRadius(8).backgroundColor(this.theme.colors.border)
-        Row().width(80).height(36).borderRadius(18).backgroundColor(this.theme.colors.border)
-      }
-      .width('100%').padding({ left: 16, right: 16, top: 20 })
-      .justifyContent(FlexAlign.SpaceBetween)
-
-      Row().width('90%').height(36).borderRadius(18)
-        .backgroundColor(this.theme.colors.border).margin({ left: 16, right: 16, top: 16 })
-
-      ForEach([1, 2, 3, 4], (index: number) => {
-        Row() {
-          Row().width(48).height(48).borderRadius(8)
-            .backgroundColor(this.theme.colors.border).margin({ right: 12 })
-          Column() {
-            Row().width(120).height(16).borderRadius(8)
-              .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
-            Row().width(80).height(12).borderRadius(6).backgroundColor(this.theme.colors.border)
+  ContentSkeleton() {
+    if (this.activeTab === 'songs') {
+      Column() {
+        ForEach([1, 2, 3, 4, 5, 6], (index: number) => {
+          Row() {
+            Row().width(48).height(48).borderRadius(8)
+              .backgroundColor(this.theme.colors.border).margin({ right: 12 })
+            Column() {
+              Row().width(120).height(16).borderRadius(8)
+                .backgroundColor(this.theme.colors.border).margin({ bottom: 8 })
+              Row().width(80).height(12).borderRadius(6).backgroundColor(this.theme.colors.border)
+            }
+            .layoutWeight(1).alignItems(HorizontalAlign.Start)
           }
-          .layoutWeight(1)
+          .width('100%').padding({ top: 8, bottom: 8, left: 16, right: 16 })
+        }, (index: number) => `sk-song-${index}`)
+      }
+      .width('100%').layoutWeight(1)
+    } else {
+      Scroll() {
+        Grid() {
+          ForEach([1, 2, 3, 4, 5, 6], (index: number) => {
+            GridItem() {
+              Column() {
+                Row().width(80).height(80)
+                  .borderRadius(this.activeTab === 'artists' ? 40 : 10)
+                  .backgroundColor(this.theme.colors.border)
+                Row().width(60).height(12).borderRadius(6)
+                  .backgroundColor(this.theme.colors.border).margin({ top: 8 })
+              }
+              .margin({ bottom: 16 })
+            }
+          }, (index: number) => `sk-grid-${index}`)
         }
-        .width('100%').padding({ top: 8, bottom: 8, left: 16, right: 16 })
-      }, (index: number) => `lib-sk-${index}`)
+        .columnsTemplate('1fr 1fr 1fr').columnsGap(16).rowsGap(16).padding(16)
+      }
+      .width('100%').layoutWeight(1).scrollBar(BarState.Off)
     }
-    .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
 
   build() {
-    if (this.initialLoading) {
-      this.LoadingSkeleton();
-    } else {
-      Column() {
+    Column() {
+      Row() {
+        Text(t('libraryPage.title'))
+          .fontSize(24).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
         Row() {
-          Text(t('libraryPage.title'))
-            .fontSize(24).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
-          Row() {
-            Button() {
-              AppIcon({ name: 'plus', iconSize: 18, color: this.theme.colors.text })
-            }
-            .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
-            .margin({ right: 8 })
-            .onClick(() => this.navigateToSearch())
-
-            Button() {
-              AppIcon({ name: 'headphones', iconSize: 18, color: this.theme.colors.text })
-            }
-            .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
-            .onClick(() => this.toggleMode())
+          Button() {
+            AppIcon({ name: 'plus', iconSize: 18, color: this.theme.colors.text })
           }
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, top: 16, bottom: 8 })
-        .justifyContent(FlexAlign.SpaceBetween)
+          .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
+          .margin({ right: 8 })
+          .onClick(() => this.navigateToSearch())
 
-        this.TabBarBuilder()
+          Button() {
+            AppIcon({ name: 'headphones', iconSize: 18, color: this.theme.colors.text })
+          }
+          .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
+          .onClick(() => this.toggleMode())
+        }
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 16, bottom: 8 })
+      .justifyContent(FlexAlign.SpaceBetween)
+
+      this.TabBarBuilder()
+
+      if (this.loading) {
+        this.ContentSkeleton()
+      } else {
         this.ContentBuilder()
       }
-      .width('100%').height('100%').backgroundColor(this.theme.colors.background)
     }
+    .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
 }
