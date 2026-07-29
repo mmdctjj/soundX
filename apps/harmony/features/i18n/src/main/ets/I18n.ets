@@ -8,7 +8,12 @@ export type Lang = 'zh-CN' | 'en';
 export type LangSetting = 'system' | Lang;
 
 const STORAGE_KEY = 'app_language';
-/** AppStorage key，组件通过 @StorageProp(APP_LANG_KEY) 订阅语言变化以触发重渲染 */
+/**
+ * AppStorage key。注意：ArkUI 只追踪「读取状态变量的表达式」并做表达式级更新，
+ * t() 是普通函数，无法被框架追踪，所以页面不能只靠 @StorageProp(APP_LANG_KEY) 期待重渲染。
+ * 各页面的做法：@Entry 页用 @State langAtBuild + onPageShow 在回显时切换 if 分支重建整页
+ * （隐藏时重建会导致路由页触摸失效）；内嵌组件（如 PersonalTab）用 @StorageProp + if 分支重建。
+ */
 export const APP_LANG_KEY = 'appLang';
 
 let currentLang: Lang = 'zh-CN';

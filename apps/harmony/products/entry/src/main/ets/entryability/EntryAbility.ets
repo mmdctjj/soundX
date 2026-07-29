@@ -16,10 +16,13 @@ const DOMAIN = 0xA001;
 const TAG = 'EntryAbility';
 
 export default class EntryAbility extends UIAbility {
+  private initPromise: Promise<void> | null = null;
+
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     hilog.info(DOMAIN, TAG, `onCreate launchParam=${launchParam}`);
     Logger.i(TAG, 'onCreate');
-    await this.initialize();
+    this.initPromise = this.initialize();
+    await this.initPromise;
     installPlaybackService();
     try {
       await installAVSessionService(this.context);
@@ -34,8 +37,11 @@ export default class EntryAbility extends UIAbility {
     releaseAVSessionService();
   }
 
-  onWindowStageCreate(windowStage: window.WindowStage): void {
+  async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
     hilog.info(DOMAIN, TAG, 'onWindowStageCreate');
+    // 系统不会等 async onCreate 结束就回调本方法；必须等初始化（语言/主题写入 AppStorage）
+    // 完成后再加载页面，否则首帧会用默认中文构建，且 tabBar 等一次性构建的 UI 之后不再刷新。
+    if (this.initPromise) await this.initPromise;
     windowStage.loadContent('pages/Index', (err: Error) => {
       if (err) Logger.e(TAG, `loadContent: ${err.message}`);
     });

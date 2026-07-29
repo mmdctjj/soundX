@@ -1,6 +1,6 @@
 import router from '@ohos.router';
 import { kvStore } from 'features_storage';
-import { t } from 'features_i18n';
+import { t, getLang } from 'features_i18n';
 import { Logger } from 'audiodock_common';
 import {
   artistApi, albumApi, trackApi, userDataApi,
@@ -20,6 +20,11 @@ import { buildTheme, withAlpha } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 
 const PAGE_SIZE: number = 8;
+
+/** TabBuilder 按引用传参的类型（ArkTS 禁止内联对象字面量类型） */
+interface TabTitleParam {
+  title: string;
+}
 
 class Section {
   id: string = '';
@@ -48,7 +53,6 @@ export struct HomeTab {
   @State isRadioMode: boolean = false;
   @State likedIds: string[] = [];
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  @StorageProp('appLang') @Watch('onLangChange') appLang: string = 'zh-CN';
   // 调整顺序页保存时会写入该值，触发首页按最新 section_order 重排。
   @StorageLink('sectionOrderVersion') @Watch('onSectionOrderChange') sectionOrderVersion: number = 0;
   @State theme: Theme = buildTheme('light');
@@ -61,11 +65,6 @@ export struct HomeTab {
 
   onThemeModeChange(): void {
     this.theme = buildTheme(this.themeMode);
-  }
-
-  onLangChange(): void {
-    // 语言切换后重建 section 标题（title 是 loadData 时通过 t() 计算的）
-    this.loadData();
   }
 
   async initData(): Promise<void> {
@@ -619,7 +618,7 @@ export struct HomeTab {
 struct MainPage {
   @State currentIndex: number = 0;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
-  @StorageProp('appLang') appLang: string = 'zh-CN';
+  @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
 
   aboutToAppear(): void {
@@ -630,12 +629,19 @@ struct MainPage {
     this.theme = buildTheme(this.themeMode);
   }
 
+  onPageShow(): void {
+    // 语言可能在后台（语言页）被修改：回显时若语言已变化，切换 if 分支重建整页。
+    // 不能在隐藏时重建——@StorageProp 在后台更新触发的重建会导致路由页触摸失效。
+    const cur = getLang();
+    if (cur !== this.langAtBuild) this.langAtBuild = cur;
+  }
+
   @Builder
-  TabBuilder(title: string, index: number, icon: AppIconName) {
+  TabBuilder($$: TabTitleParam, index: number, icon: AppIconName) {
     Column() {
       AppIcon({ name: icon, iconSize: 24, color: this.currentIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive })
         .margin({ bottom: 4 })
-      Text(title)
+      Text($$.title)
         .fontSize(12)
         .fontColor(this.currentIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive)
         .fontWeight(this.currentIndex === index ? FontWeight.Bold : FontWeight.Normal)
@@ -644,22 +650,33 @@ struct MainPage {
   }
 
   build() {
+    // 条件读取 langAtBuild 建立依赖（框架只追踪读取状态变量的表达式，t() 是普通函数无法被追踪），
+    // 语言变化使 if 分支切换，旧子树销毁、新子树重建，tab 文案与三个 Tab 页内容都按新语言重新求值。
+    if (this.langAtBuild === 'zh-CN') {
+      this.LocalizedContent()
+    } else {
+      this.LocalizedContent()
+    }
+  }
+
+  @Builder
+  LocalizedContent() {
     Stack({ alignContent: Alignment.Bottom }) {
-      Tabs({ barPosition: BarPosition.End }) {
+      Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
         TabContent() {
           HomeTab()
         }
-        .tabBar(this.TabBuilder(t('navTabs.recommend'), 0, 'home'))
+        .tabBar(this.TabBuilder({ title: t('navTabs.recommend') }, 0, 'home'))
 
         TabContent() {
           LibraryTab()
         }
-        .tabBar(this.TabBuilder(t('navTabs.soundcang'), 1, 'headphones'))
+        .tabBar(this.TabBuilder({ title: t('navTabs.soundcang') }, 1, 'headphones'))
 
         TabContent() {
           PersonalTab()
         }
-        .tabBar(this.TabBuilder(t('navTabs.mine'), 2, 'person'))
+        .tabBar(this.TabBuilder({ title: t('navTabs.mine') }, 2, 'person'))
       }
       .width('100%').height('100%')
       .barWidth('100%').barHeight(56)
