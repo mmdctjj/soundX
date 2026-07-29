@@ -47,11 +47,19 @@ export class AuthStore {
       const normalized = httpClient.getBaseURL();
       const token = await kvStore.get(`token_${normalized}`);
       const userRaw = await kvStore.get(`user_${normalized}`);
+      let user: AuthMe | null = null;
+      if (userRaw) {
+        try {
+          user = JSON.parse(userRaw) as AuthMe;
+        } catch {
+          user = null;
+        }
+      }
       this.state = {
         serverAddress: normalized,
         sourceType: sourceType ?? 'audiodock',
         token,
-        user: userRaw ? JSON.parse(userRaw) as AuthMe : null,
+        user,
       };
       httpClient.setAuthToken(token);
     }
