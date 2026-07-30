@@ -616,7 +616,7 @@ export struct HomeTab {
 @Entry
 @Component
 struct MainPage {
-  @State currentIndex: number = 0;
+  @StorageLink('mainTabIndex') currentIndex: number = 0;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');

@@ -3,8 +3,10 @@ import promptAction from '@ohos.promptAction';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
-import { formatDuration } from 'audiodock_common';
-import { trackApi } from 'features_network';
+import { formatDuration, Logger } from 'audiodock_common';
+import { trackApi, playlistApi, artistApi, albumApi } from 'features_network';
+import type { PlaylistDto, ArtistDto, AlbumDto } from 'features_network';
+import { kvStore } from 'features_storage';
 import type { LyricLine } from 'features_player';
 import { playerStore } from '../context/PlayerStore';
 import type { PlayerStateView, Track } from '../context/PlayerStore';
@@ -40,6 +42,14 @@ struct PlayerPage {
   @State private showPlaylist: boolean = false;
   @State private showMore: boolean = false;
   @State private liked: boolean = false;
+  @State private showSleepTimer: boolean = false;
+  @State private showAddToPlaylist: boolean = false;
+  @State private showLyricsSize: boolean = false;
+  @State private showControlPos: boolean = false;
+  @State private sleepTimerRemaining: number = 0;
+  @State private lyricFontSize: number = 16;
+  @State private controlBottomOffset: number = 0;
+  @State private playlists: PlaylistDto[] = [];
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
@@ -48,6 +58,7 @@ struct PlayerPage {
   private lastLyricIndex: number = -1;
   private unsub: () => void = () => {};
   private unsubLike: () => void = () => {};
+  private sleepTimerId: number = -1;
 
   onThemeModeChange(): void {
     this.theme = buildTheme(this.themeMode);
@@ -86,6 +97,10 @@ struct PlayerPage {
   aboutToDisappear(): void {
     this.unsub();
     this.unsubLike();
+    if (this.sleepTimerId !== -1) {
+      clearInterval(this.sleepTimerId);
+      this.sleepTimerId = -1;
+    }
   }
 
   private current(): Track | null {
@@ -160,6 +175,26 @@ struct PlayerPage {
     })
     .bindSheet($$this.showMore, this.moreSheet(), {
       height: '55%',
+      dragBar: true,
+      backgroundColor: this.theme.colors.surface,
+    })
+    .bindSheet($$this.showSleepTimer, this.sleepTimerSheet(), {
+      height: 360,
+      dragBar: true,
+      backgroundColor: this.theme.colors.surface,
+    })
+    .bindSheet($$this.showAddToPlaylist, this.addToPlaylistSheet(), {
+      height: '50%',
+      dragBar: true,
+      backgroundColor: this.theme.colors.surface,
+    })
+    .bindSheet($$this.showLyricsSize, this.lyricsSizeSheet(), {
+      height: 280,
+      dragBar: true,
+      backgroundColor: this.theme.colors.surface,
+    })
+    .bindSheet($$this.showControlPos, this.controlPosSheet(), {
+      height: 260,
       dragBar: true,
       backgroundColor: this.theme.colors.surface,
     });
@@ -429,27 +464,226 @@ struct PlayerPage {
   }
 
   private getMoreOptions(): MoreOption[] {
-    return [
+    const opts: MoreOption[] = [
       new MoreOption('artist', t('playerMore.artistDetails')),
       new MoreOption('album', t('playerMore.albumDetails')),
       new MoreOption('track', t('playerMore.trackDetails')),
-      new MoreOption('sleepTimer', t('playerMore.sleepTimer')),
+      new MoreOption('sleepTimer', this.sleepTimerRemaining > 0
+        ? `${t('playerMore.sleepTimer')} (${this.sleepTimerRemaining}min)` : t('playerMore.sleepTimer')),
       new MoreOption('addToPlaylist', t('playerMore.addToPlaylist')),
-      new MoreOption('download', t('playerMore.download')),
       new MoreOption('lyricsSize', t('playerMore.adjustLyricsSize')),
       new MoreOption('controlPosition', t('playerMore.controlPosition')),
     ];
+    return opts;
   }
 
   private onMoreOption(key: string): void {
     this.showMore = false;
-    // 鸿蒙端 Track 模型暂不携带 artistId/albumId，详情跳转与下载/定时/EQ 等
-    // 依赖的后端能力尚未接入，先统一给出优雅提示，后续逐项接通。
-    if (key === 'artist' || key === 'album') {
-      promptAction.showToast({ message: '详情跳转暂未在鸿蒙端开放' });
-    } else {
-      promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
+    const cur = this.current();
+    if (key === 'artist') {
+      if (!cur || !cur.artist) { promptAction.showToast({ message: t('common.unknownArtist') }); return; }
+      this.navigateToArtist(cur.artist);
+    } else if (key === 'album') {
+      if (!cur || !cur.album) { promptAction.showToast({ message: t('common.unknownAlbum') }); return; }
+      this.navigateToAlbum(cur.album);
+    } else if (key === 'track') {
+      if (!cur) return;
+      promptAction.showDialog({
+        title: `${t('playerMore.trackDetails')} · ${cur.title}`,
+        message: `ID: ${cur.id}\n${cur.artist ? t('common.artists') + ': ' + cur.artist + '\n' : ''}${cur.album ? t('playerMore.albumDetails') + ': ' + cur.album + '\n' : ''}${cur.duration ? t('player.sleepTimer') + ': ' + formatDuration((cur.duration) * 1000) : ''}`,
+        buttons: [{ text: t('common.close'), color: this.theme.colors.primary }],
+      });
+    } else if (key === 'sleepTimer') {
+      setTimeout(() => { this.showSleepTimer = true; }, 150);
+    } else if (key === 'addToPlaylist') {
+      if (!cur) return;
+      this.loadPlaylists();
+      setTimeout(() => { this.showAddToPlaylist = true; }, 150);
+    } else if (key === 'lyricsSize') {
+      setTimeout(() => { this.showLyricsSize = true; }, 150);
+    } else if (key === 'controlPosition') {
+      setTimeout(() => { this.showControlPos = true; }, 150);
     }
+  }
+
+  private async navigateToArtist(name: string): Promise<void> {
+    try {
+      const artists = await artistApi.latest({ type: 'MUSIC', random: false, pageSize: 50 });
+      const found = artists.find((a: ArtistDto) => a.name === name);
+      if (found) {
+        router.pushUrl({ url: 'pages/ArtistDetailPage', params: { id: String(found.id) } });
+      } else {
+        promptAction.showToast({ message: t('common.unknownArtist') });
+      }
+    } catch (e) {
+      promptAction.showToast({ message: t('common.operationFailed') });
+    }
+  }
+
+  private async navigateToAlbum(name: string): Promise<void> {
+    try {
+      const albums = await albumApi.latest({ type: 'MUSIC', random: false, pageSize: 50 });
+      const found = albums.find((a: AlbumDto) => a.name === name);
+      if (found) {
+        router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id: String(found.id) } });
+      } else {
+        promptAction.showToast({ message: t('common.unknownAlbum') });
+      }
+    } catch (e) {
+      promptAction.showToast({ message: t('common.operationFailed') });
+    }
+  }
+
+  private setSleepTimer(minutes: number): void {
+    if (this.sleepTimerId !== -1) {
+      clearInterval(this.sleepTimerId);
+      this.sleepTimerId = -1;
+    }
+    if (minutes <= 0) {
+      this.sleepTimerRemaining = 0;
+      promptAction.showToast({ message: t('player.cancelTimer') });
+      return;
+    }
+    this.sleepTimerRemaining = minutes;
+    this.sleepTimerId = setInterval(() => {
+      this.sleepTimerRemaining -= 1;
+      if (this.sleepTimerRemaining <= 0) {
+        clearInterval(this.sleepTimerId);
+        this.sleepTimerId = -1;
+        this.sleepTimerRemaining = 0;
+        playerStore.togglePlay().catch(() => undefined);
+        promptAction.showToast({ message: t('player.sleepTimerTriggered') });
+      }
+    }, 60000);
+    promptAction.showToast({ message: `${t('playerMore.sleepTimer')} ${minutes}min` });
+  }
+
+  private async loadPlaylists(): Promise<void> {
+    try {
+      this.playlists = await playlistApi.list('MUSIC');
+    } catch (e) {
+      Logger.w('PlayerPage', `loadPlaylists failed: ${String(e)}`);
+    }
+  }
+
+  private async addToPlaylist(playlistId: string): Promise<void> {
+    const cur = this.current();
+    if (!cur) return;
+    this.showAddToPlaylist = false;
+    try {
+      await playlistApi.addTrack(playlistId, cur.id);
+      promptAction.showToast({ message: t('player.addedToPlaylist') });
+    } catch (e) {
+      promptAction.showToast({ message: t('player.addToPlaylistFailed') });
+    }
+  }
+
+  @Builder sleepTimerSheet() {
+    Column() {
+      Text(t('playerMore.sleepTimer'))
+        .fontSize(16).fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text)
+        .margin({ top: 8, bottom: 16 });
+      if (this.sleepTimerRemaining > 0) {
+        Row() {
+          Text(`${t('player.cancelTimer')} (${this.sleepTimerRemaining}min)`)
+            .fontSize(15).fontColor('#FF3B30')
+        }
+        .width('100%').padding({ top: 14, bottom: 14, left: 20, right: 20 })
+        .onClick(() => { this.showSleepTimer = false; this.setSleepTimer(0); })
+      }
+      ForEach([15, 20, 30, 45, 60, 120], (min: number) => {
+        Row() {
+          Text(`${min} ${t('common.minutes')}`)
+            .fontSize(15).fontColor(this.theme.colors.text)
+        }
+        .width('100%').padding({ top: 14, bottom: 14, left: 20, right: 20 })
+        .onClick(() => { this.showSleepTimer = false; this.setSleepTimer(min); })
+      }, (min: number) => `st-${min}`)
+    }
+    .width('100%').padding({ left: 4, right: 4 })
+  }
+
+  @Builder addToPlaylistSheet() {
+    Column() {
+      Text(t('playerMore.addToPlaylist'))
+        .fontSize(16).fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text)
+        .margin({ top: 8, bottom: 16 });
+      List() {
+        ForEach(this.playlists, (pl: PlaylistDto) => {
+          ListItem() {
+            Row() {
+              Text(pl.name).fontSize(15).fontColor(this.theme.colors.text).layoutWeight(1)
+              Text('›').fontSize(18).fontColor(this.theme.colors.textSecondary)
+            }
+            .width('100%').padding({ top: 14, bottom: 14, left: 20, right: 20 })
+            .onClick(() => this.addToPlaylist(pl.id))
+          }
+        }, (pl: PlaylistDto) => pl.id)
+      }
+      .layoutWeight(1).scrollBar(BarState.Off)
+    }
+    .width('100%').height('100%').padding({ left: 4, right: 4 })
+  }
+
+  @Builder lyricsSizeSheet() {
+    Column() {
+      Text(t('playerMore.adjustLyricsSize'))
+        .fontSize(16).fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text)
+        .margin({ top: 8, bottom: 16 });
+      Text(t('lyricsSize.currentSize') + `: ${this.lyricFontSize}`)
+        .fontSize(13).fontColor(this.theme.colors.textSecondary)
+        .margin({ bottom: 12 });
+      Row({ space: 20 }) {
+        Button('-').width(50).height(50).borderRadius(25)
+          .backgroundColor(this.theme.colors.surface)
+          .fontColor(this.theme.colors.text).fontSize(24)
+          .onClick(() => { if (this.lyricFontSize > 12) this.lyricFontSize -= 2; this.saveLyricSize(); })
+        Text(`${this.lyricFontSize}`)
+          .fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
+        Button('+').width(50).height(50).borderRadius(25)
+          .backgroundColor(this.theme.colors.surface)
+          .fontColor(this.theme.colors.text).fontSize(24)
+          .onClick(() => { if (this.lyricFontSize < 40) this.lyricFontSize += 2; this.saveLyricSize(); })
+      }
+      .margin({ bottom: 16 });
+      Button(t('common.reset'))
+        .backgroundColor(this.theme.colors.primary).fontColor('#FFFFFF').borderRadius(18)
+        .onClick(() => { this.lyricFontSize = 16; this.saveLyricSize(); })
+    }
+    .width('100%').padding(20).alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder controlPosSheet() {
+    Column() {
+      Text(t('playerMore.controlPosition'))
+        .fontSize(16).fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text)
+        .margin({ top: 8, bottom: 16 });
+      Slider({ value: this.controlBottomOffset, min: 0, max: 120, step: 1 })
+        .width('80%')
+        .trackColor(this.theme.colors.border)
+        .selectedColor(this.theme.colors.primary)
+        .blockColor(this.theme.colors.primary)
+        .onChange((v: number, mode: SliderChangeMode) => {
+          if (mode === SliderChangeMode.End || mode === SliderChangeMode.Click) {
+            this.controlBottomOffset = v;
+          }
+        });
+      Text(`${this.controlBottomOffset}`)
+        .fontSize(13).fontColor(this.theme.colors.textSecondary)
+        .margin({ top: 8, bottom: 16 });
+      Button(t('common.reset'))
+        .backgroundColor(this.theme.colors.primary).fontColor('#FFFFFF').borderRadius(18)
+        .onClick(() => { this.controlBottomOffset = 0; })
+    }
+    .width('100%').padding(20).alignItems(HorizontalAlign.Center)
+  }
+
+  private saveLyricSize(): void {
+    kvStore.set('lyric_font_size', String(this.lyricFontSize)).catch(() => undefined);
   }
 
   private loadSingle(trackId: string): void {

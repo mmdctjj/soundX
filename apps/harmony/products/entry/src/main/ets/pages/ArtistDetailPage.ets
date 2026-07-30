@@ -9,7 +9,7 @@ import { DetailHero } from '../components/DetailHero';
 import { SectionHeader } from '../components/SectionHeader';
 import { AlbumCarouselCard } from '../components/AlbumCarouselCard';
 import { TrackRow } from '../components/TrackRow';
-import { MiniPlayer } from '../components/MiniPlayer';
+import { GlobalBottomBar } from '../components/GlobalBottomBar';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
@@ -100,7 +100,7 @@ struct ArtistDetailPage {
       } else {
         this.Content()
       }
-      MiniPlayer()
+      GlobalBottomBar()
     }
     .width('100%')
     .height('100%')

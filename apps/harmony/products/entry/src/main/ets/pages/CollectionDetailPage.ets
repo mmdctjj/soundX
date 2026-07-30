@@ -5,7 +5,7 @@ import { t, getLang } from 'features_i18n';
 import { collectionApi } from 'features_network';
 import type { CollectionDetailResp, CollectionAlbumItem } from 'features_network';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
-import { MiniPlayer } from '../components/MiniPlayer';
+import { GlobalBottomBar } from '../components/GlobalBottomBar';
 
 @Entry
 @Component
@@ -76,7 +76,7 @@ struct CollectionDetailPage {
       } else {
         this.content();
       }
-      MiniPlayer()
+      GlobalBottomBar()
     }.width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
 

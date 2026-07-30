@@ -438,11 +438,40 @@ export struct PersonalTab {
   @Builder
   ListRowBuilder(row: ListRow) {
     Row() {
-      CoverImage({
-        path: row.cover(),
-        imgWidth: 50, imgHeight: 50, radius: 8,
-        fallbackText: row.name(),
-      }).margin({ right: 15 })
+      if (row.kind === 'playlist') {
+        // 堆叠封面：对齐 mobile StackedCover 视觉
+        Stack({ alignContent: Alignment.TopStart }) {
+          CoverImage({
+            path: row.cover(),
+            imgWidth: 50, imgHeight: 50, radius: 8,
+            fallbackText: row.name(),
+          })
+            .offset({ x: 12, y: 6 })
+            .opacity(0.7)
+            .scale({ x: 0.92, y: 0.92 })
+          CoverImage({
+            path: row.cover(),
+            imgWidth: 50, imgHeight: 50, radius: 8,
+            fallbackText: row.name(),
+          })
+            .offset({ x: 6, y: 3 })
+            .opacity(0.85)
+            .scale({ x: 0.96, y: 0.96 })
+          CoverImage({
+            path: row.cover(),
+            imgWidth: 50, imgHeight: 50, radius: 8,
+            fallbackText: row.name(),
+          })
+        }
+        .width(62).height(56)
+        .margin({ right: 15 })
+      } else {
+        CoverImage({
+          path: row.cover(),
+          imgWidth: 50, imgHeight: 50, radius: 8,
+          fallbackText: row.name(),
+        }).margin({ right: 15 })
+      }
 
       Column() {
         Text(row.name())

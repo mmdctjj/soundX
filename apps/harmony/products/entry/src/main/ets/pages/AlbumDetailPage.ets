@@ -8,7 +8,7 @@ import type { AlbumDto, TrackDto, MVDto, AlbumTracksResp } from 'features_networ
 import { DetailHero } from '../components/DetailHero';
 import { TrackRow } from '../components/TrackRow';
 import { AppIcon } from '../components/AppIcon';
-import { MiniPlayer } from '../components/MiniPlayer';
+import { GlobalBottomBar } from '../components/GlobalBottomBar';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
 import { playerStore } from '../context/PlayerStore';
@@ -112,7 +112,7 @@ struct AlbumDetailPage {
       } else {
         this.Content()
       }
-      MiniPlayer()
+      GlobalBottomBar()
     }
     .width('100%')
     .height('100%')

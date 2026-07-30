@@ -11,7 +11,7 @@ import { playerStore } from '../context/PlayerStore';
 import { likesHistory } from '../services/LikesHistoryService';
 import { CoverImage } from '../components/CoverImage';
 import { AppIcon } from '../components/AppIcon';
-import { MiniPlayer } from '../components/MiniPlayer';
+import { GlobalBottomBar } from '../components/GlobalBottomBar';
 
 const DEBOUNCE_MS = 500;
 const RESULT_LIMIT = 30;
@@ -198,7 +198,7 @@ struct SearchPage {
         this.resultsView()
       }
 
-      MiniPlayer()
+      GlobalBottomBar()
     }
     .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
