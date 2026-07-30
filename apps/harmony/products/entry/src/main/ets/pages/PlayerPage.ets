@@ -165,39 +165,47 @@ struct PlayerPage {
       } else {
         this.content();
       }
+
+      // ArkUI 每个组件只能绑定一个 bindSheet，用不可见锚点分散绑定
+      Column().width(0).height(0)
+        .bindSheet($$this.showPlaylist, this.playlistSheet(), {
+          height: '60%',
+          dragBar: true,
+          backgroundColor: this.theme.colors.background,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showMore, this.moreSheet(), {
+          height: '55%',
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showSleepTimer, this.sleepTimerSheet(), {
+          height: 360,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showAddToPlaylist, this.addToPlaylistSheet(), {
+          height: '50%',
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showLyricsSize, this.lyricsSizeSheet(), {
+          height: 280,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showControlPos, this.controlPosSheet(), {
+          height: 260,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
     }
     .width('100%').height('100%')
-    .backgroundColor(this.theme.colors.background)
-    .bindSheet($$this.showPlaylist, this.playlistSheet(), {
-      height: '60%',
-      dragBar: true,
-      backgroundColor: this.theme.colors.background,
-    })
-    .bindSheet($$this.showMore, this.moreSheet(), {
-      height: '55%',
-      dragBar: true,
-      backgroundColor: this.theme.colors.surface,
-    })
-    .bindSheet($$this.showSleepTimer, this.sleepTimerSheet(), {
-      height: 360,
-      dragBar: true,
-      backgroundColor: this.theme.colors.surface,
-    })
-    .bindSheet($$this.showAddToPlaylist, this.addToPlaylistSheet(), {
-      height: '50%',
-      dragBar: true,
-      backgroundColor: this.theme.colors.surface,
-    })
-    .bindSheet($$this.showLyricsSize, this.lyricsSizeSheet(), {
-      height: 280,
-      dragBar: true,
-      backgroundColor: this.theme.colors.surface,
-    })
-    .bindSheet($$this.showControlPos, this.controlPosSheet(), {
-      height: 260,
-      dragBar: true,
-      backgroundColor: this.theme.colors.surface,
-    });
+    .backgroundColor(this.theme.colors.background);
   }
 
   @Builder header() {
