@@ -57,6 +57,9 @@ const SAMPLE_THEME = {
         cardHoverBackground: "rgba(255,255,255,0.10)",
         titleColor: "#e6e6eb",
       },
+      pages: {
+        background: "rgba(20,20,28,0.45)",
+      },
     },
   },
   light: {
@@ -88,6 +91,9 @@ const SAMPLE_THEME = {
         cardBackground: "rgba(0,0,0,0.04)",
         cardHoverBackground: "rgba(0,0,0,0.08)",
         titleColor: "#1a1a22",
+      },
+      pages: {
+        background: "rgba(255,255,255,0.55)",
       },
     },
   },

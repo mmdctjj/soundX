@@ -390,6 +390,7 @@ const LoginModal: React.FC = () => {
             <Input
               prefix={<HddOutlined />}
               placeholder={t('loginModal.enterServerAddress')}
+              autoCapitalize="off"
               // onBlur={(e) => checkServerConnectivity(e.target.value, sourceType)}
               suffix={
                 serverStatus === "error" ? (
