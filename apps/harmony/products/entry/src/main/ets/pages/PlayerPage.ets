@@ -458,4 +458,11 @@ struct PlayerPage {
       .then((track) => playerStore.playTrack(track))
       .catch(() => undefined);
   }
+
+  pageTransition() {
+    PageTransitionEnter({ duration: 300, curve: Curve.EaseOut })
+      .slide(SlideEffect.Bottom)
+    PageTransitionExit({ duration: 300, curve: Curve.EaseIn })
+      .slide(SlideEffect.Bottom)
+  }
 }
