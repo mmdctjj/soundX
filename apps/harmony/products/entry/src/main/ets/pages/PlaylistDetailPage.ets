@@ -337,7 +337,19 @@ struct PlaylistDetailPage {
     this.renaming = true;
     try {
       await playlistApi.rename(this.entityId, name);
-      if (this.data) this.data = { ...this.data, name } as PlaylistDetail;
+      if (this.data) {
+        const d = this.data;
+        this.data = {
+          id: d.id,
+          name: name,
+          type: d.type,
+          createdAt: d.createdAt,
+          description: d.description,
+          trackCount: d.trackCount,
+          cover: d.cover,
+          tracks: d.tracks
+        } as PlaylistDetail;
+      }
       this.showRename = false;
       promptAction.showToast({ message: t('common.success') });
     } catch (e) {
@@ -352,7 +364,16 @@ struct PlaylistDetailPage {
     this.error = '';
     try {
       const res = await playlistApi.getById(this.entityId);
-      this.data = { ...res, tracks: res.tracks ?? [] } as PlaylistDetail;
+      this.data = {
+        id: res.id,
+        name: res.name,
+        type: res.type,
+        createdAt: res.createdAt,
+        description: res.description,
+        trackCount: res.trackCount,
+        cover: res.cover,
+        tracks: res.tracks ?? []
+      } as PlaylistDetail;
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     } finally {

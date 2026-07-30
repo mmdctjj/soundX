@@ -6,8 +6,11 @@ string module_desc 0x02000009
 color start_window_background 0x0200000b
 media app_icon 0x02000001
 media background 0x02000000
+media emby 0x0200000e
 media foreground 0x02000004
 media layered_image 0x02000005
+media logo 0x0200000d
 media startIcon 0x0200000c
+media subsonic 0x0200000f
 profile main_pages 0x0200000a
 profile network_config 0x02000006
