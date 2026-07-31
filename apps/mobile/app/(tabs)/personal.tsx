@@ -54,9 +54,7 @@ import {
   refreshVipStatus,
 } from "../../src/utils/vipStatus";
 
-import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { CachedImage } from "@/src/components/CachedImage";
-import { UpdateModal } from "@/src/components/UpdateModal";
 import {
   AntDesign,
   Ionicons,
@@ -191,17 +189,7 @@ export default function PersonalScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [permission, setPermission] = useState<any>(null);
-  const {
-    checkUpdate,
-    progress,
-    isUpdating,
-    updateInfo,
-    startUpdate,
-    ignoreUpdate,
-    cancelUpdate,
-  } = useCheckUpdate();
 
-  const [isModalVisible, setModalVisible] = useState(false);
   const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -327,22 +315,10 @@ export default function PersonalScreen() {
     }
   };
 
-  useEffect(() => {
-    if (updateInfo) {
-      setModalVisible(true);
-    }
-  }, [updateInfo]);
-
   const [activeTab, setActiveTab] = useState<TabType>("playlists");
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>("track");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    checkUpdate().then((info) => {
-      if (info) setModalVisible(true);
-    });
-  }, []);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -1210,23 +1186,6 @@ export default function PersonalScreen() {
           }
         />
       )}
-
-      <UpdateModal
-        visible={isModalVisible}
-        progress={progress}
-        isUpdating={isUpdating}
-        updateInfo={updateInfo}
-        onBackground={() => setModalVisible(false)}
-        onUpdate={startUpdate}
-        onIgnore={() => {
-          ignoreUpdate();
-          setModalVisible(false);
-        }}
-        onCancel={() => {
-          cancelUpdate();
-          setModalVisible(false);
-        }}
-      />
 
       <Modal
         isVisible={createModalVisible}

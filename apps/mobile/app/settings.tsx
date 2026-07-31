@@ -29,8 +29,6 @@ import { trackEvent } from "../src/services/tracking";
 import { goBackOrReplace } from "../src/utils/navigation";
 import { usePlayMode } from "../src/utils/playMode";
 import { getLocalVersion } from "../src/utils/updateUtils";
-import { useCheckUpdate } from "@/hooks/useCheckUpdate";
-import { UpdateModal } from "@/src/components/UpdateModal";
 import { getCachedVipStatus } from "../src/utils/vipStatus";
 
 export default function SettingsScreen() {
@@ -75,24 +73,11 @@ export default function SettingsScreen() {
     covers: string;
     music: string;
     audiobooks: string;
-    apks: string;
   }>({
     covers: "0 B",
     music: "0 B",
     audiobooks: "0 B",
-    apks: "0 B",
   });
-
-  const {
-    checkUpdate,
-    progress,
-    isUpdating,
-    updateInfo,
-    startUpdate,
-    ignoreUpdate,
-    cancelUpdate,
-  } = useCheckUpdate();
-  const [updateModalVisible, setUpdateModalVisible] = React.useState(false);
 
   const formatSize = (size: number) => {
     if (size === 0) return "0 B";
@@ -109,7 +94,6 @@ export default function SettingsScreen() {
       covers: formatSize(sizes.covers),
       music: formatSize(sizes.music),
       audiobooks: formatSize(sizes.audiobooks),
-      apks: formatSize(sizes.apks),
     });
   };
 
@@ -124,7 +108,7 @@ export default function SettingsScreen() {
   };
 
   const handleClearCache = async (
-    category: "covers" | "music" | "audiobooks" | "apks",
+    category: "covers" | "music" | "audiobooks",
     label: string,
   ) => {
     Alert.alert(
@@ -150,7 +134,7 @@ export default function SettingsScreen() {
   const renderCacheRow = (
     label: string,
     size: string,
-    category: "covers" | "music" | "audiobooks" | "apks",
+    category: "covers" | "music" | "audiobooks",
   ) => (
     <TouchableOpacity
       style={[styles.settingRow, { borderBottomColor: colors.border }]}
@@ -370,13 +354,6 @@ export default function SettingsScreen() {
       );
     } finally {
       setRedeemingInternalTestCode(false);
-    }
-  };
-
-  const handleCheckUpdate = async () => {
-    const info = await checkUpdate();
-    if (info) {
-      setUpdateModalVisible(true);
     }
   };
 
@@ -768,7 +745,6 @@ export default function SettingsScreen() {
             detailedSizes.audiobooks,
             "audiobooks",
           )}
-          {renderCacheRow(t("settings.apkFiles"), detailedSizes.apks, "apks")}
         </View>
 
         <View style={styles.section}>
@@ -787,27 +763,6 @@ export default function SettingsScreen() {
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
                 {t("settings.productUpdatesDescription")}
-              </Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.secondary}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.settingRow, { borderBottomColor: colors.border }]}
-            onPress={() => void handleCheckUpdate()}
-          >
-            <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>
-                {t("settings.checkUpdate")}
-              </Text>
-              <Text
-                style={[styles.settingDescription, { color: colors.secondary }]}
-              >
-                {t("settings.checkUpdateDescription")}
               </Text>
             </View>
             <Ionicons
@@ -979,23 +934,6 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
-
-      <UpdateModal
-        visible={updateModalVisible}
-        progress={progress}
-        isUpdating={isUpdating}
-        updateInfo={updateInfo}
-        onBackground={() => setUpdateModalVisible(false)}
-        onUpdate={startUpdate}
-        onIgnore={() => {
-          ignoreUpdate();
-          setUpdateModalVisible(false);
-        }}
-        onCancel={() => {
-          cancelUpdate();
-          setUpdateModalVisible(false);
-        }}
-      />
     </View>
   );
 }
