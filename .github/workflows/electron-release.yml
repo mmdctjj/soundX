@@ -162,6 +162,8 @@ jobs:
           files: |
             apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/dmg/*.dmg
             apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/macos/*.app
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -173,7 +175,8 @@ jobs:
             apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/dmg/*.dmg
             apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/macos/*.app
           body: ${{ steps.build_changelog.outputs.changelog }}
-          make_latest: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ !contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -185,7 +188,8 @@ jobs:
             apps/desktop/src-tauri/target/${{ matrix.bundle_subdir }}/release/bundle/nsis/*.exe
             apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
             apps/desktop/src-tauri/target/release/bundle/deb/*.deb
-          make_latest: ${{ matrix.arch == 'x64' }}
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ matrix.arch == 'x64' && !contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

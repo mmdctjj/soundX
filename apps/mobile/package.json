@@ -1,7 +1,7 @@
 {
   "name": "mobile",
   "main": "index.js",
-  "version": "1.1.22",
+  "version": "1.2.0-beta.1",
   "author": "mmdctjj <mmdctjj@gmail.com>",
   "repository": {
     "type": "git",
@@ -44,7 +44,6 @@
     "expo-haptics": "~15.0.8",
     "expo-image": "~3.0.11",
     "expo-image-picker": "~17.0.10",
-    "expo-intent-launcher": "~13.0.8",
     "expo-linking": "~8.0.11",
     "expo-media-library": "^18.2.1",
     "expo-modules-core": "~3.0.29",

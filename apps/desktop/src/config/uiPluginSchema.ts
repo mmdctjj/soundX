@@ -12,7 +12,7 @@
 export const SCHEMA_VERSION = 1;
 
 /** 命名空间白名单 —— 扩展点：以后加新页面只在这里 + 注册键表 + less 变量 */
-export const COMPONENT_NAMESPACES = ["header", "player", "home", "detail"] as const;
+export const COMPONENT_NAMESPACES = ["header", "player", "home", "detail", "pages"] as const;
 export type ComponentNamespace = (typeof COMPONENT_NAMESPACES)[number];
 
 /** 全局键 → antd token 名映射（global 段注入 ConfigProvider） */
@@ -88,6 +88,9 @@ export const COMPONENT_KEYS: Record<
       type: "enum",
       values: ["none", "basic"],
     },
+  },
+  pages: {
+    background: { cssVar: "--ad-pages-bg", type: "color" },
   },
 };
 
