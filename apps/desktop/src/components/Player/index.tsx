@@ -1303,17 +1303,25 @@ const Player: React.FC = () => {
           <Text type="secondary" style={{ fontSize: "10px" }}>
             {formatDuration(currentTime)}
           </Text>
-          <Slider
-            value={currentTime}
-            max={duration || 100}
-            onChange={handleSeek}
-            tooltip={{ open: false }}
-            className={isLoading ? styles.loadingSlider : ""}
-            style={{ flex: 1, margin: 0 }}
-            trackStyle={{ backgroundColor: token.colorText }}
-            railStyle={{ backgroundColor: token.colorBorder }}
-            handleStyle={{ display: isLoading ? "block" : "none" }}
-          />
+          <div className={styles.sliderContainer}>
+            <Slider
+              value={currentTime}
+              max={duration || 100}
+              onChange={handleSeek}
+              tooltip={{ open: false }}
+              style={{ flex: 1, margin: 0 }}
+              trackStyle={{ backgroundColor: token.colorPrimary }}
+              railStyle={{ backgroundColor: token.colorBorder }}
+              handleStyle={{ display: "none" }}
+            />
+            {isLoading && (
+              <div
+                className={styles.loadingIndicator}
+                style={{ color: token.colorPrimary }}
+                aria-hidden
+              />
+            )}
+          </div>
           <Text type="secondary" style={{ fontSize: "10px" }}>
             {formatDuration(duration)}
           </Text>

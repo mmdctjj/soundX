@@ -126,6 +126,13 @@
   width: 60%;
 }
 
+.sliderContainer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
 .settings {
   display: flex;
   align-items: center;
@@ -530,17 +537,24 @@
 }
 
 @keyframes breathe {
-  0% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-  100% { transform: scale(1); opacity: 0.8; }
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; box-shadow: 0 0 10px currentColor; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
 }
 
-.loadingSlider {
-  :global(.ant-slider-handle) {
-    animation: breathe 1.5s ease-in-out infinite;
-    display: block !important; /* Force show when loading even if handleStyle was none */
-    border: 2px solid #fff !important;
-  }
+.loadingIndicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  // `color` is set inline via JSX with `token.colorPrimary`; currentColor
+  // here keeps the fill and the breathe glow in sync with the active theme.
+  background-color: currentColor;
+  pointer-events: none;
+  animation: breathe 1.5s ease-in-out infinite;
 }
 
 .listCover {
