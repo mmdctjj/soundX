@@ -3,10 +3,11 @@ import { kvStore } from 'features_storage';
 import { t, getLang } from 'features_i18n';
 import { Logger } from 'audiodock_common';
 import {
-  artistApi, albumApi, trackApi, userDataApi,
+  artistApi, albumApi, trackApi, userDataApi, plusApi,
 } from 'features_network';
 import type { ArtistDto, AlbumDto, TrackDto } from 'features_network';
 import { MiniPlayer } from '../components/MiniPlayer';
+import { SquirrelAgent } from '../components/SquirrelAgent';
 import { AppIcon, AppIconName } from '../components/AppIcon';
 import { CoverImage } from '../components/CoverImage';
 import { LibraryTab } from './LibraryPage';
@@ -620,9 +621,26 @@ struct MainPage {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
+  @State voiceAssistantEnabled: boolean = false;
+  @State isVip: boolean = false;
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
+    this.loadVoiceAssistantGate();
+  }
+
+  private async loadVoiceAssistantGate(): Promise<void> {
+    try {
+      const enabled = await kvStore.get('voiceAssistantEnabled');
+      this.voiceAssistantEnabled = enabled === 'true';
+      const userId = await kvStore.get('plus_user_id');
+      if (userId !== null && userId.length > 0) {
+        const status = await plusApi.getVipStatus(userId);
+        this.isVip = status.isVip;
+      }
+    } catch (e) {
+      Logger.w('MainPage', `loadVoiceAssistantGate error: ${e}`);
+    }
   }
 
   onThemeModeChange(): void {
@@ -686,6 +704,10 @@ struct MainPage {
       })
 
       MiniPlayer().margin({ bottom: 56 })
+
+      if (this.voiceAssistantEnabled && this.isVip) {
+        SquirrelAgent()
+      }
     }
     .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }

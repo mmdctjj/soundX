@@ -8,6 +8,7 @@ export { collectionApi } from './collection';
 export { mvApi } from './mv';
 export { userDataApi } from './userData';
 export { plusApi, setPlusAuthToken, getPlusAuthToken } from './plus';
+export { miApi } from './mi';
 
 export type { LoginDto, RegisterDto, AuthMe, LoginResponse, CheckResponse, AuthApi } from './auth';
 export type { UserItem, UserApi } from './user';
@@ -32,3 +33,7 @@ export type {
   UserDataApi, LoadMoreQuery,
   TrackLikeItem, AlbumLikeItem, TrackHistoryItem, AlbumHistoryItem,
 } from './userData';
+export type {
+  MiDevice, MiDevicesResponse, MiAuthStatusResponse,
+  MiQRCodeResponse, MiQRCodeStatusResponse, MiPlayByUrlResponse, MiApi,
+} from './mi';

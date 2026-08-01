@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "AudioDock"
+    },
+    {
+      "name": "mic_permission_reason",
+      "value": "用于语音搜索与语音助手，将你的语音转换为文字以快速输入和控制播放"
     }
   ]
 }

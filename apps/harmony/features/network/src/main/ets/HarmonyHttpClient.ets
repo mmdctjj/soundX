@@ -26,6 +26,8 @@ export class HarmonyHttpClient {
 
   setAuthToken(token: string | null): void { this.authToken = token; }
 
+  getAuthToken(): string | null { return this.authToken; }
+
   addRequestInterceptor(i: RequestInterceptor): void { this.reqInterceptors.push(i); }
   addResponseInterceptor(i: ResponseInterceptor): void { this.resInterceptors.push(i); }
   addErrorInterceptor(i: ErrorInterceptor): void { this.errInterceptors.push(i); }

@@ -1,4 +1,6 @@
 import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
+import type { common } from '@kit.AbilityKit';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
@@ -7,6 +9,7 @@ import type { TrackDto, AlbumDto, ArtistDto } from 'features_network';
 import { rdbStore } from 'features_storage';
 import { Logger } from 'audiodock_common';
 import { resolveTrackToPlayer } from '../services/trackResolver';
+import { ensureMicPermission, startRecording, stopRecording, speechToText } from '../services/speechService';
 import { playerStore } from '../context/PlayerStore';
 import { likesHistory } from '../services/LikesHistoryService';
 import { CoverImage } from '../components/CoverImage';
@@ -38,6 +41,7 @@ struct SearchPage {
   @State hotSearches: HotItem[] = [];
   @State likedTrackIds: string[] = [];
   @State likedAlbumIds: string[] = [];
+  @State isRecording: boolean = false;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
@@ -157,7 +161,8 @@ struct SearchPage {
 
   @Builder
   LocalizedContent() {
-    Column() {
+    Stack({ alignContent: Alignment.Bottom }) {
+      Column() {
       // ─── Header: back + search input ───
       Row({ space: 10 }) {
         Button() { Text('‹').fontSize(28).fontColor(this.theme.colors.text) }
@@ -199,6 +204,21 @@ struct SearchPage {
       }
 
       GlobalBottomBar()
+      }
+      .width('100%').height('100%')
+
+      // ─── 浮动语音搜索按钮（对齐 mobile voiceButton） ───
+      Column() {
+        Image($r('app.media.mic'))
+          .width(24).height(24)
+          .fillColor(this.isRecording ? this.theme.colors.primary : this.theme.colors.textSecondary)
+      }
+      .width(56).height(56).borderRadius(28)
+      .backgroundColor(this.theme.colors.surface)
+      .border({ width: 1, color: this.isRecording ? this.theme.colors.primary : this.theme.colors.border })
+      .justifyContent(FlexAlign.Center)
+      .margin({ bottom: 80 })
+      .onClick(() => { this.toggleRecording(); })
     }
     .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
@@ -361,6 +381,48 @@ struct SearchPage {
       router.pushUrl({ url: 'pages/PlayerPage' });
     } catch (e) {
       Logger.w('Search', `playTrack: ${String(e)}`);
+    }
+  }
+
+  // ─── 语音搜索（对齐 mobile search.tsx 的录音 → ASR → 关键字） ───
+  private async toggleRecording(): Promise<void> {
+    if (this.isRecording) await this.finishRecording();
+    else await this.beginRecording();
+  }
+
+  private async beginRecording(): Promise<void> {
+    const ctx = getContext(this) as common.Context;
+    const granted = await ensureMicPermission(ctx);
+    if (!granted) {
+      promptAction.showToast({ message: t('search.microphonePermissionDesc') });
+      return;
+    }
+    const path = await startRecording(ctx);
+    if (path.length === 0) {
+      promptAction.showToast({ message: t('search.voiceStart') });
+      return;
+    }
+    this.isRecording = true;
+  }
+
+  private async finishRecording(): Promise<void> {
+    this.isRecording = false;
+    const path = await stopRecording();
+    if (path.length === 0) return;
+    this.searching = true;
+    try {
+      const ctx = getContext(this) as common.Context;
+      const text = await speechToText(ctx, path);
+      const trimmed = text.trim();
+      if (trimmed.length > 0) {
+        this.keyword = trimmed;
+        await this.runSearch(trimmed);
+      }
+    } catch (e) {
+      Logger.w('Search', `speechToText failed: ${String(e)}`);
+      promptAction.showToast({ message: t('search.recognizeFailed') });
+    } finally {
+      this.searching = false;
     }
   }
 }

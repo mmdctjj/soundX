@@ -1,7 +1,7 @@
 export { HarmonyHttpClient, httpClient } from './src/main/ets/HarmonyHttpClient';
 export { HttpError } from './src/main/ets/HttpError';
 export { authApi, userApi, trackApi, albumApi, artistApi, playlistApi, collectionApi, mvApi, userDataApi,
-  plusApi, setPlusAuthToken, getPlusAuthToken }
+  plusApi, setPlusAuthToken, getPlusAuthToken, miApi }
   from './src/main/ets/api';
 export type {
   RequestConfig, HttpResponse,
@@ -36,3 +36,7 @@ export type {
   PlusApi, PlusLoginResponse, PlusUserProfile, VipCurrentLowestPriceData,
   VipPlanPrice, CouponItem, CreatePaymentResponse,
 } from './src/main/ets/api/plus';
+export type {
+  MiDevice, MiDevicesResponse, MiAuthStatusResponse,
+  MiQRCodeResponse, MiQRCodeStatusResponse, MiPlayByUrlResponse, MiApi,
+} from './src/main/ets/api';

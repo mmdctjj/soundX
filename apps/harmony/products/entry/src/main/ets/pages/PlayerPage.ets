@@ -4,18 +4,20 @@ import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { formatDuration, Logger } from 'audiodock_common';
-import { trackApi, playlistApi, artistApi, albumApi } from 'features_network';
-import type { PlaylistDto, ArtistDto, AlbumDto } from 'features_network';
+import { trackApi, playlistApi, artistApi, albumApi, miApi } from 'features_network';
+import type { PlaylistDto, ArtistDto, AlbumDto, MiDevice } from 'features_network';
 import { kvStore } from 'features_storage';
 import type { LyricLine } from 'features_player';
 import { playerStore } from '../context/PlayerStore';
 import type { PlayerStateView, Track } from '../context/PlayerStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
+import { getInternalQuality } from '../services/trackQuality';
 import { likesHistory } from '../services/LikesHistoryService';
 import type { EventPayload, EventPayloadId } from '../services/LikesHistoryService';
 import { CoverImage } from '../components/CoverImage';
 import { AppIcon } from '../components/AppIcon';
 import type { AppIconName } from '../components/AppIcon';
+import { XiaoAiIcon } from '../components/XiaoAiIcon';
 
 class MoreOption {
   key: string = '';
@@ -50,6 +52,14 @@ struct PlayerPage {
   @State private lyricFontSize: number = 16;
   @State private controlBottomOffset: number = 0;
   @State private playlists: PlaylistDto[] = [];
+  // 小爱音箱投放相关状态（对齐 mobile player.tsx 的 mi* 状态）
+  @State private showMiCast: boolean = false;
+  @State private miDevices: MiDevice[] = [];
+  @State private miLoggedIn: boolean = false;
+  @State private miQRCodeUrl: string = '';
+  @State private miLoading: boolean = false;
+  @State private miCasting: boolean = false;
+  private miPollingId: number = -1;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
@@ -101,6 +111,7 @@ struct PlayerPage {
       clearInterval(this.sleepTimerId);
       this.sleepTimerId = -1;
     }
+    this.stopMiPolling();
   }
 
   private current(): Track | null {
@@ -123,6 +134,94 @@ struct PlayerPage {
       likesHistory.unlikeTrack(cur.id).catch(() => undefined);
     } else {
       likesHistory.likeTrack(cur.id).catch(() => undefined);
+    }
+  }
+
+  // ===== 小爱音箱投放（对齐 mobile player.tsx） =====
+  private stopMiPolling(): void {
+    if (this.miPollingId !== -1) {
+      clearInterval(this.miPollingId);
+      this.miPollingId = -1;
+    }
+  }
+
+  private startMiQRPolling(lpUrl: string): void {
+    this.stopMiPolling();
+    this.miPollingId = setInterval(async () => {
+      try {
+        const status = await miApi.getQRCodeStatus(lpUrl);
+        if (status.status === 'success') {
+          this.stopMiPolling();
+          this.miLoggedIn = true;
+          this.miQRCodeUrl = '';
+          promptAction.showToast({ message: t('player.miLoginSuccess') });
+          const res = await miApi.getDevices();
+          this.miDevices = res.devices || [];
+        } else if (status.status === 'expired' || status.status === 'error') {
+          this.stopMiPolling();
+          this.miQRCodeUrl = '';
+        }
+      } catch (e) {
+        // 静默失败，等待下次轮询
+      }
+    }, 2000);
+  }
+
+  private async handleOpenMiCast(): Promise<void> {
+    this.showMiCast = true;
+    this.miLoading = true;
+    try {
+      const auth = await miApi.getAuthStatus();
+      this.miLoggedIn = auth.logged_in;
+      if (auth.logged_in) {
+        const res = await miApi.getDevices();
+        this.miDevices = res.devices || [];
+      } else {
+        const qr = await miApi.getQRCode();
+        if (qr.already_logged_in) {
+          this.miLoggedIn = true;
+          const res = await miApi.getDevices();
+          this.miDevices = res.devices || [];
+        } else if (qr.qrcode_url) {
+          this.miQRCodeUrl = qr.qrcode_url;
+          if (qr.status_url) this.startMiQRPolling(qr.status_url);
+        }
+      }
+    } catch (e) {
+      Logger.w('PlayerPage', `loadMiDevices failed: ${String(e)}`);
+      promptAction.showToast({ message: t('player.loadMiDevicesFailed') });
+    } finally {
+      this.miLoading = false;
+    }
+  }
+
+  private handleCloseMiCast(): void {
+    this.showMiCast = false;
+    this.stopMiPolling();
+  }
+
+  private async handleCastToMi(deviceId: string, deviceName: string): Promise<void> {
+    const cur = this.current();
+    if (!cur) {
+      promptAction.showToast({ message: t('player.miCastNoTrack') });
+      return;
+    }
+    this.miCasting = true;
+    try {
+      const quality = await getInternalQuality();
+      const url = trackApi.streamUrl(cur.id, quality);
+      const title = `${cur.title} - ${cur.artist ?? ''}`;
+      await miApi.playByUrl(deviceId, url, title);
+      if (this.view.isPlaying) {
+        await playerStore.togglePlay();
+      }
+      promptAction.showToast({ message: t('player.miCastSuccess', [['device', deviceName]]) });
+      this.handleCloseMiCast();
+    } catch (e) {
+      Logger.w('PlayerPage', `cast to Mi failed: ${String(e)}`);
+      promptAction.showToast({ message: t('player.miCastFailed') });
+    } finally {
+      this.miCasting = false;
     }
   }
 
@@ -200,6 +299,12 @@ struct PlayerPage {
       Column().width(0).height(0)
         .bindSheet($$this.showControlPos, this.controlPosSheet(), {
           height: 260,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showMiCast, this.miCastSheet(), {
+          height: 420,
           dragBar: true,
           backgroundColor: this.theme.colors.surface,
         })
@@ -309,6 +414,12 @@ struct PlayerPage {
           color: this.liked ? this.theme.colors.primary : this.theme.colors.text,
         })
           .onClick(() => this.toggleLike());
+
+        XiaoAiIcon({
+          iconSize: 24,
+          color: this.miLoggedIn ? this.theme.colors.primary : this.theme.colors.text,
+        })
+          .onClick(() => { this.handleOpenMiCast(); });
       }
       .width('100%')
       .alignItems(VerticalAlign.Top)
@@ -688,6 +799,103 @@ struct PlayerPage {
         .onClick(() => { this.controlBottomOffset = 0; })
     }
     .width('100%').padding(20).alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder miCastSheet() {
+    Column() {
+      Text(t('player.miSpeakerTitle'))
+        .fontSize(16).fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text)
+        .margin({ top: 8, bottom: 16 });
+
+      if (this.miLoading) {
+        Column({ space: 12 }) {
+          LoadingProgress().width(32).height(32).color(this.theme.colors.primary);
+          Text(t('common.loading'))
+            .fontSize(14).fontColor(this.theme.colors.textSecondary);
+        }
+        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+      } else if (this.miLoggedIn) {
+        if (this.miDevices.length === 0) {
+          Column({ space: 12 }) {
+            XiaoAiIcon({ iconSize: 40, color: this.theme.colors.textSecondary });
+            Text(t('player.noMiDevices'))
+              .fontSize(14).fontColor(this.theme.colors.textSecondary);
+          }
+          .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+        } else {
+          List() {
+            ForEach(this.miDevices, (device: MiDevice) => {
+              ListItem() {
+                Row({ space: 12 }) {
+                  Column() {
+                    XiaoAiIcon({ iconSize: 20, color: '#FFFFFFFF' });
+                  }
+                  .width(36).height(36).borderRadius(18)
+                  .backgroundColor(this.theme.colors.primary)
+                  .justifyContent(FlexAlign.Center);
+
+                  Column({ space: 2 }) {
+                    Text(device.name)
+                      .fontSize(15).fontWeight(FontWeight.Medium)
+                      .fontColor(this.theme.colors.text)
+                      .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
+                    if ((device.model ?? '').length > 0) {
+                      Text(device.model ?? '')
+                        .fontSize(12).fontColor(this.theme.colors.textSecondary)
+                        .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
+                    }
+                  }
+                  .layoutWeight(1).alignItems(HorizontalAlign.Start);
+
+                  Text('›').fontSize(20).fontColor(this.theme.colors.textSecondary);
+                }
+                .width('100%')
+                .padding({ top: 12, bottom: 12, left: 16, right: 16 })
+                .opacity(this.miCasting ? 0.5 : 1)
+                .onClick(() => {
+                  if (!this.miCasting) this.handleCastToMi(device.device_id, device.name);
+                });
+              }
+            }, (device: MiDevice) => device.device_id);
+          }
+          .layoutWeight(1).scrollBar(BarState.Off);
+        }
+      } else if (this.miQRCodeUrl !== '') {
+        Column({ space: 8 }) {
+          Text(t('player.miLoginRequired'))
+            .fontSize(14).fontColor(this.theme.colors.textSecondary);
+          Image(this.miQRCodeUrl)
+            .width(180).height(180).borderRadius(8)
+            .backgroundColor('#FFFFFFFF')
+            .objectFit(ImageFit.Contain);
+          Text(t('player.miScanQRCode'))
+            .fontSize(12).fontColor(this.theme.colors.textSecondary);
+        }
+        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+      } else {
+        Column({ space: 12 }) {
+          XiaoAiIcon({ iconSize: 40, color: this.theme.colors.textSecondary });
+          Text(t('player.miLoginRequired'))
+            .fontSize(14).fontColor(this.theme.colors.textSecondary);
+        }
+        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+      }
+
+      Row() {
+        Text(t('common.close'))
+          .fontSize(15).fontWeight(FontWeight.Medium)
+          .fontColor(this.theme.colors.text);
+      }
+      .width('100%').padding({ top: 12, bottom: 12 })
+      .margin({ top: 12 })
+      .borderRadius(8)
+      .backgroundColor(this.theme.colors.border)
+      .justifyContent(FlexAlign.Center)
+      .onClick(() => this.handleCloseMiCast());
+    }
+    .width('100%').height('100%')
+    .padding({ left: 16, right: 16, bottom: 12 });
   }
 
   private saveLyricSize(): void {

@@ -66,7 +66,7 @@ function lookupFromObject(obj: Object, path: string): string | undefined {
   return undefined;
 }
 
-export function t(key: string, params?: Record<string, string | number>): string {
+export function t(key: string, params?: Array<[string, string | number]>): string {
   const resource = currentLang === 'zh-CN' ? RESOURCES[0] : RESOURCES[1];
   let raw = lookupFromObject(resource, key);
   if (raw === undefined) raw = lookupFromObject(RESOURCES[1], key);
@@ -77,10 +77,9 @@ export function t(key: string, params?: Record<string, string | number>): string
   // locale 资源是从 mobile 的 i18next 文案同步过来的，占位符写法是 {{name}}；
   // 同时兼容单层 {name}，两种都替换。
   return raw.replace(/\{\{?(\w+)\}\}?/g, (match: string, name: string): string => {
-    const keys = Object.keys(params);
-    for (let i = 0; i < keys.length; i++) {
-      if (keys[i] === name) {
-        const v = params[name];
+    for (let i = 0; i < params.length; i++) {
+      if (params[i][0] === name) {
+        const v = params[i][1];
         return String(v);
       }
     }

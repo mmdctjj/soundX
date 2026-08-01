@@ -304,10 +304,8 @@ struct ArtistDetailPage {
     return this.artist !== null && this.artist.type === 'AUDIOBOOK';
   }
 
-  private countParams(n: number): Record<string, string | number> {
-    const p: Record<string, string | number> = {};
-    p['count'] = n;
-    return p;
+  private countParams(n: number): Array<[string, string | number]> {
+    return [['count', n]];
   }
 
   private collectionCover(col: CollectionDto): string | null {
