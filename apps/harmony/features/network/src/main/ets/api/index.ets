@@ -35,5 +35,6 @@ export type {
 } from './userData';
 export type {
   MiDevice, MiDevicesResponse, MiAuthStatusResponse,
-  MiQRCodeResponse, MiQRCodeStatusResponse, MiPlayByUrlResponse, MiApi,
+  MiQRCodeResponse, MiQRCodeStatusResponse, MiPlayByUrlResponse,
+  MiTrackPayload, MiPlayPlaylistResponse, MiApi,
 } from './mi';

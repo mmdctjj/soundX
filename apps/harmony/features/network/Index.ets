@@ -38,5 +38,6 @@ export type {
 } from './src/main/ets/api/plus';
 export type {
   MiDevice, MiDevicesResponse, MiAuthStatusResponse,
-  MiQRCodeResponse, MiQRCodeStatusResponse, MiPlayByUrlResponse, MiApi,
+  MiQRCodeResponse, MiQRCodeStatusResponse, MiPlayByUrlResponse,
+  MiTrackPayload, MiPlayPlaylistResponse, MiApi,
 } from './src/main/ets/api';

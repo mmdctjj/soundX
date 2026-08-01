@@ -43,6 +43,17 @@ export interface MiPlayByUrlResponse {
   title: string;
 }
 
+export interface MiTrackPayload {
+  url: string;
+  title: string;
+  duration?: number;
+}
+
+export interface MiPlayPlaylistResponse {
+  success: boolean;
+  tracks_count: number;
+}
+
 export interface MiApi {
   /** 检查小米账号登录状态 */
   getAuthStatus(): Promise<MiAuthStatusResponse>;
@@ -54,6 +65,8 @@ export interface MiApi {
   getQRCodeStatus(lpUrl: string): Promise<MiQRCodeStatusResponse>;
   /** 通过 URL 把歌曲推送到小爱音箱（参数走 query，对齐 mobile playMiDeviceByUrl） */
   playByUrl(deviceId: string, url: string, title?: string): Promise<MiPlayByUrlResponse>;
+  /** 批量推送播放列表到小爱音箱（对齐 mobile playMiDevicePlaylist） */
+  playPlaylist(deviceId: string, tracks: MiTrackPayload[], startIndex?: number): Promise<MiPlayPlaylistResponse>;
 }
 
 class MiApiImpl implements MiApi {
@@ -82,6 +95,13 @@ class MiApiImpl implements MiApi {
     if (title !== undefined) q['title'] = title;
     // mobile 端 playMiDeviceByUrl 把参数放在 query 上（request.post(url, null, { params })）
     return httpClient.request<MiPlayByUrlResponse>({ method: 'POST', url: '/mi/api/play_by_url', params: q });
+  }
+
+  async playPlaylist(deviceId: string, tracks: MiTrackPayload[], startIndex?: number): Promise<MiPlayPlaylistResponse> {
+    const q: Record<string, string | number | boolean> = {};
+    q['device_id'] = deviceId;
+    q['start_index'] = startIndex ?? 0;
+    return httpClient.request<MiPlayPlaylistResponse>({ method: 'POST', url: '/mi/api/play_playlist', params: q, data: tracks });
   }
 }
 

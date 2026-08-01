@@ -1,16 +1,20 @@
 import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { Logger } from 'audiodock_common';
-import { albumApi, artistApi, trackApi, collectionApi, mvApi } from 'features_network';
-import type { AlbumDto, ArtistDto, TrackDto, MVDto, CollectionDto, CollectionAlbumItem } from 'features_network';
+import { albumApi, artistApi, trackApi, collectionApi, mvApi, miApi, playlistApi } from 'features_network';
+import type { AlbumDto, ArtistDto, TrackDto, MVDto, CollectionDto, CollectionAlbumItem, MiDevice, MiTrackPayload } from 'features_network';
 import { DetailHero } from '../components/DetailHero';
 import { SectionHeader } from '../components/SectionHeader';
 import { AlbumCarouselCard } from '../components/AlbumCarouselCard';
 import { TrackRow } from '../components/TrackRow';
+import { AppIcon } from '../components/AppIcon';
+import { XiaoAiIcon } from '../components/XiaoAiIcon';
 import { GlobalBottomBar } from '../components/GlobalBottomBar';
 import { resolveTrackToPlayer } from '../services/trackResolver';
+import { getInternalQuality } from '../services/trackQuality';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
 import { authStore } from '../context/AuthStore';
@@ -30,6 +34,16 @@ struct ArtistDetailPage {
   @State loading: boolean = true;
   @State error: string = '';
   @State currentTrackId: string = '';
+  @State isSelectionMode: boolean = false;
+  @State selectedTrackIds: string[] = [];
+  @State showMoreSheet: boolean = false;
+  @State showMiCast: boolean = false;
+  @State miDevices: MiDevice[] = [];
+  @State miLoggedIn: boolean = false;
+  @State miQRCodeUrl: string = '';
+  @State miLoading: boolean = false;
+  @State miCasting: boolean = false;
+  private miPollingId: number = -1;
   private entityId: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
@@ -79,8 +93,25 @@ struct ArtistDetailPage {
   @Builder
   LocalizedContent() {
     Column() {
-      // 标题留空：艺人名显示在头像下方，与 mobile 一致
-      CommonNavBar({ title: '', theme: this.theme, onBack: () => router.back() })
+      if (this.isSelectionMode) {
+        Row() {
+          AppIcon({ name: 'chevron-down', iconSize: 22, color: this.theme.colors.text })
+            .onClick(() => this.exitSelectionMode())
+          Text(t('artistPage.selectedCount', [['count', this.selectedTrackIds.length]]))
+            .fontSize(17).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
+            .layoutWeight(1).margin({ left: 12 })
+          AppIcon({ name: 'plus', iconSize: 22, color: this.selectedTrackIds.length > 0 ? this.theme.colors.text : this.theme.colors.textSecondary })
+            .margin({ right: 16 })
+            .onClick(() => {
+              if (this.selectedTrackIds.length > 0) promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
+            })
+        }
+        .width('100%').height(56).padding({ left: 16, right: 16 })
+        .alignItems(VerticalAlign.Center)
+      } else {
+        // 标题留空：艺人名显示在头像下方，与 mobile 一致
+        CommonNavBar({ title: '', theme: this.theme, onBack: () => router.back() })
+      }
       if (this.loading) {
         this.Skeleton()
       } else if (this.error.length > 0 || this.artist === null) {
@@ -105,6 +136,8 @@ struct ArtistDetailPage {
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme.colors.background)
+    .bindSheet($$this.showMoreSheet, this.moreSheet(), { height: 380, dragBar: true })
+    .bindSheet($$this.showMiCast, this.miCastSheet(), { height: 420, dragBar: true })
   }
 
   @Builder
@@ -155,26 +188,77 @@ struct ArtistDetailPage {
 
       if (!this.isAudiobook()) {
         ListItem() {
-          SectionHeader({
-            title: t('artistPage.allTracks', this.countParams(this.tracks.length)),
-            showAction: true,
-            theme: this.theme,
-            onActionClick: () => this.playFrom(0),
-          })
+          Column() {
+            SectionHeader({
+              title: t('artistPage.allTracks', this.countParams(this.tracks.length)),
+              showAction: true,
+              theme: this.theme,
+              onActionClick: () => this.playFrom(0),
+            })
+            Row({ space: 10 }) {
+              if (!this.isSelectionMode) {
+                Column() {
+                  XiaoAiIcon({ iconSize: 20, color: this.theme.colors.textSecondary })
+                }
+                .width(36).height(36).borderRadius(18)
+                .backgroundColor(this.theme.colors.surfaceAlt)
+                .justifyContent(FlexAlign.Center)
+                .onClick(() => this.handleOpenMiCast())
+              }
+              Column() {
+                AppIcon({ name: 'list', iconSize: 20, color: this.theme.colors.textSecondary })
+              }
+              .width(36).height(36).borderRadius(18)
+              .backgroundColor(this.theme.colors.surfaceAlt)
+              .justifyContent(FlexAlign.Center)
+              .onClick(() => {
+                if (!this.isSelectionMode) {
+                  this.isSelectionMode = true;
+                  this.selectedTrackIds = [];
+                } else {
+                  this.toggleSelectAll();
+                }
+              })
+              Column() {
+                Text('···').fontSize(16).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.textSecondary)
+              }
+              .width(36).height(36).borderRadius(18)
+              .backgroundColor(this.theme.colors.surfaceAlt)
+              .justifyContent(FlexAlign.Center)
+              .onClick(() => { this.showMoreSheet = true; })
+            }
+            .width('100%').justifyContent(FlexAlign.End)
+            .padding({ left: 20, right: 20, bottom: 8 })
+          }
+          .width('100%')
         }
         ForEach(this.tracks, (tr: TrackDto, idx: number) => {
           ListItem() {
-            TrackRow({
-              index: idx,
-              name: tr.name,
-              source: tr.source ?? '',
-              duration: tr.duration ?? 0,
-              coverPath: tr.cover ?? null,
-              isCurrent: tr.id === this.currentTrackId,
-              listenedPercent: 0,
-              theme: this.theme,
-              onRowClick: () => this.playFrom(idx),
-            })
+            Row() {
+              if (this.isSelectionMode) {
+                Column() {
+                  Text(this.selectedTrackIds.indexOf(tr.id) >= 0 ? '☑' : '☐')
+                    .fontSize(20)
+                    .fontColor(this.selectedTrackIds.indexOf(tr.id) >= 0 ? this.theme.colors.primary : this.theme.colors.textSecondary)
+                }
+                .width(32).justifyContent(FlexAlign.Center)
+              }
+              TrackRow({
+                index: idx,
+                name: tr.name,
+                source: tr.source ?? '',
+                duration: tr.duration ?? 0,
+                coverPath: tr.cover ?? null,
+                isCurrent: tr.id === this.currentTrackId,
+                listenedPercent: 0,
+                theme: this.theme,
+                onRowClick: () => {
+                  if (this.isSelectionMode) this.toggleTrackSelection(tr.id);
+                  else this.playFrom(idx);
+                },
+              })
+            }
+            .width('100%')
           }
           .padding({ left: 20, right: 20 })
         }, (tr: TrackDto) => tr.id)
@@ -402,5 +486,218 @@ struct ArtistDetailPage {
       Logger.w('ArtistDetail', `collections load failed: ${String(e)}`);
       this.collections = [];
     }
+  }
+
+  // ─── 多选模式 ───
+  private toggleTrackSelection(id: string): void {
+    const idx = this.selectedTrackIds.indexOf(id);
+    if (idx >= 0) {
+      this.selectedTrackIds = this.selectedTrackIds.filter((x: string) => x !== id);
+    } else {
+      this.selectedTrackIds = [...this.selectedTrackIds, id];
+    }
+  }
+
+  private toggleSelectAll(): void {
+    if (this.selectedTrackIds.length === this.tracks.length) {
+      this.selectedTrackIds = [];
+    } else {
+      this.selectedTrackIds = this.tracks.map((tr: TrackDto) => tr.id);
+    }
+  }
+
+  private exitSelectionMode(): void {
+    this.isSelectionMode = false;
+    this.selectedTrackIds = [];
+  }
+
+  // ─── 小爱音箱投送 ───
+  private stopMiPolling(): void {
+    if (this.miPollingId !== -1) { clearInterval(this.miPollingId); this.miPollingId = -1; }
+  }
+
+  private startMiQRPolling(lpUrl: string): void {
+    this.stopMiPolling();
+    this.miPollingId = setInterval(async () => {
+      try {
+        const res = await miApi.getQRCodeStatus(lpUrl);
+        if (res.status === 'success') {
+          this.stopMiPolling();
+          this.miLoggedIn = true;
+          const devRes = await miApi.getDevices();
+          this.miDevices = devRes.devices || [];
+        } else if (res.status === 'expired' || res.status === 'error') {
+          this.stopMiPolling();
+        }
+      } catch (e) { /* silent */ }
+    }, 2000);
+  }
+
+  private async handleOpenMiCast(): Promise<void> {
+    this.showMiCast = true;
+    this.miLoading = true;
+    try {
+      const auth = await miApi.getAuthStatus();
+      this.miLoggedIn = auth.logged_in;
+      if (auth.logged_in) {
+        const res = await miApi.getDevices();
+        this.miDevices = res.devices || [];
+      } else {
+        const qr = await miApi.getQRCode();
+        if (qr.already_logged_in) {
+          this.miLoggedIn = true;
+          const res = await miApi.getDevices();
+          this.miDevices = res.devices || [];
+        } else if (qr.qrcode_url) {
+          this.miQRCodeUrl = qr.qrcode_url;
+          if (qr.status_url) this.startMiQRPolling(qr.status_url);
+        }
+      }
+    } catch (e) {
+      Logger.w('ArtistDetail', `loadMiDevices failed: ${String(e)}`);
+      promptAction.showToast({ message: t('player.loadMiDevicesFailed') });
+    } finally {
+      this.miLoading = false;
+    }
+  }
+
+  private handleCloseMiCast(): void {
+    this.showMiCast = false;
+    this.stopMiPolling();
+  }
+
+  private async handleCastPlaylistToMi(deviceId: string, deviceName: string): Promise<void> {
+    if (this.tracks.length === 0) {
+      promptAction.showToast({ message: t('player.miCastNoTrack') });
+      return;
+    }
+    this.miCasting = true;
+    try {
+      const quality = await getInternalQuality();
+      const payloads: MiTrackPayload[] = this.tracks.map((tr: TrackDto) => {
+        const p: MiTrackPayload = {
+          url: trackApi.streamUrl(tr.id, quality),
+          title: `${tr.name} - ${tr.artist ?? ''}`,
+          duration: tr.duration ?? 0,
+        };
+        return p;
+      });
+      await miApi.playPlaylist(deviceId, payloads, 0);
+      promptAction.showToast({ message: t('player.miCastPlaylistSuccess', [['device', deviceName], ['count', payloads.length]]) });
+      this.handleCloseMiCast();
+    } catch (e) {
+      Logger.w('ArtistDetail', `cast playlist to Mi failed: ${String(e)}`);
+      promptAction.showToast({ message: t('player.miCastPlaylistFailed') });
+    } finally {
+      this.miCasting = false;
+    }
+  }
+
+  // ─── 更多操作 ───
+  @Builder
+  moreSheet() {
+    Column() {
+      Text(t('artistMore.title'))
+        .fontSize(16).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
+        .margin({ top: 8, bottom: 4 });
+      Text(this.artist?.name ?? '')
+        .fontSize(13).fontColor(this.theme.colors.textSecondary)
+        .margin({ bottom: 16 });
+
+      this.MoreOptionRow(t('albumMore.addToPlaylist'), () => {
+        this.showMoreSheet = false;
+        promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
+      })
+      this.MoreOptionRow(t('albumMore.selectTracks'), () => {
+        this.showMoreSheet = false;
+        this.isSelectionMode = true;
+        this.selectedTrackIds = [];
+      })
+      this.MoreOptionRow(t('albumMore.batchDownload'), () => {
+        this.showMoreSheet = false;
+        promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
+      })
+    }
+    .width('100%').padding(20).alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  MoreOptionRow(label: string, action: () => void) {
+    Row({ space: 12 }) {
+      Text(label).fontSize(15).fontColor(this.theme.colors.text).layoutWeight(1)
+      Text('›').fontSize(18).fontColor(this.theme.colors.textSecondary)
+    }
+    .width('100%').padding({ top: 14, bottom: 14 })
+    .onClick(action)
+  }
+
+  @Builder
+  miCastSheet() {
+    Column() {
+      Text(t('player.miSpeakerTitle'))
+        .fontSize(16).fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text)
+        .margin({ top: 8, bottom: 16 });
+
+      if (this.miLoading) {
+        Column({ space: 12 }) {
+          LoadingProgress().width(32).height(32).color(this.theme.colors.primary);
+          Text(t('common.loading')).fontSize(14).fontColor(this.theme.colors.textSecondary);
+        }
+        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+      } else if (this.miLoggedIn) {
+        if (this.miDevices.length === 0) {
+          Column({ space: 12 }) {
+            XiaoAiIcon({ iconSize: 40, color: this.theme.colors.textSecondary });
+            Text(t('player.noMiDevices')).fontSize(14).fontColor(this.theme.colors.textSecondary);
+          }
+          .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+        } else {
+          List() {
+            ForEach(this.miDevices, (device: MiDevice) => {
+              ListItem() {
+                Row({ space: 12 }) {
+                  Column() { XiaoAiIcon({ iconSize: 20, color: '#FFFFFFFF' }); }
+                  .width(36).height(36).borderRadius(18)
+                  .backgroundColor(this.theme.colors.primary)
+                  .justifyContent(FlexAlign.Center);
+                  Column({ space: 2 }) {
+                    Text(device.name).fontSize(15).fontWeight(FontWeight.Medium)
+                      .fontColor(this.theme.colors.text).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
+                    if ((device.model ?? '').length > 0) {
+                      Text(device.model ?? '').fontSize(12).fontColor(this.theme.colors.textSecondary)
+                        .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
+                    }
+                  }
+                  .layoutWeight(1).alignItems(HorizontalAlign.Start);
+                  Text('›').fontSize(20).fontColor(this.theme.colors.textSecondary);
+                }
+                .width('100%').padding({ top: 12, bottom: 12, left: 16, right: 16 })
+                .opacity(this.miCasting ? 0.5 : 1)
+                .onClick(() => {
+                  if (!this.miCasting) this.handleCastPlaylistToMi(device.device_id, device.name);
+                });
+              }
+            }, (device: MiDevice) => device.device_id);
+          }
+          .layoutWeight(1).scrollBar(BarState.Off);
+        }
+      } else if (this.miQRCodeUrl !== '') {
+        Column({ space: 8 }) {
+          Text(t('player.miLoginRequired')).fontSize(14).fontColor(this.theme.colors.textSecondary);
+          Image(this.miQRCodeUrl).width(180).height(180).borderRadius(8)
+            .backgroundColor('#FFFFFFFF').objectFit(ImageFit.Contain);
+          Text(t('player.miScanQRCode')).fontSize(12).fontColor(this.theme.colors.textSecondary);
+        }
+        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+      } else {
+        Column({ space: 12 }) {
+          XiaoAiIcon({ iconSize: 40, color: this.theme.colors.textSecondary });
+          Text(t('player.miLoginRequired')).fontSize(14).fontColor(this.theme.colors.textSecondary);
+        }
+        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+      }
+    }
+    .width('100%').height('100%').padding(20)
   }
 }
