@@ -3,7 +3,7 @@ import { kvStore } from 'features_storage';
 import { t, getLang } from 'features_i18n';
 import { Logger } from 'audiodock_common';
 import {
-  artistApi, albumApi, trackApi, userDataApi, plusApi,
+  artistApi, albumApi, trackApi, userDataApi, plusApi, setPlusAuthToken,
 } from 'features_network';
 import type { ArtistDto, AlbumDto, TrackDto } from 'features_network';
 import { MiniPlayer } from '../components/MiniPlayer';
@@ -635,8 +635,12 @@ struct MainPage {
       this.voiceAssistantEnabled = enabled === 'true';
       const userId = await kvStore.get('plus_user_id');
       if (userId !== null && userId.length > 0) {
-        const status = await plusApi.getVipStatus(userId);
-        this.isVip = status.isVip;
+        const token = await kvStore.get('plus_token');
+        if (token) setPlusAuthToken(token);
+        const profile = await plusApi.getMe(userId);
+        this.isVip = !!profile.vipTier && profile.vipTier !== 'NONE';
+      } else {
+        this.isVip = false;
       }
     } catch (e) {
       Logger.w('MainPage', `loadVoiceAssistantGate error: ${e}`);
@@ -652,6 +656,8 @@ struct MainPage {
     // 不能在隐藏时重建——@StorageProp 在后台更新触发的重建会导致路由页触摸失效。
     const cur = getLang();
     if (cur !== this.langAtBuild) this.langAtBuild = cur;
+    // 设置页可能修改了语音助手开关，回显时重新读取门控状态
+    this.loadVoiceAssistantGate();
   }
 
   @Builder
