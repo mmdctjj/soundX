@@ -627,6 +627,7 @@ struct MainPage {
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
     this.loadVoiceAssistantGate();
+    playerStore.restoreState();
   }
 
   private async loadVoiceAssistantGate(): Promise<void> {

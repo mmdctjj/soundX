@@ -24,7 +24,8 @@ export type AppIconName =
   | 'playlist'
   | 'shuffle'
   | 'repeat'
-  | 'repeat-once';
+  | 'repeat-once'
+  | 'gear';
 
 const ICON_MAP: Record<AppIconName, Resource> = {
   'home': $r('sys.symbol.house'),
@@ -48,6 +49,7 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'shuffle': $r('sys.symbol.shuffle'),
   'repeat': $r('sys.symbol.repeat'),
   'repeat-once': $r('sys.symbol.repeat_1'),
+  'gear': $r('sys.symbol.gearshape'),
 };
 
 export function getIconResource(name: AppIconName): Resource {

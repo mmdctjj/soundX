@@ -3,7 +3,7 @@ import promptAction from '@ohos.promptAction';
 import { kvStore } from 'features_storage';
 import { t } from 'features_i18n';
 import { Logger } from 'audiodock_common';
-import { playlistApi, userDataApi } from 'features_network';
+import { playlistApi, userDataApi, plusApi, setPlusAuthToken } from 'features_network';
 import type { PlaylistDto, TrackDto, AlbumDto } from 'features_network';
 import { AppIcon, AppIconName } from '../components/AppIcon';
 import { CoverImage } from '../components/CoverImage';
@@ -94,6 +94,7 @@ export struct PersonalTab {
   @State createModalVisible: boolean = false;
   @State newPlaylistName: string = '';
   @State creating: boolean = false;
+  @State isPlusVip: boolean = false;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
@@ -122,6 +123,21 @@ export struct PersonalTab {
       Logger.w('PersonalTab', `read storage failed: ${String(e)}`);
     }
     await this.loadData();
+    this.loadVipStatus();
+  }
+
+  private async loadVipStatus(): Promise<void> {
+    try {
+      const plusUserId = await kvStore.get('plus_user_id');
+      if (plusUserId !== null && plusUserId.length > 0) {
+        const token = await kvStore.get('plus_token');
+        if (token) setPlusAuthToken(token);
+        const profile = await plusApi.getMe(plusUserId);
+        this.isPlusVip = !!profile.vipTier && profile.vipTier !== 'NONE';
+      }
+    } catch (e) {
+      Logger.w('PersonalTab', `loadVipStatus failed: ${String(e)}`);
+    }
   }
 
   async loadData(): Promise<void> {
@@ -336,7 +352,7 @@ export struct PersonalTab {
         .onClick(() => this.navigateToSourceManage())
 
         Button() {
-          AppIcon({ name: 'list', iconSize: 22, color: this.theme.colors.text })
+          AppIcon({ name: 'gear', iconSize: 22, color: this.theme.colors.text })
         }
         .width(36).height(36).backgroundColor(Color.Transparent)
         .onClick(() => this.navigateToSettings())
@@ -370,7 +386,7 @@ export struct PersonalTab {
       Row() {
         Text(this.username || t('common.notLoggedIn'))
           .fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
-        AppIcon({ name: 'crown', iconSize: 24, color: this.theme.colors.textSecondary })
+        AppIcon({ name: 'crown', iconSize: 24, color: this.isPlusVip ? '#FFD700' : this.theme.colors.textSecondary })
           .margin({ left: 8 })
           .onClick(() => this.onCrownClick())
       }

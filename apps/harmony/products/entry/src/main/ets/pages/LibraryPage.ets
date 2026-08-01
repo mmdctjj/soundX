@@ -456,6 +456,7 @@ export struct LibraryTab {
                     .backgroundColor(this.theme.colors.border).margin({ top: 4 })
                 }
               }
+              .alignItems(HorizontalAlign.Start)
               .margin({ bottom: 16 })
             }
           }, (index: number) => `sk-grid-${index}`)

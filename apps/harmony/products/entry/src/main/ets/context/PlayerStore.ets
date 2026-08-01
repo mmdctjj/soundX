@@ -1,4 +1,5 @@
 import { Logger } from 'audiodock_common';
+import { kvStore } from 'features_storage';
 import { audioBackend, findActiveLine, parseLRC } from 'features_player';
 import type { LyricLine } from 'features_player';
 
@@ -80,6 +81,7 @@ export class PlayerStore {
     if (tracks.length === 0) return;
     this.queue = tracks.slice();
     this.currentIndex = Math.max(0, Math.min(startIndex, tracks.length - 1));
+    this.persistState();
     await this.loadCurrent();
   }
 
@@ -87,6 +89,7 @@ export class PlayerStore {
     if (this.queue.length === 0 || this.queue[this.currentIndex]?.id !== track.id) {
       this.queue = [track];
       this.currentIndex = 0;
+      this.persistState();
     }
     await this.loadCurrent();
   }
@@ -96,6 +99,7 @@ export class PlayerStore {
     const next = this.computeNextIndex();
     if (next < 0) return;
     this.currentIndex = next;
+    this.persistState();
     await this.loadCurrent();
   }
 
@@ -105,6 +109,7 @@ export class PlayerStore {
     const prev = this.computePrevIndex();
     if (prev < 0) return;
     this.currentIndex = prev;
+    this.persistState();
     await this.loadCurrent();
   }
 
@@ -126,7 +131,7 @@ export class PlayerStore {
     this.notify();
   }
 
-  setMode(mode: PlayMode): void { this.playMode = mode; this.notify(); }
+  setMode(mode: PlayMode): void { this.playMode = mode; this.persistState(); this.notify(); }
 
   // 对齐 mobile 的 togglePlayMode 循环顺序
   togglePlayMode(): void {
@@ -141,6 +146,7 @@ export class PlayerStore {
     this.state = 'idle'; this.isPlaying = false;
     this.lyrics = []; this.activeLyricIndex = -1; this.currentLyric = '';
     audioBackend.stop().catch(() => undefined);
+    this.persistState();
     this.notify();
   }
 
@@ -214,6 +220,46 @@ export class PlayerStore {
   onError(): void {
     this.state = 'error'; this.notify();
     this.playNext().catch(() => undefined);
+  }
+
+  // ─── 持久化（对齐 mobile playbackState_ 机制） ───
+  private persistState(): void {
+    if (this.queue.length === 0) {
+      kvStore.set('playbackState', '').catch(() => undefined);
+      return;
+    }
+    const data = JSON.stringify({
+      queue: this.queue,
+      currentIndex: this.currentIndex,
+      playMode: this.playMode,
+    });
+    kvStore.set('playbackState', data).catch(() => undefined);
+  }
+
+  /** 应用启动时调用，恢复上次的播放队列（不自动播放）。 */
+  async restoreState(): Promise<void> {
+    try {
+      const raw = await kvStore.get('playbackState');
+      if (raw === null || raw.length === 0) return;
+      const parsed = JSON.parse(raw) as Record<string, Object>;
+      const queue = parsed['queue'] as Track[];
+      if (!Array.isArray(queue) || queue.length === 0) return;
+      this.queue = queue;
+      this.currentIndex = (parsed['currentIndex'] as number) ?? 0;
+      if (this.currentIndex < 0 || this.currentIndex >= queue.length) this.currentIndex = 0;
+      const mode = parsed['playMode'] as string;
+      if (mode === 'SEQUENCE' || mode === 'LOOP_LIST' || mode === 'LOOP_SINGLE' || mode === 'SHUFFLE') {
+        this.playMode = mode;
+      }
+      this.state = 'paused';
+      this.isPlaying = false;
+      this.durationMs = (queue[this.currentIndex]?.duration ?? 0) * 1000;
+      this.setLyricsText(queue[this.currentIndex]?.lyrics ?? '');
+      Logger.i('PlayerStore', `restored ${queue.length} tracks, index=${this.currentIndex}`);
+      this.notify();
+    } catch (e) {
+      Logger.w('PlayerStore', `restoreState failed: ${String(e)}`);
+    }
   }
 
   private notify(): void { for (const l of this.listeners) l(); }
