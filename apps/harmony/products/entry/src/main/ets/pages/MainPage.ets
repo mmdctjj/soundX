@@ -341,19 +341,19 @@ export struct HomeTab {
         })
         if (showProgress && album.progress !== undefined && album.progress > 0) {
           Stack() {
-            Row().width('100%').height(3)
-              .backgroundColor('rgba(255,255,255,0.3)').borderRadius(1.5)
-            Row().width(album.progress + '%').height(3)
-              .backgroundColor(this.theme.colors.primary).borderRadius(1.5)
+            Row().width('100%').height(4)
+              .backgroundColor('rgba(255,255,255,0.3)')
+            Row().width(album.progress + '%').height(4)
+              .backgroundColor(this.theme.colors.primary)
           }
-          .width(120).margin({ top: -8, bottom: 8 })
+          .width(114).margin({ left: 3, right: 3, bottom: 5 })
         }
       }
       .width(120).height(120)
 
       Text(album.name)
         .fontSize(14).fontWeight(FontWeight.Medium).fontColor(this.theme.colors.text)
-        .margin({ top: showProgress ? 0 : 8, bottom: 4 })
+        .margin({ top: 8, bottom: 4 })
         .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis }).width(120)
 
       Text(album.artist ?? '')
