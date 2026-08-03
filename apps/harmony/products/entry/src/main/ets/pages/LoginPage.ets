@@ -8,14 +8,16 @@ import { Logger } from 'audiodock_common';
 import { authStore } from '../context/AuthStore';
 import { SOURCEMAP, SOURCETIPSMAP, selectBestServer } from '../utils/networkUtils';
 
-interface SourceConfig {
-  internal?: string;
-  external?: string;
-}
-
 interface Creds {
   username?: string;
   password?: string;
+}
+
+class SourceConfigItem {
+  id: string = '';
+  internal: string = '';
+  external: string = '';
+  name: string = '';
 }
 
 @Entry
@@ -67,17 +69,29 @@ struct LoginPage {
     return $r('app.media.logo');
   }
 
-  // 对齐 mobile loadSourceConfig：恢复上次填写的地址与凭据
+  // 对齐 mobile loadSourceConfig：恢复上次填写的地址与凭据（兼容数组与旧对象两种格式）
   private async loadSourceConfig(): Promise<void> {
     try {
       const raw: string | null = await kvStore.get(`sourceConfig_${this.sourceType}`);
       if (raw) {
-        const parsed = JSON.parse(raw) as SourceConfig;
-        this.internalAddress = parsed.internal ?? '';
-        this.externalAddress = parsed.external ?? '';
-        const addr: string = parsed.external || parsed.internal || '';
-        if (addr) {
-          await this.restoreCredentials(addr);
+        const parsed: Object = JSON.parse(raw);
+        if (Array.isArray(parsed) && (parsed as Object[]).length > 0) {
+          const arr = parsed as Array<Record<string, string>>;
+          const last = arr[arr.length - 1];
+          this.internalAddress = last['internal'] ?? '';
+          this.externalAddress = last['external'] ?? '';
+          const addr: string = last['external'] || last['internal'] || '';
+          if (addr) {
+            await this.restoreCredentials(addr);
+          }
+        } else if (!Array.isArray(parsed)) {
+          const obj = parsed as Record<string, string>;
+          this.internalAddress = obj['internal'] ?? '';
+          this.externalAddress = obj['external'] ?? '';
+          const addr: string = obj['external'] || obj['internal'] || '';
+          if (addr) {
+            await this.restoreCredentials(addr);
+          }
         }
       } else if (this.sourceType === 'AudioDock') {
         this.internalAddress = 'http://localhost:3000';
@@ -130,9 +144,55 @@ struct LoginPage {
 
       const mappedType: string = SOURCEMAP[this.sourceType] || 'audiodock';
 
-      // 持久化数据源配置与凭据（对齐 mobile）
-      const config: SourceConfig = { internal: internal, external: external };
-      await kvStore.set(`sourceConfig_${this.sourceType}`, JSON.stringify(config));
+      // 持久化数据源配置（数组格式，对齐 mobile）与凭据
+      const configKey: string = `sourceConfig_${this.sourceType}`;
+      const existingStr: string | null = await kvStore.get(configKey);
+      let existingConfigs: SourceConfigItem[] = [];
+      try {
+        if (existingStr) {
+          const parsed: Object = JSON.parse(existingStr);
+          if (Array.isArray(parsed)) {
+            const arr = parsed as Array<Record<string, string>>;
+            for (const item of arr) {
+              const cfg = new SourceConfigItem();
+              cfg.id = item['id'] ?? Date.now().toString();
+              cfg.internal = item['internal'] ?? '';
+              cfg.external = item['external'] ?? '';
+              cfg.name = item['name'] ?? '';
+              existingConfigs.push(cfg);
+            }
+          } else {
+            // 迁移：旧对象格式转为数组
+            const obj = parsed as Record<string, string>;
+            const legacy = new SourceConfigItem();
+            legacy.id = Date.now().toString();
+            legacy.internal = obj['internal'] ?? '';
+            legacy.external = obj['external'] ?? '';
+            legacy.name = '默认服务器';
+            existingConfigs.push(legacy);
+          }
+        }
+      } catch (e) {
+        existingConfigs = [];
+      }
+
+      let matched: boolean = false;
+      for (const c of existingConfigs) {
+        if (c.internal === internal && c.external === external) {
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        const item = new SourceConfigItem();
+        item.id = Date.now().toString();
+        item.internal = internal;
+        item.external = external;
+        item.name = `服务器 ${existingConfigs.length + 1}`;
+        existingConfigs.push(item);
+      }
+
+      await kvStore.set(configKey, JSON.stringify(existingConfigs));
       const creds: Creds = { username: this.username, password: this.password };
       await kvStore.set(`creds_${this.sourceType}_${bestAddress}`, JSON.stringify(creds));
 

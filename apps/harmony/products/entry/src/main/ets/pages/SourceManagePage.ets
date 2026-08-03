@@ -42,6 +42,11 @@ struct SourceManagePage {
     this.loadAllConfigs();
   }
 
+  onPageShow(): void {
+    // 从添加/登录页返回时刷新列表（kvStore 数据可能在期间被写入）
+    this.loadAllConfigs();
+  }
+
   onThemeModeChange(): void {
     this.theme = buildTheme(this.themeMode);
   }
@@ -53,14 +58,26 @@ struct SourceManagePage {
       try {
         const raw = await kvStore.get(`sourceConfig_${key}`);
         if (raw !== null && raw.length > 0) {
-          const parsed = JSON.parse(raw) as Array<Record<string, string>>;
+          const parsed: Object = JSON.parse(raw);
           const list: SourceConfig[] = [];
-          for (const item of parsed) {
+          if (Array.isArray(parsed)) {
+            const arr = parsed as Array<Record<string, string>>;
+            for (const item of arr) {
+              const cfg = new SourceConfig();
+              cfg.id = item['id'] ?? Date.now().toString();
+              cfg.internal = item['internal'] ?? '';
+              cfg.external = item['external'] ?? '';
+              cfg.name = item['name'] ?? '';
+              list.push(cfg);
+            }
+          } else {
+            // 迁移：旧对象格式转为数组（与 mobile 一致）
+            const obj = parsed as Record<string, string>;
             const cfg = new SourceConfig();
-            cfg.id = item['id'] ?? Date.now().toString();
-            cfg.internal = item['internal'] ?? '';
-            cfg.external = item['external'] ?? '';
-            cfg.name = item['name'] ?? '';
+            cfg.id = Date.now().toString();
+            cfg.internal = obj['internal'] ?? '';
+            cfg.external = obj['external'] ?? '';
+            cfg.name = '默认服务器';
             list.push(cfg);
           }
           result[key] = list;
