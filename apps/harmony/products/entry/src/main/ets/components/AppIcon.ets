@@ -47,8 +47,8 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'chevron-down': $r('sys.symbol.chevron_down'),
   'list': $r('sys.symbol.list_bullet'),
   'playlist': $r('sys.symbol.music_note_list'),
-  // sys.symbol.music_note 在当前 SDK 不存在（10903329），复用已验证的音符字形
-  'music-note': $r('sys.symbol.music_note_list'),
+  // sys.symbol.music_note 在当前 SDK 不存在（10903329），sys.symbol.music 为纯音乐符号
+  'music-note': $r('sys.symbol.music'),
   'shuffle': $r('sys.symbol.shuffle'),
   'repeat': $r('sys.symbol.repeat'),
   'repeat-once': $r('sys.symbol.repeat_1'),
