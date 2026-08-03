@@ -17,6 +17,7 @@ export const unstable_settings = {
 const SWAP_BUTTON_SIZE = 42;
 
 import { PlaylistModal } from "../src/components/PlaylistModal";
+import { PrivacyAgreementDialog } from "../src/components/PrivacyAgreementDialog";
 import { SquirrelAgent } from "../src/components/SquirrelAgent";
 import { GlobalBottomBar } from "../src/components/GlobalBottomBar";
 import { SettingsProvider, useSettings } from "../src/context/SettingsContext";
@@ -518,26 +519,27 @@ function RootLayoutNav() {
       {(segments[0] as string) !== "player" && <PlaylistModal />}
       {(segments[0] as string) !== "player" && voiceAssistantEnabled && isVip && <SquirrelAgent />}
       {theme === 'festive' && segments[0] !== 'player' && (
-        <Animated.View 
-          pointerEvents="none" 
+        <Animated.View
+          pointerEvents="none"
           style={[
-            styles.festiveOverlay, 
-            { 
+            styles.festiveOverlay,
+            {
               opacity: fuAnim.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0.04, 0.10]
-              }) 
+              })
             }
           ]}
         >
-          <ExpoImage 
-            source={require('../assets/dexopt/fu.svg')} 
-            style={styles.festiveFu} 
+          <ExpoImage
+            source={require('../assets/dexopt/fu.svg')}
+            style={styles.festiveFu}
             tintColor="#D4AF37"
             contentFit="contain"
           />
         </Animated.View>
       )}
+      <PrivacyAgreementDialog />
     </>
   );
 }

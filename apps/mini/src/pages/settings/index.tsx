@@ -311,6 +311,28 @@ export default function Settings() {
           {renderActionRow(t('settings.productUpdates'), t('settings.productUpdatesDescription'), () => Taro.showToast({ title: t('settings.productUpdatesNoUpdates'), icon: 'none' }))}
           {renderActionRow(t('settings.joinBetaTest'), isVip ? t('settings.betaTestAlreadyHas') : redeemingInternalTestCode ? t('settings.betaTestApplying') : t('settings.betaTestDescription'), handleRedeemInternalTestCode)}
           {renderSettingRow(t('settings.experienceProgram'), t('settings.experienceProgramDescription'), experienceProgramEnabled, (val) => updateSetting('experienceProgramEnabled', val))}
+          {renderActionRow(
+            t('settings.userAgreement'),
+            t('settings.userAgreement'),
+            () => {
+              trackEvent({ feature: 'settings', eventName: 'user_agreement_open' });
+              Taro.setClipboardData({
+                data: 'https://www.audiodock.cn/docs/user-agreement/',
+                success: () => Taro.showToast({ title: t('settings.linkCopied'), icon: 'none' })
+              });
+            }
+          )}
+          {renderActionRow(
+            t('settings.privacyPolicy'),
+            t('settings.privacyPolicy'),
+            () => {
+              trackEvent({ feature: 'settings', eventName: 'privacy_policy_open' });
+              Taro.setClipboardData({
+                data: 'https://www.audiodock.cn/docs/privacy-policy/',
+                success: () => Taro.showToast({ title: t('settings.linkCopied'), icon: 'none' })
+              });
+            }
+          )}
         </View>
 
         <View className='section'>
