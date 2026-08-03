@@ -34,6 +34,7 @@ struct ArtistDetailPage {
   @State loading: boolean = true;
   @State error: string = '';
   @State currentTrackId: string = '';
+  @State isPlaying: boolean = false;
   @State isSelectionMode: boolean = false;
   @State selectedTrackIds: string[] = [];
   @State showMoreSheet: boolean = false;
@@ -64,6 +65,7 @@ struct ArtistDetailPage {
       const v = playerStore.view();
       const cur = v.queue[v.currentIndex];
       this.currentTrackId = cur ? cur.id : '';
+      this.isPlaying = v.isPlaying;
     });
   }
 
@@ -250,6 +252,7 @@ struct ArtistDetailPage {
                 duration: tr.duration ?? 0,
                 coverPath: tr.cover ?? null,
                 isCurrent: tr.id === this.currentTrackId,
+                isPlaying: this.isPlaying,
                 listenedPercent: 0,
                 theme: this.theme,
                 onRowClick: () => {

@@ -18,6 +18,7 @@ import { CoverImage } from '../components/CoverImage';
 import { AppIcon } from '../components/AppIcon';
 import type { AppIconName } from '../components/AppIcon';
 import { XiaoAiIcon } from '../components/XiaoAiIcon';
+import { PlayingIndicator } from '../components/PlayingIndicator';
 
 class MoreOption {
   key: string = '';
@@ -501,13 +502,18 @@ struct PlayerPage {
         ForEach(this.view.queue, (track: Track, index: number) => {
           ListItem() {
             Row({ space: 10 }) {
-              Text(index === this.view.currentIndex ? '▶' : `${index + 1}`)
-                .fontSize(14)
-                .fontColor(index === this.view.currentIndex
-                  ? this.theme.colors.primary
-                  : this.theme.colors.textSecondary)
-                .width(30)
-                .textAlign(TextAlign.Center);
+              if (index === this.view.currentIndex && this.view.isPlaying) {
+                PlayingIndicator({ color: this.theme.colors.primary })
+                  .width(30);
+              } else {
+                Text(`${index + 1}`)
+                  .fontSize(14)
+                  .fontColor(index === this.view.currentIndex
+                    ? this.theme.colors.primary
+                    : this.theme.colors.textSecondary)
+                  .width(30)
+                  .textAlign(TextAlign.Center);
+              }
               CoverImage({
                 path: track.coverUrl ?? null,
                 imgWidth: 20,

@@ -33,6 +33,7 @@ struct AlbumDetailPage {
   @State error: string = '';
   @State liked: boolean = false;
   @State currentTrackId: string = '';
+  @State isPlaying: boolean = false;
   @State currentMs: number = 0;
   @State isSelectionMode: boolean = false;
   @State selectedTrackIds: string[] = [];
@@ -70,6 +71,7 @@ struct AlbumDetailPage {
       const v = playerStore.view();
       const cur = v.queue[v.currentIndex];
       this.currentTrackId = cur ? cur.id : '';
+      this.isPlaying = v.isPlaying;
       this.currentMs = v.currentMs;
     });
   }
@@ -210,6 +212,7 @@ struct AlbumDetailPage {
                 duration: tr.duration ?? 0,
                 coverPath: tr.cover ?? null,
                 isCurrent: tr.id === this.currentTrackId,
+                isPlaying: this.isPlaying,
                 listenedPercent: this.listenedPercent(tr),
                 theme: this.theme,
                 onRowClick: () => {

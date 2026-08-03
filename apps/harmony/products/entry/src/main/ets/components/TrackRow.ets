@@ -3,6 +3,7 @@ import { buildTheme } from 'features_ui';
 import type { Theme } from 'features_ui';
 import { t } from 'features_i18n';
 import { CoverImage } from './CoverImage';
+import { PlayingIndicator } from './PlayingIndicator';
 
 /**
  * 详情页的曲目行，专辑页与艺人页共用。
@@ -17,6 +18,8 @@ export struct TrackRow {
   @Prop duration: number = 0;
   @Prop coverPath: string | null = null;
   @Prop isCurrent: boolean = false;
+  /** 是否正在播放（isCurrent && isPlaying 时才显示动态指示器，与 mobile 规则一致）。 */
+  @Prop isPlaying: boolean = false;
   /** 仅当前播放的有声书曲目会有值，其余传 0；数据来源见 spec。 */
   @Prop listenedPercent: number = 0;
   @Prop theme: Theme = buildTheme('light');
@@ -30,10 +33,14 @@ export struct TrackRow {
   build() {
     Row() {
       Column() {
-        Text(this.isCurrent ? '▶' : String(this.index + 1))
-          .fontSize(14)
-          .fontColor(this.isCurrent ? this.theme.colors.primary : this.theme.colors.textSecondary)
-          .textAlign(TextAlign.Center)
+        if (this.isCurrent && this.isPlaying) {
+          PlayingIndicator({ color: this.theme.colors.primary })
+        } else {
+          Text(String(this.index + 1))
+            .fontSize(14)
+            .fontColor(this.isCurrent ? this.theme.colors.primary : this.theme.colors.textSecondary)
+            .textAlign(TextAlign.Center)
+        }
       }
       .width(50)
       .justifyContent(FlexAlign.Center)
