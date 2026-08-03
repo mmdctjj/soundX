@@ -1,6 +1,6 @@
 {
   "layered_image": {
-    "background": "$media:background",
-    "foreground": "$media:foreground"
+    "background": "$media:app_icon_background",
+    "foreground": "$media:app_icon_foreground"
   }
 }
