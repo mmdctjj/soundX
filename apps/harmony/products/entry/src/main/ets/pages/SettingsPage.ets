@@ -7,6 +7,7 @@ import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { getInternalQuality, getExternalQuality } from '../services/trackQuality';
 import { applySystemBar } from '../services/systemBar';
+import { openInBrowser } from '../utils/browserUtils';
 
 @Entry
 @Component
@@ -504,6 +505,18 @@ struct SettingsPage {
             t('settings.joinBetaTest'),
             t('settings.betaTestDescription'),
             (): void => {},
+          )
+
+          this.ActionRow(
+            t('settings.userAgreement'),
+            t('settings.userAgreementDescription'),
+            (): void => { openInBrowser(getContext(this), 'https://www.audiodock.cn/docs/user-agreement/'); },
+          )
+
+          this.ActionRow(
+            t('settings.privacyPolicy'),
+            t('settings.privacyPolicyDescription'),
+            (): void => { openInBrowser(getContext(this), 'https://www.audiodock.cn/docs/privacy-policy/'); },
           )
 
           this.SwitchRow(

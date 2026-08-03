@@ -5,6 +5,7 @@ import { t, getLang } from 'features_i18n';
 import { kvStore } from 'features_storage';
 import { Logger } from 'audiodock_common';
 import { plusApi, setPlusAuthToken } from 'features_network';
+import { openInBrowser } from '../utils/browserUtils';
 
 @Entry
 @Component
@@ -210,10 +211,12 @@ struct MemberLoginPage {
               .fontSize(12).fontColor(this.theme.colors.textSecondary)
             Text(t('memberLogin.privacyPolicy'))
               .fontSize(12).fontColor('#1677ff')
+              .onClick(() => openInBrowser(getContext(this), 'https://www.audiodock.cn/docs/privacy-policy/'))
             Text(t('memberLogin.and'))
               .fontSize(12).fontColor(this.theme.colors.textSecondary)
             Text(t('memberLogin.userAgreement'))
               .fontSize(12).fontColor('#1677ff')
+              .onClick(() => openInBrowser(getContext(this), 'https://www.audiodock.cn/docs/user-agreement/'))
           }
           .width('100%').justifyContent(FlexAlign.Center)
           .margin({ top: 10 })
