@@ -2,6 +2,7 @@ import router from '@ohos.router';
 import { kvStore } from 'features_storage';
 import { Logger } from 'audiodock_common';
 import { authStore } from '../context/AuthStore';
+import { playerStore } from '../context/PlayerStore';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
@@ -162,7 +163,11 @@ struct SettingsPage {
 
   handleAudiobookModeChange(val: boolean) {
     this.audiobookMode = val;
-    kvStore.set('playMode', val ? 'AUDIOBOOK' : 'MUSIC');
+    const mode = val ? 'AUDIOBOOK' : 'MUSIC';
+    kvStore.set('playMode', mode);
+    // 同步 AppStorage，首页/声仓经 @StorageLink('playMode') 实时刷新（对齐 mobile usePlayMode）
+    AppStorage.setOrCreate('playMode', mode);
+    playerStore.switchContentMode(mode).catch(() => undefined);
   }
 
   handleRatioChange(value: number) {

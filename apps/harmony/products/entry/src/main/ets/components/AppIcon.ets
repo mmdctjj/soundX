@@ -26,7 +26,12 @@ export type AppIconName =
   | 'shuffle'
   | 'repeat'
   | 'repeat-once'
-  | 'gear';
+  | 'gear'
+  | 'close'
+  | 'arrow-up'
+  | 'arrow-down'
+  | 'locate'
+  | 'cloud-download';
 
 const ICON_MAP: Record<AppIconName, Resource> = {
   'home': $r('sys.symbol.house'),
@@ -53,6 +58,11 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'repeat': $r('sys.symbol.repeat'),
   'repeat-once': $r('sys.symbol.repeat_1'),
   'gear': $r('sys.symbol.gearshape'),
+  'close': $r('sys.symbol.xmark'),
+  'arrow-up': $r('sys.symbol.arrow_up'),
+  'arrow-down': $r('sys.symbol.arrow_down'),
+  'locate': $r('sys.symbol.scope'),
+  'cloud-download': $r('sys.symbol.icloud'),
 };
 
 export function getIconResource(name: AppIconName): Resource {

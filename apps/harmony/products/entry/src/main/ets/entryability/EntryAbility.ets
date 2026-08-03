@@ -73,6 +73,10 @@ export default class EntryAbility extends UIAbility {
       AppStorage.setOrCreate('themeMode', themeMode);
     }
 
+    // 恢复内容模式（音乐/有声书），供首页/声仓 @StorageLink('playMode') 跨页签同步
+    const savedPlayMode = await kvStore.get('playMode');
+    AppStorage.setOrCreate('playMode', savedPlayMode === 'AUDIOBOOK' ? 'AUDIOBOOK' : 'MUSIC');
+
     Logger.i(TAG, 'initialize complete');
   }
 

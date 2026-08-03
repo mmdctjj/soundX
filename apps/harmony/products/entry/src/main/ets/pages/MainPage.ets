@@ -50,7 +50,9 @@ export struct HomeTab {
   @State loading: boolean = true;
   @State refreshing: boolean = false;
   @State error: string = '';
-  @State mode: string = 'MUSIC';
+  // 内容模式由 AppStorage 全局同步（对齐 mobile 共享的 usePlayMode context）：
+  // 首页/声仓/设置页任一处切换，另一处经 @Watch 自动重载。
+  @StorageLink('playMode') @Watch('onModeChange') mode: string = 'MUSIC';
   @State isRadioMode: boolean = false;
   @State likedIds: string[] = [];
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
@@ -74,14 +76,8 @@ export struct HomeTab {
 
   async initData(): Promise<void> {
     // baseURL / token 已由 EntryAbility + Index(authStore.loadFromStorage) 装配好，
-    // 这里只取当前用户与播放模式。
+    // 这里只取当前用户；播放模式由 @StorageLink('playMode') 提供。
     this.userId = authStore.state_.user?.id ?? '';
-    try {
-      const savedMode = await kvStore.get('playMode');
-      if (savedMode) this.mode = savedMode;
-    } catch (e) {
-      Logger.w('HomeTab', `read playMode failed: ${String(e)}`);
-    }
     this.loading = true;
     await this.loadData();
     this.loading = false;
@@ -178,13 +174,8 @@ export struct HomeTab {
   }
 
   // 下拉刷新：整页重载（对齐 mobile RefreshControl + onRefresh）。
+  // 播放模式无需重读 kvStore：@StorageLink('playMode') 已实时同步。
   async onPullRefresh(): Promise<void> {
-    try {
-      const savedMode = await kvStore.get('playMode');
-      if (savedMode) this.mode = savedMode;
-    } catch (e) {
-      Logger.w('HomeTab', `read playMode failed: ${String(e)}`);
-    }
     await this.loadData();
     this.refreshing = false;
   }
@@ -280,11 +271,19 @@ export struct HomeTab {
     }
   }
 
-  async toggleMode(): Promise<void> {
+  toggleMode(): void {
     this.mode = this.mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC';
-    await kvStore.set('playMode', this.mode);
-    // 对齐 mobile：内容模式切换时保存当前模式播放状态、恢复目标模式的播放上下文，
-    // MiniPlayer 随之显示对应模式的内容。
+  }
+
+  // @Watch('onModeChange')：无论本页还是声仓/设置页切换模式都会触发。
+  // 对齐 mobile：内容模式切换时保存当前模式播放状态、恢复目标模式的播放上下文，
+  // MiniPlayer 随之显示对应模式的内容，并重载首页版块。
+  async onModeChange(): Promise<void> {
+    try {
+      await kvStore.set('playMode', this.mode);
+    } catch (e) {
+      Logger.w('HomeTab', `save playMode failed: ${String(e)}`);
+    }
     await playerStore.switchContentMode(this.mode);
     await this.loadData();
   }
