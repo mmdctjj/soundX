@@ -18,7 +18,7 @@
 ## Global Constraints
 
 - **Branch:** `feat/hm` (current HEAD `de5cd651`). All commits land here.
-- **Bundle ID:** `com.audiodock.harmony`
+- **Bundle ID:** `com.audiodock.app`
 - **Min/Target API:** `minAPIVersion: 12`, `targetAPIVersion: 19`
 - **ArkTS:** strict mode — no `any`, no spread, explicit types on all exports
 - **i18n:** copy JSON resources from `packages/i18e/src/locales/common/{en,zh-CN}.json` into `features/i18n/src/main/resources/locales/`. Do NOT consume `@soundx/i18e` package.
@@ -2695,7 +2695,7 @@ export default class PlayerServiceAbility extends ServiceExtensionAbility {
       Logger.w('PlayerSvc', `notification permission: ${String(e)}`);
     }
     const wa = await wantAgent.getWantAgent({
-      wants: [{ bundleName: 'com.audiodock.harmony', abilityName: 'EntryAbility' }],
+      wants: [{ bundleName: 'com.audiodock.app', abilityName: 'EntryAbility' }],
       operationType: wantAgent.OperationType.START_ABILITIES,
     });
     const req: notification.NotificationRequest = {

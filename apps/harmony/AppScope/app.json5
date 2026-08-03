@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "com.audiodock.harmony",
+    "bundleName": "com.audiodock.app",
     "vendor": "AudioDock",
     "versionCode": 3,
     "versionName": "1.0.0",
