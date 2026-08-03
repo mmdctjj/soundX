@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import {
   Alert,
   BackHandler,
+  Linking,
   ScrollView,
   StyleSheet,
   Switch,
@@ -803,6 +804,38 @@ export default function SettingsScreen() {
             t("settings.experienceProgramDescription"),
             experienceProgramEnabled,
             (val) => updateSetting("experienceProgramEnabled", val),
+          )}
+
+          {renderActionRow(
+            t("settings.userAgreement"),
+            t("settings.userAgreement"),
+            () => {
+              trackEvent({
+                feature: "settings",
+                eventName: "user_agreement_open",
+                userId: user?.id ? String(user.id) : undefined,
+                deviceId: device?.id ? String(device.id) : undefined,
+              });
+              Linking.openURL("https://www.audiodock.cn/docs/user-agreement/").catch((err) =>
+                console.warn("Failed to open user agreement", err),
+              );
+            },
+          )}
+
+          {renderActionRow(
+            t("settings.privacyPolicy"),
+            t("settings.privacyPolicy"),
+            () => {
+              trackEvent({
+                feature: "settings",
+                eventName: "privacy_policy_open",
+                userId: user?.id ? String(user.id) : undefined,
+                deviceId: device?.id ? String(device.id) : undefined,
+              });
+              Linking.openURL("https://www.audiodock.cn/docs/privacy-policy/").catch((err) =>
+                console.warn("Failed to open privacy policy", err),
+              );
+            },
           )}
         </View>
 
