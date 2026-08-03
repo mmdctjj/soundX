@@ -58,6 +58,10 @@ export struct HomeTab {
   @StorageLink('sectionOrderVersion') @Watch('onSectionOrderChange') sectionOrderVersion: number = 0;
   @State theme: Theme = buildTheme('light');
   private userId: string = '';
+  // 整页重载（切换模式/下拉刷新）时递增，作为所有版块的 version：
+  // ForEach key 为 `${id}-${version}`，key 不变时 ArkUI 会保留旧组件，
+  // 导致切换模式/刷新后版块仍显示旧内容，故每次整页重载必须换新 key。
+  private reloadVersion: number = 0;
 
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);
@@ -132,6 +136,10 @@ export struct HomeTab {
       }
 
       await this.sortWithSavedOrder(built);
+      this.reloadVersion += 1;
+      for (const s of built) {
+        s.version = this.reloadVersion;
+      }
       this.sections = built;
     } catch (e) {
       // 之前这里只 console.error，导致首页静默变成一片空白，看不出是网络挂了。
@@ -433,7 +441,7 @@ export struct HomeTab {
               .onClick(() => this.toggleRadioMode())
             }
             Button() {
-              AppIcon({ name: 'headphones', iconSize: 18, color: this.theme.colors.text })
+              AppIcon({ name: this.mode === 'MUSIC' ? 'headphones' : 'music-note', iconSize: 18, color: this.theme.colors.text })
             }
             .width(36).height(36).backgroundColor(this.theme.colors.surface).borderRadius(18)
             .onClick(() => this.toggleMode())
