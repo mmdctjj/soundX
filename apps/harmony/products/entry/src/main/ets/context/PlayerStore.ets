@@ -13,6 +13,8 @@ export interface Track {
   ext?: string;
   coverUrl?: string;
   lyrics?: string;
+  /** 内容类型 MUSIC | AUDIOBOOK，来自 TrackDto.type；用于内容模式切换时的状态归属。 */
+  contentType?: string;
 }
 
 export type PlayMode = 'SEQUENCE' | 'LOOP_LIST' | 'LOOP_SINGLE' | 'SHUFFLE';
@@ -50,6 +52,10 @@ export class PlayerStore {
   lyrics: LyricLine[] = [];
   activeLyricIndex: number = -1;
   currentLyric: string = '';
+  /** 当前内容模式 MUSIC | AUDIOBOOK（对齐 mobile PlayModeContext），决定状态持久化的键。 */
+  contentMode: string = 'MUSIC';
+  /** 已加载进音频后端的曲目 id，用于恢复态下点播放时判断是否需要重新 load。 */
+  private loadedTrackId: string = '';
 
   private listeners = new Set<Listener>();
 
@@ -79,6 +85,7 @@ export class PlayerStore {
 
   async playTrackList(tracks: Track[], startIndex: number): Promise<void> {
     if (tracks.length === 0) return;
+    this.applyIncomingContentMode(tracks[Math.max(0, Math.min(startIndex, tracks.length - 1))]);
     this.queue = tracks.slice();
     this.currentIndex = Math.max(0, Math.min(startIndex, tracks.length - 1));
     this.persistState();
@@ -87,11 +94,20 @@ export class PlayerStore {
 
   async playTrack(track: Track): Promise<void> {
     if (this.queue.length === 0 || this.queue[this.currentIndex]?.id !== track.id) {
+      this.applyIncomingContentMode(track);
       this.queue = [track];
       this.currentIndex = 0;
       this.persistState();
     }
     await this.loadCurrent();
+  }
+
+  /** 新曲目的内容模式与当前不同时，先持久化当前模式状态再切换（对齐 mobile switchContentModeForIncomingTrack）。 */
+  private applyIncomingContentMode(track: Track): void {
+    const next = track.contentType === 'AUDIOBOOK' ? 'AUDIOBOOK' : 'MUSIC';
+    if (next === this.contentMode) return;
+    this.persistState();
+    this.contentMode = next;
   }
 
   async playNext(): Promise<void> {
@@ -114,6 +130,12 @@ export class PlayerStore {
   }
 
   async togglePlay(): Promise<void> {
+    const cur = this.queue[this.currentIndex];
+    if (cur && this.loadedTrackId !== cur.id) {
+      // 恢复态（冷启动/内容模式切换后）曲目尚未加载进后端：加载并从记录位置续播
+      await this.loadCurrent(this.currentMs);
+      return;
+    }
     if (this.state === 'playing') { await audioBackend.pause(); this.isPlaying = false; }
     else { await audioBackend.play(); this.isPlaying = true; }
     this.notify();
@@ -145,12 +167,13 @@ export class PlayerStore {
     this.currentMs = 0; this.durationMs = 0;
     this.state = 'idle'; this.isPlaying = false;
     this.lyrics = []; this.activeLyricIndex = -1; this.currentLyric = '';
+    this.loadedTrackId = '';
     audioBackend.stop().catch(() => undefined);
     this.persistState();
     this.notify();
   }
 
-  private async loadCurrent(): Promise<void> {
+  private async loadCurrent(resumeMs: number = 0): Promise<void> {
     const t = this.queue[this.currentIndex];
     if (!t) return;
     this.state = 'preparing';
@@ -158,10 +181,14 @@ export class PlayerStore {
     try {
       await audioBackend.load(t.url);
       await audioBackend.play();
+      this.loadedTrackId = t.id;
       this.state = 'playing'; this.isPlaying = true;
       // 后端 duration 字段单位是秒，PlayerStore 内部统一用毫秒
       this.durationMs = (t.duration ?? 0) * 1000;
-      this.currentMs = 0;
+      this.currentMs = resumeMs > 0 ? resumeMs : 0;
+      if (resumeMs > 0) {
+        audioBackend.seek(resumeMs).catch(() => undefined);
+      }
       this.setLyricsText(t.lyrics ?? '');
       Logger.i('PlayerStore', `playing ${t.id} ${t.title}`);
       this.notify();
@@ -222,44 +249,94 @@ export class PlayerStore {
     this.playNext().catch(() => undefined);
   }
 
-  // ─── 持久化（对齐 mobile playbackState_ 机制） ───
+  // ─── 持久化（对齐 mobile playbackState_${mode} 机制：音乐/有声书各自独立播放上下文） ───
+  private stateKey(): string {
+    return `playbackState_${this.contentMode}`;
+  }
+
   private persistState(): void {
     if (this.queue.length === 0) {
-      kvStore.set('playbackState', '').catch(() => undefined);
+      kvStore.set(this.stateKey(), '').catch(() => undefined);
       return;
     }
     const data = JSON.stringify({
       queue: this.queue,
       currentIndex: this.currentIndex,
       playMode: this.playMode,
+      currentMs: this.currentMs,
     });
-    kvStore.set('playbackState', data).catch(() => undefined);
+    kvStore.set(this.stateKey(), data).catch(() => undefined);
   }
 
-  /** 应用启动时调用，恢复上次的播放队列（不自动播放）。 */
-  async restoreState(): Promise<void> {
+  /** 切换内容模式：持久化当前模式状态、停止播放，恢复目标模式的状态（对齐 mobile 的 mode 变化 effect）。 */
+  async switchContentMode(mode: string): Promise<void> {
+    if (mode !== 'MUSIC' && mode !== 'AUDIOBOOK') return;
+    if (mode === this.contentMode) return;
+    this.persistState();
+    this.contentMode = mode;
+    audioBackend.stop().catch(() => undefined);
+    this.loadedTrackId = '';
+    await this.loadPersistedState();
+  }
+
+  /** 从当前内容模式的持久化键恢复队列（不自动播放）。 */
+  private async loadPersistedState(): Promise<void> {
     try {
-      const raw = await kvStore.get('playbackState');
-      if (raw === null || raw.length === 0) return;
+      let raw = await kvStore.get(this.stateKey());
+      // 旧版本只有一个全局 playbackState 键，音乐模式下做一次迁移读取
+      if ((raw === null || raw.length === 0) && this.contentMode === 'MUSIC') {
+        raw = await kvStore.get('playbackState');
+      }
+      if (raw === null || raw.length === 0) {
+        this.resetToIdle();
+        return;
+      }
       const parsed = JSON.parse(raw) as Record<string, Object>;
       const queue = parsed['queue'] as Track[];
-      if (!Array.isArray(queue) || queue.length === 0) return;
+      if (!Array.isArray(queue) || queue.length === 0) {
+        this.resetToIdle();
+        return;
+      }
       this.queue = queue;
       this.currentIndex = (parsed['currentIndex'] as number) ?? 0;
       if (this.currentIndex < 0 || this.currentIndex >= queue.length) this.currentIndex = 0;
-      const mode = parsed['playMode'] as string;
-      if (mode === 'SEQUENCE' || mode === 'LOOP_LIST' || mode === 'LOOP_SINGLE' || mode === 'SHUFFLE') {
-        this.playMode = mode;
+      const pm = parsed['playMode'] as string;
+      if (pm === 'SEQUENCE' || pm === 'LOOP_LIST' || pm === 'LOOP_SINGLE' || pm === 'SHUFFLE') {
+        this.playMode = pm;
       }
+      this.currentMs = (parsed['currentMs'] as number) ?? 0;
       this.state = 'paused';
       this.isPlaying = false;
       this.durationMs = (queue[this.currentIndex]?.duration ?? 0) * 1000;
       this.setLyricsText(queue[this.currentIndex]?.lyrics ?? '');
-      Logger.i('PlayerStore', `restored ${queue.length} tracks, index=${this.currentIndex}`);
+      Logger.i('PlayerStore', `restored[${this.contentMode}] ${queue.length} tracks, index=${this.currentIndex}`);
       this.notify();
     } catch (e) {
-      Logger.w('PlayerStore', `restoreState failed: ${String(e)}`);
+      Logger.w('PlayerStore', `loadPersistedState failed: ${String(e)}`);
+      this.resetToIdle();
     }
+  }
+
+  /** 目标模式没有保存的播放状态时回到空态（MiniPlayer 随之隐藏），不触发持久化。 */
+  private resetToIdle(): void {
+    this.queue = []; this.currentIndex = -1;
+    this.currentMs = 0; this.durationMs = 0;
+    this.state = 'idle'; this.isPlaying = false;
+    this.lyrics = []; this.activeLyricIndex = -1; this.currentLyric = '';
+    this.notify();
+  }
+
+  /** 应用启动时调用：按首页保存的内容模式恢复对应播放上下文（不自动播放）。 */
+  async restoreState(): Promise<void> {
+    try {
+      const savedMode = await kvStore.get('playMode');
+      if (savedMode === 'MUSIC' || savedMode === 'AUDIOBOOK') {
+        this.contentMode = savedMode;
+      }
+    } catch (e) {
+      Logger.w('PlayerStore', `read playMode failed: ${String(e)}`);
+    }
+    await this.loadPersistedState();
   }
 
   private notify(): void { for (const l of this.listeners) l(); }

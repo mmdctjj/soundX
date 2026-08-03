@@ -283,6 +283,9 @@ export struct HomeTab {
   async toggleMode(): Promise<void> {
     this.mode = this.mode === 'MUSIC' ? 'AUDIOBOOK' : 'MUSIC';
     await kvStore.set('playMode', this.mode);
+    // 对齐 mobile：内容模式切换时保存当前模式播放状态、恢复目标模式的播放上下文，
+    // MiniPlayer 随之显示对应模式的内容。
+    await playerStore.switchContentMode(this.mode);
     await this.loadData();
   }
 
