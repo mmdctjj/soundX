@@ -1,6 +1,20 @@
 {
   "app": {
-    "signingConfigs": [],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/ctjj/.ohos/config/default_harmony_m_v10Jif6VcYOv782_F2fWhbZ1Ym2es-YUGV6NAeoAs=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BBC08DEC29ED4F42B868B46998A9D2C6779F15D4A57F976AC4AD1D4880B1AE02626B2B117578D0E",
+          "profile": "/Users/ctjj/.ohos/config/default_harmony_m_v10Jif6VcYOv782_F2fWhbZ1Ym2es-YUGV6NAeoAs=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/ctjj/.ohos/config/default_harmony_m_v10Jif6VcYOv782_F2fWhbZ1Ym2es-YUGV6NAeoAs=.p12",
+          "storePassword": "0000001B1CEBCA68922480126538C1804D95A6678B635759F1B292D6452D57D078A74C8E1C31151568B922"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",
