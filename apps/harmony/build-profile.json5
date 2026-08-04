@@ -5,13 +5,26 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "/Users/ctjj/.ohos/config/default_harmony_m_v10Jif6VcYOv782_F2fWhbZ1Ym2es-YUGV6NAeoAs=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001BBC08DEC29ED4F42B868B46998A9D2C6779F15D4A57F976AC4AD1D4880B1AE02626B2B117578D0E",
-          "profile": "/Users/ctjj/.ohos/config/default_harmony_m_v10Jif6VcYOv782_F2fWhbZ1Ym2es-YUGV6NAeoAs=.p7b",
+          "storeFile": "/Users/ctjj/Documents/资料/ad/ad.p12",
+          "storePassword": "0000001A984C42B4CCB7DEE4188308CCA9C7F836520CBAC3BBF3D565A7FC304B5A955F85193B0DA2E183",
+          "keyAlias": "ad",
+          "keyPassword": "0000001A4C35C2E1C05074A2F534283978B13E7F8AF241D3160ED9DD22DA5741207F67E26B2E4D2707E6",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "/Users/ctjj/.ohos/config/default_harmony_m_v10Jif6VcYOv782_F2fWhbZ1Ym2es-YUGV6NAeoAs=.p12",
-          "storePassword": "0000001B1CEBCA68922480126538C1804D95A6678B635759F1B292D6452D57D078A74C8E1C31151568B922"
+          "profile": "/Users/ctjj/Documents/资料/ad/adRelease.p7b",
+          "certpath": "/Users/ctjj/Documents/资料/ad/ad.cer"
+        }
+      },
+      {
+        "name": "release",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "/Users/ctjj/Documents/资料/ad/ad.p12",
+          "storePassword": "0000001A984C42B4CCB7DEE4188308CCA9C7F836520CBAC3BBF3D565A7FC304B5A955F85193B0DA2E183",
+          "keyAlias": "ad",
+          "keyPassword": "0000001A4C35C2E1C05074A2F534283978B13E7F8AF241D3160ED9DD22DA5741207F67E26B2E4D2707E6",
+          "signAlg": "SHA256withECDSA",
+          "profile": "/Users/ctjj/Documents/资料/ad/adRelease.p7b",
+          "certpath": "/Users/ctjj/Documents/资料/ad/ad.cer"
         }
       }
     ],
@@ -19,10 +32,16 @@
       {
         "name": "default",
         "signingConfig": "default",
-        "compileSdkVersion": "6.0.2(22)",
-        "compatibleSdkVersion": "5.1.1(19)",
+        "compatibleSdkVersion": "6.0.2(22)",
         "runtimeOS": "HarmonyOS",
-        "targetSdkVersion": "5.1.1(19)"
+        "targetSdkVersion": "6.0.2(22)"
+      },
+      {
+        "name": "release",
+        "signingConfig": "release",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "targetSdkVersion": "6.0.2(22)"
       }
     ]
   },
@@ -34,7 +53,8 @@
         {
           "name": "default",
           "applyToProducts": [
-            "default"
+            "default",
+            "release"
           ]
         }
       ]
