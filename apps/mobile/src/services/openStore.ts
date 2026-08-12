@@ -87,3 +87,40 @@ export const openStoreByPlatform = async (): Promise<boolean> => {
   }
   return openExternalURL(url);
 };
+
+/* ---------- 调试专用入口（我的页测试按钮） ---------- */
+
+/** Android 包名（与 android/app/build.gradle#applicationId 一致） */
+export const ANDROID_PACKAGE_NAME = 'com.audiodock.app';
+/** iOS App Store 应用详情页 URL（与 constants/store.ts#IOS_STORE.appStoreUrl 一致） */
+export const IOS_APP_STORE_URL = 'https://apps.apple.com/cn/app/audiodock/id6761128589';
+
+/**
+ * 调试专用：按平台跳转到"对应的"应用商店
+ *
+ * 方案对比（与 openStoreByPlatform 的区别）：
+ *   - openStoreByPlatform: 走各家硬编码的 https URL（store.ts）。每上架/换 URL 都要发版。
+ *   - openStoreDebug:      Android 走系统级 market:// 协议，**无需任何商店 URL**，
+ *                          系统自动路由到已装商店（华为/小米/OPPO/vivo/...）。
+ *                          上架新渠道零改动。详见 https://levent-j.com/2020/09/18/android-start-app-market/
+ *
+ * 行为：
+ *   - Android: Linking.openURL('market://details?id=com.audiodock.app')
+ *   - iOS:     Linking.openURL('https://apps.apple.com/cn/app/audiodock/id6761128589')
+ *   - Web:     noop + console.warn
+ *
+ * @returns 是否成功触发（true=已打开/fallback，false=完全失败）
+ */
+export const openStoreDebug = async (): Promise<boolean> => {
+  if (!isNative()) {
+    console.warn('[openStoreDebug] web 端不支持跳转应用商店');
+    return false;
+  }
+
+  const url = isIOS()
+    ? IOS_APP_STORE_URL
+    : `market://details?id=${ANDROID_PACKAGE_NAME}`;
+
+  console.log('[openStoreDebug] jump to:', url);
+  return openExternalURL(url);
+};

@@ -46,6 +46,7 @@ import {
   getDownloadedTracks,
   removeDownloadedTrack,
 } from "../../src/services/cache";
+import { openStoreDebug } from "../../src/services/openStore";
 import { trackEvent } from "../../src/services/tracking";
 import { getImageUrl } from "../../src/utils/image";
 import { usePlayMode } from "../../src/utils/playMode";
@@ -694,6 +695,17 @@ export default function PersonalScreen() {
       setCreateModalVisible(true);
     }
     setPendingMenuAction(null);
+  };
+
+  /**
+   * 测试按钮：跳转到"对应的"应用商店
+   * - Android: market:// scheme，系统自动路由到已装商店
+   * - iOS: App Store 公网页面
+   * 仅供调试，正式版可移除。
+   */
+  const handleOpenStoreDebug = async () => {
+    setMenuVisible(false);
+    await openStoreDebug();
   };
 
   const pollTaskStatus = async (taskId: string) => {
@@ -1351,6 +1363,18 @@ export default function PersonalScreen() {
               <Ionicons name="trash-outline" size={22} color={colors.text} />
               <Text style={[styles.menuItemText, { color: colors.text }]}>
                 {t("personal.compactData")}
+              </Text>
+            </TouchableOpacity>
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleOpenStoreDebug}
+            >
+              <Ionicons name="storefront-outline" size={22} color={colors.text} />
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                测试：打开应用商店
               </Text>
             </TouchableOpacity>
           </View>
