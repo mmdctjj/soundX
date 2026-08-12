@@ -17,6 +17,7 @@ import { likesHistory } from '../services/LikesHistoryService';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
+import { syncStore } from '../context/SyncStore';
 import { buildTheme, withAlpha } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 
@@ -638,6 +639,12 @@ struct MainPage {
     this.theme = buildTheme(this.themeMode);
     this.loadVoiceAssistantGate();
     playerStore.restoreState();
+    // 同步播放：注册 socket 监听 + 启动连接（对齐 mobile 的 _layout.tsx SyncProvider 包裹）
+    syncStore.bindSocketEvents();
+    playerStore.bindSyncSocketListeners();
+    authStore.connectSyncSocket().catch((e: Error): void => {
+      Logger.w('MainPage', `connectSyncSocket failed: ${String(e)}`);
+    });
   }
 
   private async loadVoiceAssistantGate(): Promise<void> {

@@ -10,7 +10,17 @@ export interface SocketConnectOptions {
   query?: Record<string, string>;
 }
 
-type Listener = (payload: unknown) => void;
+interface SocketMessage {
+  event?: string;
+  payload?: Object | null;
+}
+
+export interface SocketWildcardPayload {
+  event: string;
+  payload: Object | null;
+}
+
+type Listener = (payload: Object | null | undefined) => void;
 
 export class HarmonySocketService {
   private wsObj: webSocket.WebSocket | null = null;
@@ -60,7 +70,7 @@ export class HarmonySocketService {
     if (cb) set.delete(cb); else set.clear();
   }
 
-  emit(event: string, payload: unknown): void {
+  emit(event: string, payload: Object): void {
     if (!this.wsObj || !this.connected) {
       Logger.w('Socket', `emit ${event} while disconnected`);
       return;
@@ -83,6 +93,7 @@ export class HarmonySocketService {
       this.connected = true;
       this.reconnectAttempt = 0;
       Logger.i('Socket', 'connected');
+      // 显式派发一个标记事件（payload 为 null，避免 ArkTS 禁止的 inline literal）
       this.dispatch('connect', null);
     });
     this.wsObj.on('message', (err: BusinessError, data: string | ArrayBuffer) => {
@@ -93,8 +104,8 @@ export class HarmonySocketService {
       const text = typeof data === 'string' ? data : '';
       if (!text) return;
       try {
-        const parsed = JSON.parse(text) as { event?: string; payload?: unknown };
-        if (parsed.event) this.dispatch(parsed.event, parsed.payload);
+        const parsed = JSON.parse(text) as SocketMessage;
+        if (parsed.event) this.dispatch(parsed.event, parsed.payload ?? null);
       } catch (e) {
         Logger.w('Socket', `bad message: ${String(e)}`);
       }
@@ -129,15 +140,18 @@ export class HarmonySocketService {
       this.reconnectTimer = null;
       if (this.manualClose) return;
       this.openSocket().catch(() => undefined);
-    }, delay) as unknown as number;
+    }, delay) as number;
   }
 
-  private dispatch(event: string, payload: unknown): void {
+  private dispatch(event: string, payload: Object | null | undefined): void {
     const set = this.listeners.get(event);
     if (set) for (const cb of set) cb(payload);
-    // also dispatch to wildcard
+    // 透传给 wildcard 订阅者（payload 用 typed object 而非 inline literal）
     const wild = this.listeners.get('*');
-    if (wild) for (const cb of wild) cb({ event, payload });
+    if (wild) {
+      const wc: SocketWildcardPayload = { event, payload: payload ?? null };
+      for (const cb of wild) cb(wc);
+    }
   }
 
   private buildUrl(opts: SocketConnectOptions): string {
@@ -147,7 +161,10 @@ export class HarmonySocketService {
     if (opts.userId !== undefined) q.push(`userId=${encodeURIComponent(String(opts.userId))}`);
     if (opts.deviceName) q.push(`deviceName=${encodeURIComponent(opts.deviceName)}`);
     if (opts.query) {
-      for (const [k, v] of Object.entries(opts.query)) {
+      const entries = Object.entries(opts.query);
+      for (let i = 0; i < entries.length; i++) {
+        const k = entries[i][0];
+        const v = entries[i][1];
         q.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
       }
     }
