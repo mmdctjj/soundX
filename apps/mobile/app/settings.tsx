@@ -31,6 +31,7 @@ import { goBackOrReplace } from "../src/utils/navigation";
 import { usePlayMode } from "../src/utils/playMode";
 import { getLocalVersion } from "../src/utils/updateUtils";
 import { getCachedVipStatus } from "../src/utils/vipStatus";
+import { useCheckUpdate } from "../hooks/useCheckUpdate";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export default function SettingsScreen() {
   const { mode, setMode } = usePlayMode();
   const { logout, user, sourceType, device, plusToken, setPlusToken } =
     useAuth();
+  const { checking: checkingUpdate, checkUpdate } = useCheckUpdate();
   const {
     acceptRelay,
     acceptSync,
@@ -403,6 +405,15 @@ export default function SettingsScreen() {
         },
       ],
     );
+  };
+
+  const handleCheckUpdate = async () => {
+    if (checkingUpdate) return;
+    const info = await checkUpdate();
+    if (!info) {
+      Alert.alert(t("update.upToDate"));
+    }
+    // 有新版本 → 弹窗由 _layout.tsx 全局 UpdateModal 接管
   };
 
   return (
@@ -768,6 +779,28 @@ export default function SettingsScreen() {
             </View>
             <Ionicons
               name="chevron-forward"
+              size={20}
+              color={colors.secondary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            disabled={checkingUpdate}
+            onPress={() => void handleCheckUpdate()}
+          >
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                {checkingUpdate ? t("update.checking") : t("update.checkUpdate")}
+              </Text>
+              <Text
+                style={[styles.settingDescription, { color: colors.secondary }]}
+              >
+                {t("update.checkUpdateDescription")}
+              </Text>
+            </View>
+            <Ionicons
+              name={checkingUpdate ? "sync" : "chevron-forward"}
               size={20}
               color={colors.secondary}
             />

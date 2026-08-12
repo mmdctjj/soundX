@@ -25,6 +25,8 @@ import { SyncProvider } from "../src/context/SyncContext";
 import { syncWidgetMembership } from "../src/native/WidgetBridge";
 import { PlayerDetailView } from "./player";
 import { Ionicons } from "@expo/vector-icons";
+import { UpdateModal } from "../src/components/UpdateModal";
+import { useCheckUpdate } from "../hooks/useCheckUpdate";
 
 function RootLayoutNav() {
   const { token, isLoading, plusToken, user } = useAuth();
@@ -309,6 +311,25 @@ function RootLayoutNav() {
     return () => clearInterval(timer);
   }, [plusToken]);
 
+  // ─── 版本更新检查（启动 1.5s 后静默触发，仅一次） ────────────────────
+  const {
+    updateInfo,
+    opening: openingStore,
+    checkUpdate,
+    startUpdate,
+    ignoreUpdate,
+    cancelUpdate,
+  } = useCheckUpdate();
+  const hasAutoCheckedRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoCheckedRef.current) return;
+    hasAutoCheckedRef.current = true;
+    const timer = setTimeout(() => {
+      void checkUpdate();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [checkUpdate]);
+
   const stack = (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -540,6 +561,14 @@ function RootLayoutNav() {
         </Animated.View>
       )}
       <PrivacyAgreementDialog />
+      <UpdateModal
+        visible={!!updateInfo}
+        updateInfo={updateInfo}
+        opening={openingStore}
+        onUpdate={startUpdate}
+        onIgnore={ignoreUpdate}
+        onClose={cancelUpdate}
+      />
     </>
   );
 }

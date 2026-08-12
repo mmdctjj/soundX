@@ -1620,7 +1620,16 @@
     "preparing2": "准备中...",
     "updateNow": "立即更新",
     "systemDownloadStarted": "已使用系统下载器",
-    "systemDownloadDescription": "下载完成后将自动安装，请下拉通知栏查看进度"
+    "systemDownloadDescription": "下载完成后将自动安装，请下拉通知栏查看进度",
+    "upToDate": "已是最新版本",
+    "defaultReleaseNotes": "建议立即更新体验新功能",
+    "openStoreFailedTitle": "无法打开应用商店",
+    "openStoreFailedBody": "请检查网络或稍后再试",
+    "openStore": "前往应用商店",
+    "later": "稍后再说",
+    "checking": "检查更新中...",
+    "checkUpdate": "检查更新",
+    "checkUpdateDescription": "检测是否有新版本"
   },
   "playerMore": {
     "moreOptions": "更多选项",
