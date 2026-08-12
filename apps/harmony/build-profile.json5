@@ -6,9 +6,9 @@
         "type": "HarmonyOS",
         "material": {
           "storeFile": "/Users/ctjj/Documents/资料/ad/ad.p12",
-          "storePassword": "0000001A984C42B4CCB7DEE4188308CCA9C7F836520CBAC3BBF3D565A7FC304B5A955F85193B0DA2E183",
+          "storePassword": "0000001A337B0116138FD14E9449B960F8F5DEAE8A439C434E0354BCA3D3CE8940837162FF5630109FFB",
           "keyAlias": "ad",
-          "keyPassword": "0000001A4C35C2E1C05074A2F534283978B13E7F8AF241D3160ED9DD22DA5741207F67E26B2E4D2707E6",
+          "keyPassword": "0000001A17304FD2AA1A4FF74E2F5B99E940F729C3CD33FDECB2F2C929EB12E3F0752787611D10006DD9",
           "signAlg": "SHA256withECDSA",
           "profile": "/Users/ctjj/Documents/资料/ad/adRelease.p7b",
           "certpath": "/Users/ctjj/Documents/资料/ad/ad.cer"
@@ -32,7 +32,7 @@
       {
         "name": "default",
         "signingConfig": "default",
-        "compatibleSdkVersion": "6.0.2(22)",
+        "compatibleSdkVersion": "5.0.5(17)",
         "runtimeOS": "HarmonyOS",
         "targetSdkVersion": "6.0.2(22)"
       },

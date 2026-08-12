@@ -1,11 +1,14 @@
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
+import { common } from '@kit.AbilityKit';
 import { buildTheme, type Theme, type ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { kvStore } from 'features_storage';
 import { Logger } from 'audiodock_common';
 import { plusApi, setPlusAuthToken } from 'features_network';
-import type { VipCurrentLowestPriceData, VipPlanPrice, CouponItem } from 'features_network';
+import type { VipCurrentLowestPriceData, VipPlanPrice, CouponItem, WechatPayPayload } from 'features_network';
+import { openInBrowser } from '../utils/browserUtils';
+import { payWithWeChat, isWeChatInstalled } from '../services/WechatPayService';
 
 class ComparisonRow {
   feature: string = '';
@@ -111,18 +114,58 @@ struct MemberBenefitsPage {
     this.loading = true;
     try {
       const res = await plusApi.createPayment(
-        userId, this.selectedPlan, 'ALIPAY', price,
+        userId, this.selectedPlan, 'WECHAT', price,
         this.selectedCouponCode || undefined
       );
-      if (res.paymentUrl) {
-        // HM 端通过 web 收银台完成支付
-        router.pushUrl({
-          url: 'pages/MemberPaymentSuccessPage',
-          params: { orderId: res.orderId, tradeNo: '', method: 'ALIPAY', paidAt: new Date().toISOString() }
+      // 与 mobile 端对齐：mobile 优先用微信 SDK（react-native-wechat-lib）唤起；
+      // harmony 集成 @tencent/wechat_open_sdk 后用同样的 SDK 路径（直接 sendReq）。
+      // paymentUrl 作为 SDK 调起失败时的兜底。
+      if (res.wechatPay) {
+        if (!isWeChatInstalled()) {
+          promptAction.showToast({ message: t('memberBenefitsPage.wechatNotInstalled') });
+          return;
+        }
+        const ctx = getContext(this) as common.UIAbilityContext;
+        const result = await payWithWeChat(ctx, res.wechatPay);
+        Logger.i('MemberBenefits', `pay result: ${JSON.stringify(result)}`);
+        if (result.kind === 'success') {
+          // 支付成功（注意：微信客户端返回 success 仅代表用户已确认支付，
+          // 真正可信的成功状态以后端订单轮询/异步通知为准；这里沿用 mobile 的跳转成功页策略）
+          router.pushUrl({
+            url: 'pages/MemberPaymentSuccessPage',
+            params: {
+              orderId: res.orderId,
+              tradeNo: '',
+              method: 'WECHAT',
+              paidAt: new Date().toISOString(),
+            },
+          });
+          return;
+        }
+        if (result.kind === 'cancelled') {
+          promptAction.showToast({ message: t('memberBenefits.wechatPayCancelled') });
+          return;
+        }
+        // failed: 用微信 SDK 失败时回退到 paymentUrl（H5 收银台）
+        if (res.paymentUrl) {
+          openInBrowser(ctx, res.paymentUrl);
+          promptAction.showToast({ message: t('memberBenefits.paymentWindowBlocked') });
+          return;
+        }
+        promptAction.showToast({
+          message: result.errMsg || t('memberBenefitsPage.paymentFailed'),
         });
-      } else {
-        promptAction.showToast({ message: t('memberBenefitsPage.orderCreated') });
+        return;
       }
+      if (res.paymentUrl) {
+        // 没 wechatPay 但有 paymentUrl：直接走 H5 收银台
+        const ctx = getContext(this) as common.UIAbilityContext;
+        openInBrowser(ctx, res.paymentUrl);
+        promptAction.showToast({ message: t('memberBenefits.paymentWindowBlocked') });
+        return;
+      }
+      // 后端啥都没返回 → 兜底提示
+      promptAction.showToast({ message: t('memberBenefits.orderCreated') });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       promptAction.showToast({ message: msg || t('memberBenefitsPage.networkFailed') });
@@ -136,15 +179,15 @@ struct MemberBenefitsPage {
     await kvStore.set('plus_token', '');
     await kvStore.set('plus_user_id', '');
     setPlusAuthToken(null);
-    promptAction.showToast({ message: t('memberBenefitsPage.logoutSuccess') });
+    promptAction.showToast({ message: t('memberBenefits.logoutSuccess') });
     router.replaceUrl({ url: 'pages/MemberLoginPage' });
   }
 
   private getComparisonData(): ComparisonRow[] {
     return [
-      new ComparisonRow(t('memberBenefits.basicFeatures'), true),
-      new ComparisonRow(t('memberBenefits.deviceRelay'), true),
-      new ComparisonRow(t('memberBenefits.syncControl'), false),
+      new ComparisonRow(t('member.basicFeatures'), true),
+      new ComparisonRow(t('member.deviceRelay'), true),
+      new ComparisonRow(t('member.syncControl'), false),
       new ComparisonRow(t('memberBenefits.ttsGeneration'), false),
       new ComparisonRow(t('memberBenefits.desktopWidget'), false),
       new ComparisonRow(t('memberBenefits.tvVersionComingSoon'), false),
@@ -214,7 +257,7 @@ struct MemberBenefitsPage {
           Column() {
             // Table header
             Row() {
-              Text(t('memberBenefitsPage.feature'))
+              Text(t('memberDetailPage.feature'))
                 .fontSize(12).fontWeight(FontWeight.Medium)
                 .fontColor(this.theme.colors.textSecondary)
                 .layoutWeight(2)
@@ -368,19 +411,19 @@ struct MemberBenefitsPage {
             .margin({ bottom: 12 })
             .alignSelf(ItemAlign.Start)
 
-          // Alipay button (primary for HM)
+          // WeChat Pay button (primary for HM)
           Button() {
             if (this.loading) {
               LoadingProgress().width(20).height(20).color('#FFFFFF')
             } else {
-              Text(t('memberBenefitsPage.alipay'))
+              Text(t('memberBenefitsPage.wechat'))
                 .fontSize(16).fontWeight(FontWeight.Medium)
                 .fontColor('#FFFFFF')
             }
           }
           .width('100%').height(50)
           .borderRadius(12)
-          .backgroundColor('#1677FF')
+          .backgroundColor('#07C160')
           .margin({ bottom: 12 })
           .enabled(!this.loading)
           .onClick(() => this.handlePayment())
@@ -395,7 +438,7 @@ struct MemberBenefitsPage {
           // Logout button
           Button() {
             Row() {
-              Text(t('memberBenefitsPage.logoutAction'))
+              Text(t('memberDetailPage.logoutAction'))
                 .fontSize(16).fontWeight(FontWeight.Medium)
                 .fontColor('#FF3B30')
             }

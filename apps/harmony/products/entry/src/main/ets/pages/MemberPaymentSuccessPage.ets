@@ -11,7 +11,7 @@ struct MemberPaymentSuccessPage {
   @State refreshing: boolean = true;
   @State orderId: string = '';
   @State tradeNo: string = '';
-  @State method: string = 'ALIPAY';
+  @State method: string = 'WECHAT';
   @State paidAt: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
@@ -22,7 +22,7 @@ struct MemberPaymentSuccessPage {
     const params = router.getParams() as Record<string, string> | undefined;
     this.orderId = params?.['orderId'] ?? '';
     this.tradeNo = params?.['tradeNo'] ?? '';
-    this.method = (params?.['method'] ?? 'ALIPAY').toUpperCase();
+    this.method = (params?.['method'] ?? 'WECHAT').toUpperCase();
     const rawPaidAt = params?.['paidAt'] ?? '';
     if (rawPaidAt) {
       try {

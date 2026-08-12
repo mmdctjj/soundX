@@ -12,6 +12,7 @@
     "features_ui": "file:../../features/ui",
     "features_i18n": "file:../../features/i18n",
     "features_socket": "file:../../features/socket",
-    "features_player": "file:../../features/player"
+    "features_player": "file:../../features/player",
+    "@tencent/wechat_open_sdk": "1.0.19"
   }
 }

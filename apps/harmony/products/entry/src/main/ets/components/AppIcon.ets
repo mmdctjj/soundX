@@ -31,7 +31,17 @@ export type AppIconName =
   | 'arrow-up'
   | 'arrow-down'
   | 'locate'
-  | 'cloud-download';
+  | 'cloud-download'
+  | 'volume-high'
+  | 'refresh'
+  | 'trash'
+  | 'document'
+  | 'chevron-back'
+  | 'arrow-forward'
+  | 'checkbox'
+  | 'square-outline'
+  | 'scan'
+  | 'list-outline';
 
 const ICON_MAP: Record<AppIconName, Resource> = {
   'home': $r('sys.symbol.house'),
@@ -63,6 +73,18 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'arrow-down': $r('sys.symbol.arrow_down'),
   'locate': $r('sys.symbol.scope'),
   'cloud-download': $r('sys.symbol.icloud'),
+  'volume-high': $r('sys.symbol.speaker_wave_3_fill'),
+  'refresh': $r('sys.symbol.arrow_clockwise'),
+  'trash': $r('sys.symbol.trash'),
+  'document': $r('sys.symbol.doc'),
+  'chevron-back': $r('sys.symbol.chevron_left'),
+  'arrow-forward': $r('sys.symbol.arrow_right'),
+  'checkbox': $r('sys.symbol.checkmark_square_fill'),
+  'square-outline': $r('sys.symbol.square'),
+  // 二维码扫描：当前 SDK sys.symbol.qrcode 验证过可编译；若不行可换 scope
+  'scan': $r('sys.symbol.qrcode'),
+  // 任务中心入口：复用 list_bullet 强调列表语义
+  'list-outline': $r('sys.symbol.list_bullet'),
 };
 
 export function getIconResource(name: AppIconName): Resource {

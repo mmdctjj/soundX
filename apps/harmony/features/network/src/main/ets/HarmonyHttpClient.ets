@@ -1,6 +1,6 @@
 import http from '@ohos.net.http';
 import { Logger } from 'audiodock_common';
-import { HttpError } from './HttpError';
+import { HttpError, safeStringify } from './HttpError';
 import type {
   RequestConfig, HttpResponse,
   BackendEnvelope, RequestInterceptor, ResponseInterceptor, ErrorInterceptor,
@@ -78,7 +78,14 @@ export class HarmonyHttpClient {
       try {
         response = await this.attempt(config);
       } catch (e) {
-        let err = e instanceof HttpError ? e : new HttpError(0, String(e));
+        // e 可能是 Error、HttpError、字符串，也可能是普通对象。
+        // String(普通对象) === "[object Object]"，会让 UI 渲染炸了。
+        let err: HttpError;
+        if (e instanceof HttpError) {
+          err = e;
+        } else {
+          err = new HttpError(0, safeStringify(e, 'request failed'));
+        }
         for (const i of this.errInterceptors) err = await i.intercept(err);
         lastError = err;
         attempts += 1;
@@ -111,7 +118,12 @@ export class HarmonyHttpClient {
           const code = env.code;
           // 后端成功约定是 code: 200（services/api/src/common/const.ts ISuccessResponse）
           if (code !== 200) {
-            const message = env.message !== undefined ? env.message : `code=${code}`;
+            // env.message 形参类型是 string，但运行时可能是对象/数组（部分旧后端把
+            // 多语言文案塞成 { zh: '...', en: '...' } 或错误码对象），必须先用
+            // safeStringify 兜底，否则 HttpError.message 会变 [object Object]。
+            const message: string = env.message !== undefined && env.message !== null
+              ? safeStringify(env.message, `code=${code}`)
+              : `code=${code}`;
             const envErr = new HttpError(response.status, message, env);
             let finalErr = envErr;
             for (const i of this.errInterceptors) finalErr = await i.intercept(finalErr);

@@ -19,6 +19,11 @@
     "pages/MemberLoginPage",
     "pages/MemberBenefitsPage",
     "pages/MemberDetailPage",
-    "pages/MemberPaymentSuccessPage"
+    "pages/MemberPaymentSuccessPage",
+    "pages/TtsTaskListPage",
+    "pages/TtsCreateTaskPage",
+    "pages/TtsConfigPage",
+    "pages/ScanPage",
+    "pages/ScanConfirmPage"
   ]
 }

@@ -31,9 +31,33 @@
             "actions": [
               "action.system.home"
             ]
+          },
+          {
+            // 微信支付完成后通过 scheme `wx42a4102d85be55a1://platformId=wechat` 拉回本 Ability，
+            // 由 EntryAbility.onNewWant 把 want 透传给 wxopensdk.WXApi.handleWant 触发回调。
+            // 详见 services/WechatPayService.ets 与 docs/HarmonyOS 微信支付接入指南。
+            "entities": [
+              "entity.system.browsable",
+              "entity.system.default"
+            ],
+            "actions": [
+              "wxentity.action.open",
+              "ohos.want.action.viewData"
+            ],
+            "uris": [
+              {
+                "scheme": "wx42a4102d85be55a1",
+                "host": "platformId=wechat"
+              }
+            ]
           }
         ]
       }
+    ],
+    // 微信 OpenSDK 要求：weixin 用于 isWXAppInstalled 检测微信是否安装，wxopensdk 用于跳转微信
+    "querySchemes": [
+      "weixin",
+      "wxopensdk"
     ],
     "requestPermissions": [
       {

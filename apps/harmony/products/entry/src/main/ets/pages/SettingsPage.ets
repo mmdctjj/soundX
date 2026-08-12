@@ -353,6 +353,13 @@ struct SettingsPage {
             this.getQualityLabel(this.externalQuality),
           )
 
+          // TTS 服务配置
+          this.ActionRow(
+            t('settings.ttsConfig'),
+            t('settings.ttsConfigDescription'),
+            () => router.pushUrl({ url: 'pages/TtsConfigPage' }),
+          )
+
           // 车机模式
           this.SwitchRow(
             t('settings.carMode'),

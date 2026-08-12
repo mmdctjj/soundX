@@ -49,8 +49,23 @@ export interface CouponItem {
 export interface CreatePaymentResponse {
   orderId: string;
   paymentUrl?: string;
-  wechatPay?: object | null;
+  wechatPay?: WechatPayPayload | null;
   alipayPay?: object | null;
+}
+
+/**
+ * 与 mobile 端 apps/mobile/src/services/payments.ts 的 WechatPayPayload 字段对齐。
+ * 后端 /payment/create 的 CreatePaymentDto.wechatPay 直接透传微信支付下单结果。
+ */
+export interface WechatPayPayload {
+  appId: string;
+  partnerId: string;
+  prepayId: string;
+  nonceStr: string;
+  timeStamp: string;
+  sign: string;
+  package?: string;
+  signType?: string;
 }
 
 export interface VipStatusResponse {
@@ -73,13 +88,32 @@ interface LoginRequest {
   code: string;
 }
 
+/**
+ * 与 mobile packages/services/src/plus.ts 的 CreatePaymentDto 字段完全对齐。
+ * 后端 PaymentController_create 的 class-validator 必填校验项是 amount/currency/method/forVip/vipTier/forPoints/pointsAmount，
+ * 缺一即返回 400。harmony 之前发的是 {plan, price}，全部校验失败。
+ */
 interface CreatePaymentBody {
   userId: string;
-  plan: string;
-  method: string;
-  price: number;
   couponCode?: string;
+  amount: number;
+  currency: string;
+  method: string;
+  clientType: string;
+  forVip: boolean;
+  vipTier: string;
+  forPoints: boolean;
+  pointsAmount: number;
 }
+
+/** 与 mobile 的 VIP_PLAN_TIER 保持一致（apps/mobile/src/services/payments.ts）。 */
+function createVipPlanTier(): Record<string, string> {
+  const map: Record<string, string> = {};
+  map['annual'] = 'BASIC';
+  map['lifetime'] = 'LIFETIME';
+  return map;
+}
+const VIP_PLAN_TIER: Record<string, string> = createVipPlanTier();
 
 interface UserIdParams {
   userId: string;
@@ -170,7 +204,17 @@ class PlusApiImpl implements PlusApi {
   }
 
   async createPayment(userId: string, plan: string, method: string, price: number, couponCode?: string): Promise<CreatePaymentResponse> {
-    const body: CreatePaymentBody = { userId, plan, method, price };
+    const body: CreatePaymentBody = {
+      userId,
+      amount: price,
+      currency: 'CNY',
+      method,
+      clientType: 'app',
+      forVip: true,
+      vipTier: VIP_PLAN_TIER[plan] ?? plan.toUpperCase(),
+      forPoints: false,
+      pointsAmount: 0,
+    };
     if (couponCode) body.couponCode = couponCode;
     return plusRequest<CreatePaymentResponse>('POST', '/payment/create', body);
   }

@@ -85,15 +85,15 @@ struct MemberDetailPage {
     await kvStore.set('plus_token', '');
     await kvStore.set('plus_user_id', '');
     setPlusAuthToken(null);
-    promptAction.showToast({ message: t('memberBenefitsPage.logoutSuccess') });
+    promptAction.showToast({ message: t('memberBenefits.logoutSuccess') });
     router.replaceUrl({ url: 'pages/MemberLoginPage' });
   }
 
   private getComparisonData(): ComparisonRow[] {
     return [
-      new ComparisonRow(t('memberBenefits.basicFeatures'), true),
-      new ComparisonRow(t('memberBenefits.deviceRelay'), true),
-      new ComparisonRow(t('memberBenefits.syncControl'), false),
+      new ComparisonRow(t('member.basicFeatures'), true),
+      new ComparisonRow(t('member.deviceRelay'), true),
+      new ComparisonRow(t('member.syncControl'), false),
       new ComparisonRow(t('memberBenefits.ttsGeneration'), false),
       new ComparisonRow(t('memberBenefits.desktopWidget'), false),
       new ComparisonRow(t('memberBenefits.tvVersionComingSoon'), false),

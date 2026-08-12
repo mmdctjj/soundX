@@ -11,9 +11,14 @@ import { type ThemeMode } from 'features_ui';
 import { installPlaybackService } from '../services/playbackService';
 import { installAVSessionService, releaseAVSessionService } from '../services/avSessionService';
 import { setSystemBarWindow, applySystemBar } from '../services/systemBar';
+import { installWechatRespHandler, registerWechatApp, handleWechatWant } from '../services/WechatPayService';
 
 const DOMAIN = 0xA001;
 const TAG = 'EntryAbility';
+
+// 微信开放平台为 AudioDock 申请的 AppID（mobile 端 member-benefits.tsx 里的 WECHAT_APP_ID
+// 是 mock 占位未真正使用）。这里必须用真实 AppID，否则 SDK 注册会被微信服务器拒绝（errCode=-1）。
+const WECHAT_APP_ID = 'wx42a4102d85be55a1';
 
 export default class EntryAbility extends UIAbility {
   private initPromise: Promise<void> | null = null;
@@ -23,6 +28,12 @@ export default class EntryAbility extends UIAbility {
     Logger.i(TAG, 'onCreate');
     this.initPromise = this.initialize();
     await this.initPromise;
+    // 微信支付 SDK 注册（AppID 必须在 SDK 调起前注册，否则 sendReq 会失败）。
+    // 必须放在 onCreate 里、installPlaybackService 之前，确保 SDK 在用户首次支付时已就绪。
+    installWechatRespHandler();
+    registerWechatApp(WECHAT_APP_ID);
+    // 冷启动时微信可能已通过 scheme 回跳（want 里带回调数据），注册完立即透传给 SDK。
+    handleWechatWant(want);
     installPlaybackService();
     try {
       await installAVSessionService(this.context);
@@ -30,6 +41,15 @@ export default class EntryAbility extends UIAbility {
       Logger.w(TAG, `install AVSession: ${String(e)}`);
     }
     this.loadPage('pages/Index');
+  }
+
+  /**
+   * 微信支付完成后会通过 scheme `wx42a4102d85be55a1://platformId=wechat` 重新拉起本 Ability。
+   * SDK 1.0.10+ 用 openLink 拉起微信，回调通过 onNewWant 触发；必须在这里透传给 SDK。
+   */
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    Logger.i(TAG, `onNewWant uri=${want.uri}`);
+    handleWechatWant(want);
   }
 
   onDestroy(): void {

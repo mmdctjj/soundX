@@ -1,7 +1,8 @@
 export { HarmonyHttpClient, httpClient } from './src/main/ets/HarmonyHttpClient';
 export { HttpError } from './src/main/ets/HttpError';
 export { authApi, userApi, trackApi, albumApi, artistApi, playlistApi, collectionApi, mvApi, userDataApi,
-  plusApi, setPlusAuthToken, getPlusAuthToken, miApi }
+  plusApi, setPlusAuthToken, getPlusAuthToken, miApi, ttsApi, ttsConfigApi, taskApi,
+  scanLoginApi, subscribeScanLoginSession, reportScanLoginResultViaSocket }
   from './src/main/ets/api';
 export type {
   RequestConfig, HttpResponse,
@@ -34,10 +35,37 @@ export type {
 } from './src/main/ets/api';
 export type {
   PlusApi, PlusLoginResponse, PlusUserProfile, VipCurrentLowestPriceData,
-  VipPlanPrice, CouponItem, CreatePaymentResponse,
+  VipPlanPrice, CouponItem, CreatePaymentResponse, WechatPayPayload,
 } from './src/main/ets/api/plus';
 export type {
   MiDevice, MiDevicesResponse, MiAuthStatusResponse,
   MiQRCodeResponse, MiQRCodeStatusResponse, MiPlayByUrlResponse,
   MiTrackPayload, MiPlayPlaylistResponse, MiApi,
+} from './src/main/ets/api';
+export type {
+  TtsProvider, TtsVoice, TtsFileItem, TtsReviewItem, TtsTask,
+  TtsProvidersResp, TtsVoicesResp, TtsLocalFilesResp,
+  TtsIdentifyResult, TtsIdentifyBatchResp,
+  TtsBatchCreateFile, TtsBatchCreateResp, TtsTasksResp, TtsApi,
+} from './src/main/ets/api';
+export type {
+  TtsProviderOption, TtsProviderConfig,
+  TtsSupportedProvidersResp, TtsProviderConfigsResp,
+  TtsProviderConfigResp, TtsProviderTestResp, TtsConfigApi,
+} from './src/main/ets/api';
+export type {
+  TaskStatus, ImportTaskType, ImportTaskMode,
+  ImportTask, CreateTaskParams, CreateTaskResponse,
+  UnifiedTaskStatus, UnifiedTaskCategory, UnifiedTask,
+  TaskApi,
+} from './src/main/ets/api';
+export {
+  toUnifiedFromImport, isTaskActive, TASK_STATUS_I18N_KEY,
+} from './src/main/ets/api';
+export type {
+  ScanLoginSourceConfig, ScanLoginSourceBundle,
+  ScanLoginAuthBundle, ScanLoginPlusBundle, ScanLoginUser,
+  ScanLoginSession, ScanLoginStatusName, ScanLoginSessionStatus,
+  ScanLoginClaimPayload, ScanLoginConfirmResult, ScanLoginSelection,
+  ScanLoginApi, ScanLoginSubscribeOptions, ScanLoginUnsubscribe,
 } from './src/main/ets/api';
