@@ -1479,7 +1479,8 @@
     "feature": "Benefits",
     "nonMember": "Non-member",
     "member": "Member",
-    "logoutAction": "Log Out / Switch Member Account"
+    "logoutAction": "Log Out / Switch Member Account",
+    "contactSupport": "Contact Support"
   },
   "memberBenefitsPage": {
     "notice": "Notice",
@@ -1525,7 +1526,8 @@
     "logoutTitle": "Log Out Member Account",
     "logoutMessage": "Are you sure you want to log out from the member account?",
     "logoutAction": "Log Out Member Account",
-    "ongoingActivity": "{{name}} promotion is ongoing"
+    "ongoingActivity": "{{name}} promotion is ongoing",
+    "contactSupport": "Contact Support"
   },
   "playerPage": {
     "notice": "Notice",

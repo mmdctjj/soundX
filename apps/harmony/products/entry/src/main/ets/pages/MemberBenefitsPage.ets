@@ -8,6 +8,7 @@ import { Logger } from 'audiodock_common';
 import { plusApi, setPlusAuthToken } from 'features_network';
 import type { VipCurrentLowestPriceData, VipPlanPrice, CouponItem, WechatPayPayload } from 'features_network';
 import { openInBrowser } from '../utils/browserUtils';
+import { openEmail } from '../utils/emailUtils';
 import { payWithWeChat, isWeChatInstalled } from '../services/WechatPayService';
 
 class ComparisonRow {
@@ -181,6 +182,11 @@ struct MemberBenefitsPage {
     setPlusAuthToken(null);
     promptAction.showToast({ message: t('memberBenefits.logoutSuccess') });
     router.replaceUrl({ url: 'pages/MemberLoginPage' });
+  }
+
+  handleContactSupport(): void {
+    const ctx = getContext(this) as common.UIAbilityContext;
+    openEmail(ctx);
   }
 
   private getComparisonData(): ComparisonRow[] {
@@ -435,6 +441,21 @@ struct MemberBenefitsPage {
             .width('100%')
             .margin({ bottom: 24 })
 
+          // Contact support button
+          Button() {
+            Row() {
+              Text(t('memberBenefitsPage.contactSupport'))
+                .fontSize(16).fontWeight(FontWeight.Medium)
+                .fontColor(this.theme.colors.primary)
+            }
+          }
+          .width('100%').height(50)
+          .borderRadius(12)
+          .backgroundColor(Color.Transparent)
+          .border({ width: 1, color: this.theme.colors.primary })
+          .margin({ top: 16 })
+          .onClick(() => this.handleContactSupport())
+
           // Logout button
           Button() {
             Row() {
@@ -447,7 +468,7 @@ struct MemberBenefitsPage {
           .borderRadius(12)
           .backgroundColor(Color.Transparent)
           .border({ width: 1, color: '#FF3B30' })
-          .margin({ bottom: 40 })
+          .margin({ top: 16, bottom: 40 })
           .onClick(() => this.handleLogout())
         }
         .width('100%')

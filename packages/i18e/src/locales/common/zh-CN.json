@@ -1486,7 +1486,8 @@
     "feature": "权益功能",
     "nonMember": "非会员",
     "member": "会员",
-    "logoutAction": "退出/切换会员账号"
+    "logoutAction": "退出/切换会员账号",
+    "contactSupport": "联系客服"
   },
   "memberBenefitsPage": {
     "notice": "提示",
@@ -1532,7 +1533,8 @@
     "logoutTitle": "退出会员账号",
     "logoutMessage": "确定要退出会员账号吗？",
     "logoutAction": "退出会员账号",
-    "ongoingActivity": "{{name}} 活动正在进行中"
+    "ongoingActivity": "{{name}} 活动正在进行中",
+    "contactSupport": "联系客服"
   },
   "playerPage": {
     "notice": "提示",

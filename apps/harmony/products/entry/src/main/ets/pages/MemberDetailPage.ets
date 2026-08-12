@@ -1,11 +1,13 @@
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
+import { common } from '@kit.AbilityKit';
 import { buildTheme, type Theme, type ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { kvStore } from 'features_storage';
 import { Logger } from 'audiodock_common';
 import { plusApi, setPlusAuthToken } from 'features_network';
 import type { PlusUserProfile } from 'features_network';
+import { openEmail } from '../utils/emailUtils';
 
 class ComparisonRow {
   feature: string = '';
@@ -87,6 +89,11 @@ struct MemberDetailPage {
     setPlusAuthToken(null);
     promptAction.showToast({ message: t('memberBenefits.logoutSuccess') });
     router.replaceUrl({ url: 'pages/MemberLoginPage' });
+  }
+
+  handleContactSupport(): void {
+    const ctx = getContext(this) as common.UIAbilityContext;
+    openEmail(ctx);
   }
 
   private getComparisonData(): ComparisonRow[] {
@@ -256,6 +263,21 @@ struct MemberDetailPage {
             .backgroundColor(this.theme.colors.card)
             .margin({ bottom: 10 })
 
+            // Contact support button
+            Button() {
+              Row() {
+                Text(t('memberDetailPage.contactSupport'))
+                  .fontSize(16).fontWeight(FontWeight.Medium)
+                  .fontColor(this.theme.colors.primary)
+              }
+            }
+            .width('100%').height(50)
+            .borderRadius(12)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: this.theme.colors.primary })
+            .margin({ top: 16 })
+            .onClick(() => this.handleContactSupport())
+
             // Logout button
             Button() {
               Row() {
@@ -267,7 +289,7 @@ struct MemberDetailPage {
             .width('100%').height(50)
             .borderRadius(12)
             .backgroundColor('#FF3B30')
-            .margin({ bottom: 40 })
+            .margin({ top: 16, bottom: 40 })
             .onClick(() => this.handleLogout())
           }
           .width('100%')

@@ -75,6 +75,14 @@ export default function MemberDetailScreen() {
     ]);
   };
 
+  const handleContactSupport = async () => {
+    try {
+      await Linking.openURL("mailto:audiodock@audiodock.cn");
+    } catch (error) {
+      console.warn("Contact support failed", error);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center' }]}>
@@ -182,6 +190,19 @@ export default function MemberDetailScreen() {
             </View>
           ))}
         </View>
+
+        <TouchableOpacity
+          style={[
+            styles.contactSupportButton,
+            { borderColor: colors.primary },
+          ]}
+          onPress={handleContactSupport}
+        >
+          <Ionicons name="mail-outline" size={20} color={colors.primary} />
+          <Text style={[styles.contactSupportText, { color: colors.primary }]}>
+            {t("memberDetailPage.contactSupport")}
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.logoutButton, { backgroundColor: "#FF3B30", borderColor: "#FF3B30" }]}
@@ -311,6 +332,22 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: "#FF3B30",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  contactSupportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    width: "100%",
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: "transparent",
+    marginTop: 24,
+  },
+  contactSupportText: {
     fontSize: 16,
     fontWeight: "600",
   },
