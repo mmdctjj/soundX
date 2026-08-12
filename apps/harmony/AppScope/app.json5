@@ -1,0 +1,15 @@
+{
+  "app": {
+    "bundleName": "com.audiodock.harmony",
+    "vendor": "AudioDock",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "icon": "$media:app_icon",
+    "label": "$string:app_name",
+    "description": "$string:app_desc",
+    "minAPIVersion": 12,
+    "targetAPIVersion": 19,
+    "apiReleaseType": "Release1",
+    "debug": false
+  }
+}

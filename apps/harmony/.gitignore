@@ -1,0 +1,21 @@
+# HarmonyOS build outputs
+build/
+*.har
+.hvigor/
+.idea/
+
+# Preview cache
+.preview/
+
+# OH modules
+oh_modules/
+
+# Local properties
+local.properties
+
+# Logs
+*.log
+.scheduler.log
+
+# macOS
+.DS_Store

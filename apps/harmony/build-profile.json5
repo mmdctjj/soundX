@@ -1,0 +1,57 @@
+{
+  "app": {
+    "signingConfigs": [],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compileSdkVersion": "6.0.2(22)",
+        "compatibleSdkVersion": "5.1.1(19)",
+        "runtimeOS": "HarmonyOS",
+        "targetSdkVersion": "5.1.1(19)"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./products/entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "audiodock_common",
+      "srcPath": "./common/audiodock_common"
+    },
+    {
+      "name": "features_storage",
+      "srcPath": "./features/storage"
+    },
+    {
+      "name": "features_network",
+      "srcPath": "./features/network"
+    },
+    {
+      "name": "features_ui",
+      "srcPath": "./features/ui"
+    },
+    {
+      "name": "features_i18n",
+      "srcPath": "./features/i18n"
+    },
+    {
+      "name": "features_socket",
+      "srcPath": "./features/socket"
+    },
+    {
+      "name": "features_player",
+      "srcPath": "./features/player"
+    }
+  ]
+}

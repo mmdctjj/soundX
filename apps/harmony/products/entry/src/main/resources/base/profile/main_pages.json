@@ -1,0 +1,24 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/MainPage",
+    "pages/AlbumDetailPage",
+    "pages/ArtistDetailPage",
+    "pages/PlaylistDetailPage",
+    "pages/CollectionDetailPage",
+    "pages/MVDetailPage",
+    "pages/SearchPage",
+    "pages/SettingsPage",
+    "pages/SourceManagePage",
+    "pages/PlayerPage",
+    "pages/SourceSelectPage",
+    "pages/LoginPage",
+    "pages/LanguagePage",
+    "pages/PlaybackQualityPage",
+    "pages/SectionOrderPage",
+    "pages/MemberLoginPage",
+    "pages/MemberBenefitsPage",
+    "pages/MemberDetailPage",
+    "pages/MemberPaymentSuccessPage"
+  ]
+}

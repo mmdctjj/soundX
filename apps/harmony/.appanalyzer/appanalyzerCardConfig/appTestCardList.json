@@ -1,0 +1,27 @@
+[
+	{
+		"analyzerMode":"BEFORE_RELEASE_CHECK_MODE",
+		"autoCompile":true,
+		"autoTest":true,
+		"cardId":200,
+		"cardName":"自动上架体验规范体检",
+		"default":true,
+		"projectType":"app",
+		"replayTask":false,
+		"replayTime":60,
+		"ruleCodeList":[
+			"0132",
+			"0133",
+			"0134",
+			"0135",
+			"0601",
+			"0604",
+			"0602",
+			"0502",
+			"0512",
+			"0515"
+		],
+		"singleOperateDuration":20,
+		"testDuration":30
+	}
+]

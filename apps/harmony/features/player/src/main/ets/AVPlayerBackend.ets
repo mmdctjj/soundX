@@ -1,0 +1,165 @@
+import media from '@ohos.multimedia.media';
+import fs from '@ohos.file.fs';
+import { BusinessError } from '@ohos.base';
+import { Logger } from 'audiodock_common';
+import type { IAudioPlayer, PlayerEvent, PlayerListener, PlayerPayload,
+  TimeUpdatePayload, StateChangePayload, ErrorPayload, BufferingPayload } from './IAudioPlayer';
+
+export class AVPlayerBackend implements IAudioPlayer {
+  private player: media.AVPlayer | null = null;
+  private listeners = new Map<PlayerEvent, Set<PlayerListener>>();
+  private currentUrl: string = '';
+  // 本地缓存文件通过 fdSrc 播放，需要持有并在切歌/释放时关闭 fd
+  private currentFd: number = -1;
+  private prepareResolve: (() => void) | null = null;
+  private prepareReject: ((err: Error) => void) | null = null;
+
+  private async ensure(): Promise<media.AVPlayer> {
+    if (this.player) return this.player;
+    this.player = await media.createAVPlayer();
+    this.bindInternal();
+    return this.player;
+  }
+
+  private closeFd(): void {
+    if (this.currentFd >= 0) {
+      try { fs.closeSync(this.currentFd); } catch (_e) { /* ignore */ }
+      this.currentFd = -1;
+    }
+  }
+
+  async load(url: string, _headers?: Record<string, string>): Promise<void> {
+    const p = await this.ensure();
+    // AVPlayer.url 只接受 http(s) 网络地址；本地缓存文件必须走 fdSrc
+    const isNetwork = url.startsWith('http://') || url.startsWith('https://');
+    // 同一来源已加载则直接复用，避免重复 prepare（error 态不复用，允许重试）
+    if (this.currentUrl === url && p.state !== 'error' &&
+      (isNetwork ? p.url === url : this.currentFd >= 0)) {
+      return;
+    }
+    // 切歌时必须先回到 idle 态，否则 AVPlayer 状态机不允许直接设置 url
+    const st = p.state;
+    if (st !== 'idle') {
+      try { await p.stop(); } catch (_e) { /* ignore */ }
+      try { await p.reset(); } catch (_e) { /* ignore */ }
+    }
+    this.closeFd();
+    this.currentUrl = url;
+    Logger.i('AVPlayer', `load url=${url}`);
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        if (this.prepareReject) {
+          const r = this.prepareReject;
+          this.prepareResolve = null;
+          this.prepareReject = null;
+          r(new Error('AVPlayer prepare timeout (15s)'));
+        }
+      }, 15000);
+      this.prepareResolve = () => { clearTimeout(timer); resolve(); };
+      this.prepareReject = (e: Error) => { clearTimeout(timer); reject(e); };
+      try {
+        if (isNetwork) {
+          // 设置 url 后播放器进入 initialized 态，prepare 在 stateChange 回调里触发
+          p.url = url;
+        } else {
+          const file = fs.openSync(url, fs.OpenMode.READ_ONLY);
+          this.currentFd = file.fd;
+          const size = fs.statSync(url).size;
+          // fdSrc 同样进入 initialized 态，复用同一套 prepare 流程
+          p.fdSrc = { fd: file.fd, offset: 0, length: size };
+        }
+      } catch (e) {
+        clearTimeout(timer);
+        this.prepareResolve = null;
+        this.prepareReject = null;
+        this.closeFd();
+        reject(e instanceof Error ? e : new Error(String(e)));
+      }
+    });
+  }
+
+  async play(): Promise<void> { await (await this.ensure()).play(); }
+  async pause(): Promise<void> { await (await this.ensure()).pause(); }
+  async stop(): Promise<void> { await (await this.ensure()).stop(); }
+  async release(): Promise<void> {
+    this.closeFd();
+    this.currentUrl = '';
+    if (this.player) { await this.player.release(); this.player = null; }
+  }
+  async seek(positionMs: number): Promise<void> {
+    (await this.ensure()).seek(positionMs);
+  }
+  async setSpeed(speed: number): Promise<void> {
+    (await this.ensure()).setSpeed(speed);
+  }
+  async setVolume(v: number): Promise<void> {
+    (await this.ensure()).setVolume(v);
+  }
+
+  on(event: PlayerEvent, cb: PlayerListener): void {
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event)!.add(cb);
+  }
+
+  off(event: PlayerEvent, cb?: PlayerListener): void {
+    const set = this.listeners.get(event);
+    if (!set) return;
+    if (cb) set.delete(cb); else set.clear();
+  }
+
+  private bindInternal(): void {
+    const p = this.player;
+    if (!p) return;
+    p.on('timeUpdate', (ms: number) => {
+      const pl: TimeUpdatePayload = { currentMs: ms, durationMs: p.duration };
+      this.dispatch('timeUpdate', pl);
+    });
+    p.on('durationUpdate', (ms: number) => {
+      const pl: TimeUpdatePayload = { currentMs: p.currentTime, durationMs: ms };
+      this.dispatch('durationUpdate', pl);
+    });
+    p.on('stateChange', (s: media.AVPlayerState) => {
+      const pl: StateChangePayload = { state: s as string };
+      this.dispatch('stateChange', pl);
+      if (s === 'initialized') {
+        p.prepare().catch((e: BusinessError) => {
+          Logger.e('AVPlayer', `prepare error: ${e.message}`);
+        });
+      } else if (s === 'prepared' && this.prepareResolve) {
+        const r = this.prepareResolve;
+        this.prepareResolve = null;
+        this.prepareReject = null;
+        r();
+      } else if (s === 'error' && this.prepareReject) {
+        const r = this.prepareReject;
+        this.prepareResolve = null;
+        this.prepareReject = null;
+        r(new Error('AVPlayer prepare failed'));
+      }
+    });
+    p.on('error', (err: BusinessError) => {
+      const pl: ErrorPayload = { message: err.message };
+      this.dispatch('error', pl);
+      // 若 load 还在等 prepare 完成，直接 reject 防止 Promise 永远挂起
+      if (this.prepareReject) {
+        const r = this.prepareReject;
+        this.prepareResolve = null;
+        this.prepareReject = null;
+        r(new Error(`AVPlayer error: ${err.message}`));
+      }
+    });
+    p.on('bufferingUpdate', (_infoType: media.BufferingInfoType, value: number) => {
+      const pl: BufferingPayload = { value: value };
+      this.dispatch('bufferingUpdate', pl);
+    });
+    p.on('endOfStream', () => this.dispatch('ended', null));
+  }
+
+  private dispatch(event: PlayerEvent, payload: PlayerPayload): void {
+    const set = this.listeners.get(event);
+    if (set) for (const cb of set) cb(payload);
+    Logger.d('AVPlayer', `${event}`);
+  }
+}
+
+export const audioBackend = new AVPlayerBackend();
