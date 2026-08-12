@@ -13,6 +13,7 @@ import { TrackRow } from '../components/TrackRow';
 import { AppIcon } from '../components/AppIcon';
 import { XiaoAiIcon } from '../components/XiaoAiIcon';
 import { GlobalBottomBar } from '../components/GlobalBottomBar';
+import { mvPlaylistStore } from '../store/MvPlaylistStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { getInternalQuality } from '../services/trackQuality';
 import { playerStore } from '../context/PlayerStore';
@@ -342,16 +343,21 @@ struct ArtistDetailPage {
       SectionHeader({ title: `MV (${this.mvs.length})`, showAction: false, theme: this.theme })
       Scroll() {
         Row() {
-          ForEach(this.mvs, (mv: MVDto) => {
+          ForEach(this.mvs, (mv: MVDto, idx: number) => {
             AlbumCarouselCard({
               coverPath: mv.cover ?? null,
               name: mv.name,
               progress: 0,
               theme: this.theme,
-              onCardClick: () => router.pushUrl({
-                url: 'pages/MVDetailPage',
-                params: { id: mv.id },
-              }),
+              onCardClick: () => {
+                // 跳详情页前先把整个艺人 MV 列表塞进 playlist，
+                // 这样进入详情页能上一首/下一首连续播放（对齐 mobile artist/[id].tsx:539）。
+                mvPlaylistStore.setPlaylist(this.mvs, idx);
+                router.pushUrl({
+                  url: 'pages/MVDetailPage',
+                  params: { id: mv.id },
+                });
+              },
             })
           }, (mv: MVDto) => mv.id)
         }

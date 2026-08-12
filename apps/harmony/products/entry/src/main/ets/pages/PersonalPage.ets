@@ -625,7 +625,7 @@ export struct PersonalTab {
         this.MenuItemBuilder('folder', t('personal.compactData'), 'compact')
         this.MenuDivider()
         // 调试按钮：跳转到 AppGallery。正式版可移除。
-        this.MenuItemBuilder('star', '测试：打开应用商店', 'openStoreDebug')
+        this.MenuItemBuilder('gear', '测试：打开应用商店', 'openStoreDebug')
       }
       .width(220)
       .backgroundColor(this.theme.colors.surface).borderRadius(12)

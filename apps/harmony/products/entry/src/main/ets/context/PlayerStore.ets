@@ -147,6 +147,19 @@ export class PlayerStore {
     this.notify();
   }
 
+  /**
+   * 仅暂停当前音频（不释放、不切歌）。对齐 mobile usePlayer().pause()，
+   * 用于「进入 MV 详情页时让出音频通道」场景：MV 详情页 onAppear 调用一次即可。
+   */
+  async pause(): Promise<void> {
+    if (this.state === 'playing' || this.isPlaying) {
+      await audioBackend.pause();
+      this.isPlaying = false;
+      this.state = 'paused';
+      this.notify();
+    }
+  }
+
   async setSpeed(s: number): Promise<void> {
     this.speed = s;
     await audioBackend.setSpeed(s);

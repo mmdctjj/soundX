@@ -41,7 +41,10 @@ export type AppIconName =
   | 'checkbox'
   | 'square-outline'
   | 'scan'
-  | 'list-outline';
+  | 'list-outline'
+  | 'expand'
+  | 'contract'
+  | 'search';
 
 const ICON_MAP: Record<AppIconName, Resource> = {
   'home': $r('sys.symbol.house'),
@@ -85,6 +88,14 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'scan': $r('sys.symbol.qrcode'),
   // 任务中心入口：复用 list_bullet 强调列表语义
   'list-outline': $r('sys.symbol.list_bullet'),
+  // 全屏切换（对齐 mobile Ionicons expand/contract）。
+  // 鸿蒙 SDK 通常按 SF Symbols snake_case 命名；若 build 报 10903329，
+  // 改成 chevron-up / chevron-down 之类已验证过的也行。
+  'expand': $r('sys.symbol.arrow_up_left_and_arrow_down_right'),
+  'contract': $r('sys.symbol.arrow_down_right_and_arrow_up_left'),
+  // 搜索（SF Symbols 标准名 magnifyingglass；用 search 也行，看 SDK 实现）。
+  // build 报 10903329 的话降级为 'list' 或保留原 ⌕ 文本。
+  'search': $r('sys.symbol.magnifyingglass'),
 };
 
 export function getIconResource(name: AppIconName): Resource {

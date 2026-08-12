@@ -18,6 +18,7 @@ import { authStore } from '../context/AuthStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
+import { mvPlaylistStore } from '../store/MvPlaylistStore';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 
@@ -305,6 +306,10 @@ export struct LibraryTab {
   }
 
   navigateToMv(id: string): void {
+    // 把当前 MV 网格（this.mvs）作为列表塞进 playlist，再跳详情页。
+    // 这样从 Library 入口进入后也能在详情页内上一首/下一首切换（对齐 mobile library.tsx:928-932）。
+    const idx = this.mvs.findIndex((m) => m.id === id);
+    mvPlaylistStore.setPlaylist(this.mvs, idx >= 0 ? idx : 0);
     router.pushUrl({ url: 'pages/MVDetailPage', params: { id: id } });
   }
 
@@ -659,9 +664,14 @@ export struct LibraryTab {
             .onClick(() => this.playFrom(0))
           }
         }
-        // 搜索（HM 无 sys.symbol.search，用 ⌕ 文本，与 SearchPage 一致）
+        // 搜索（用 AppIcon 矢量图标，尺寸与旁边 play iconSize:20 一致；
+        // 旧实现用 ⌕ 文本字符渲染尺寸明显偏小，与其他按钮不一致）
         Column() {
-          Text('⌕').fontSize(20).fontColor(this.theme.colors.primary)
+          AppIcon({
+            name: 'search',
+            iconSize: 20,
+            color: this.theme.colors.primary,
+          });
         }
         .width(36).height(36).borderRadius(18).backgroundColor(this.theme.colors.card)
         .justifyContent(FlexAlign.Center)

@@ -23,6 +23,7 @@
         "backgroundModes": [
           "audioPlayback"
         ],
+        "orientation": "auto_rotation",
         "skills": [
           {
             "entities": [

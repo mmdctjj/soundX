@@ -11,6 +11,7 @@ import { TrackRow } from '../components/TrackRow';
 import { AppIcon } from '../components/AppIcon';
 import { XiaoAiIcon } from '../components/XiaoAiIcon';
 import { GlobalBottomBar } from '../components/GlobalBottomBar';
+import { mvPlaylistStore } from '../store/MvPlaylistStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { getInternalQuality } from '../services/trackQuality';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
@@ -189,7 +190,11 @@ struct AlbumDetailPage {
               isCurrent: false,
               listenedPercent: 0,
               theme: this.theme,
-              onRowClick: () => router.pushUrl({ url: 'pages/MVDetailPage', params: { id: mv.id } }),
+              onRowClick: () => {
+                // 跳详情页前先把整个专辑 MV 列表塞进 playlist（对齐 mobile album/[id].tsx:542）。
+                mvPlaylistStore.setPlaylist(this.mvs, idx);
+                router.pushUrl({ url: 'pages/MVDetailPage', params: { id: mv.id } });
+              },
             })
           }
         }, (mv: MVDto) => mv.id)
