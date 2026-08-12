@@ -1044,7 +1044,16 @@
     "cannotConnectMissing": "无法连接 (缺外网)",
     "noDataSourceConfig": "暂无数据源配置",
     "internalAddress": "内网地址",
-    "externalAddress": "外网地址"
+    "externalAddress": "外网地址",
+    "reportDataSource": "举报数据源",
+    "reportTitle": "举报标题",
+    "reportDescription": "举报描述",
+    "reportTitlePlaceholder": "请输入举报标题",
+    "reportDescriptionPlaceholder": "请详细描述举报原因",
+    "reportSubmit": "提交",
+    "reportCancel": "取消",
+    "reportSuccess": "举报成功",
+    "reportRequired": "标题和描述均为必填"
   },
   "forgotPassword": {
     "title": "重置密码",

@@ -1035,7 +1035,16 @@
     "cannotConnectMissing": "Cannot connect (missing external)",
     "noDataSourceConfig": "No data source configuration",
     "internalAddress": "Internal Address",
-    "externalAddress": "External Address"
+    "externalAddress": "External Address",
+    "reportDataSource": "Report Data Source",
+    "reportTitle": "Report Title",
+    "reportDescription": "Report Description",
+    "reportTitlePlaceholder": "Enter report title",
+    "reportDescriptionPlaceholder": "Describe the reason in detail",
+    "reportSubmit": "Submit",
+    "reportCancel": "Cancel",
+    "reportSuccess": "Report submitted",
+    "reportRequired": "Both title and description are required"
   },
   "cover": {
     "continuePlaying": "Continue playing",
