@@ -4,12 +4,14 @@ import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { formatDuration, Logger } from 'audiodock_common';
-import { trackApi, playlistApi, artistApi, albumApi, miApi } from 'features_network';
+import { trackApi, playlistApi, artistApi, albumApi, miApi, plusApi, setPlusAuthToken } from 'features_network';
 import type { PlaylistDto, ArtistDto, AlbumDto, MiDevice } from 'features_network';
 import { kvStore } from 'features_storage';
 import type { LyricLine } from 'features_player';
 import { playerStore } from '../context/PlayerStore';
 import type { PlayerStateView, Track } from '../context/PlayerStore';
+import { syncStore } from '../context/SyncStore';
+import type { SyncStateView } from '../context/SyncStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { getInternalQuality } from '../services/trackQuality';
 import { likesHistory } from '../services/LikesHistoryService';
@@ -19,6 +21,8 @@ import { AppIcon } from '../components/AppIcon';
 import type { AppIconName } from '../components/AppIcon';
 import { XiaoAiIcon } from '../components/XiaoAiIcon';
 import { PlayingIndicator } from '../components/PlayingIndicator';
+import { SyncInviteModal } from '../components/SyncInviteModal';
+import { SyncNotification } from '../components/SyncNotification';
 
 class MoreOption {
   key: string = '';
@@ -61,6 +65,12 @@ struct PlayerPage {
   @State private miLoading: boolean = false;
   @State private miCasting: boolean = false;
   private miPollingId: number = -1;
+  // 同步播放相关状态（对齐 mobile player.tsx 的 sync* 状态）
+  @State private syncView: SyncStateView = syncStore.view();
+  @State private showSyncInvite: boolean = false;
+  @State private syncCheckLoading: boolean = false;
+  private unsubSync: (() => void) | null = null;
+  private unsubPlayerLeft: (() => void) | null = null;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
@@ -97,6 +107,21 @@ struct PlayerPage {
       const cur = this.current();
       if (cur && payload.id === cur.id) this.liked = payload.liked;
     });
+    // 同步播放状态订阅 + player_left 弹窗（对齐 mobile player.tsx 的 player_left 处理）
+    this.syncView = syncStore.view();
+    this.unsubSync = syncStore.subscribe((): void => {
+      this.syncView = syncStore.view();
+    });
+    this.unsubPlayerLeft = syncStore.onPlayerLeft((p): void => {
+      promptAction.showDialog({
+        title: t('sync.syncStatus'),
+        message: t('player.userDisconnected', [
+          ['username', p.username || ''],
+          ['deviceName', p.deviceName || ''],
+        ]),
+        buttons: [{ text: t('common.ok'), color: '#3F51B5' }],
+      }).catch(() => undefined);
+    });
     const cur = this.current();
     this.lastTrackId = cur ? cur.id : '';
     this.refreshLike();
@@ -108,6 +133,8 @@ struct PlayerPage {
   aboutToDisappear(): void {
     this.unsub();
     this.unsubLike();
+    if (this.unsubSync) this.unsubSync();
+    if (this.unsubPlayerLeft) this.unsubPlayerLeft();
     if (this.sleepTimerId !== -1) {
       clearInterval(this.sleepTimerId);
       this.sleepTimerId = -1;
@@ -235,6 +262,82 @@ struct PlayerPage {
     }
   }
 
+  // ─── 同步播放入口（对齐 mobile player.tsx 的 handleSyncPress / handleDisconnect） ───
+
+  /**
+   * 同步按钮点击：
+     1. 已同步 → 弹确认 → 断开
+     2. 未同步 → 校验 plus VIP → 通过则打开 SyncInviteModal
+   */
+  private async handleSyncPress(): Promise<void> {
+    if (this.syncCheckLoading) return;
+    const sv = syncStore.view();
+    if (sv.isSynced) {
+      this.confirmLeaveSync();
+      return;
+    }
+    this.syncCheckLoading = true;
+    try {
+      const plusToken = await kvStore.get('plus_token');
+      const plusUserId = await kvStore.get('plus_user_id');
+      if (!plusToken || !plusUserId) {
+        await promptAction.showDialog({
+          title: t('playerPage.notice'),
+          message: t('playerPage.vipFeatureOnly'),
+          buttons: [
+            { text: t('common.cancel'), color: '#888' },
+            { text: t('playerPage.activateNow'), color: '#3F51B5' },
+          ],
+        }).catch(() => undefined);
+        // ArkUI 的 showDialog 不返回 button index；按 mobile 行为简单提示，跳转交由用户主动去 PersonalPage
+        return;
+      }
+      setPlusAuthToken(plusToken);
+      let id: string = plusUserId;
+      try {
+        const parsed = JSON.parse(plusUserId) as string;
+        if (parsed) id = parsed;
+      } catch { /* keep raw */ }
+      const profile = await plusApi.getMe(id);
+      const vipTier = profile?.vipTier;
+      const isVip = !!vipTier && vipTier !== 'NONE';
+      if (isVip) {
+        this.showSyncInvite = true;
+      } else {
+        await promptAction.showDialog({
+          title: t('playerPage.notice'),
+          message: t('playerPage.vipFeatureOnly'),
+          buttons: [
+            { text: t('common.cancel'), color: '#888' },
+            { text: t('playerPage.activateNow'), color: '#3F51B5' },
+          ],
+        }).catch(() => undefined);
+      }
+    } catch (e) {
+      Logger.w('PlayerPage', `VIP check failed: ${String(e)}`);
+      promptAction.showToast({ message: t('playerPage.vipStatusFailed') });
+    } finally {
+      this.syncCheckLoading = false;
+    }
+  }
+
+  /** 已同步时弹确认；用户点确认后断开并清空 SyncStore。 */
+  private confirmLeaveSync(): void {
+    promptAction.showDialog({
+      title: t('sync.syncStatus'),
+      message: t('sync.disconnectConfirm'),
+      buttons: [
+        { text: t('common.cancel'), color: '#888' },
+        { text: t('common.confirm'), color: '#3F51B5' },
+      ],
+    }).then((res): void => {
+      // showDialog 回调按 button index 区分：0=cancel, 1=confirm
+      if (res.index === 1) {
+        playerStore.leaveSyncSession();
+      }
+    }).catch(() => undefined);
+  }
+
   onPageShow(): void {
     // 语言可能在后台（语言页/系统设置）被修改：回显时若语言已变化，切换 if 分支重建整页。
     // 不能在隐藏时重建——@StorageProp 在后台更新触发的重建会导致路由页触摸失效，
@@ -256,59 +359,79 @@ struct PlayerPage {
 
   @Builder
   LocalizedContent() {
-    Column() {
-      this.header();
-      if (this.view.queue.length === 0) {
-        Text(t('player.empty'))
-          .fontColor(this.theme.colors.textSecondary)
-          .margin({ top: 80 });
-      } else {
-        this.content();
-      }
+    // 注意：必须用 Stack 包裹，不能用 Column。
+    // 原因——SyncNotification 内部用 width('100%').height('100%') 占据全屏做悬浮通知，
+    // 如果放在 Column 里，它的 height('100%') 会跟 content() 的 layoutWeight(1) 抢主轴空间，
+    // 把整个 content 高度压扁成几乎 0，controls() 信息行/进度条/控制行全部被挤出屏幕外。
+    // Stack 子元素之间不互相挤占空间，SyncNotification 作为顶层叠层不影响主 Column layout。
+    Stack({ alignContent: Alignment.TopStart }) {
+      // 主体内容（占满 Stack 100%×100%）
+      Column() {
+        this.header();
+        if (this.view.queue.length === 0) {
+          Text(t('player.empty'))
+            .fontColor(this.theme.colors.textSecondary)
+            .margin({ top: 80 });
+        } else {
+          this.content();
+        }
 
-      // ArkUI 每个组件只能绑定一个 bindSheet，用不可见锚点分散绑定
-      Column().width(0).height(0)
-        .bindSheet($$this.showPlaylist, this.playlistSheet(), {
-          height: '60%',
-          dragBar: true,
-          backgroundColor: this.theme.colors.background,
-        })
-      Column().width(0).height(0)
-        .bindSheet($$this.showMore, this.moreSheet(), {
-          height: '55%',
-          dragBar: true,
-          backgroundColor: this.theme.colors.surface,
-        })
-      Column().width(0).height(0)
-        .bindSheet($$this.showSleepTimer, this.sleepTimerSheet(), {
-          height: 360,
-          dragBar: true,
-          backgroundColor: this.theme.colors.surface,
-        })
-      Column().width(0).height(0)
-        .bindSheet($$this.showAddToPlaylist, this.addToPlaylistSheet(), {
-          height: '50%',
-          dragBar: true,
-          backgroundColor: this.theme.colors.surface,
-        })
-      Column().width(0).height(0)
-        .bindSheet($$this.showLyricsSize, this.lyricsSizeSheet(), {
-          height: 280,
-          dragBar: true,
-          backgroundColor: this.theme.colors.surface,
-        })
-      Column().width(0).height(0)
-        .bindSheet($$this.showControlPos, this.controlPosSheet(), {
-          height: 260,
-          dragBar: true,
-          backgroundColor: this.theme.colors.surface,
-        })
-      Column().width(0).height(0)
-        .bindSheet($$this.showMiCast, this.miCastSheet(), {
-          height: 420,
-          dragBar: true,
-          backgroundColor: this.theme.colors.surface,
-        })
+        // ArkUI 每个组件只能绑定一个 bindSheet，用不可见锚点分散绑定
+        Column().width(0).height(0)
+          .bindSheet($$this.showPlaylist, this.playlistSheet(), {
+            height: '60%',
+            dragBar: true,
+            backgroundColor: this.theme.colors.background,
+          })
+        Column().width(0).height(0)
+          .bindSheet($$this.showMore, this.moreSheet(), {
+            height: '55%',
+            dragBar: true,
+            backgroundColor: this.theme.colors.surface,
+          })
+        Column().width(0).height(0)
+          .bindSheet($$this.showSleepTimer, this.sleepTimerSheet(), {
+            height: 360,
+            dragBar: true,
+            backgroundColor: this.theme.colors.surface,
+          })
+        Column().width(0).height(0)
+          .bindSheet($$this.showAddToPlaylist, this.addToPlaylistSheet(), {
+            height: '50%',
+            dragBar: true,
+            backgroundColor: this.theme.colors.surface,
+          })
+        Column().width(0).height(0)
+          .bindSheet($$this.showLyricsSize, this.lyricsSizeSheet(), {
+            height: 280,
+            dragBar: true,
+            backgroundColor: this.theme.colors.surface,
+          })
+        Column().width(0).height(0)
+          .bindSheet($$this.showControlPos, this.controlPosSheet(), {
+            height: 260,
+            dragBar: true,
+            backgroundColor: this.theme.colors.surface,
+          })
+        Column().width(0).height(0)
+          .bindSheet($$this.showMiCast, this.miCastSheet(), {
+            height: 420,
+            dragBar: true,
+            backgroundColor: this.theme.colors.surface,
+          })
+        Column().width(0).height(0)
+          .bindSheet($$this.showSyncInvite, this.syncInviteSheet(), {
+            height: '70%',
+            dragBar: true,
+            backgroundColor: this.theme.colors.surface,
+          })
+      }
+      .width('100%').height('100%');
+
+      // 同步邀请通知：覆盖在所有内容之上（顶级 Stack，作为叠层不参与主轴 layout）
+      Stack() { SyncNotification() }
+        .width('100%').height('100%')
+        .hitTestBehavior(HitTestMode.Transparent);
     }
     .width('100%').height('100%')
     .backgroundColor(this.theme.colors.background);
@@ -421,6 +544,20 @@ struct PlayerPage {
           color: this.miLoggedIn ? this.theme.colors.primary : this.theme.colors.text,
         })
           .onClick(() => { this.handleOpenMiCast(); });
+
+        // 同步播放按钮（对齐 mobile player.tsx Ionicons people / people-outline）
+        AppIcon({
+          name: this.syncView.isSynced ? 'person-fill' : 'person',
+          iconSize: 24,
+          color: this.syncView.isSynced ? this.theme.colors.primary : this.theme.colors.text,
+        })
+          .width(28).height(28)
+          .margin({ left: 4 })
+          .onClick((): void => {
+            this.handleSyncPress().catch((e: Error): void => {
+              Logger.w('PlayerPage', `handleSyncPress rejected: ${String(e)}`);
+            });
+          });
       }
       .width('100%')
       .alignItems(VerticalAlign.Top)
@@ -902,6 +1039,13 @@ struct PlayerPage {
     }
     .width('100%').height('100%')
     .padding({ left: 16, right: 16, bottom: 12 });
+  }
+
+  @Builder syncInviteSheet() {
+    SyncInviteModal({
+      visible: this.showSyncInvite,
+      onClose: (): void => { this.showSyncInvite = false; },
+    });
   }
 
   private saveLyricSize(): void {

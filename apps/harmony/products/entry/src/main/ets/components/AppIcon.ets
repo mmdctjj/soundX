@@ -7,6 +7,7 @@ export type AppIconName =
   | 'home'
   | 'headphones'
   | 'person'
+  | 'person-fill'
   | 'folder'
   | 'camera'
   | 'crown'
@@ -50,6 +51,10 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'home': $r('sys.symbol.house'),
   'headphones': $r('sys.symbol.headphones'),
   'person': $r('sys.symbol.person'),
+  // 已同步态填充图标（对齐 mobile Ionicons people 实心）。
+  // SF Symbols 标准命名 person.fill → HarmonyOS snake_case person_fill。
+  // build 报 10903329 的话降级为 heart-fill。
+  'person-fill': $r('sys.symbol.person_fill'),
   'folder': $r('sys.symbol.folder'),
   'camera': $r('sys.symbol.camera'),
   'crown': $r('sys.symbol.crown'),

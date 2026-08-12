@@ -1,6 +1,8 @@
 import { kvStore } from 'features_storage';
 import { httpClient } from 'features_network';
 import { authApi } from 'features_network';
+import { socketService } from 'features_socket';
+import deviceInfo from '@ohos.deviceInfo';
 import type { AuthMe, LoginResponse, LoginDto, RegisterDto } from 'features_network';
 
 type Listener = () => void;
@@ -12,7 +14,11 @@ export interface AuthState {
   token: string | null;
   sourceType: SourceType;
   serverAddress: string;
+  /** 设备名（用于同步邀请展示）。初始化时按需通过 ensureDeviceName() 填充。 */
+  deviceName: string;
 }
+
+const FALLBACK_DEVICE_NAME = 'HarmonyOS Device';
 
 export class AuthStore {
   private state: AuthState = {
@@ -20,6 +26,7 @@ export class AuthStore {
     token: null,
     sourceType: 'audiodock',
     serverAddress: '',
+    deviceName: FALLBACK_DEVICE_NAME,
   };
   private listeners = new Set<Listener>();
 
@@ -36,6 +43,7 @@ export class AuthStore {
       token: null,
       sourceType: this.state.sourceType,
       serverAddress: '',
+      deviceName: this.state.deviceName,
     };
   }
 
@@ -60,6 +68,7 @@ export class AuthStore {
         sourceType: sourceType ?? 'audiodock',
         token,
         user,
+        deviceName: this.state.deviceName,
       };
       httpClient.setAuthToken(token);
     }
@@ -82,6 +91,7 @@ export class AuthStore {
     await kvStore.delete(`user_${url}`);
     await kvStore.delete(`device_${url}`);
     httpClient.setAuthToken(null);
+    socketService.disconnect();
     this.state = this.defaultState();
     this.notify();
   }
@@ -96,6 +106,7 @@ export class AuthStore {
       sourceType: this.state.sourceType,
       token,
       user: userRaw ? JSON.parse(userRaw) as AuthMe : null,
+      deviceName: this.state.deviceName,
     };
     httpClient.setAuthToken(token);
     await kvStore.set('serverAddress', normalized);
@@ -110,12 +121,64 @@ export class AuthStore {
       sourceType: this.state.sourceType,
       token: res.token,
       user: user,
+      deviceName: this.state.deviceName,
     };
     await kvStore.set(`token_${url}`, res.token);
     await kvStore.set(`user_${url}`, JSON.stringify(user));
     if (res.device) await kvStore.set(`device_${url}`, String(res.device.id));
     httpClient.setAuthToken(res.token);
     this.notify();
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 同步播放 socket 连接管理（对齐 mobile socketService.connectWithContext）
+  // ────────────────────────────────────────────────────────────
+
+  /**
+   * 取一个友好的设备名（marketName > productModel > deviceType > 兜底字符串）。
+   * 对齐 mobile 的 `Device.modelName || "Mobile Device"`。
+   */
+  resolveDeviceName(): string {
+    try {
+      // @ohos.deviceInfo 只提供默认导出，ArkTS 不允许对其 namespace 做 cast；
+      // 直接读取三个属性并 String() 兜底，遇到任何异常退回 FALLBACK_DEVICE_NAME。
+      const market: string = String(deviceInfo.marketName ?? '');
+      const model: string = String(deviceInfo.productModel ?? '');
+      const type: string = String(deviceInfo.deviceType ?? '');
+      return market || model || type || FALLBACK_DEVICE_NAME;
+    } catch {
+      return FALLBACK_DEVICE_NAME;
+    }
+  }
+
+  /**
+   * 登录态变化（token/user 就绪）后调用：建立 socket 连接。
+   * 幂等：已连接则直接返回；切换账号/重新登录由调用方先 disconnectSyncSocket 再 connect。
+   */
+  async connectSyncSocket(): Promise<void> {
+    if (socketService.isConnected()) return;
+    const user = this.state.user;
+    const token = this.state.token;
+    const url = this.state.serverAddress;
+    if (!user || !token || !url) return;
+    const name = this.resolveDeviceName();
+    this.state.deviceName = name;
+    try {
+      await socketService.connect({
+        url,
+        token,
+        userId: user.id,
+        deviceName: name,
+      });
+    } catch (e) {
+      // 同步 socket 连接失败不应阻塞主流程；PlayerStore 在未连接时也不会广播，
+      // 收到 sync_event 时无 listener 直接忽略。
+      // 这里仅日志，由重连机制（HarmonySocketService 内部）兜底。
+    }
+  }
+
+  disconnectSyncSocket(): void {
+    socketService.disconnect();
   }
 
   private notify(): void {
