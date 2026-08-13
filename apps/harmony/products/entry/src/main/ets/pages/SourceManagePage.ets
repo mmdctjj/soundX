@@ -6,6 +6,7 @@ import { httpClient } from 'features_network';
 import { authStore } from '../context/AuthStore';
 import { buildTheme, CommonNavBar } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
+import { t } from 'features_i18n';
 
 /**
  * 数据源管理页，对齐 mobile source-manage.tsx：
@@ -36,6 +37,13 @@ struct SourceManagePage {
   @State loading: boolean = true;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State theme: Theme = buildTheme('light');
+
+  // 举报弹窗状态
+  @State reportDialogVisible: boolean = false;
+  @State reportTitle: string = '';
+  @State reportDescription: string = '';
+  @State reportingKey: string = '';
+  @State reportingId: string = '';
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
@@ -130,6 +138,39 @@ struct SourceManagePage {
     promptAction.showToast({ message: '已删除' });
   }
 
+  private openReportDialog(key: string, id: string): void {
+    this.reportingKey = key;
+    this.reportingId = id;
+    this.reportTitle = '';
+    this.reportDescription = '';
+    this.reportDialogVisible = true;
+  }
+
+  private closeReportDialog(): void {
+    this.reportDialogVisible = false;
+    this.reportingKey = '';
+    this.reportingId = '';
+    this.reportTitle = '';
+    this.reportDescription = '';
+  }
+
+  // 提交举报（按用户要求：总是弹窗提示举报成功，不发真实接口）
+  private submitReport(): void {
+    const title = this.reportTitle.trim();
+    const desc = this.reportDescription.trim();
+    if (title.length === 0 || desc.length === 0) {
+      promptAction.showToast({ message: t('sourceManage.reportRequired') });
+      return;
+    }
+    this.closeReportDialog();
+    // 提交后弹窗提示举报成功
+    promptAction.showDialog({
+      title: t('sourceManage.reportSuccess'),
+      message: '',
+      buttons: [{ text: t('common.ok'), color: this.theme.colors.primary }],
+    });
+  }
+
   private isExpanded(id: string): boolean {
     return this.expandedIds.indexOf(id) >= 0;
   }
@@ -196,53 +237,61 @@ struct SourceManagePage {
   }
 
   build() {
-    Column() {
-      CommonNavBar({ title: '切换数据源', theme: this.theme, onBack: () => router.back() })
+    Stack() {
+      Column() {
+        CommonNavBar({ title: '切换数据源', theme: this.theme, onBack: () => router.back() })
 
-      if (this.loading) {
-        Column() {
-          LoadingProgress().width(32).height(32).color(this.theme.colors.primary)
-          Text('加载中...').fontSize(14).fontColor(this.theme.colors.textSecondary).margin({ top: 12 })
-        }
-        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
-      } else {
-        Scroll() {
-          Column({ space: 15 }) {
-            Text('Wi-Fi 环境下优先选择内网，移动网络环境下只选择外网')
-              .fontSize(13).fontColor(this.theme.colors.textSecondary)
+        if (this.loading) {
+          Column() {
+            LoadingProgress().width(32).height(32).color(this.theme.colors.primary)
+            Text('加载中...').fontSize(14).fontColor(this.theme.colors.textSecondary).margin({ top: 12 })
+          }
+          .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
+        } else {
+          Scroll() {
+            Column({ space: 15 }) {
+              Text('Wi-Fi 环境下优先选择内网，移动网络环境下只选择外网')
+                .fontSize(13).fontColor(this.theme.colors.textSecondary)
 
-            ForEach(SOURCE_TYPES, (key: string) => {
-              if ((this.configs[key] ?? []).length > 0) {
-                ForEach(this.configs[key] ?? [], (cfg: SourceConfig) => {
-                  this.ConfigCard(key, cfg)
-                }, (cfg: SourceConfig) => cfg.id)
+              ForEach(SOURCE_TYPES, (key: string) => {
+                if ((this.configs[key] ?? []).length > 0) {
+                  ForEach(this.configs[key] ?? [], (cfg: SourceConfig) => {
+                    this.ConfigCard(key, cfg)
+                  }, (cfg: SourceConfig) => cfg.id)
+                }
+              }, (key: string) => key)
+
+              // 添加数据源
+              Row({ space: 8 }) {
+                Text('+').fontSize(18).fontColor(this.theme.colors.primary)
+                Text('添加数据源').fontSize(15).fontColor(this.theme.colors.primary)
               }
-            }, (key: string) => key)
-
-            // 添加数据源
-            Row({ space: 8 }) {
-              Text('+').fontSize(18).fontColor(this.theme.colors.primary)
-              Text('添加数据源').fontSize(15).fontColor(this.theme.colors.primary)
+              .width('100%')
+              .padding(16)
+              .borderRadius(12)
+              .border({ width: 1, color: this.theme.colors.border })
+              .backgroundColor(this.theme.colors.surface)
+              .justifyContent(FlexAlign.Center)
+              .onClick(() => router.pushUrl({ url: 'pages/SourceSelectPage' }))
             }
             .width('100%')
             .padding(16)
-            .borderRadius(12)
-            .border({ width: 1, color: this.theme.colors.border })
-            .backgroundColor(this.theme.colors.surface)
-            .justifyContent(FlexAlign.Center)
-            .onClick(() => router.pushUrl({ url: 'pages/SourceSelectPage' }))
           }
-          .width('100%')
-          .padding(16)
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring)
+          .align(Alignment.Top)
         }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring)
-        .align(Alignment.Top)
+      }
+      .width('100%').height('100%')
+      .backgroundColor(this.theme.colors.background)
+
+      // 举报弹窗（覆盖全屏）
+      if (this.reportDialogVisible) {
+        this.ReportDialog()
       }
     }
     .width('100%').height('100%')
-    .backgroundColor(this.theme.colors.background)
   }
 
   @Builder
@@ -302,10 +351,25 @@ struct SourceManagePage {
         .margin({ top: 12 })
       }
 
-      // 操作行：删除 + 连接
-      Row({ space: 10 }) {
+      // 操作行：举报 + 删除 + 连接
+      Row({ space: 8 }) {
+        // 举报按钮：感叹号图标
         Column() {
-          Text('🗑').fontSize(16)
+          SymbolGlyph($r('sys.symbol.exclamationmark'))
+            .fontSize(18)
+            .fontColor(['#FFFFFF'])
+        }
+        .width(40).height(36).borderRadius(8)
+        .backgroundColor('#FF9500')
+        .justifyContent(FlexAlign.Center)
+        .accessibilityText(t('sourceManage.reportDataSource'))
+        .onClick(() => this.openReportDialog(key, cfg.id))
+
+        // 删除按钮：删除图标
+        Column() {
+          SymbolGlyph($r('sys.symbol.trash'))
+            .fontSize(18)
+            .fontColor(['#FFFFFF'])
         }
         .width(40).height(36).borderRadius(8)
         .backgroundColor('#FF4444')
@@ -337,5 +401,100 @@ struct SourceManagePage {
     .borderRadius(12)
     .border({ width: 1, color: this.theme.colors.border })
     .backgroundColor(this.theme.colors.surface)
+  }
+
+  // 举报弹窗（中间位置）
+  @Builder
+  ReportDialog() {
+    Stack() {
+      // 半透明遮罩
+      Column()
+        .width('100%').height('100%')
+        .backgroundColor('rgba(0, 0, 0, 0.5)')
+        .onClick(() => this.closeReportDialog())
+
+      // 表单卡片
+      Column({ space: 12 }) {
+        Text(t('sourceManage.reportDataSource'))
+          .fontSize(17).fontWeight(FontWeight.Bold)
+          .fontColor(this.theme.colors.text)
+          .width('100%')
+          .textAlign(TextAlign.Start)
+
+        Column({ space: 6 }) {
+          Text(t('sourceManage.reportTitle'))
+            .fontSize(13)
+            .fontColor(this.theme.colors.textSecondary)
+            .width('100%')
+            .textAlign(TextAlign.Start)
+          TextInput({ text: this.reportTitle, placeholder: t('sourceManage.reportTitlePlaceholder') })
+            .fontSize(14)
+            .fontColor(this.theme.colors.text)
+            .placeholderColor(this.theme.colors.textSecondary)
+            .backgroundColor(this.theme.colors.background)
+            .borderRadius(8)
+            .border({ width: 1, color: this.theme.colors.border })
+            .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+            .width('100%')
+            .maxLength(50)
+            .onChange((val: string) => { this.reportTitle = val; })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+
+        Column({ space: 6 }) {
+          Text(t('sourceManage.reportDescription'))
+            .fontSize(13)
+            .fontColor(this.theme.colors.textSecondary)
+            .width('100%')
+            .textAlign(TextAlign.Start)
+          TextInput({ text: this.reportDescription, placeholder: t('sourceManage.reportDescriptionPlaceholder') })
+            .fontSize(14)
+            .fontColor(this.theme.colors.text)
+            .placeholderColor(this.theme.colors.textSecondary)
+            .backgroundColor(this.theme.colors.background)
+            .borderRadius(8)
+            .border({ width: 1, color: this.theme.colors.border })
+            .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+            .width('100%')
+            .height(96)
+            .maxLength(500)
+            .onChange((val: string) => { this.reportDescription = val; })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+
+        // 操作行：取消 + 提交
+        Row({ space: 10 }) {
+          Column() {
+            Text(t('sourceManage.reportCancel'))
+              .fontSize(15).fontWeight(FontWeight.Medium)
+              .fontColor(this.theme.colors.text)
+          }
+          .layoutWeight(1).height(40).borderRadius(8)
+          .backgroundColor(this.theme.colors.border)
+          .justifyContent(FlexAlign.Center)
+          .onClick(() => this.closeReportDialog())
+
+          Column() {
+            Text(t('sourceManage.reportSubmit'))
+              .fontSize(15).fontWeight(FontWeight.Medium)
+              .fontColor(this.theme.colors.onPrimary)
+          }
+          .layoutWeight(1).height(40).borderRadius(8)
+          .backgroundColor(this.theme.colors.primary)
+          .justifyContent(FlexAlign.Center)
+          .onClick(() => this.submitReport())
+        }
+        .width('100%')
+        .margin({ top: 4 })
+      }
+      .width('90%')
+      .padding(20)
+      .borderRadius(14)
+      .backgroundColor(this.theme.colors.surface)
+      .border({ width: 1, color: this.theme.colors.border })
+    }
+    .width('100%').height('100%')
   }
 }

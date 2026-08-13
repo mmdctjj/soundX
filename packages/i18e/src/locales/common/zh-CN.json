@@ -67,6 +67,7 @@
     "deleteSelected": "删除选中",
     "moveTo": "移动至",
     "copyTo": "复制至",
+    "copiedToClipboard": "已复制到剪贴板",
     "rename": "重命名",
     "trackCount": "{{count}}首",
     "unknownArtist": "未知艺术家",

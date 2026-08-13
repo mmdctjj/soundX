@@ -186,7 +186,7 @@ struct MemberBenefitsPage {
 
   handleContactSupport(): void {
     const ctx = getContext(this) as common.UIAbilityContext;
-    openEmail(ctx);
+    openEmail(ctx, undefined, undefined, undefined, t('common.copiedToClipboard'));
   }
 
   private getComparisonData(): ComparisonRow[] {

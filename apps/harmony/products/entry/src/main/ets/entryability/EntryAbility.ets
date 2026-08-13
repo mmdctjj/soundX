@@ -3,7 +3,7 @@ import AbilityConstant from '@ohos.app.ability.AbilityConstant';
 import hilog from '@ohos.hilog';
 import Want from '@ohos.app.ability.Want';
 import { window } from '@kit.ArkUI';
-import { Logger } from 'audiodock_common';
+import { Logger, getSelfBundleInfo, getSelfAppVersion } from 'audiodock_common';
 import { kvStore, fileCache, rdbStore } from 'features_storage';
 import { httpClient } from 'features_network';
 import { applySetting } from 'features_i18n';
@@ -40,6 +40,12 @@ export default class EntryAbility extends UIAbility {
     } catch (e) {
       Logger.w(TAG, `install AVSession: ${String(e)}`);
     }
+
+    // ===== 接口落点探测（debug only）=====
+    // 通过 bundleManager.getBundleInfoForSelf 验证 common/audiodock_common 工具函数链路通到 entry。
+    // fire-and-forget，不阻塞冷启动；失败仅打日志，不影响业务流程。
+    this.dumpSelfBundleInfo();
+
     this.loadPage('pages/Index');
   }
 
@@ -102,5 +108,32 @@ export default class EntryAbility extends UIAbility {
 
   private loadPage(path: string): void {
     hilog.info(DOMAIN, TAG, `would navigate to ${path}`);
+  }
+
+  /**
+   * 接口落点探测：从 audiodock_common 调用 bundleManager.getBundleInfoForSelf 并打印摘要。
+   * 仅 debug 阶段使用，提交前可注释或加 release 开关。
+   */
+  private dumpSelfBundleInfo(): void {
+    getSelfAppVersion()
+      .then((v) => {
+        Logger.i(TAG, `[bundleInfo] version=${v.versionName} (code=${v.versionCode})`);
+      })
+      .catch((e: Error) => Logger.w(TAG, `[bundleInfo] version failed: ${e.message}`));
+
+    getSelfBundleInfo()
+      .then((info) => {
+        const summary = {
+          name: info.name,
+          versionName: info.versionName,
+          versionCode: info.versionCode,
+          hapModules: (info.hapModulesInfo ?? []).map((m) => m.moduleName),
+          permissions: (info.reqPermissionDetails ?? []).map((p) => p.name),
+          appId: info.appInfo?.appId,
+          hasSignature: !!info.signatureInfo?.fingerprint,
+        };
+        Logger.i(TAG, `[bundleInfo] full=${JSON.stringify(summary)}`);
+      })
+      .catch((e: Error) => Logger.w(TAG, `[bundleInfo] full failed: ${e.message}`));
   }
 }

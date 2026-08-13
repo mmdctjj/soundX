@@ -31,7 +31,7 @@ struct SettingsPage {
   @State internalQuality: string = '';
   @State externalQuality: string = '';
   @State sourceType: string = '';
-  @State version: string = '1.0.0';
+  @State version: string = '1.2.0.1';
 
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);

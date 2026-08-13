@@ -59,6 +59,7 @@
     "deleteSelected": "Delete Selected",
     "moveTo": "Move to",
     "copyTo": "Copy to",
+    "copiedToClipboard": "Copied to clipboard",
     "rename": "Rename",
     "trackCount": "{{count}} tracks",
     "unknownArtist": "Unknown Artist",

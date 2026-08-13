@@ -2,14 +2,18 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { plusGetMe } from "@soundx/services";
 import { useRouter } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
+    Linking,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
+    ToastAndroid,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -77,7 +81,20 @@ export default function MemberDetailScreen() {
 
   const handleContactSupport = async () => {
     try {
-      await Linking.openURL("mailto:audiodock@audiodock.cn");
+      // 1. 复制邮箱到剪贴板
+      await Clipboard.setStringAsync("audiodock@audiodock.cn");
+      // 2. 提示已复制
+      if (Platform.OS === "android") {
+        ToastAndroid.show(t("common.copiedToClipboard"), ToastAndroid.SHORT);
+      } else {
+        Alert.alert(t("common.copiedToClipboard"));
+      }
+      // 3. 2s 后跳转邮件
+      setTimeout(() => {
+        Linking.openURL("mailto:audiodock@audiodock.cn").catch((e) =>
+          console.warn("open mail failed", e),
+        );
+      }, 2000);
     } catch (error) {
       console.warn("Contact support failed", error);
     }
