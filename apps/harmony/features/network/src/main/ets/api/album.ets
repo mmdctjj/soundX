@@ -1,3 +1,5 @@
+import { common } from '@kit.AbilityKit';
+import request from '@ohos.request';
 import { httpClient } from '../HarmonyHttpClient';
 import type { LoadMoreResp } from '../types';
 import type { TrackDto } from './track';
@@ -51,6 +53,8 @@ export interface AlbumApi {
   latest(params: AlbumLatestParams): Promise<AlbumDto[]>;
   recommend(params: AlbumRecommendParams): Promise<AlbumDto[]>;
   search(keyword: string, limit: number): Promise<AlbumDto[]>;
+  /** POST /album/{id}/cover 上传专辑封面，返回更新后的专辑。 */
+  uploadCover(id: string, fileUri: string, mimeType?: string): Promise<AlbumDto>;
 }
 
 class AlbumApiImpl implements AlbumApi {
@@ -109,6 +113,67 @@ class AlbumApiImpl implements AlbumApi {
     q['keyword'] = keyword;
     q['limit'] = limit;
     return httpClient.get<AlbumDto[]>('/album/search', q);
+  }
+
+  /**
+   * 上传专辑封面：multipart/form-data，字段名 'file'。
+   * 对齐 mobile uploadAlbumCover（packages/services adapter/native/album.ts），
+   * 返回结构 { code, message, data: Album }，用 @ohos.request.uploadFile 实现（参考 userApi.uploadAvatar）。
+   */
+  async uploadCover(id: string, fileUri: string, mimeType?: string): Promise<AlbumDto> {
+    const context = getContext() as common.UIAbilityContext;
+    const fileName = fileUri.split('/').pop() || `album-${id}.jpg`;
+    const url = `${httpClient.getBaseURL()}/album/${id}/cover`;
+
+    const headers: Record<string, string> = { 'Content-Type': 'multipart/form-data' };
+    const token = httpClient.getAuthToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const uploadConfig: request.UploadConfig = {
+      url: url,
+      header: headers,
+      method: 'POST',
+      files: [{
+        filename: fileName,
+        name: 'file',
+        uri: fileUri,
+        type: mimeType ?? 'image/jpeg',
+      }],
+      data: [],
+    };
+
+    const uploadTask = await request.uploadFile(context, uploadConfig);
+    const raw = await new Promise<string>((resolve, reject) => {
+      uploadTask.on('complete', (data: Object): void => {
+        try {
+          const obj: Record<string, Object> = data as Record<string, Object>;
+          if (obj['result'] !== undefined && typeof obj['result'] === 'string') {
+            resolve(obj['result']);
+            return;
+          }
+          if (obj['data'] !== undefined && typeof obj['data'] === 'string') {
+            resolve(obj['data']);
+            return;
+          }
+          resolve('');
+        } catch (e) {
+          reject(e instanceof Error ? e : new Error(String(e)));
+        }
+      });
+      uploadTask.on('fail', (err: request.TaskState[]): void => {
+        reject(new Error(`album cover upload failed: ${JSON.stringify(err)}`));
+      });
+    });
+
+    if (raw.length === 0) {
+      throw new Error('album cover upload returned empty response');
+    }
+    const parsed: Record<string, Object> = JSON.parse(raw) as Record<string, Object>;
+    const data: Object | undefined = parsed['data'];
+    if (data === undefined || data === null) {
+      throw new Error('album cover upload returned missing data');
+    }
+    return data as AlbumDto;
   }
 }
 

@@ -1,10 +1,11 @@
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
+import picker from '@ohos.file.picker';
 import { kvStore } from 'features_storage';
 import { t } from 'features_i18n';
 import { Logger } from 'audiodock_common';
-import { playlistApi, userDataApi } from 'features_network';
-import type { PlaylistDto, TrackDto, AlbumDto } from 'features_network';
+import { playlistApi, userDataApi, plusApi, setPlusAuthToken, userApi, taskApi } from 'features_network';
+import type { PlaylistDto, TrackDto, AlbumDto, ImportTask, ImportTaskMode, AuthMe } from 'features_network';
 import { AppIcon, AppIconName } from '../components/AppIcon';
 import { CoverImage } from '../components/CoverImage';
 import { authStore } from '../context/AuthStore';
@@ -22,7 +23,7 @@ const HARMONY_BUNDLE_NAME: string = 'com.audiodock.harmony';
 const HUAWEI_APP_GALLERY_BUNDLE: string = 'com.huawei.appmarket';
 
 // ArkTS strict 拒绝内联对象字面量类型，所以用 class 显式表达
-// “三态联合”，再用 `kind` 区分渲染。
+// "三态联合"，再用 `kind` 区分渲染。
 class ListRow {
   kind: 'track' | 'album' | 'playlist' = 'track';
   track: TrackDto | null = null;
@@ -87,7 +88,9 @@ class TabInfo {
 
 @Component
 export struct PersonalTab {
-  @State mode: string = 'MUSIC';
+  // 内容模式由 AppStorage 全局同步（对齐 mobile usePlayMode）：设置页/首页/声仓
+  // 任一处切换有声书模式，本页经 @Watch 实时重载列表与菜单（TTS 入口等）。
+  @StorageLink('playMode') @Watch('onModeChange') mode: string = 'MUSIC';
   @State sourceType: string = 'AudioDock';
   @State activeTab: string = 'playlists';
   @State activeSubTab: string = 'album';
@@ -101,47 +104,76 @@ export struct PersonalTab {
   @State createModalVisible: boolean = false;
   @State newPlaylistName: string = '';
   @State creating: boolean = false;
+  @State isPlusVip: boolean = false;
+  // 库导入进度 modal 相关
+  @State importModalVisible: boolean = false;
+  @State importTask: ImportTask | null = null;
+  // 头像上传 loading
+  @State uploadingAvatar: boolean = false;
+  // 是否有进行中的库导入任务（控制 header 任务中心入口显隐）
+  @State hasActiveImportTask: boolean = false;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
+
+  // 内部状态：定时器 id（不需要响应式）
+  private pollTimerId: number | null = null;
+  private tasksPollTimerId: number | null = null;
 
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);
     this.initData();
   }
 
+  aboutToDisappear() {
+    this.clearPollTimer();
+    this.clearTasksPollTimer();
+  }
+
   onThemeModeChange(): void {
     this.theme = buildTheme(this.themeMode);
   }
 
+  // @Watch('onModeChange')：设置页/首页/声仓切换内容模式都会触发，
+  // 立即重载当前 tab 数据，让 TTS 入口等依赖 mode 的菜单/列表实时刷新。
+  async onModeChange(): Promise<void> {
+    await this.loadData();
+  }
+
   async initData(): Promise<void> {
-    // baseURL / token 由 EntryAbility + authStore.loadFromStorage 装配。
     const user = authStore.state_.user;
     this.userId = user?.id ?? '';
     this.username = user?.username ?? '';
     this.avatar = user?.avatar ?? '';
     try {
-      const savedMode = await kvStore.get('playMode');
-      if (savedMode) this.mode = savedMode;
       const savedSource = await kvStore.get('selectedSourceType');
       if (savedSource) this.sourceType = savedSource;
     } catch (e) {
       Logger.w('PersonalTab', `read storage failed: ${String(e)}`);
     }
     await this.loadData();
+    this.loadVipStatus();
+    this.checkRunningImportTask();
+    this.startTasksPoll();
+  }
+
+  private async loadVipStatus(): Promise<void> {
+    try {
+      const plusUserId = await kvStore.get('plus_user_id');
+      if (plusUserId !== null && plusUserId.length > 0) {
+        const token = await kvStore.get('plus_token');
+        if (token) setPlusAuthToken(token);
+        const profile = await plusApi.getMe(plusUserId);
+        this.isPlusVip = !!profile.vipTier && profile.vipTier !== 'NONE';
+      }
+    } catch (e) {
+      Logger.w('PersonalTab', `loadVipStatus failed: ${String(e)}`);
+    }
   }
 
   async loadData(): Promise<void> {
     this.loading = true;
     this.error = '';
-    // 每次加载都重新读取播放模式，保证与其它页签切换后保持一致。
-    try {
-      const savedMode = await kvStore.get('playMode');
-      if (savedMode) this.mode = savedMode;
-    } catch (e) {
-      Logger.w('PersonalTab', `read playMode failed: ${String(e)}`);
-    }
-    // 鸿蒙端暂无离线下载能力，优雅展示空态。
     if (this.activeTab === 'downloads') {
       this.rows = [];
       this.loading = false;
@@ -230,7 +262,7 @@ export struct PersonalTab {
     this.newPlaylistName = '';
   }
 
-  // 增量/全量/精简/TTS 依赖后端任务系统，鸿蒙端暂未开放，统一优雅提示。
+  // TTS 已接入；其它需要后端任务系统的功能（任务中心页、scanner 入口等）按需降级。
   handleMenuAction(action: string): void {
     this.menuVisible = false;
     if (action === 'createPlaylist') {
@@ -239,6 +271,22 @@ export struct PersonalTab {
     }
     if (action === 'openStoreDebug') {
       this.jumpToAppMarketDebug();
+      return;
+    }
+    if (action === 'tts') {
+      this.openTtsTasks();
+      return;
+    }
+    if (action === 'incremental') {
+      this.handleUpdateLibrary('incremental');
+      return;
+    }
+    if (action === 'full') {
+      this.handleUpdateLibrary('full');
+      return;
+    }
+    if (action === 'compact') {
+      this.handleUpdateLibrary('compact');
       return;
     }
     promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
@@ -286,6 +334,83 @@ export struct PersonalTab {
     }
   }
 
+  // 对齐 mobile handleOpenTtsTasks：校验会员登录与 VIP 状态后进入 TTS 任务列表。
+  async openTtsTasks(): Promise<void> {
+    const plusToken = await kvStore.get('plus_token');
+    if (!plusToken) {
+      promptAction.showDialog({
+        title: t('common.memberFeature'),
+        message: t('common.loginFirst'),
+        buttons: [
+          { text: t('common.cancel'), color: this.theme.colors.textSecondary },
+          { text: t('personalPage.memberLogin'), color: this.theme.colors.primary },
+        ],
+      }).then((res) => {
+        if (res.index === 1) {
+          router.pushUrl({ url: 'pages/MemberLoginPage' });
+        }
+      });
+      return;
+    }
+    if (this.isPlusVip) {
+      router.pushUrl({ url: 'pages/TtsTaskListPage' });
+      return;
+    }
+    promptAction.showDialog({
+      title: t('common.memberFeature'),
+      message: t('common.ttsVipRequired'),
+      buttons: [
+        { text: t('common.cancel'), color: this.theme.colors.textSecondary },
+        { text: t('common.goActivate'), color: this.theme.colors.primary },
+      ],
+    }).then((res) => {
+      if (res.index === 1) {
+        router.pushUrl({ url: 'pages/MemberBenefitsPage' });
+      }
+    });
+  }
+
+  // 扫码登录入口：VIP 校验 + 跳转 ScanPage
+  async handleOpenScanEntry(): Promise<void> {
+    const plusToken = await kvStore.get('plus_token');
+    if (!plusToken) {
+      promptAction.showDialog({
+        title: t('personalPage.memberOnlyTitle'),
+        message: t('personalPage.scanLoginMemberOnly'),
+        buttons: [
+          { text: t('common.cancel'), color: this.theme.colors.textSecondary },
+          { text: t('personalPage.memberLogin'), color: this.theme.colors.primary },
+        ],
+      }).then((res) => {
+        if (res.index === 1) {
+          router.pushUrl({ url: 'pages/MemberLoginPage' });
+        }
+      });
+      return;
+    }
+    if (this.isPlusVip) {
+      router.pushUrl({ url: 'pages/ScanPage' });
+      return;
+    }
+    promptAction.showDialog({
+      title: t('personalPage.memberOnlyTitle'),
+      message: t('personalPage.scanLoginVipRequired'),
+      buttons: [
+        { text: t('common.cancel'), color: this.theme.colors.textSecondary },
+        { text: t('common.goActivate'), color: this.theme.colors.primary },
+      ],
+    }).then((res) => {
+      if (res.index === 1) {
+        router.pushUrl({ url: 'pages/MemberBenefitsPage' });
+      }
+    });
+  }
+
+  // 任务中心入口：目前还没有 TaskCenterPage，提示后续接入
+  handleOpenTaskCenter(): void {
+    promptAction.showToast({ message: t('personalPage.taskCenterNotAvailable') });
+  }
+
   canCreate(): boolean {
     return this.newPlaylistName.trim().length > 0 && !this.creating;
   }
@@ -308,17 +433,93 @@ export struct PersonalTab {
     }
   }
 
-  onAvatarClick(): void {
-    // 头像上传依赖文件选择与上传接口，鸿蒙端暂仅展示。
-    promptAction.showToast({ message: '头像修改暂未在鸿蒙端开放' });
+  // 头像更换：photoAccessHelper 选择图片 → userApi.uploadAvatar(multipart) → 更新本地 + 后端
+  async onAvatarClick(): Promise<void> {
+    if (this.uploadingAvatar) return;
+    if (this.sourceType !== 'AudioDock') {
+      promptAction.showDialog({
+        title: t('personalPage.updateFailed'),
+        message: t('personalPage.avatarUnsupported'),
+        buttons: [
+          { text: t('common.ok'), color: this.theme.colors.textSecondary },
+        ],
+      });
+      return;
+    }
+    const userId = authStore.state_.user?.id;
+    if (!userId) return;
+    let uris: string[] = [];
+    try {
+      const photoPicker: picker.PhotoViewPicker = new picker.PhotoViewPicker();
+      const options: picker.PhotoSelectOptions = {
+        MIMEType: picker.PhotoViewMIMETypes.IMAGE_TYPE,
+        maxSelectNumber: 1,
+      };
+      const result: picker.PhotoSelectResult = await photoPicker.select(options);
+      uris = result.photoUris;
+    } catch (e) {
+      Logger.w('PersonalTab', `pick avatar failed: ${String(e)}`);
+      promptAction.showToast({ message: t('personalPage.uploadAvatarFailed') });
+      return;
+    }
+    if (uris.length === 0) return;
+    const uri = uris[0];
+    try {
+      this.uploadingAvatar = true;
+      const res = await userApi.uploadAvatar(String(userId), uri, 'image/jpeg');
+      const nextAvatar: string =
+        (res.avatar !== undefined && res.avatar.length > 0 ? res.avatar : (res.url ?? uri.split('/').pop() ?? ''));
+      // 更新本组件显示
+      this.avatar = nextAvatar;
+      // 更新 authStore 单例（全局状态）；直接创建新的 AuthMe 对象
+      const current = authStore.state_.user;
+      if (current) {
+        const merged: AuthMe = {
+          id: current.id,
+          username: current.username,
+          nickname: current.nickname,
+          avatar: nextAvatar,
+        };
+        authStore.state_.user = merged;
+      }
+    } catch (e) {
+      Logger.e('PersonalTab', `upload avatar failed: ${String(e)}`);
+      promptAction.showDialog({
+        title: t('personalPage.updateFailed'),
+        message: t('personalPage.uploadAvatarFailed'),
+        buttons: [
+          { text: t('common.ok'), color: this.theme.colors.textSecondary },
+        ],
+      });
+    } finally {
+      this.uploadingAvatar = false;
+    }
   }
 
+  // 会员入口：点击用户名旁皇冠图标跳转。
+  // 逻辑对齐 mobile 端 personal.tsx 的皇冠点击：
+  //   未登录会员体系 → 引导会员登录页；已登录会员 → 会员详情页；已登录非会员 → 会员开通页。
   async onCrownClick(): Promise<void> {
-    const plusUserId = await kvStore.get('plus_user_id');
-    if (plusUserId) {
+    const plusToken = await kvStore.get('plus_token');
+    if (!plusToken) {
+      promptAction.showDialog({
+        title: t('common.memberFeature'),
+        message: t('common.loginFirst'),
+        buttons: [
+          { text: t('common.cancel'), color: this.theme.colors.textSecondary },
+          { text: t('personalPage.memberLogin'), color: this.theme.colors.primary },
+        ],
+      }).then((res) => {
+        if (res.index === 1) {
+          router.pushUrl({ url: 'pages/MemberLoginPage' });
+        }
+      });
+      return;
+    }
+    if (this.isPlusVip) {
       router.pushUrl({ url: 'pages/MemberDetailPage' });
     } else {
-      router.pushUrl({ url: 'pages/MemberLoginPage' });
+      router.pushUrl({ url: 'pages/MemberBenefitsPage' });
     }
   }
 
@@ -372,6 +573,136 @@ export struct PersonalTab {
     }
   }
 
+  // ─────────────── 库导入（增量/全量/精简） ───────────────
+
+  private async checkRunningImportTask(): Promise<void> {
+    try {
+      const running = await taskApi.getRunningImportTask();
+      if (running !== null) {
+        this.importTask = running;
+        this.importModalVisible = true;
+        this.startPoll(running.id);
+      }
+    } catch (e) {
+      Logger.w('PersonalTab', `checkRunningImportTask failed: ${String(e)}`);
+    }
+  }
+
+  private startTasksPoll(): void {
+    this.clearTasksPollTimer();
+    const tick = async (): Promise<void> => {
+      try {
+        const active = await taskApi.hasActiveImportTasks();
+        this.hasActiveImportTask = active;
+      } catch {
+        // ignore 单次失败，下一轮再查
+      }
+    };
+    tick();
+    this.tasksPollTimerId = setInterval((): void => { tick(); }, 3000);
+  }
+
+  private clearTasksPollTimer(): void {
+    if (this.tasksPollTimerId !== null) {
+      clearInterval(this.tasksPollTimerId);
+      this.tasksPollTimerId = null;
+    }
+  }
+
+  private handleUpdateLibrary(mode: ImportTaskMode): void {
+    let title = '';
+    let message = '';
+    let action = t('personalPage.confirmUpdateAction');
+    if (mode === 'compact') {
+      title = t('personalPage.confirmCompactTitle');
+      message = t('personalPage.confirmCompactContent');
+      action = t('personalPage.confirmCompactAction');
+    } else if (mode === 'full') {
+      title = t('personalPage.confirmFullTitle');
+      message = t('personalPage.confirmFullContent');
+    } else {
+      title = t('personalPage.confirmIncrementalTitle');
+      message = t('personalPage.confirmIncrementalContent');
+    }
+    promptAction.showDialog({
+      title,
+      message,
+      buttons: [
+        { text: t('common.cancel'), color: this.theme.colors.textSecondary },
+        { text: action, color: this.theme.colors.primary },
+      ],
+    }).then((res): void => {
+      if (res.index === 1) {
+        this.startImportTask(mode);
+      }
+    });
+  }
+
+  private async startImportTask(mode: ImportTaskMode): Promise<void> {
+    try {
+      const resp = mode === 'compact'
+        ? await taskApi.createCompactTask()
+        : await taskApi.createImportTask({ mode });
+      this.importTask = {
+        id: resp.id,
+        status: 'INITIALIZING',
+        mode,
+        message: mode === 'compact' ? t('personalPage.taskStartCompact') : t('personalPage.taskInit'),
+      };
+      this.importModalVisible = true;
+      this.hasActiveImportTask = true;
+      this.startPoll(resp.id);
+    } catch (e) {
+      Logger.e('PersonalTab', `startImportTask(${mode}) failed: ${String(e)}`);
+      promptAction.showDialog({
+        title: t('common.error'),
+        message: t('personalPage.taskCreateFailedHint'),
+        buttons: [
+          { text: t('common.ok'), color: this.theme.colors.textSecondary },
+        ],
+      });
+    }
+  }
+
+  private startPoll(taskId: string): void {
+    this.clearPollTimer();
+    const tick = async (): Promise<void> => {
+      try {
+        const task = await taskApi.getImportTask(taskId);
+        this.importTask = task;
+        if (task.status === 'SUCCESS') {
+          this.clearPollTimer();
+          this.hasActiveImportTask = false;
+          setTimeout((): void => {
+            this.importModalVisible = false;
+            this.loadData();
+          }, 1500);
+        } else if (task.status === 'FAILED') {
+          this.clearPollTimer();
+          this.hasActiveImportTask = false;
+        }
+      } catch (e) {
+        Logger.w('PersonalTab', `poll failed: ${String(e)}`);
+      }
+    };
+    tick();
+    this.pollTimerId = setInterval((): void => { tick(); }, 1000);
+  }
+
+  private clearPollTimer(): void {
+    if (this.pollTimerId !== null) {
+      clearInterval(this.pollTimerId);
+      this.pollTimerId = null;
+    }
+  }
+
+  private closeImportModal(): void {
+    this.importModalVisible = false;
+    this.clearPollTimer();
+  }
+
+  // ─────────────── Build helpers ───────────────
+
   @Builder
   HeaderBuilder() {
     Row() {
@@ -379,20 +710,34 @@ export struct PersonalTab {
         AppIcon({ name: 'plus', iconSize: 26, color: this.theme.colors.text })
       }
       .width(36).height(36).backgroundColor(Color.Transparent)
-      .onClick(() => this.openMenu())
+      .onClick((): void => this.openMenu())
 
       Row() {
         Button() {
-          AppIcon({ name: 'folder', iconSize: 22, color: this.theme.colors.text })
+          AppIcon({ name: 'scan', iconSize: 22, color: this.theme.colors.text })
         }
-        .width(36).height(36).backgroundColor(Color.Transparent).margin({ right: 8 })
-        .onClick(() => this.navigateToSourceManage())
+        .width(36).height(36).backgroundColor(Color.Transparent).margin({ right: 4 })
+        .onClick((): void => { this.handleOpenScanEntry(); })
+
+        if (this.hasActiveImportTask) {
+          Button() {
+            AppIcon({ name: 'list-outline', iconSize: 22, color: this.theme.colors.text })
+          }
+          .width(36).height(36).backgroundColor(Color.Transparent).margin({ right: 4 })
+          .onClick((): void => { this.handleOpenTaskCenter(); })
+        }
 
         Button() {
-          AppIcon({ name: 'list', iconSize: 22, color: this.theme.colors.text })
+          AppIcon({ name: 'server-outline', iconSize: 22, color: this.theme.colors.text })
+        }
+        .width(36).height(36).backgroundColor(Color.Transparent).margin({ right: 8 })
+        .onClick((): void => this.navigateToSourceManage())
+
+        Button() {
+          AppIcon({ name: 'settings-outline', iconSize: 22, color: this.theme.colors.text })
         }
         .width(36).height(36).backgroundColor(Color.Transparent)
-        .onClick(() => this.navigateToSettings())
+        .onClick((): void => this.navigateToSettings())
       }
       .alignItems(VerticalAlign.Center)
     }
@@ -405,11 +750,19 @@ export struct PersonalTab {
   UserInfoBuilder() {
     Column() {
       Stack({ alignContent: Alignment.BottomEnd }) {
-        CoverImage({
-          path: this.avatar,
-          imgWidth: 80, imgHeight: 80, radius: 40,
-          fallbackText: this.username || '?',
-        })
+        if (this.uploadingAvatar) {
+          Stack({ alignContent: Alignment.Center }) {
+            LoadingProgress().width(32).height(32).color(this.theme.colors.primary)
+          }
+          .width(80).height(80).borderRadius(40)
+          .backgroundColor(this.theme.colors.surface)
+        } else {
+          CoverImage({
+            path: this.avatar,
+            imgWidth: 80, imgHeight: 80, radius: 40,
+            fallbackText: this.username || '?',
+          })
+        }
         Stack({ alignContent: Alignment.Center }) {
           AppIcon({ name: 'camera', iconSize: 14, color: this.theme.colors.text })
         }
@@ -418,14 +771,14 @@ export struct PersonalTab {
         .border({ width: 1, color: 'rgba(0,0,0,0.1)' })
       }
       .width(80).height(80).margin({ bottom: 15 })
-      .onClick(() => this.onAvatarClick())
+      .onClick((): void => { this.onAvatarClick(); })
 
       Row() {
         Text(this.username || t('common.notLoggedIn'))
           .fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
-        AppIcon({ name: 'crown', iconSize: 24, color: this.theme.colors.textSecondary })
+        AppIcon({ name: 'crown', iconSize: 24, color: this.isPlusVip ? '#FFD700' : this.theme.colors.textSecondary })
           .margin({ left: 8 })
-          .onClick(() => this.onCrownClick())
+          .onClick((): void => { this.onCrownClick(); })
       }
       .alignItems(VerticalAlign.Center)
     }
@@ -448,7 +801,7 @@ export struct PersonalTab {
           width: { bottom: this.activeTab === tab.key ? 2 : 0 },
           color: this.theme.colors.primary,
         })
-        .onClick(() => this.switchTab(tab.key))
+        .onClick((): void => this.switchTab(tab.key))
       }, (tab: TabInfo) => tab.key)
     }
     .width('100%')
@@ -467,8 +820,8 @@ export struct PersonalTab {
             .fontColor(this.activeSubTab === 'album' ? this.theme.colors.primary : this.theme.colors.textSecondary)
         }
         .padding({ left: 16, right: 16, top: 6, bottom: 6 }).borderRadius(20)
-        .backgroundColor(this.activeSubTab === 'album' ? 'rgba(150,150,150,0.1)' : Color.Transparent)
-        .onClick(() => this.switchSubTab('album'))
+        .backgroundColor(Color.Transparent)
+        .onClick((): void => this.switchSubTab('album'))
 
         if (this.mode !== 'AUDIOBOOK') {
           Row() {
@@ -478,8 +831,8 @@ export struct PersonalTab {
               .fontColor(this.activeSubTab === 'track' ? this.theme.colors.primary : this.theme.colors.textSecondary)
           }
           .padding({ left: 16, right: 16, top: 6, bottom: 6 }).borderRadius(20)
-          .backgroundColor(this.activeSubTab === 'track' ? 'rgba(150,150,150,0.1)' : Color.Transparent)
-          .onClick(() => this.switchSubTab('track'))
+          .backgroundColor(Color.Transparent)
+          .onClick((): void => this.switchSubTab('track'))
         }
       }
       .width('100%')
@@ -542,7 +895,7 @@ export struct PersonalTab {
     .width('100%')
     .padding(15).alignItems(VerticalAlign.Center)
     .border({ width: { bottom: 0.5 }, color: this.theme.colors.border })
-    .onClick(() => this.onRowClick(row))
+    .onClick((): void => this.onRowClick(row))
   }
 
   @Builder
@@ -581,7 +934,7 @@ export struct PersonalTab {
         .maxLines(3).textAlign(TextAlign.Center)
       Button(t('common.retry'))
         .backgroundColor(this.theme.colors.primary).fontColor(this.theme.colors.onPrimary).borderRadius(18)
-        .onClick(() => this.loadData())
+        .onClick((): void => { this.loadData(); })
     }
     .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center).padding(24)
   }
@@ -595,7 +948,7 @@ export struct PersonalTab {
     .width('100%')
     .padding({ top: 12, bottom: 12, left: 16, right: 16 })
     .alignItems(VerticalAlign.Center)
-    .onClick(() => this.handleMenuAction(action))
+    .onClick((): void => this.handleMenuAction(action))
   }
 
   @Builder
@@ -609,7 +962,7 @@ export struct PersonalTab {
       Column()
         .width('100%').height('100%')
         .backgroundColor('rgba(0,0,0,0.4)')
-        .onClick(() => this.closeMenu())
+        .onClick((): void => this.closeMenu())
 
       Column() {
         this.MenuItemBuilder('playlist', t('personal.createPlaylist'), 'createPlaylist')
@@ -624,8 +977,8 @@ export struct PersonalTab {
         this.MenuDivider()
         this.MenuItemBuilder('folder', t('personal.compactData'), 'compact')
         this.MenuDivider()
-        // 调试按钮：跳转到 AppGallery。正式版可移除。
-        this.MenuItemBuilder('gear', '测试：打开应用商店', 'openStoreDebug')
+        // 评价入口：拉起华为 AppGallery 跳转到本应用详情页，方便用户打分评论。
+        this.MenuItemBuilder('gear', t('personal.rateApp'), 'openStoreDebug')
       }
       .width(220)
       .backgroundColor(this.theme.colors.surface).borderRadius(12)
@@ -640,7 +993,7 @@ export struct PersonalTab {
       Column()
         .width('100%').height('100%')
         .backgroundColor('rgba(0,0,0,0.4)')
-        .onClick(() => this.closeCreateModal())
+        .onClick((): void => this.closeCreateModal())
 
       Column() {
         Text(t('playlist.newPlaylist'))
@@ -661,7 +1014,7 @@ export struct PersonalTab {
             Text(t('common.cancel')).fontSize(16).fontColor(this.theme.colors.textSecondary)
           }
           .padding({ top: 10, bottom: 10, left: 20, right: 20 })
-          .onClick(() => this.closeCreateModal())
+          .onClick((): void => this.closeCreateModal())
 
           Row() {
             if (this.creating) {
@@ -674,7 +1027,7 @@ export struct PersonalTab {
           .padding({ top: 10, bottom: 10, left: 24, right: 24 }).borderRadius(10)
           .backgroundColor(this.theme.colors.primary)
           .opacity(this.canCreate() ? 1 : 0.5)
-          .onClick(() => this.handleCreatePlaylist())
+          .onClick((): void => { this.handleCreatePlaylist(); })
         }
         .width('100%').justifyContent(FlexAlign.End)
       }
@@ -684,10 +1037,73 @@ export struct PersonalTab {
     .width('100%').height('100%')
   }
 
+  @Builder
+  ImportProgressOverlay() {
+    if (this.importTask !== null) {
+      Stack({ alignContent: Alignment.Center }) {
+        Column()
+          .width('100%').height('100%')
+          .backgroundColor('rgba(0,0,0,0.4)')
+          .onClick((): void => { this.closeImportModal(); })
+
+        Column() {
+          Text(t('personalPage.taskImportProgress'))
+            .fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
+            .margin({ bottom: 16 })
+
+          // 进度条
+          Progress({
+            value: this.importTask.status === 'SUCCESS' ? 100 :
+              this.importTask.status === 'FAILED' ? 0 :
+                (this.importTask.total && this.importTask.total > 0
+                  ? Math.min(100, Math.round(((this.importTask.current ?? 0) / this.importTask.total) * 100))
+                  : 0),
+            total: 100,
+          })
+            .width('100%').height(6)
+            .color(this.theme.colors.primary)
+            .backgroundColor(this.theme.colors.border)
+            .margin({ bottom: 12 })
+
+          Text(this.importTask.message ?? this.importTask.currentFileName ?? t('common.loading'))
+            .fontSize(14).fontColor(this.theme.colors.textSecondary)
+            .maxLines(2).textAlign(TextAlign.Center)
+
+          if (this.importTask.total !== undefined && this.importTask.total > 0) {
+            Text(`${this.importTask.current ?? 0} / ${this.importTask.total}`)
+              .fontSize(12).fontColor(this.theme.colors.textSecondary)
+              .margin({ top: 4 })
+          }
+
+          Row({ space: 12 }) {
+            if (this.importTask.status === 'SUCCESS' || this.importTask.status === 'FAILED') {
+              Row() {
+                Text(t('common.ok'))
+                  .fontSize(15).fontColor(this.theme.colors.onPrimary)
+                  .fontWeight(FontWeight.Bold)
+              }
+              .padding({ top: 10, bottom: 10, left: 24, right: 24 }).borderRadius(10)
+              .backgroundColor(this.theme.colors.primary)
+              .onClick((): void => this.closeImportModal())
+            } else {
+              Row() {
+                Text(t('common.cancel'))
+                  .fontSize(15).fontColor(this.theme.colors.textSecondary)
+              }
+              .padding({ top: 10, bottom: 10, left: 24, right: 24 })
+              .onClick((): void => this.closeImportModal())
+            }
+          }
+          .width('100%').justifyContent(FlexAlign.Center).margin({ top: 20 })
+        }
+        .width('80%')
+        .backgroundColor(this.theme.colors.surface).borderRadius(20).padding(24)
+      }
+      .width('100%').height('100%')
+    }
+  }
+
   build() {
-    // 语言切换时重建整页：条件读取 appLang 建立依赖（框架只追踪读取状态变量的表达式，
-    // t() 是普通函数无法被追踪），语言变化使 if 分支切换，旧子树销毁、新子树重建，
-    // 所有 t() 文案（含局部 @Builder 和 @Prop 传串的子组件）都按新语言重新求值。
     if (this.appLang === 'zh-CN') {
       this.LocalizedContent()
     } else {
@@ -729,6 +1145,9 @@ export struct PersonalTab {
       }
       if (this.createModalVisible) {
         this.CreateModalOverlay();
+      }
+      if (this.importModalVisible) {
+        this.ImportProgressOverlay();
       }
     }
     .width('100%').height('100%')

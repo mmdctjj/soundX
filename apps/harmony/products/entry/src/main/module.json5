@@ -73,6 +73,17 @@
           ],
           "when": "inuse"
         }
+      },
+      {
+        // 扫码登录：ScanKit 默认扫码界面需要相机权限
+        "name": "ohos.permission.CAMERA",
+        "reason": "$string:camera_permission_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
       }
     ],
     "metadata": [

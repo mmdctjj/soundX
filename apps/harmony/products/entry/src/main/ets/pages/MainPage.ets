@@ -1,4 +1,5 @@
 import router from '@ohos.router';
+import { window } from '@kit.ArkUI';
 import { kvStore } from 'features_storage';
 import { t, getLang } from 'features_i18n';
 import { Logger } from 'audiodock_common';
@@ -10,6 +11,7 @@ import { MiniPlayer } from '../components/MiniPlayer';
 import { SquirrelAgent } from '../components/SquirrelAgent';
 import { AppIcon, AppIconName } from '../components/AppIcon';
 import { CoverImage } from '../components/CoverImage';
+import { EmbeddedPlayerPanel } from '../components/EmbeddedPlayerPanel';
 import { LibraryTab } from './LibraryPage';
 import { PersonalTab } from './PersonalPage';
 import { authStore } from '../context/AuthStore';
@@ -630,14 +632,27 @@ export struct HomeTab {
 struct MainPage {
   @StorageLink('mainTabIndex') currentIndex: number = 0;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  // 车机模式三件套（对齐 mobile 的 SettingsContext + _layout.tsx）。
+  // carModeEnabled 决定是否走左右布局分支；carPanelsSwapped 决定 player 在左还是在右；
+  // screenBottomInset 影响根布局 paddingBottom（用户手动调底部安全区）。
+  @StorageLink('carModeEnabled') @Watch('onCarModeChange') carModeEnabled: boolean = false;
+  // 自动横竖屏：跟 carModeEnabled 共同决定 setPreferredOrientation 的目标值。
+  // 启动值由 EntryAbility.initialize() 从 kvStore 写入 AppStorage，本页直接订阅。
+  @StorageLink('autoOrientation') @Watch('onAutoOrientationChange') autoOrientation: boolean = false;
+  @StorageLink('carPanelsSwapped') carPanelsSwapped: boolean = false;
+  @StorageLink('screenBottomInset') screenBottomInset: number = 0;
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
   @State voiceAssistantEnabled: boolean = false;
   @State isVip: boolean = false;
+  // 左侧播放器面板的尺寸（onAreaChange 测量，用于布局计算 / 调试）
+  @State carLayoutWidth: number = 0;
+  @State carLayoutHeight: number = 0;
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
     this.loadVoiceAssistantGate();
+    this.loadAcceptSync();
     playerStore.restoreState();
     // 同步播放：注册 socket 监听 + 启动连接（对齐 mobile 的 _layout.tsx SyncProvider 包裹）
     syncStore.bindSocketEvents();
@@ -645,6 +660,61 @@ struct MainPage {
     authStore.connectSyncSocket().catch((e: Error): void => {
       Logger.w('MainPage', `connectSyncSocket failed: ${String(e)}`);
     });
+    // 启动时立刻按优先级链应用窗口方向（避免进入后再旋转闪一下）
+    this.applyOrientation();
+  }
+
+  /**
+   * @StorageLink('carModeEnabled') 变化时切换窗口方向。
+   * 车机模式开启 → 强制横屏；关闭 → 交由 autoOrientation 决定（AUTO_ROTATION 或 PORTRAIT）。
+   */
+  onCarModeChange(): void {
+    Logger.i('MainPage', `carModeEnabled -> ${this.carModeEnabled}`);
+    this.applyOrientation();
+  }
+
+  /**
+   * @StorageLink('autoOrientation') 变化时重算窗口方向。
+   * 仅在车机模式关闭时生效；开启车机模式时横屏锁始终最高优先级。
+   */
+  onAutoOrientationChange(): void {
+    Logger.i('MainPage', `autoOrientation -> ${this.autoOrientation}`);
+    this.applyOrientation();
+  }
+
+  /**
+   * 调用 window.setPreferredOrientation 切换主窗口方向。
+   * 优先级链：carModeEnabled（最高）→ autoOrientation → 默认 PORTRAIT。
+   * 不传参给 getContext：API 12+ 返回最近 component 的 context（与 MvVideoPlayer 一致）。
+   */
+  private applyOrientation(): void {
+    let target: window.Orientation = window.Orientation.PORTRAIT;
+    if (this.carModeEnabled) {
+      target = window.Orientation.LANDSCAPE;
+    } else if (this.autoOrientation) {
+      target = window.Orientation.AUTO_ROTATION;
+    }
+    try {
+      const ctx: Context = getContext();
+      window.getLastWindow(ctx).then((win: window.Window): void => {
+        win.setPreferredOrientation(target);
+      }).catch((e: Error): void => {
+        Logger.w('MainPage', `getLastWindow failed: ${String(e)}`);
+      });
+    } catch (e) {
+      Logger.w('MainPage', `applyOrientation failed: ${String(e)}`);
+    }
+  }
+
+  /** 启动时把 kvStore 里的「接受同步邀请」开关同步到 SyncStore，避免默认值脱节。 */
+  private async loadAcceptSync(): Promise<void> {
+    try {
+      const v = await kvStore.get('acceptSync');
+      // 未存储过时默认 true，与 mobile SettingsContext.defaultSettings.acceptSync 一致
+      syncStore.setAcceptSync(v === null ? true : v === 'true');
+    } catch (e) {
+      Logger.w('MainPage', `loadAcceptSync error: ${e}`);
+    }
   }
 
   private async loadVoiceAssistantGate(): Promise<void> {
@@ -704,6 +774,108 @@ struct MainPage {
   @Builder
   LocalizedContent() {
     Stack({ alignContent: Alignment.Bottom }) {
+      if (this.carModeEnabled) {
+        // ═══ 车机模式：左右分栏布局（对齐 mobile _layout.tsx 的 carModeContainer）═══
+        // [EmbeddedPlayerPanel (9:16) | ⇄ swapButton | Tabs contentPanel (flex:1)]
+        // 车机模式不显示 MiniPlayer（左侧已是完整嵌入式播放器）
+        Row() {
+          if (!this.carPanelsSwapped) {
+            this.carPlayerPanel();
+            this.swapButton();
+            this.carContentPanel();
+          } else {
+            this.carContentPanel();
+            this.swapButton();
+            this.carPlayerPanel();
+          }
+        }
+        .width('100%')
+        .height('100%')
+        .padding({ bottom: this.screenBottomInset })
+        .backgroundColor(this.theme.colors.background)
+      } else {
+        // ═══ 常规布局：Tabs + 悬浮 MiniPlayer（保持原有结构）═══
+        Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
+          TabContent() {
+            HomeTab()
+          }
+          .tabBar(this.TabBuilder({ title: t('navTabs.recommend') }, 0, 'home'))
+
+          TabContent() {
+            LibraryTab()
+          }
+          .tabBar(this.TabBuilder({ title: t('navTabs.soundcang') }, 1, 'headphones'))
+
+          TabContent() {
+            PersonalTab()
+          }
+          .tabBar(this.TabBuilder({ title: t('navTabs.mine') }, 2, 'person'))
+        }
+        .width('100%').height('100%')
+        .barWidth('100%').barHeight(56)
+        .barBackgroundColor(this.theme.colors.tabBar)
+        .animationDuration(300)
+        .onChange((index: number) => {
+          this.currentIndex = index;
+        })
+
+        MiniPlayer().margin({ bottom: 56 })
+      }
+
+      if (this.voiceAssistantEnabled && this.isVip) {
+        SquirrelAgent()
+      }
+    }
+    .width('100%').height('100%').backgroundColor(this.theme.colors.background)
+  }
+
+  /** 车机模式左侧播放器面板：宽 = 高 × 9/16（对齐 mobile playerPanel 的 aspectRatio: 9/16） */
+  @Builder
+  carPlayerPanel() {
+    EmbeddedPlayerPanel()
+      .height('100%')
+      .aspectRatio(9 / 16)
+      .backgroundColor(this.theme.colors.background)
+      .onAreaChange((_old: Area, newVal: Area): void => {
+        this.carLayoutWidth = newVal.width as number;
+        this.carLayoutHeight = newVal.height as number;
+      });
+  }
+
+  /**
+   * 车机模式中间圆形 swap 按钮（对齐 mobile _layout.tsx 的 swapButton）：
+   * 点击翻转 carPanelsSwapped，让用户把播放器挪到左边还是右边。
+   */
+  @Builder
+  swapButton() {
+    Stack() {
+      AppIcon({
+        name: 'shuffle',
+        iconSize: 18,
+        color: this.theme.colors.text,
+      })
+    }
+    .width(36)
+    .height(36)
+    .borderRadius(18)
+    .backgroundColor(this.theme.colors.surface)
+    .border({
+      width: 1,
+      color: this.theme.colors.border,
+    })
+    .margin({ left: -18, right: -18 })
+    .zIndex(20)
+    .alignSelf(ItemAlign.Center)
+    .onClick((): void => {
+      AppStorage.setOrCreate<boolean>('carPanelsSwapped', !this.carPanelsSwapped);
+      kvStore.set('carPanelsSwapped', !this.carPanelsSwapped ? 'true' : 'false').catch((): void => undefined);
+    })
+  }
+
+  /** 车机模式右侧内容区：完整的 MainPage Tabs + MiniPlayer 省略（播放器已在左侧） */
+  @Builder
+  carContentPanel() {
+    Stack({ alignContent: Alignment.Bottom }) {
       Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
         TabContent() {
           HomeTab()
@@ -722,17 +894,14 @@ struct MainPage {
       }
       .width('100%').height('100%')
       .barWidth('100%').barHeight(56)
+      .barBackgroundColor(this.theme.colors.tabBar)
       .animationDuration(300)
       .onChange((index: number) => {
         this.currentIndex = index;
       })
-
-      MiniPlayer().margin({ bottom: 56 })
-
-      if (this.voiceAssistantEnabled && this.isVip) {
-        SquirrelAgent()
-      }
     }
-    .width('100%').height('100%').backgroundColor(this.theme.colors.background)
+    .layoutWeight(1)
+    .height('100%')
+    .backgroundColor(this.theme.colors.background)
   }
 }

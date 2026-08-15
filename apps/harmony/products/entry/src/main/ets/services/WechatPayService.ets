@@ -233,11 +233,16 @@ function buildPayReq(payload: WechatPayPayload): wxopensdk.PayReq {
   req.partnerId = payload.partnerId;
   req.prepayId = payload.prepayId;
   req.nonceStr = payload.nonceStr;
-  req.timeStamp = payload.timeStamp;
+  // 微信鸿蒙 SDK 的 PayReq.timeStamp 要求 string。后端 JSON 若把纯数字时间戳解析成 number，
+  // 微信客户端会按 number 重新拼接参数验签，与后端用 string 计算的 sign 不一致，报"支付验证签名失败"。
+  // 这里强制转 string 兜底（安卓/iOS 各自 SDK 内部都做了 string 化，鸿蒙不会）。
+  req.timeStamp = String(payload.timeStamp ?? '');
   req.packageValue = payload.package ?? 'Sign=WXPay';
   req.sign = payload.sign;
   // extData 是可选的扩展字段，回调时会原样带回；这里留空
   req.extData = '';
+  // 打印关键参数（脱敏：sign 只打长度与前后 4 位），便于排查签名失败时确认 timeStamp 类型是否正确
+  Logger.i(TAG, `buildPayReq appId=${payload.appId} prepayId=${payload.prepayId} timeStamp=${req.timeStamp} (rawType=${typeof payload.timeStamp}) signLen=${payload.sign.length}`);
   return req;
 }
 

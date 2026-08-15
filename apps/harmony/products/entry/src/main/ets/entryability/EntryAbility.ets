@@ -3,6 +3,7 @@ import AbilityConstant from '@ohos.app.ability.AbilityConstant';
 import hilog from '@ohos.hilog';
 import Want from '@ohos.app.ability.Want';
 import { window } from '@kit.ArkUI';
+import { bundleManager, ConfigurationConstant, Configuration } from '@kit.AbilityKit';
 import { Logger, getSelfBundleInfo, getSelfAppVersion } from 'audiodock_common';
 import { kvStore, fileCache, rdbStore } from 'features_storage';
 import { httpClient } from 'features_network';
@@ -11,7 +12,19 @@ import { type ThemeMode } from 'features_ui';
 import { installPlaybackService } from '../services/playbackService';
 import { installAVSessionService, releaseAVSessionService } from '../services/avSessionService';
 import { setSystemBarWindow, applySystemBar } from '../services/systemBar';
+import { themeAutoStore } from '../context/ThemeAutoStore';
 import { installWechatRespHandler, registerWechatApp, handleWechatWant } from '../services/WechatPayService';
+
+/** Bundle信息摘要接口 */
+interface BundleInfoSummary {
+  name: string;
+  versionName: string;
+  versionCode: number;
+  hapModules: string[];
+  permissions: string[];
+  appId?: string;
+  hasSignature: boolean;
+}
 
 const DOMAIN = 0xA001;
 const TAG = 'EntryAbility';
@@ -60,7 +73,18 @@ export default class EntryAbility extends UIAbility {
 
   onDestroy(): void {
     Logger.i(TAG, 'onDestroy');
+    themeAutoStore.stop();
     releaseAVSessionService();
+  }
+
+  /**
+   * 系统配置变更回调（含系统色 light/dark 切换）。
+   * ThemeAutoStore.onSystemColorChanged 内部会校验 autoTheme 开关是否开启，
+   * 关闭时自动停止覆盖 themeMode（保留用户手动选择）。
+   */
+  onConfigurationUpdate(newConfig: Configuration): void {
+    Logger.i(TAG, `onConfigurationUpdate colorMode=${newConfig.colorMode}`);
+    themeAutoStore.onSystemColorChanged(newConfig.colorMode);
   }
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
@@ -103,6 +127,29 @@ export default class EntryAbility extends UIAbility {
     const savedPlayMode = await kvStore.get('playMode');
     AppStorage.setOrCreate('playMode', savedPlayMode === 'AUDIOBOOK' ? 'AUDIOBOOK' : 'MUSIC');
 
+    // 恢复车机模式相关状态，供 MainPage / SettingsPage / GlobalBottomBar / SquirrelAgent
+    // 通过 @StorageLink 订阅，跨页面联动（对齐 mobile 的 SettingsContext）。
+    // carModeEnabled / carPanelsSwapped 用 'true'/'false' 字符串持久化；
+    // screenBottomInset 是数字 0–160，用 String() 后再 Number() 解析。
+    const carModeRaw = await kvStore.get('carModeEnabled');
+    AppStorage.setOrCreate<boolean>('carModeEnabled', carModeRaw === 'true');
+    const carPanelsSwappedRaw = await kvStore.get('carPanelsSwapped');
+    AppStorage.setOrCreate<boolean>('carPanelsSwapped', carPanelsSwappedRaw === 'true');
+    const screenInsetRaw = await kvStore.get('screenBottomInset');
+    const inset = screenInsetRaw !== null ? Number(screenInsetRaw) : 0;
+    AppStorage.setOrCreate<number>('screenBottomInset', Number.isFinite(inset) ? inset : 0);
+    // 自动横竖屏：MainPage.applyOrientation 通过 @StorageLink 订阅，按优先级链决定方向
+    const autoOrientRaw = await kvStore.get('autoOrientation');
+    AppStorage.setOrCreate<boolean>('autoOrientation', autoOrientRaw === 'true');
+
+    // 自动主题：把 kvStore 的 autoTheme 写入 AppStorage。
+    // ThemeAutoStore 通过 EntryAbility.onConfigurationUpdate 回调接收系统色变化，
+    // 这比 Web mediaquery 更可靠——是 HarmonyOS 系统级标准回调。
+    const autoThemeRaw = await kvStore.get('autoTheme');
+    AppStorage.setOrCreate<boolean>('autoTheme', autoThemeRaw === 'true');
+    themeAutoStore.init(ctx);
+    themeAutoStore.restore();
+
     Logger.i(TAG, 'initialize complete');
   }
 
@@ -122,17 +169,19 @@ export default class EntryAbility extends UIAbility {
       .catch((e: Error) => Logger.w(TAG, `[bundleInfo] version failed: ${e.message}`));
 
     getSelfBundleInfo()
-      .then((info) => {
-        const summary = {
+      .then((info: bundleManager.BundleInfo) => {
+        const summary: BundleInfoSummary = {
           name: info.name,
           versionName: info.versionName,
           versionCode: info.versionCode,
-          hapModules: (info.hapModulesInfo ?? []).map((m) => m.moduleName),
-          permissions: (info.reqPermissionDetails ?? []).map((p) => p.name),
-          appId: info.appInfo?.appId,
+          hapModules: (info.hapModulesInfo ?? []).map((m: bundleManager.HapModuleInfo) => m.name),
+          permissions: (info.reqPermissionDetails ?? []).map((p: bundleManager.ReqPermissionDetail) => p.name),
+          appId: info.appInfo?.name,
           hasSignature: !!info.signatureInfo?.fingerprint,
         };
         Logger.i(TAG, `[bundleInfo] full=${JSON.stringify(summary)}`);
+        // 应用签名证书的 SHA-256 指纹（微信开放平台「应用签名」要填的就是它，去掉冒号转大写）
+        Logger.i(TAG, `[bundleInfo] signFingerprint=${JSON.stringify(info.signatureInfo?.fingerprint ?? 'NONE')}`);
       })
       .catch((e: Error) => Logger.w(TAG, `[bundleInfo] full failed: ${e.message}`));
   }

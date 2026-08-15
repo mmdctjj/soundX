@@ -10,10 +10,15 @@ import { MiniPlayer } from './MiniPlayer';
  * MiniPlayer + 三个 tab（推荐/声仓/我的）。
  * 在详情页（搜索/专辑/艺术家/播放列表/合集）底部展示，
  * 点击 tab 返回 MainPage 并切换到对应 tab。
+ *
+ * 车机模式（carModeEnabled=true）下隐藏 MiniPlayer，只保留 tab 栏——
+ * 此时左侧 MainPage 已有完整的嵌入式播放器，再叠一个 miniPlayer 体验冗余。
+ * 对齐 mobile GlobalBottomBar 的 `!carLayoutMode && <MiniPlayer />`。
  */
 @Component
 export struct GlobalBottomBar {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @StorageLink('carModeEnabled') carModeEnabled: boolean = false;
   @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
 
@@ -33,7 +38,10 @@ export struct GlobalBottomBar {
 
   build() {
     Column() {
-      MiniPlayer()
+      // 车机模式下不渲染 MiniPlayer（左侧 MainPage 已有完整嵌入式播放器）
+      if (!this.carModeEnabled) {
+        MiniPlayer();
+      }
 
       Row() {
         this.TabItem(t('navTabs.recommend'), 'home', 0)

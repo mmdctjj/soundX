@@ -1,11 +1,12 @@
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
+import picker from '@ohos.file.picker';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { Logger } from 'audiodock_common';
-import { albumApi, mvApi, miApi, trackApi, playlistApi } from 'features_network';
-import type { AlbumDto, TrackDto, MVDto, AlbumTracksResp, MiDevice, MiTrackPayload } from 'features_network';
+import { albumApi, mvApi, miApi, trackApi, playlistApi, collectionApi } from 'features_network';
+import type { AlbumDto, TrackDto, MVDto, AlbumTracksResp, MiDevice, MiTrackPayload, CollectionDto } from 'features_network';
 import { DetailHero } from '../components/DetailHero';
 import { TrackRow } from '../components/TrackRow';
 import { AppIcon } from '../components/AppIcon';
@@ -17,6 +18,7 @@ import { getInternalQuality } from '../services/trackQuality';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
+import { authStore } from '../context/AuthStore';
 
 /** 与 mobile 的 PAGE_SIZE 保持一致：一次拉全，不做分页。 */
 const PAGE_SIZE: number = 20000;
@@ -40,11 +42,18 @@ struct AlbumDetailPage {
   @State selectedTrackIds: string[] = [];
   @State showMoreSheet: boolean = false;
   @State showMiCast: boolean = false;
+  @State showCollectionPicker: boolean = false;
+  @State collections: CollectionDto[] = [];
+  @State collectionsLoading: boolean = false;
+  @State collectionAdding: boolean = false;
+  @State showCreateCollection: boolean = false;
+  @State newCollectionName: string = '';
   @State miDevices: MiDevice[] = [];
   @State miLoggedIn: boolean = false;
   @State miQRCodeUrl: string = '';
   @State miLoading: boolean = false;
   @State miCasting: boolean = false;
+  @State uploadingCover: boolean = false;
   private miPollingId: number = -1;
   private entityId: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
@@ -124,6 +133,8 @@ struct AlbumDetailPage {
           title: this.album?.name ?? '',
           theme: this.theme,
           onBack: () => router.back(),
+          showMore: true,
+          onMore: () => { this.showMoreSheet = true; },
         })
       }
       if (this.loading) {
@@ -146,12 +157,31 @@ struct AlbumDetailPage {
         this.Content()
       }
       GlobalBottomBar()
+
+      // ArkUI 每个组件只能绑定一个 bindSheet，用不可见锚点分散绑定（对齐 PlayerPage 的做法）。
+      // 之前两个 bindSheet 都挂在根 Column 上，导致「···」更多弹窗点了不显示。
+      Column().width(0).height(0)
+        .bindSheet($$this.showMoreSheet, this.moreSheet(), {
+          height: this.isAudiobook() ? 440 : 380,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showMiCast, this.miCastSheet(), {
+          height: 420,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showCollectionPicker, this.collectionPickerSheet(), {
+          height: '60%',
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
     }
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme.colors.background)
-    .bindSheet($$this.showMoreSheet, this.moreSheet(), { height: 380, dragBar: true })
-    .bindSheet($$this.showMiCast, this.miCastSheet(), { height: 420, dragBar: true })
   }
 
   @Builder
@@ -295,16 +325,6 @@ struct AlbumDetailPage {
           this.toggleSelectAll();
         }
       })
-
-      Column() {
-        Text('···').fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.textSecondary)
-      }
-      .width(44)
-      .height(44)
-      .borderRadius(22)
-      .backgroundColor(this.theme.colors.surfaceAlt)
-      .justifyContent(FlexAlign.Center)
-      .onClick(() => { this.showMoreSheet = true; })
     }
     .margin({ top: 20 })
     .justifyContent(FlexAlign.Center)
@@ -566,6 +586,41 @@ struct AlbumDetailPage {
   }
 
   // ─── 更多操作 ───
+  private async handleUpdateCover(): Promise<void> {
+    if (this.album === null || this.uploadingCover) return;
+    // 对齐 mobile album/[id].tsx handleUpdateCover：仅 AudioDock 源支持修改封面
+    if (authStore.state_.sourceType !== 'audiodock') {
+      promptAction.showToast({ message: t('albumPage.audioDockOnlyCover') });
+      return;
+    }
+    let uris: string[] = [];
+    try {
+      const photoPicker: picker.PhotoViewPicker = new picker.PhotoViewPicker();
+      const options: picker.PhotoSelectOptions = {
+        MIMEType: picker.PhotoViewMIMETypes.IMAGE_TYPE,
+        maxSelectNumber: 1,
+      };
+      const result: picker.PhotoSelectResult = await photoPicker.select(options);
+      uris = result.photoUris;
+    } catch (e) {
+      Logger.w('AlbumDetail', `pick cover failed: ${String(e)}`);
+      return;
+    }
+    if (uris.length === 0) return;
+    const uri = uris[0];
+    this.uploadingCover = true;
+    try {
+      const updated = await albumApi.uploadCover(this.album.id, uri, 'image/jpeg');
+      this.album = updated;
+      promptAction.showToast({ message: t('common.success') });
+    } catch (e) {
+      Logger.w('AlbumDetail', `upload cover failed: ${String(e)}`);
+      promptAction.showToast({ message: t('albumPage.uploadCoverFailed') });
+    } finally {
+      this.uploadingCover = false;
+    }
+  }
+
   private async handleCreatePlaylistWithAlbum(): Promise<void> {
     if (this.album === null) return;
     try {
@@ -589,10 +644,21 @@ struct AlbumDetailPage {
         .fontSize(13).fontColor(this.theme.colors.textSecondary)
         .margin({ bottom: 16 });
 
+      this.MoreOptionRow(t('albumMore.editCover'), () => {
+        this.showMoreSheet = false;
+        this.handleUpdateCover();
+      })
       this.MoreOptionRow(t('albumMore.addToPlaylist'), () => {
         this.showMoreSheet = false;
         promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
       })
+      // 对齐 mobile AlbumMoreModal：仅有声书专辑显示「加入合集」
+      if (this.isAudiobook()) {
+        this.MoreOptionRow(t('albumMore.addToCollection'), () => {
+          this.showMoreSheet = false;
+          this.handleOpenCollectionPicker();
+        })
+      }
       this.MoreOptionRow(t('albumMore.createPlaylistWithSameName'), () => {
         this.showMoreSheet = false;
         this.handleCreatePlaylistWithAlbum();
@@ -606,6 +672,156 @@ struct AlbumDetailPage {
         this.showMoreSheet = false;
         promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
       })
+    }
+    .width('100%').padding(20).alignItems(HorizontalAlign.Start)
+  }
+
+  // ─── 加入合集（对齐 mobile CollectionSelectModal）───
+  private async handleOpenCollectionPicker(): Promise<void> {
+    this.showCollectionPicker = true;
+    this.collectionsLoading = true;
+    try {
+      const user = authStore.state_.user;
+      this.collections = await collectionApi.list(user !== null ? user.id : undefined);
+    } catch (e) {
+      Logger.w('AlbumDetail', `collections load failed: ${String(e)}`);
+      this.collections = [];
+    } finally {
+      this.collectionsLoading = false;
+    }
+  }
+
+  private async handleAddToCollection(col: CollectionDto): Promise<void> {
+    if (this.album === null || this.collectionAdding) return;
+    this.collectionAdding = true;
+    try {
+      await collectionApi.addAlbum(col.id, this.album.id);
+      promptAction.showToast({ message: t('common.success') });
+      this.showCollectionPicker = false;
+    } catch (e) {
+      Logger.w('AlbumDetail', `add to collection failed: ${String(e)}`);
+      promptAction.showToast({ message: t('common.operationFailed') });
+    } finally {
+      this.collectionAdding = false;
+    }
+  }
+
+  private async handleCreateCollectionAndAdd(): Promise<void> {
+    if (this.album === null || this.collectionAdding) return;
+    const name = this.newCollectionName.trim();
+    if (name.length === 0) {
+      promptAction.showToast({ message: t('collection.collectionNameRequired') });
+      return;
+    }
+    this.collectionAdding = true;
+    try {
+      const col = await collectionApi.create(name);
+      await collectionApi.addAlbum(col.id, this.album.id);
+      promptAction.showToast({ message: t('common.success') });
+      this.showCreateCollection = false;
+      this.newCollectionName = '';
+      this.showCollectionPicker = false;
+    } catch (e) {
+      Logger.w('AlbumDetail', `create collection failed: ${String(e)}`);
+      promptAction.showToast({ message: t('common.operationFailed') });
+    } finally {
+      this.collectionAdding = false;
+    }
+  }
+
+  @Builder
+  collectionPickerSheet() {
+    Column() {
+      Row() {
+        Text(t('collection.selectCollection'))
+          .fontSize(16).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
+          .layoutWeight(1)
+        AppIcon({ name: 'plus', iconSize: 22, color: this.theme.colors.primary })
+          .onClick(() => {
+            this.newCollectionName = '';
+            this.showCreateCollection = true;
+          })
+      }
+      .width('100%').margin({ top: 8, bottom: 4 })
+      Text(this.album?.name ?? '')
+        .fontSize(13).fontColor(this.theme.colors.textSecondary)
+        .margin({ bottom: 16 });
+
+      if (this.collectionsLoading) {
+        Column({ space: 12 }) {
+          LoadingProgress().width(32).height(32).color(this.theme.colors.primary);
+          Text(t('common.loading')).fontSize(14).fontColor(this.theme.colors.textSecondary);
+        }
+        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+      } else if (this.collections.length === 0) {
+        Column() {
+          Text(t('collection.noCollections'))
+            .fontSize(14).fontColor(this.theme.colors.textSecondary)
+        }
+        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+      } else {
+        List() {
+          ForEach(this.collections, (col: CollectionDto) => {
+            ListItem() {
+              Row({ space: 12 }) {
+                Column() {
+                  AppIcon({ name: 'folder', iconSize: 18, color: '#FFFFFFFF' })
+                }
+                .width(36).height(36).borderRadius(8)
+                .backgroundColor(this.theme.colors.primary)
+                .justifyContent(FlexAlign.Center);
+                Text(col.name)
+                  .fontSize(15).fontColor(this.theme.colors.text)
+                  .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
+                Text('›').fontSize(20).fontColor(this.theme.colors.textSecondary);
+              }
+              .width('100%').padding({ top: 12, bottom: 12 })
+              .opacity(this.collectionAdding ? 0.5 : 1)
+              .onClick(() => {
+                if (!this.collectionAdding) this.handleAddToCollection(col);
+              });
+            }
+          }, (col: CollectionDto) => col.id);
+        }
+        .layoutWeight(1).scrollBar(BarState.Off);
+      }
+    }
+    .width('100%').height('100%').padding(20)
+    .bindSheet($$this.showCreateCollection, this.createCollectionSheet(), {
+      height: 240,
+      dragBar: true,
+      backgroundColor: this.theme.colors.surface,
+    })
+  }
+
+  @Builder
+  createCollectionSheet() {
+    Column({ space: 16 }) {
+      Text(t('collection.newCollection'))
+        .fontSize(16).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
+        .margin({ top: 8 });
+      TextInput({ placeholder: t('collection.collectionNameRequired'), text: $$this.newCollectionName })
+        .fontSize(15)
+        .fontColor(this.theme.colors.text)
+        .placeholderColor(this.theme.colors.textSecondary)
+        .backgroundColor(this.theme.colors.surfaceAlt)
+        .borderRadius(10)
+        .padding({ left: 12, right: 12 })
+        .height(44);
+      Row({ space: 12 }) {
+        CommonButton({
+          label: t('collection.cancel'),
+          theme: this.theme,
+          onButtonClick: () => { this.showCreateCollection = false; },
+        })
+        CommonButton({
+          label: t('collection.createAndAdd'),
+          theme: this.theme,
+          onButtonClick: () => this.handleCreateCollectionAndAdd(),
+        })
+      }
+      .justifyContent(FlexAlign.End)
+      .width('100%');
     }
     .width('100%').padding(20).alignItems(HorizontalAlign.Start)
   }

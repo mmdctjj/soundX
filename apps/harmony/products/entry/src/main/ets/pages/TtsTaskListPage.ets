@@ -359,7 +359,7 @@ struct TtsTaskListPage {
               .fontColor(this.filterStatus === f.value ? this.theme.colors.onPrimary : this.theme.colors.textSecondary)
               .padding({ left: 16, right: 16, top: 6, bottom: 6 })
               .borderRadius(20)
-              .backgroundColor(this.filterStatus === f.value ? this.theme.colors.primary : 'rgba(150,150,150,0.1)')
+              .backgroundColor(this.filterStatus === f.value ? this.theme.colors.primary : Color.Transparent)
               .onClick((): void => {
                 this.filterStatus = f.value;
               })

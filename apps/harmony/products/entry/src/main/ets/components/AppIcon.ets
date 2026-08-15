@@ -45,7 +45,9 @@ export type AppIconName =
   | 'list-outline'
   | 'expand'
   | 'contract'
-  | 'search';
+  | 'search'
+  | 'server-outline'
+  | 'settings-outline';
 
 const ICON_MAP: Record<AppIconName, Resource> = {
   'home': $r('sys.symbol.house'),
@@ -89,8 +91,9 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'arrow-forward': $r('sys.symbol.arrow_right'),
   'checkbox': $r('sys.symbol.checkmark_square_fill'),
   'square-outline': $r('sys.symbol.square'),
-  // 二维码扫描：当前 SDK sys.symbol.qrcode 验证过可编译；若不行可换 scope
-  'scan': $r('sys.symbol.qrcode'),
+  // 扫码（对齐 mobile AntDesign scan 取景器框，不是二维码）。
+  // viewfinder / qrcode_viewfinder 不存在（10903329），试 barcode_viewfinder。
+  'scan': $r('sys.symbol.barcode_viewfinder'),
   // 任务中心入口：复用 list_bullet 强调列表语义
   'list-outline': $r('sys.symbol.list_bullet'),
   // 全屏切换（对齐 mobile Ionicons expand/contract）。
@@ -101,6 +104,13 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   // 搜索（SF Symbols 标准名 magnifyingglass；用 search 也行，看 SDK 实现）。
   // build 报 10903329 的话降级为 'list' 或保留原 ⌕ 文本。
   'search': $r('sys.symbol.magnifyingglass'),
+  // 资源管理（对齐 mobile Ionicons server-outline → SF Symbols server）。
+  // SF Symbols 标准名 server / external_drive / network 在当前 SDK 都不存在（10903329），
+  // 改用 archivebox（归档箱，视觉接近"资源/服务器"）。
+  'server-outline': $r('sys.symbol.archivebox'),
+  // 设置（对齐 mobile Ionicons settings-outline → SF Symbols gearshape）。
+  // 与 'gear' 同源但语义不同（个人页右上入口 vs 内部菜单"评价"等），映射统一。
+  'settings-outline': $r('sys.symbol.gearshape'),
 };
 
 export function getIconResource(name: AppIconName): Resource {

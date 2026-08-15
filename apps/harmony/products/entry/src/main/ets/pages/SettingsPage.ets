@@ -1,14 +1,94 @@
 import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
+import { window } from '@kit.ArkUI';
 import { kvStore } from 'features_storage';
 import { Logger } from 'audiodock_common';
 import { authStore } from '../context/AuthStore';
 import { playerStore } from '../context/PlayerStore';
+import { syncStore } from '../context/SyncStore';
+import { themeAutoStore } from '../context/ThemeAutoStore';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { getInternalQuality, getExternalQuality } from '../services/trackQuality';
 import { applySystemBar } from '../services/systemBar';
 import { openInBrowser } from '../utils/browserUtils';
+import { plusApi, setPlusAuthToken } from 'features_network';
+
+// 设置项开关行：独立子组件，刻意不用 @Builder。
+// 本页踩坑记录（提交 1c419826 起的四轮修复）证明：@Builder 按值内联展开后，
+// 其内部节点在父组件 @State 驱动的重建中手势注册不稳定——Toggle 鬼影 onChange(false)、
+// enabled(false) 连累整个子树、hitTestBehavior(None) 连累热区、自绘开关在 Builder 内
+// 同样点击无响应。独立 @Component 拥有稳定的组件实例与手势识别：
+// @Prop 只负责回显父状态，交互只走 onClick 回调（不注册 Toggle 的 onChange，
+// 从根上杜绝鬼影事件覆盖存储值）。
+@Component
+struct SettingSwitchRow {
+  label: string = '';
+  description: string = '';
+  // 双向绑定父组件 @State。真机日志实测：@Prop 在此场景更新链断裂（父 @State 已变，
+  // 子组件 tap 时读到的 value 永远是旧值），改 @Link 共享同一状态源，UI 即时跟随。
+  @Link value: boolean;
+  @Prop disabled: boolean = false;
+  onChange: (val: boolean) => void = () => {};
+
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @State theme: Theme = buildTheme('light');
+
+  aboutToAppear() {
+    this.theme = buildTheme(this.themeMode);
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
+  build() {
+    Row() {
+      Column() {
+        Text(this.label)
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.theme.colors.text)
+          .margin({ bottom: 4 })
+        Text(this.description)
+          .fontSize(13)
+          .fontColor(this.theme.colors.textSecondary)
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+      .margin({ right: 20 })
+
+      // 自绘 iOS 风格开关（轨道 + 滑块），点击即反转。
+      Column() {
+        // 滑块
+        Column()
+          .width(24)
+          .height(24)
+          .borderRadius(12)
+          .backgroundColor('#f4f3f4')
+          .translate({ x: this.value ? 12 : -12 })
+          .animation({ duration: 200, curve: Curve.EaseInOut })
+      }
+      .width(48)
+      .height(28)
+      .borderRadius(14)
+      .backgroundColor(this.value ? this.theme.colors.primary : 'rgba(120,120,128,0.32)')
+      .justifyContent(FlexAlign.Center)
+      .opacity(this.disabled ? 0.5 : 1)
+      .onClick((): void => {
+        Logger.i('SettingSwitchRow', `tap label=${this.label} value=${this.value} disabled=${this.disabled}`);
+        if (!this.disabled) {
+          this.onChange(!this.value);
+        }
+      })
+    }
+    .width('100%')
+    .padding({ top: 15, bottom: 15 })
+    .borderWidth({ bottom: 0.5 })
+    .borderColor(this.theme.colors.border)
+  }
+}
 
 @Entry
 @Component
@@ -17,11 +97,22 @@ struct SettingsPage {
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
 
-  // General settings state
-  @State autoTheme: boolean = false;
-  @State autoOrientation: boolean = false;
+  // 自动主题：@StorageLink 跨页面共享；开启后由 ThemeAutoStore 启动 mediaquery 监听，
+  // 系统色变化时自动同步 AppStorage('themeMode')。启动值由 EntryAbility.initialize()
+  // 从 kvStore 写入，handleAutoThemeChange 同步 AppStorage + 调 themeAutoStore.setEnabled。
+  @StorageLink('autoTheme') autoTheme: boolean = false;
+  // 自动横竖屏：@StorageLink 写入 AppStorage 后 MainPage.applyOrientation 立即响应；
+  // 启动值由 EntryAbility.initialize() 从 kvStore 写入。下方 handler 同时同步 AppStorage
+  // 并立即调用 setPreferredOrientation 切换主窗口方向（不依赖 MainPage 在栈顶）。
+  @StorageLink('autoOrientation') autoOrientation: boolean = false;
   @State voiceAssistantEnabled: boolean = false;
-  @State carModeEnabled: boolean = false;
+  // 车机模式三个字段全部用 @StorageLink：SettingsPage 写入后立即触发 MainPage /
+  // GlobalBottomBar / SquirrelAgent / EmbeddedPlayerPanel 等消费者重建（对齐 mobile
+  // 的 SettingsContext 订阅模式）。AppStorage 由 EntryAbility.initialize() 从
+  // kvStore 恢复，SettingsPage 自身不再读 kvStore.get('carModeEnabled')。
+  @StorageLink('carModeEnabled') @Watch('onCarModeStorageChange') carModeEnabled: boolean = false;
+  @StorageLink('carPanelsSwapped') carPanelsSwapped: boolean = false;
+  @StorageLink('screenBottomInset') screenBottomInset: number = 0;
   @State acceptRelay: boolean = false;
   @State acceptSync: boolean = false;
   @State cacheEnabled: boolean = false;
@@ -32,10 +123,18 @@ struct SettingsPage {
   @State externalQuality: string = '';
   @State sourceType: string = '';
   @State version: string = '1.2.0.1';
+  // 车机模式：VIP 门控状态（aboutToAppear 时拉一次）
+  @State carModeIsVip: boolean = false;
+  // 屏幕边距 Slider 半模态显示控制
+  @State screenInsetModalVisible: boolean = false;
+  // 屏幕边距 slider 实时拖动值（松手/点击才持久化，对齐 mobile 的 Slider.onChange End 行为）
+  @State screenInsetDraft: number = 0;
 
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);
     this.loadSettings();
+    // 车机模式 VIP 门控（提前预热，避免开关切换时同步等待拉接口）
+    this.loadCarModeVipGate();
   }
 
   onThemeModeChange(): void {
@@ -45,22 +144,68 @@ struct SettingsPage {
   async loadSettings() {
     try {
       this.sourceType = authStore.state_.sourceType;
-      this.autoTheme = (await kvStore.get('autoTheme')) === 'true';
-      this.autoOrientation = (await kvStore.get('autoOrientation')) === 'true';
-      this.voiceAssistantEnabled = (await kvStore.get('voiceAssistantEnabled')) === 'true';
-      this.carModeEnabled = (await kvStore.get('carModeEnabled')) === 'true';
-      this.acceptRelay = (await kvStore.get('acceptRelay')) === 'true';
-      this.acceptSync = (await kvStore.get('acceptSync')) === 'true';
-      this.cacheEnabled = (await kvStore.get('cacheEnabled')) === 'true';
-      this.experienceProgramEnabled = (await kvStore.get('experienceProgramEnabled')) === 'true';
+      // autoTheme / autoOrientation / carModeEnabled / carPanelsSwapped / screenBottomInset
+      // 由 EntryAbility 从 kvStore 读出后写入 AppStorage，本页直接走 @StorageLink，
+      // 不再重复读 kvStore（避免 loadSettings 异步回填覆盖真实值）。
+      this.voiceAssistantEnabled = await this.readBool('voiceAssistantEnabled', false);
+      // carModeEnabled / carPanelsSwapped / screenBottomInset 由 EntryAbility 从
+      // kvStore 读出后写入 AppStorage，本页直接走 @StorageLink，不再重复读 kvStore。
+      this.acceptRelay = await this.readBool('acceptRelay', true);
+      this.acceptSync = await this.readBool('acceptSync', true);
+      this.cacheEnabled = await this.readBool('cacheEnabled', false);
+      this.experienceProgramEnabled = await this.readBool('experienceProgramEnabled', true);
       this.audiobookMode = (await kvStore.get('playMode')) === 'AUDIOBOOK';
       const ratioRaw = await kvStore.get('recommendationLikeRatio');
       this.recommendationLikeRatio = ratioRaw ? Number(ratioRaw) : 50;
       this.internalQuality = await getInternalQuality();
       this.externalQuality = await getExternalQuality();
+      // 同步控制：把 kvStore 里的开关状态同步到 SyncStore，避免两者脱节
+      syncStore.setAcceptSync(this.acceptSync);
     } catch (e) {
       Logger.w('SettingsPage', `load settings failed: ${String(e)}`);
     }
+  }
+
+  /**
+   * 车机模式 VIP 门控：拉一次 plus profile，缓存 vipTier 给开关切换时同步判断，
+   * 避免每次切开关都再调一次 plusApi.getMe。对齐 mobile 的 handleToggleCarMode。
+   */
+  private async loadCarModeVipGate(): Promise<void> {
+    try {
+      const token = await kvStore.get('plus_token');
+      const userId = await kvStore.get('plus_user_id');
+      if (!token || !userId || userId.length === 0) {
+        this.carModeIsVip = false;
+        return;
+      }
+      setPlusAuthToken(token);
+      let id: string = userId;
+      try {
+        const parsed = JSON.parse(userId) as string;
+        if (parsed) id = parsed;
+      } catch { /* keep raw */ }
+      const profile = await plusApi.getMe(id);
+      const tier = profile?.vipTier;
+      this.carModeIsVip = !!tier && tier !== 'NONE';
+    } catch (e) {
+      Logger.w('SettingsPage', `loadCarModeVipGate failed: ${String(e)}`);
+      this.carModeIsVip = false;
+    }
+  }
+
+  /**
+   * @StorageLink('carModeEnabled') 监听：当前仅作埋点钩子，未避免重复重建
+   * （@StorageLink 本身已能驱动父组件响应）。保留 @Watch 占位，方便后续接埋点。
+   */
+  onCarModeStorageChange(): void {
+    Logger.i('SettingsPage', `carModeEnabled storage -> ${this.carModeEnabled}`);
+  }
+
+  /** 读取布尔设置；未存储过时回退到与 mobile 端一致的默认值。 */
+  private async readBool(key: string, fallback: boolean): Promise<boolean> {
+    const v = await kvStore.get(key);
+    if (v === null) return fallback;
+    return v === 'true';
   }
 
   goBack() {
@@ -71,43 +216,27 @@ struct SettingsPage {
     await kvStore.set(key, value ? 'true' : 'false');
   }
 
-  // 主题写入守卫：AppStorage 更新触发的重建会让 SwitchRow 内的 Toggle
-  // 多发一次 onChange(false)。若不拦下，会把刚切过去的主题又写回 light。
-  private themeWriteGuard: boolean = false;
-  private themeGuardTimer: number | null = null;
-
-  aboutToDisappear() {
-    if (this.themeGuardTimer !== null) {
-      clearTimeout(this.themeGuardTimer);
-      this.themeGuardTimer = null;
-    }
-  }
+  // ─── 开关交互说明 ───
+  // 开关行由文件级的 SettingSwitchRow 子组件实现（见文件顶部），@Prop 回显、
+  // onClick 回调翻转，彻底绕开 ArkUI Toggle 在重建时多发 onChange(false) 的鬼影问题
+  // （本仓库提交 1c419826 已证实）。这里的 handler 收到的都是真实用户操作，直接写存储。
 
   setThemeMode(mode: ThemeMode): void {
-    this.themeWriteGuard = true;
     AppStorage.setOrCreate('themeMode', mode);
     applySystemBar(mode);
     kvStore.set('themeMode', mode);
-    // 重建通常在一帧内完成，保留一个保守窗口；窗口结束前不再处理任何 onChange
-    if (this.themeGuardTimer !== null) {
-      clearTimeout(this.themeGuardTimer);
-    }
-    this.themeGuardTimer = setTimeout((): void => {
-      this.themeWriteGuard = false;
-      this.themeGuardTimer = null;
-    }, 100);
   }
 
   handleAutoThemeChange(val: boolean) {
-    this.autoTheme = val;
+    // this.autoTheme 由 @StorageLink 自动同步（AppStorage.setOrCreate 在写 kvStore 后立即触发）
+    AppStorage.setOrCreate<boolean>('autoTheme', val);
     this.updateBoolSetting('autoTheme', val);
+    // 开启立即同步当前系统色到 themeMode；关闭后由 onConfigurationUpdate 自动跳过覆盖。
+    themeAutoStore.setEnabled(val);
   }
 
   handleDarkModeChange(val: boolean) {
     if (this.autoTheme) return;
-    if (this.themeWriteGuard) {
-      return;
-    }
     if (val) {
       if (this.themeMode !== 'dark') {
         this.setThemeMode('dark');
@@ -119,9 +248,6 @@ struct SettingsPage {
 
   handleFestiveChange(val: boolean) {
     if (this.autoTheme) return;
-    if (this.themeWriteGuard) {
-      return;
-    }
     if (val) {
       if (this.themeMode !== 'festive') {
         this.setThemeMode('festive');
@@ -132,18 +258,143 @@ struct SettingsPage {
   }
 
   handleAutoOrientationChange(val: boolean) {
-    this.autoOrientation = val;
+    // this.autoOrientation 由 @StorageLink 自动同步（AppStorage.setOrCreate 在写 kvStore 后立即触发）
+    AppStorage.setOrCreate<boolean>('autoOrientation', val);
     this.updateBoolSetting('autoOrientation', val);
+    // 立即应用方向：SettingsPage 自身可能在栈顶，避免等 MainPage 重建才生效。
+    // 车机模式开启时横屏锁仍优先（MainPage.applyOrientation 优先级链：carMode > autoOrientation > PORTRAIT）。
+    this.applyOrientationImmediate();
+  }
+
+  /**
+   * 立即按优先级链应用窗口方向：carMode > autoOrientation > PORTRAIT。
+   * MainPage.applyOrientation 内部用同一份逻辑，这里抽出独立函数供 SettingsPage 在
+   * 自身栈顶时直接调用，避免等 MainPage 重建触发。
+   */
+  private applyOrientationImmediate(): void {
+    const carMode = AppStorage.get<boolean>('carModeEnabled') === true;
+    const auto = AppStorage.get<boolean>('autoOrientation') === true;
+    let target: window.Orientation = window.Orientation.PORTRAIT;
+    if (carMode) {
+      target = window.Orientation.LANDSCAPE;
+    } else if (auto) {
+      target = window.Orientation.AUTO_ROTATION;
+    }
+    try {
+      const ctx: Context = getContext();
+      window.getLastWindow(ctx).then((win: window.Window): void => {
+        win.setPreferredOrientation(target);
+      }).catch((e: Error): void => {
+        Logger.w('SettingsPage', `getLastWindow failed: ${String(e)}`);
+      });
+    } catch (e) {
+      Logger.w('SettingsPage', `applyOrientationImmediate failed: ${String(e)}`);
+    }
   }
 
   handleVoiceAssistantChange(val: boolean) {
+    Logger.i('SettingsPage', `voiceAssistant -> ${val}`);
     this.voiceAssistantEnabled = val;
     this.updateBoolSetting('voiceAssistantEnabled', val);
   }
 
-  handleCarModeChange(val: boolean) {
-    this.carModeEnabled = val;
-    this.updateBoolSetting('carModeEnabled', val);
+  /**
+   * 车机模式开关切换（对齐 mobile 的 handleToggleCarMode）：
+   * 1. 校验 plus_token + vipTier（会员功能）
+   * 2. 持久化到 kvStore
+   * 3. 同步到 AppStorage（@StorageLink 立即触发所有订阅者重渲染）
+   * 4. 开启时跳回 MainPage 触发横屏左右布局
+   */
+  async handleCarModeChange(val: boolean): Promise<void> {
+    if (val) {
+      // 1) 必须登录会员账号
+      const plusToken = await kvStore.get('plus_token');
+      const plusUserId = await kvStore.get('plus_user_id');
+      if (!plusToken || !plusUserId || plusUserId.length === 0) {
+        await promptAction.showDialog({
+          title: t('common.memberFeature'),
+          message: t('common.loginFirst'),
+          buttons: [{ text: t('common.ok'), color: '#3F51B5' }],
+        }).catch(() => undefined);
+        return;
+      }
+      // 2) 必须 VIP（页面级缓存 + 实时拉取兜底）
+      let isVip = this.carModeIsVip;
+      if (!isVip) {
+        try {
+          setPlusAuthToken(plusToken);
+          let id: string = plusUserId;
+          try {
+            const parsed = JSON.parse(plusUserId) as string;
+            if (parsed) id = parsed;
+          } catch { /* keep raw */ }
+          const profile = await plusApi.getMe(id);
+          const tier = profile?.vipTier;
+          isVip = !!tier && tier !== 'NONE';
+          this.carModeIsVip = isVip;
+        } catch (e) {
+          Logger.w('SettingsPage', `car mode VIP check failed: ${String(e)}`);
+        }
+      }
+      if (!isVip) {
+        // ArkUI 的 promptAction.showDialog buttons 不支持 onClick 字段，
+        // 必须 await 返回值根据 index 判断：0 = 取消，1 = 前往会员页面
+        const result = await promptAction.showDialog({
+          title: t('settings.vipOnly'),
+          message: t('settings.carModeVipOnly'),
+          buttons: [
+            { text: t('common.cancel'), color: '#888' },
+            { text: t('settings.goToMemberPage'), color: '#3F51B5' },
+          ],
+        }).catch((): undefined => undefined);
+        if (result?.index === 1) {
+          router.pushUrl({ url: 'pages/MemberBenefitsPage' }).catch((e: Error): void => {
+            Logger.w('SettingsPage', `navigate to MemberBenefitsPage failed: ${String(e)}`);
+          });
+        }
+        return;
+      }
+    }
+    // 3) 持久化 + 同步 AppStorage
+    await this.updateBoolSetting('carModeEnabled', val);
+    AppStorage.setOrCreate<boolean>('carModeEnabled', val);
+    // 4) 开启时强制跳到 MainPage 触发车机布局（对齐 mobile 的 router.replace('/(tabs)')）
+    if (val) {
+      try {
+        router.replaceUrl({ url: 'pages/MainPage' });
+      } catch (e) {
+        Logger.w('SettingsPage', `navigate to MainPage failed: ${String(e)}`);
+      }
+    }
+  }
+
+  /** 切换左右面板位置（车机模式中间圆形按钮触发，本页不直接调用，预留） */
+  handleCarPanelsSwappedChange(val: boolean): void {
+    this.carPanelsSwapped = val;
+    AppStorage.setOrCreate<boolean>('carPanelsSwapped', val);
+    this.updateBoolSetting('carPanelsSwapped', val);
+  }
+
+  /** 屏幕边距调整入口：点击 ActionRow 打开半模态 */
+  openScreenInsetModal(): void {
+    this.screenInsetDraft = this.screenBottomInset;
+    this.screenInsetModalVisible = true;
+  }
+
+  /** 屏幕边距 Slider 松手/点击时才持久化（对齐 mobile Slider.onChange End） */
+  commitScreenInset(value: number): void {
+    const clamped = Math.round(Math.max(0, Math.min(160, value)));
+    this.screenBottomInset = clamped;
+    AppStorage.setOrCreate<number>('screenBottomInset', clamped);
+    kvStore.set('screenBottomInset', String(clamped)).catch((e: Error): void => {
+      Logger.w('SettingsPage', `save screenBottomInset failed: ${String(e)}`);
+    });
+  }
+
+  /** 屏幕边距重置为 0 */
+  resetScreenInset(): void {
+    this.screenInsetDraft = 0;
+    this.commitScreenInset(0);
   }
 
   handleRelayChange(val: boolean) {
@@ -154,6 +405,8 @@ struct SettingsPage {
   handleSyncChange(val: boolean) {
     this.acceptSync = val;
     this.updateBoolSetting('acceptSync', val);
+    // 同步到 SyncStore，让"接受同步邀请"的实际行为立即跟随开关
+    syncStore.setAcceptSync(val);
   }
 
   handleCacheChange(val: boolean) {
@@ -203,8 +456,14 @@ struct SettingsPage {
       .width('100%')
   }
 
+  // ═══ 深色模式 / 春日主题专用开关行 ═══
+  // 这两个开关的值来自 @StorageLink('themeMode') 的派生表达式（themeMode === 'dark'），
+  // 没有对应的父组件 @State 字段可供 @Link 反向写入，因此不能像其他开关那样用
+  // SettingSwitchRow 的 @Link 双向绑定。这里用「单向回显 + 回调写主题」的模式：
+  // 回显值由父组件表达式计算后传入，点击只调 handler 写 themeMode，
+  // themeMode 变化 → 表达式重算 → 新值传回，完成闭环。
   @Builder
-  SwitchRow(label: string, description: string, value: boolean, onChange: (val: boolean) => void, disabled: boolean = false) {
+  ThemeSwitchRow(label: string, description: string, value: boolean, onChange: (val: boolean) => void, disabled: boolean) {
     Row() {
       Column() {
         Text(label)
@@ -220,12 +479,26 @@ struct SettingsPage {
       .alignItems(HorizontalAlign.Start)
       .margin({ right: 20 })
 
-      Toggle({ type: ToggleType.Switch, isOn: value })
-        .selectedColor(this.theme.colors.primary)
-        .switchPointColor('#f4f3f4')
-        .enabled(!disabled)
-        .opacity(disabled ? 0.5 : 1)
-        .onChange((isOn: boolean): void => onChange(isOn))
+      Column() {
+        Column()
+          .width(24)
+          .height(24)
+          .borderRadius(12)
+          .backgroundColor('#f4f3f4')
+          .translate({ x: value ? 12 : -12 })
+          .animation({ duration: 200, curve: Curve.EaseInOut })
+      }
+      .width(48)
+      .height(28)
+      .borderRadius(14)
+      .backgroundColor(value ? this.theme.colors.primary : 'rgba(120,120,128,0.32)')
+      .justifyContent(FlexAlign.Center)
+      .opacity(disabled ? 0.5 : 1)
+      .onClick((): void => {
+        if (!disabled) {
+          onChange(!value);
+        }
+      })
     }
     .width('100%')
     .padding({ top: 15, bottom: 15 })
@@ -361,24 +634,38 @@ struct SettingsPage {
           )
 
           // 车机模式
-          this.SwitchRow(
-            t('settings.carMode'),
-            t('settings.carModeDescription'),
-            this.carModeEnabled,
-            (val: boolean): void => this.handleCarModeChange(val),
-          )
+          SettingSwitchRow({
+            label: t('settings.carMode'),
+            description: t('settings.carModeDescription'),
+            value: this.carModeEnabled,
+            onChange: (val: boolean): void => {
+              this.handleCarModeChange(val).catch((e: Error): void => {
+                Logger.w('SettingsPage', `handleCarModeChange rejected: ${String(e)}`);
+              });
+            },
+          })
+
+          // 车机模式开启后：屏幕边距调整入口（滑动调整底部安全区，对齐 mobile Slider modal）
+          if (this.carModeEnabled) {
+            this.ActionRow(
+              t('settings.screenInset'),
+              t('settings.screenInsetDescription'),
+              () => this.openScreenInsetModal(),
+              `${this.screenBottomInset}`,
+            )
+          }
 
           // 跟随系统主题
-          this.SwitchRow(
-            t('settings.autoTheme'),
-            t('settings.autoThemeDescription'),
-            this.autoTheme,
-            (val: boolean): void => this.handleAutoThemeChange(val),
-          )
+          SettingSwitchRow({
+            label: t('settings.autoTheme'),
+            description: t('settings.autoThemeDescription'),
+            value: this.autoTheme,
+            onChange: (val: boolean): void => this.handleAutoThemeChange(val),
+          })
 
           // 深色模式
           Column() {
-            this.SwitchRow(
+            this.ThemeSwitchRow(
               t('settings.darkMode'),
               t('settings.darkModeDescription'),
               this.themeMode === 'dark',
@@ -387,7 +674,7 @@ struct SettingsPage {
             )
 
             // 春日主题
-            this.SwitchRow(
+            this.ThemeSwitchRow(
               t('settings.festiveTheme'),
               t('settings.festiveThemeDescription'),
               this.themeMode === 'festive',
@@ -398,20 +685,20 @@ struct SettingsPage {
           .opacity(this.autoTheme ? 0.5 : 1)
 
           // 自动横竖屏
-          this.SwitchRow(
-            t('settings.autoOrientation'),
-            t('settings.autoOrientationDescription'),
-            this.autoOrientation,
-            (val: boolean): void => this.handleAutoOrientationChange(val),
-          )
+          SettingSwitchRow({
+            label: t('settings.autoOrientation'),
+            description: t('settings.autoOrientationDescription'),
+            value: this.autoOrientation,
+            onChange: (val: boolean): void => this.handleAutoOrientationChange(val),
+          })
 
           // 语音助手
-          this.SwitchRow(
-            t('settings.voiceAssistant'),
-            t('settings.voiceAssistantDescription'),
-            this.voiceAssistantEnabled,
-            (val: boolean): void => this.handleVoiceAssistantChange(val),
-          )
+          SettingSwitchRow({
+            label: t('settings.voiceAssistant'),
+            description: t('settings.voiceAssistantDescription'),
+            value: this.voiceAssistantEnabled,
+            onChange: (val: boolean): void => this.handleVoiceAssistantChange(val),
+          })
 
           // 推荐偏好
           Column() {
@@ -445,37 +732,37 @@ struct SettingsPage {
 
           // 有声书模式 (仅非 Subsonic 源显示)
           if (this.sourceType !== 'Subsonic') {
-            this.SwitchRow(
-              t('settings.audiobookMode'),
-              t('settings.audiobookModeDescription'),
-              this.audiobookMode,
-              (val: boolean): void => this.handleAudiobookModeChange(val),
-            )
+            SettingSwitchRow({
+              label: t('settings.audiobookMode'),
+              description: t('settings.audiobookModeDescription'),
+              value: this.audiobookMode,
+              onChange: (val: boolean): void => this.handleAudiobookModeChange(val),
+            })
           }
 
           // 接力播放
-          this.SwitchRow(
-            t('settings.relayPlay'),
-            t('settings.relayPlayDescription'),
-            this.acceptRelay,
-            (val: boolean): void => this.handleRelayChange(val),
-          )
+          SettingSwitchRow({
+            label: t('settings.relayPlay'),
+            description: t('settings.relayPlayDescription'),
+            value: this.acceptRelay,
+            onChange: (val: boolean): void => this.handleRelayChange(val),
+          })
 
           // 同步控制
-          this.SwitchRow(
-            t('settings.syncControl'),
-            t('settings.syncControlDescription'),
-            this.acceptSync,
-            (val: boolean): void => this.handleSyncChange(val),
-          )
+          SettingSwitchRow({
+            label: t('settings.syncControl'),
+            description: t('settings.syncControlDescription'),
+            value: this.acceptSync,
+            onChange: (val: boolean): void => this.handleSyncChange(val),
+          })
 
           // 边听边存
-          this.SwitchRow(
-            t('settings.cacheWhilePlaying'),
-            t('settings.cacheWhilePlayingDescription'),
-            this.cacheEnabled,
-            (val: boolean): void => this.handleCacheChange(val),
-          )
+          SettingSwitchRow({
+            label: t('settings.cacheWhilePlaying'),
+            description: t('settings.cacheWhilePlayingDescription'),
+            value: this.cacheEnabled,
+            onChange: (val: boolean): void => this.handleCacheChange(val),
+          })
 
           // ═══ 存储管理 Section ═══
           this.SectionTitle(t('settings.storage'))
@@ -531,12 +818,15 @@ struct SettingsPage {
             (): void => { openInBrowser(getContext(this), 'https://www.audiodock.cn/docs/privacy-policy/'); },
           )
 
-          this.SwitchRow(
-            t('settings.experienceProgram'),
-            t('settings.experienceProgramDescription'),
-            this.experienceProgramEnabled,
-            (val: boolean): void => { this.experienceProgramEnabled = val; this.updateBoolSetting('experienceProgramEnabled', val); },
-          )
+          SettingSwitchRow({
+            label: t('settings.experienceProgram'),
+            description: t('settings.experienceProgramDescription'),
+            value: this.experienceProgramEnabled,
+            onChange: (val: boolean): void => {
+              this.experienceProgramEnabled = val;
+              this.updateBoolSetting('experienceProgramEnabled', val);
+            },
+          })
 
           // ═══ 退出登录 ═══
           Button(t('settings.logout'))
@@ -564,9 +854,79 @@ struct SettingsPage {
       .width('100%')
       .layoutWeight(1)
       .scrollBar(BarState.Off)
+
+      // 车机模式屏幕边距 Slider 半模态（对齐 mobile settings.tsx 的 screenInset Modal）
+      Column().width(0).height(0)
+        .bindSheet($$this.screenInsetModalVisible, this.screenInsetSheet(), {
+          height: 360,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
     }
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme.colors.background)
+  }
+
+  /** 屏幕边距调整半模态（对齐 mobile Slider 0–160 + 重置） */
+  @Builder
+  screenInsetSheet() {
+    Column() {
+      Text(t('settings.screenInset'))
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text)
+        .margin({ top: 8, bottom: 16 })
+
+      Text(`${this.screenInsetDraft} px · ${t('settings.bottomInset')}`)
+        .fontSize(13)
+        .fontColor(this.theme.colors.textSecondary)
+        .margin({ bottom: 16 })
+
+      Slider({
+        value: this.screenInsetDraft,
+        min: 0,
+        max: 160,
+        step: 5,
+      })
+        .width('90%')
+        .trackColor(this.theme.colors.border)
+        .selectedColor(this.theme.colors.primary)
+        .blockColor(this.theme.colors.primary)
+        .onChange((value: number, mode: SliderChangeMode): void => {
+          // 松手/点击才持久化（对齐 mobile 的 Slider.onChange End）
+          if (mode === SliderChangeMode.End || mode === SliderChangeMode.Click) {
+            this.commitScreenInset(value);
+          } else {
+            this.screenInsetDraft = Math.round(value);
+          }
+        })
+
+      Row({ space: 12 }) {
+        Button(t('common.reset'))
+          .layoutWeight(1)
+          .height(44)
+          .backgroundColor(this.theme.colors.border)
+          .fontColor(this.theme.colors.text)
+          .borderRadius(8)
+          .onClick(() => this.resetScreenInset())
+
+        Button(t('common.done'))
+          .layoutWeight(1)
+          .height(44)
+          .backgroundColor(this.theme.colors.primary)
+          .fontColor('#FFFFFF')
+          .borderRadius(8)
+          .onClick(() => {
+            this.commitScreenInset(this.screenInsetDraft);
+            this.screenInsetModalVisible = false;
+          })
+      }
+      .width('90%')
+      .margin({ top: 24 })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, bottom: 16 })
+    .alignItems(HorizontalAlign.Center)
   }
 }

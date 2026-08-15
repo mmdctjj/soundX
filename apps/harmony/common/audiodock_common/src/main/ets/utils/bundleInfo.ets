@@ -4,6 +4,12 @@ import { Logger } from '../logger/Logger';
 
 const TAG = 'BundleInfo';
 
+/** 应用版本信息接口 */
+interface AppVersionInfo {
+  versionName: string;
+  versionCode: number;
+}
+
 const DEFAULT_FLAGS =
   bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION |
   bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_HAP_MODULE |
@@ -40,9 +46,10 @@ export function getSelfBundleInfo(
 }
 
 /** 便捷取版本号 / 版本名（仅需要 DEFAULT flag）。 */
-export async function getSelfAppVersion(): Promise<{ versionName: string; versionCode: number }> {
+export async function getSelfAppVersion(): Promise<AppVersionInfo> {
   const info = await getSelfBundleInfo(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT);
-  return { versionName: info.versionName, versionCode: info.versionCode };
+  const result: AppVersionInfo = { versionName: info.versionName, versionCode: info.versionCode };
+  return result;
 }
 
 /** 便捷取签名信息。 */

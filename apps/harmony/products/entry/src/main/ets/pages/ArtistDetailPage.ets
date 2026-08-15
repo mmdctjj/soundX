@@ -1,10 +1,11 @@
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
+import picker from '@ohos.file.picker';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { Logger } from 'audiodock_common';
-import { albumApi, artistApi, trackApi, collectionApi, mvApi, miApi, playlistApi } from 'features_network';
+import { albumApi, artistApi, trackApi, collectionApi, mvApi, miApi } from 'features_network';
 import type { AlbumDto, ArtistDto, TrackDto, MVDto, CollectionDto, CollectionAlbumItem, MiDevice, MiTrackPayload } from 'features_network';
 import { DetailHero } from '../components/DetailHero';
 import { SectionHeader } from '../components/SectionHeader';
@@ -45,6 +46,7 @@ struct ArtistDetailPage {
   @State miQRCodeUrl: string = '';
   @State miLoading: boolean = false;
   @State miCasting: boolean = false;
+  @State uploadingCover: boolean = false;
   private miPollingId: number = -1;
   private entityId: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
@@ -113,7 +115,13 @@ struct ArtistDetailPage {
         .alignItems(VerticalAlign.Center)
       } else {
         // 标题留空：艺人名显示在头像下方，与 mobile 一致
-        CommonNavBar({ title: '', theme: this.theme, onBack: () => router.back() })
+        CommonNavBar({
+          title: '',
+          theme: this.theme,
+          onBack: () => router.back(),
+          showMore: true,
+          onMore: () => { this.showMoreSheet = true; },
+        })
       }
       if (this.loading) {
         this.Skeleton()
@@ -135,12 +143,25 @@ struct ArtistDetailPage {
         this.Content()
       }
       GlobalBottomBar()
+
+      // ArkUI 每个组件只能绑定一个 bindSheet，用不可见锚点分散绑定（对齐 PlayerPage 的做法）。
+      // 之前两个 bindSheet 都挂在根 Column 上，导致「···」更多弹窗点了不显示。
+      Column().width(0).height(0)
+        .bindSheet($$this.showMoreSheet, this.moreSheet(), {
+          height: 200,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showMiCast, this.miCastSheet(), {
+          height: 420,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
     }
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme.colors.background)
-    .bindSheet($$this.showMoreSheet, this.moreSheet(), { height: 380, dragBar: true })
-    .bindSheet($$this.showMiCast, this.miCastSheet(), { height: 420, dragBar: true })
   }
 
   @Builder
@@ -199,7 +220,8 @@ struct ArtistDetailPage {
               onActionClick: () => this.playFrom(0),
             })
             Row({ space: 10 }) {
-              if (!this.isSelectionMode) {
+              // 对齐 mobile artist/[id].tsx：有声书艺人隐藏小爱投放（整个曲目区在 mobile 已隐藏）
+              if (!this.isSelectionMode && !this.isAudiobook()) {
                 Column() {
                   XiaoAiIcon({ iconSize: 20, color: this.theme.colors.textSecondary })
                 }
@@ -222,13 +244,6 @@ struct ArtistDetailPage {
                   this.toggleSelectAll();
                 }
               })
-              Column() {
-                Text('···').fontSize(16).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.textSecondary)
-              }
-              .width(36).height(36).borderRadius(18)
-              .backgroundColor(this.theme.colors.surfaceAlt)
-              .justifyContent(FlexAlign.Center)
-              .onClick(() => { this.showMoreSheet = true; })
             }
             .width('100%').justifyContent(FlexAlign.End)
             .padding({ left: 20, right: 20, bottom: 8 })
@@ -603,6 +618,41 @@ struct ArtistDetailPage {
   }
 
   // ─── 更多操作 ───
+  private async handleUpdateCover(): Promise<void> {
+    if (this.artist === null || this.uploadingCover) return;
+    // 对齐 mobile artist/[id].tsx handleUpdateCover：仅 AudioDock 源支持修改头像
+    if (authStore.state_.sourceType !== 'audiodock') {
+      promptAction.showToast({ message: t('artistPage.audioDockOnlyCover') });
+      return;
+    }
+    let uris: string[] = [];
+    try {
+      const photoPicker: picker.PhotoViewPicker = new picker.PhotoViewPicker();
+      const options: picker.PhotoSelectOptions = {
+        MIMEType: picker.PhotoViewMIMETypes.IMAGE_TYPE,
+        maxSelectNumber: 1,
+      };
+      const result: picker.PhotoSelectResult = await photoPicker.select(options);
+      uris = result.photoUris;
+    } catch (e) {
+      Logger.w('ArtistDetail', `pick avatar failed: ${String(e)}`);
+      return;
+    }
+    if (uris.length === 0) return;
+    const uri = uris[0];
+    this.uploadingCover = true;
+    try {
+      const updated = await artistApi.uploadAvatar(this.artist.id, uri, 'image/jpeg');
+      this.artist = updated;
+      promptAction.showToast({ message: t('common.success') });
+    } catch (e) {
+      Logger.w('ArtistDetail', `upload avatar failed: ${String(e)}`);
+      promptAction.showToast({ message: t('artistPage.uploadCoverFailed') });
+    } finally {
+      this.uploadingCover = false;
+    }
+  }
+
   @Builder
   moreSheet() {
     Column() {
@@ -613,18 +663,9 @@ struct ArtistDetailPage {
         .fontSize(13).fontColor(this.theme.colors.textSecondary)
         .margin({ bottom: 16 });
 
-      this.MoreOptionRow(t('albumMore.addToPlaylist'), () => {
+      this.MoreOptionRow(t('artistMore.editCover'), () => {
         this.showMoreSheet = false;
-        promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
-      })
-      this.MoreOptionRow(t('albumMore.selectTracks'), () => {
-        this.showMoreSheet = false;
-        this.isSelectionMode = true;
-        this.selectedTrackIds = [];
-      })
-      this.MoreOptionRow(t('albumMore.batchDownload'), () => {
-        this.showMoreSheet = false;
-        promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
+        this.handleUpdateCover();
       })
     }
     .width('100%').padding(20).alignItems(HorizontalAlign.Start)

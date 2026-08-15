@@ -726,7 +726,7 @@ export struct LibraryTab {
       .borderRadius(20)
       .borderWidth(1)
       .borderColor(this.theme.colors.border)
-      .backgroundColor(this.theme.colors.surface)
+      .backgroundColor(Color.Transparent)
     }
     .width('100%')
     .padding({ left: 20, right: 20, bottom: 15 })

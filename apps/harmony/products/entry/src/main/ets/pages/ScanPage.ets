@@ -1,15 +1,14 @@
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
+import { abilityAccessCtrl, common } from '@kit.AbilityKit';
+import { scanBarcode, scanCore } from '@kit.ScanKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+import bundleManager from '@ohos.bundle.bundleManager';
 import { kvStore } from 'features_storage';
 import { t } from 'features_i18n';
 import { Logger } from 'audiodock_common';
 import { scanLoginApi } from 'features_network';
-import type {
-  ScanLoginClaimPayload,
-  ScanLoginAuthBundle,
-  ScanLoginPlusBundle,
-  ScanLoginSourceBundle,
-} from 'features_network';
+import type { ScanLoginClaimPayload, ScanLoginAuthBundle, ScanLoginPlusBundle } from 'features_network';
 import { authStore } from '../context/AuthStore';
 import { AppIcon } from '../components/AppIcon';
 import { buildTheme } from 'features_ui';
@@ -36,93 +35,150 @@ function parseScanLoginQR(text: string): ParsedQR | null {
   }
 }
 
+// 设备是否支持 ScanKit（HarmonyOS 4.0+ 大部分机型支持）
+const SCAN_KIT_SUPPORTED: boolean = canIUse('SystemCapability.Multimedia.Scan.ScanBarcode');
+
 /**
  * 扫码登录页（VIP 功能）。
  *
- * 注意：mobile 端使用 expo-camera + 二维码识别 SDK 实时扫码。
- * harmony 端相机 API（@kit.CameraKit + @ohos.multimedia.zxing）在不同 SDK
- * 版本兼容差异较大，且部分能力仅 API 12+ 提供。为保证 1:1 功能可用、跨版本
- * 编译通过，本页采用「手动输入 session 信息」方案：用户在桌面端生成二维码后，
- * 把二维码附带的 sessionId / secret 粘贴到本页输入框，调 claim 接口后跳转
- * ScanConfirmPage 完成后续确认。
+ * 对齐 mobile app/scan.tsx 流程：
+ *   1) 进入页面检查相机权限；
+ *   2) 无权限 → 显示引导页 + "去扫码"按钮，点击申请权限；
+ *   3) 已授权 → 拉起 ScanKit 系统扫码界面（Default View 模式）；
+ *   4) 扫到二维码 → 解析 {kind, sessionId, secret} → 调 claim 接口；
+ *   5) 跳 ScanConfirmPage 完成后续确认。
  *
- * 后续如果接入相机扫码能力，可在此基础上叠加 cameraKit 预览 + zxing 解析；
- * claim 之后的流程不变。
+ * 历史实现：因未引入 ScanKit 写过一段"手动输入 sessionId/secret" 的回退方案。
+ * 当前 targetAPIVersion=19 已具备 ScanKit 默认界面能力，移除非必要的兜底。
  */
 @Entry
 @Component
 struct ScanPage {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State theme: Theme = buildTheme('light');
-  @State manualInputVisible: boolean = false;
-  @State manualSessionId: string = '';
-  @State manualSecret: string = '';
-  @State manualPasted: string = '';
+  @State permissionGranted: boolean = false;
+  @State checkingPermission: boolean = true;
   @State busy: boolean = false;
+  @State unsupportedDevice: boolean = !SCAN_KIT_SUPPORTED;
+
+  // 本机 accessTokenId，用于 checkAccessTokenSync 检测自身权限
+  private tokenId: number = 0;
 
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);
+    this.tokenId = this.fetchTokenId();
+    this.checkCameraPermission();
+  }
+
+  private fetchTokenId(): number {
+    try {
+      const bundleInfo: bundleManager.BundleInfo = bundleManager.getBundleInfoForSelfSync(
+        bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION,
+      );
+      return bundleInfo.appInfo.accessTokenId;
+    } catch (e) {
+      Logger.w(TAG, `fetchTokenId failed: ${String(e)}`);
+      return 0;
+    }
   }
 
   onThemeModeChange(): void {
     this.theme = buildTheme(this.themeMode);
   }
 
-  goBack(): void {
-    router.back();
+  // ─────────────── 权限 ───────────────
+
+  private getContext(): common.UIAbilityContext {
+    return getContext(this) as common.UIAbilityContext;
   }
 
-  // ─────────────── 手动输入回退（主流程） ───────────────
-
-  private openManualInput(): void {
-    this.manualSessionId = '';
-    this.manualSecret = '';
-    this.manualPasted = '';
-    this.manualInputVisible = true;
-  }
-
-  private closeManualInput(): void {
-    this.manualInputVisible = false;
-  }
-
-  private async submitManualInput(): Promise<void> {
-    if (this.busy) return;
-    const pasted: string = this.manualPasted.trim();
-    let sid: string = this.manualSessionId.trim();
-    let sec: string = this.manualSecret.trim();
-
-    // 支持直接粘贴完整 JSON：{"kind":"soundx-scan-login","sessionId":"...","secret":"..."}
-    if (pasted.length > 0) {
-      const parsed: ParsedQR | null = parseScanLoginQR(pasted);
-      if (parsed) {
-        sid = parsed.sessionId;
-        sec = parsed.secret;
-      } else if (sid.length === 0 && sec.length === 0) {
-        // 粘贴的不是 JSON 也不是两项都填，直接当无效
-        promptAction.showToast({ message: t('scanLogin.invalidQR') });
-        return;
-      }
-    }
-
-    if (sid.length === 0 || sec.length === 0) {
-      promptAction.showToast({ message: t('common.fillUsernameAndPassword') });
+  private checkCameraPermission(): void {
+    if (this.unsupportedDevice) {
+      this.checkingPermission = false;
       return;
     }
-    this.manualInputVisible = false;
-    await this.handleScannedText(JSON.stringify({ kind: 'soundx-scan-login', sessionId: sid, secret: sec }));
+    try {
+      const atManager = abilityAccessCtrl.createAtManager();
+      const grant: abilityAccessCtrl.GrantStatus = atManager.checkAccessTokenSync(
+        this.tokenId,
+        'ohos.permission.CAMERA',
+      );
+      this.permissionGranted = grant === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED;
+    } catch (e) {
+      Logger.w(TAG, `checkCameraPermission failed: ${String(e)}`);
+      this.permissionGranted = false;
+    } finally {
+      this.checkingPermission = false;
+      if (this.permissionGranted) {
+        // 已有权限，进入页面立即拉起扫码，避免"授权后还要再点一次"
+        this.startScan();
+      }
+    }
   }
 
-  // ─────────────── claim 流程（复用 mobile handleScanQrcode） ───────────────
-
-  private async handleScannedText(text: string): Promise<void> {
+  private async requestCameraPermission(): Promise<void> {
     if (this.busy) return;
     this.busy = true;
     try {
-      const parsed: ParsedQR | null = parseScanLoginQR(text);
-      if (!parsed) {
+      const atManager = abilityAccessCtrl.createAtManager();
+      const result = await atManager.requestPermissionsFromUser(
+        this.getContext(),
+        ['ohos.permission.CAMERA'],
+      );
+      const grantArr: number[] = result.authResults ?? [];
+      const granted: boolean = grantArr.length > 0 && grantArr[0] === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED;
+      this.permissionGranted = granted;
+      if (granted) {
+        this.startScan();
+      } else {
+        promptAction.showToast({ message: t('scanLogin.permissionDenied') });
+      }
+    } catch (e) {
+      Logger.e(TAG, `requestCameraPermission failed: ${String(e)}`);
+      promptAction.showToast({ message: t('scanLogin.permissionDenied') });
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  // ─────────────── 扫码流程 ───────────────
+
+  private async startScan(): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      const options: scanBarcode.ScanOptions = {
+        scanTypes: [scanCore.ScanType.QR_CODE],
+        enableMultiMode: false,
+        enableAlbum: true,
+      };
+      const result: scanBarcode.ScanResult = await scanBarcode.startScanForResult(this.getContext(), options);
+      const original: string = result.originalValue ?? '';
+      if (original.length === 0) {
         promptAction.showToast({ message: t('scanLogin.invalidQR') });
         return;
       }
+      await this.handleScannedText(original);
+    } catch (e) {
+      const err = e as BusinessError;
+      // 201 = 用户取消扫描（ScanKit 标准错误码），不弹错误
+      if (err && err.code === 201) {
+        return;
+      }
+      Logger.e(TAG, `startScan failed: ${String(e)}`);
+      promptAction.showToast({ message: t('scanLogin.scanFailed') });
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private async handleScannedText(text: string): Promise<void> {
+    const parsed: ParsedQR | null = parseScanLoginQR(text);
+    if (!parsed) {
+      promptAction.showToast({ message: t('scanLogin.invalidQR') });
+      return;
+    }
+    try {
       const payload: ScanLoginClaimPayload = await this.buildClaimPayload();
       if (!payload.nativeAuth && !payload.plusAuth) {
         promptAction.showToast({ message: t('scanLogin.noLocalAuth') });
@@ -134,10 +190,8 @@ struct ScanPage {
         params: { sessionId: parsed.sessionId, secret: parsed.secret },
       });
     } catch (e) {
-      Logger.e(TAG, `handleScanned failed: ${String(e)}`);
+      Logger.e(TAG, `claim failed: ${String(e)}`);
       promptAction.showToast({ message: t('scanLogin.scanFailed') });
-    } finally {
-      this.busy = false;
     }
   }
 
@@ -145,7 +199,7 @@ struct ScanPage {
     const payload: ScanLoginClaimPayload = {
       nativeAuth: null,
       plusAuth: null,
-      sourceBundles: this.collectSourceBundles(),
+      sourceBundles: [],
     };
     const native: ScanLoginAuthBundle | null = this.buildNativeAuth();
     if (native) payload.nativeAuth = native;
@@ -159,7 +213,7 @@ struct ScanPage {
     const authMe = state.user;
     const token = state.token ?? '';
     if (!authMe || token.length === 0) return null;
-    const bundle: ScanLoginAuthBundle = {
+    return {
       baseUrl: state.serverAddress,
       sourceType: state.sourceType,
       token: token,
@@ -170,7 +224,6 @@ struct ScanPage {
         avatar: authMe.avatar,
       },
     };
-    return bundle;
   }
 
   private async buildPlusAuth(): Promise<ScanLoginPlusBundle | null> {
@@ -180,11 +233,11 @@ struct ScanPage {
     return { token, userId };
   }
 
-  private collectSourceBundles(): ScanLoginSourceBundle[] {
-    return [];
-  }
-
   // ─────────────── UI ───────────────
+
+  goBack(): void {
+    router.back();
+  }
 
   @Builder
   HeaderBar() {
@@ -199,17 +252,14 @@ struct ScanPage {
         .fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
         .layoutWeight(1).textAlign(TextAlign.Center)
 
-      Button() {
-        AppIcon({ name: 'scan', iconSize: 22, color: this.theme.colors.text })
-      }
-      .width(40).height(40).backgroundColor(Color.Transparent)
-      .onClick((): void => { this.openManualInput(); })
+      Row().width(40).height(40)
     }
     .width('100%').padding({ left: 15, right: 15, top: 16, bottom: 15 })
   }
 
   @Builder
-  IntroView() {
+  PermissionGate() {
+    // 没权限 / 设备不支持 → 显示引导页 + 按钮
     Column({ space: 16 }) {
       AppIcon({ name: 'scan', iconSize: 56, color: this.theme.colors.primary })
       Text(t('scanLogin.title'))
@@ -223,98 +273,46 @@ struct ScanPage {
         .textAlign(TextAlign.Center)
         .padding({ left: 24, right: 24 })
 
-      Button(t('scanLogin.title'))
-        .width('70%').height(48)
-        .backgroundColor(this.theme.colors.primary)
-        .fontColor(this.theme.colors.onPrimary)
-        .fontSize(16).fontWeight(FontWeight.Medium)
-        .borderRadius(12)
-        .onClick((): void => { this.openManualInput(); })
+      if (this.unsupportedDevice) {
+        Text(t('scanLogin.unsupportedDevice'))
+          .fontSize(13).fontColor(this.theme.colors.textSecondary)
+          .textAlign(TextAlign.Center)
+          .padding({ left: 24, right: 24 })
+      } else {
+        Button(t('scanLogin.grantPermission'))
+          .width('70%').height(48)
+          .backgroundColor(this.theme.colors.primary)
+          .fontColor(this.theme.colors.onPrimary)
+          .fontSize(16).fontWeight(FontWeight.Medium)
+          .borderRadius(12)
+          .enabled(!this.busy)
+          .opacity(this.busy ? 0.5 : 1)
+          .onClick((): void => { this.requestCameraPermission(); })
+      }
     }
     .width('100%').layoutWeight(1)
     .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
   }
 
   @Builder
-  ManualInputOverlay() {
-    Stack({ alignContent: Alignment.Center }) {
-      Column()
-        .width('100%').height('100%')
-        .backgroundColor('rgba(0,0,0,0.5)')
-        .onClick((): void => { this.closeManualInput(); })
-
-      Column({ space: 12 }) {
-        Text(t('scanLogin.title'))
-          .fontSize(18).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
-
-        Text(t('scanLogin.aimHint'))
-          .fontSize(12).fontColor(this.theme.colors.textSecondary)
-
-        // 一行式粘贴：把 desktop 端二维码对应的 JSON 整体粘到这里，自动解析 sessionId/secret
-        TextInput({ placeholder: '{kind, sessionId, secret}', text: this.manualPasted })
-          .placeholderColor(this.theme.colors.textSecondary)
-          .fontColor(this.theme.colors.text)
-          .backgroundColor(this.theme.colors.background)
-          .borderRadius(10).border({ width: 1, color: this.theme.colors.border })
-          .height(44)
-          .onChange((value: string): void => { this.manualPasted = value; })
-
-        TextInput({ placeholder: 'sessionId', text: this.manualSessionId })
-          .placeholderColor(this.theme.colors.textSecondary)
-          .fontColor(this.theme.colors.text)
-          .backgroundColor(this.theme.colors.background)
-          .borderRadius(10).border({ width: 1, color: this.theme.colors.border })
-          .height(44)
-          .onChange((value: string): void => { this.manualSessionId = value; })
-
-        TextInput({ placeholder: 'secret', text: this.manualSecret })
-          .placeholderColor(this.theme.colors.textSecondary)
-          .fontColor(this.theme.colors.text)
-          .backgroundColor(this.theme.colors.background)
-          .borderRadius(10).border({ width: 1, color: this.theme.colors.border })
-          .height(44)
-          .onChange((value: string): void => { this.manualSecret = value; })
-
-        Row({ space: 12 }) {
-          Row() {
-            Text(t('common.cancel'))
-              .fontSize(15).fontColor(this.theme.colors.textSecondary)
-          }
-          .padding({ top: 10, bottom: 10, left: 20, right: 20 })
-          .onClick((): void => { this.closeManualInput(); })
-
-          Row() {
-            if (this.busy) {
-              LoadingProgress().width(18).height(18).color(this.theme.colors.onPrimary)
-            } else {
-              Text(t('scanLogin.confirmButton'))
-                .fontSize(15).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.onPrimary)
-            }
-          }
-          .padding({ top: 10, bottom: 10, left: 24, right: 24 }).borderRadius(10)
-          .backgroundColor(this.theme.colors.primary)
-          .onClick((): void => { this.submitManualInput(); })
-        }
-        .width('100%').justifyContent(FlexAlign.End).margin({ top: 8 })
-      }
-      .width('85%')
-      .backgroundColor(this.theme.colors.surface).borderRadius(16).padding(20)
+  AuthorizingHint() {
+    Column({ space: 12 }) {
+      LoadingProgress().width(32).height(32).color(this.theme.colors.primary)
+      Text(t('common.loading')).fontSize(14).fontColor(this.theme.colors.textSecondary)
     }
-    .width('100%').height('100%')
+    .width('100%').layoutWeight(1)
+    .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
   }
 
   build() {
-    Stack({ alignContent: Alignment.Center }) {
-      Column() {
-        this.HeaderBar()
-        this.IntroView()
-      }
-      .width('100%').height('100%').backgroundColor(this.theme.colors.background)
-
-      if (this.manualInputVisible) {
-        this.ManualInputOverlay()
+    Column() {
+      this.HeaderBar()
+      if (this.checkingPermission) {
+        this.AuthorizingHint()
+      } else {
+        this.PermissionGate()
       }
     }
-    .width('100%').height('100%')
+    .width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
 }

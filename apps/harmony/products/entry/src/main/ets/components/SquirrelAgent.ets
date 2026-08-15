@@ -28,6 +28,8 @@ type AgentState = 'idle' | 'listening' | 'processing' | 'result';
 @Component
 export struct SquirrelAgent {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  // 车机模式下强制贴左（对齐 mobile SquirrelAgent 的 carLayoutMode 分支）
+  @StorageLink('carModeEnabled') @Watch('onCarModeChange') carModeEnabled: boolean = false;
   @State theme: Theme = buildTheme('light');
   @State state: AgentState = 'idle';
   @State resultText: string = '';
@@ -45,10 +47,26 @@ export struct SquirrelAgent {
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
+    // 启动时如果已经开了车机模式，立即贴左
+    if (this.carModeEnabled && this.containerW > 0) {
+      this.posX = EDGE_MARGIN;
+    }
   }
 
   onThemeModeChange(): void {
     this.theme = buildTheme(this.themeMode);
+  }
+
+  /**
+   * 车机模式开关变化：开启 → 强制贴左；关闭 → 恢复默认贴右（initPosIfNeeded 走原逻辑）。
+   * 对齐 mobile SquirrelAgent 的 carLayoutMode useEffect 分支。
+   */
+  onCarModeChange(): void {
+    if (this.carModeEnabled) {
+      this.posX = EDGE_MARGIN;
+    } else if (this.containerW > 0) {
+      this.posX = this.containerW - SQUIRREL_SIZE - EDGE_MARGIN;
+    }
   }
 
   aboutToDisappear(): void {
@@ -70,6 +88,11 @@ export struct SquirrelAgent {
 
   private snapToEdge(): void {
     if (this.containerW <= 0) return;
+    // 车机模式下强制贴左，让出右侧完整内容区（对齐 mobile SquirrelAgent）
+    if (this.carModeEnabled) {
+      this.posX = EDGE_MARGIN;
+      return;
+    }
     const centerX = this.posX + SQUIRREL_SIZE / 2;
     this.posX = centerX > this.containerW / 2
       ? this.containerW - SQUIRREL_SIZE - EDGE_MARGIN
@@ -260,6 +283,12 @@ export struct SquirrelAgent {
           })
           .onActionUpdate((event: GestureEvent) => {
             if (this.gestureStartX < 0) return;
+            // 车机模式下禁用水平拖动，只允许垂直调整（snapToEnd 时强制贴左）
+            if (this.carModeEnabled) {
+              this.posY = this.clamp(this.gestureStartY + event.offsetY,
+                0, Math.max(0, this.containerH - SQUIRREL_SIZE));
+              return;
+            }
             this.posX = this.clamp(this.gestureStartX + event.offsetX,
               0, Math.max(0, this.containerW - SQUIRREL_SIZE));
             this.posY = this.clamp(this.gestureStartY + event.offsetY,
