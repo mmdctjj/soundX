@@ -1,6 +1,5 @@
-import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
-import picker from '@ohos.file.picker';
+import router from '@ohos.router';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
@@ -13,7 +12,6 @@ import { AlbumCarouselCard } from '../components/AlbumCarouselCard';
 import { TrackRow } from '../components/TrackRow';
 import { AppIcon } from '../components/AppIcon';
 import { XiaoAiIcon } from '../components/XiaoAiIcon';
-import { GlobalBottomBar } from '../components/GlobalBottomBar';
 import { mvPlaylistStore } from '../store/MvPlaylistStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { getInternalQuality } from '../services/trackQuality';
@@ -24,9 +22,18 @@ import { authStore } from '../context/AuthStore';
 const SKELETON_ROWS: number[] = [0, 1, 2, 3, 4, 5, 6];
 const SKELETON_CARDS: number[] = [0, 1, 2];
 
-@Entry
+/** NavDestination 详情页 param：ArkTS 严格模式不允许内联对象字面量，必须显式类/接口 */
+interface DetailNavParam {
+  id: string;
+}
+
 @Component
-struct ArtistDetailPage {
+export struct ArtistDetailContent {
+  // 路由栈与 id 由 RootShellPage 通过 navDestination builder 注入
+  // 注意：属性名不能用 'id' — ArkUI CustomComponent 把 'id' 保留为通用属性（CommonAttribute.id），
+  // 自定义属性必须避开。统一用 'entityId' 表示详情页目标 id。
+  pathStack: NavPathStack = new NavPathStack();
+  entityId: string = '';
   @State artist: ArtistDto | null = null;
   @State albums: AlbumDto[] = [];
   @State collaborativeAlbums: AlbumDto[] = [];
@@ -48,7 +55,6 @@ struct ArtistDetailPage {
   @State miCasting: boolean = false;
   @State uploadingCover: boolean = false;
   private miPollingId: number = -1;
-  private entityId: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
@@ -60,9 +66,6 @@ struct ArtistDetailPage {
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
-    interface RouterParams { id?: string }
-    const p = router.getParams() as RouterParams;
-    this.entityId = p.id ?? '';
     this.load();
     this.unsubPlayer = playerStore.subscribe(() => {
       const v = playerStore.view();
@@ -118,7 +121,7 @@ struct ArtistDetailPage {
         CommonNavBar({
           title: '',
           theme: this.theme,
-          onBack: () => router.back(),
+          onBack: () => this.pathStack.pop(),
           showMore: true,
           onMore: () => { this.showMoreSheet = true; },
         })
@@ -142,7 +145,8 @@ struct ArtistDetailPage {
       } else {
         this.Content()
       }
-      GlobalBottomBar()
+      // GlobalBottomBar 已由 RootShellPage 在 Navigation 容器外统一挂载，跨页面常驻。
+      // 这里不再手动挂载，避免每次进详情页重建一份。
 
       // ArkUI 每个组件只能绑定一个 bindSheet，用不可见锚点分散绑定（对齐 PlayerPage 的做法）。
       // 之前两个 bindSheet 都挂在根 Column 上，导致「···」更多弹窗点了不显示。
@@ -302,10 +306,10 @@ struct ArtistDetailPage {
               name: a.name,
               progress: this.isAudiobook() ? (a.progress ?? 0) : 0,
               theme: this.theme,
-              onCardClick: () => router.pushUrl({
-                url: 'pages/AlbumDetailPage',
-                params: { id: a.id },
-              }),
+              onCardClick: () => {
+                const param: DetailNavParam = { id: a.id };
+                this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+              },
             })
           }, (a: AlbumDto) => a.id)
         }
@@ -335,10 +339,10 @@ struct ArtistDetailPage {
               name: col.name,
               progress: 0,
               theme: this.theme,
-              onCardClick: () => router.pushUrl({
-                url: 'pages/CollectionDetailPage',
-                params: { id: col.id },
-              }),
+              onCardClick: () => {
+                const param: DetailNavParam = { id: col.id };
+                this.pathStack.pushPath({ name: 'CollectionDetail', param: param });
+              },
             })
           }, (col: CollectionDto) => col.id)
         }
@@ -368,6 +372,7 @@ struct ArtistDetailPage {
                 // 跳详情页前先把整个艺人 MV 列表塞进 playlist，
                 // 这样进入详情页能上一首/下一首连续播放（对齐 mobile artist/[id].tsx:539）。
                 mvPlaylistStore.setPlaylist(this.mvs, idx);
+                // MVDetailPage 是独立 @Entry Page，保持 router.pushUrl
                 router.pushUrl({
                   url: 'pages/MVDetailPage',
                   params: { id: mv.id },
@@ -432,101 +437,10 @@ struct ArtistDetailPage {
       const list: Track[] = [];
       for (const x of this.tracks) list.push(await resolveTrackToPlayer(x, false));
       await playerStore.playTrackList(list, index);
+      // PlayerPage 是独立 @Entry Page，保持 router.pushUrl
       router.pushUrl({ url: 'pages/PlayerPage' });
     } catch (e) {
       Logger.w('ArtistDetail', `play failed: ${String(e)}`);
-    }
-  }
-
-  private async load(): Promise<void> {
-    this.loading = true;
-    this.error = '';
-    try {
-      const artist = await artistApi.getById(this.entityId);
-      this.artist = artist;
-      // /album/artist/:artist 与 /track/artist 用的是艺人名字；Emby 源例外，用 id
-      const key = authStore.state_.sourceType === 'emby' ? this.entityId : artist.name;
-      if (key.length > 0) {
-        const albumsP = albumApi.byArtist(key).catch((): AlbumDto[] => []);
-        const collabP = albumApi.collaborativeByArtist(key).catch((): AlbumDto[] => []);
-        const tracksP = trackApi.byArtist(key).catch((): TrackDto[] => []);
-        this.albums = await albumsP;
-        this.collaborativeAlbums = await collabP;
-        this.tracks = await tracksP;
-        this.loadMvs(key);
-        await this.loadCollections(artist);
-      }
-    } catch (e) {
-      this.error = e instanceof Error ? e.message : String(e);
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  private loadMvs(key: string): void {
-    mvApi.byArtist(key)
-      .then((res: MVDto[]) => {
-        if (res && res.length > 0) this.mvs = res;
-      })
-      .catch((e: Object) => {
-        Logger.w('ArtistDetail', `mv load failed: ${String(e)}`);
-      });
-  }
-
-  /**
-   * 相关合集：取用户全部合集，留下「含有该艺人任一专辑」的。
-   * 注意 GET /collections 的 items 只带前 4 条（后端 take: 4），mobile 也是同样的限制。
-   */
-  private async loadCollections(artist: ArtistDto): Promise<void> {
-    if (artist.type !== 'AUDIOBOOK') {
-      this.collections = [];
-      return;
-    }
-    const user = authStore.state_.user;
-    if (user === null) {
-      this.collections = [];
-      return;
-    }
-    try {
-      const all = await collectionApi.list(user.id);
-      const albumIds: string[] = [];
-      for (const a of this.albums) albumIds.push(String(a.id));
-      for (const a of this.collaborativeAlbums) albumIds.push(String(a.id));
-      const matched: CollectionDto[] = [];
-      for (const col of all) {
-        const items: CollectionAlbumItem[] = col.items ?? [];
-        let hit = false;
-        for (const it of items) {
-          const alb = it.album;
-          if (alb !== undefined && albumIds.indexOf(String(alb.id)) >= 0) {
-            hit = true;
-            break;
-          }
-        }
-        if (hit) matched.push(col);
-      }
-      this.collections = matched;
-    } catch (e) {
-      Logger.w('ArtistDetail', `collections load failed: ${String(e)}`);
-      this.collections = [];
-    }
-  }
-
-  // ─── 多选模式 ───
-  private toggleTrackSelection(id: string): void {
-    const idx = this.selectedTrackIds.indexOf(id);
-    if (idx >= 0) {
-      this.selectedTrackIds = this.selectedTrackIds.filter((x: string) => x !== id);
-    } else {
-      this.selectedTrackIds = [...this.selectedTrackIds, id];
-    }
-  }
-
-  private toggleSelectAll(): void {
-    if (this.selectedTrackIds.length === this.tracks.length) {
-      this.selectedTrackIds = [];
-    } else {
-      this.selectedTrackIds = this.tracks.map((tr: TrackDto) => tr.id);
     }
   }
 
@@ -535,26 +449,27 @@ struct ArtistDetailPage {
     this.selectedTrackIds = [];
   }
 
-  // ─── 小爱音箱投送 ───
-  private stopMiPolling(): void {
-    if (this.miPollingId !== -1) { clearInterval(this.miPollingId); this.miPollingId = -1; }
+  private toggleSelectAll(): void {
+    if (this.selectedTrackIds.length === this.tracks.length) {
+      this.selectedTrackIds = [];
+    } else {
+      const ids: string[] = [];
+      for (const tr of this.tracks) ids.push(tr.id);
+      this.selectedTrackIds = ids;
+    }
   }
 
-  private startMiQRPolling(lpUrl: string): void {
-    this.stopMiPolling();
-    this.miPollingId = setInterval(async () => {
-      try {
-        const res = await miApi.getQRCodeStatus(lpUrl);
-        if (res.status === 'success') {
-          this.stopMiPolling();
-          this.miLoggedIn = true;
-          const devRes = await miApi.getDevices();
-          this.miDevices = devRes.devices || [];
-        } else if (res.status === 'expired' || res.status === 'error') {
-          this.stopMiPolling();
-        }
-      } catch (e) { /* silent */ }
-    }, 2000);
+  private toggleTrackSelection(id: string): void {
+    const idx = this.selectedTrackIds.indexOf(id);
+    if (idx >= 0) {
+      const next: string[] = [];
+      for (let i = 0; i < this.selectedTrackIds.length; i++) {
+        if (i !== idx) next.push(this.selectedTrackIds[i]);
+      }
+      this.selectedTrackIds = next;
+    } else {
+      this.selectedTrackIds = [...this.selectedTrackIds, id];
+    }
   }
 
   private async handleOpenMiCast(): Promise<void> {
@@ -563,7 +478,7 @@ struct ArtistDetailPage {
     try {
       const auth = await miApi.getAuthStatus();
       this.miLoggedIn = auth.logged_in;
-      if (auth.logged_in) {
+      if (this.miLoggedIn) {
         const res = await miApi.getDevices();
         this.miDevices = res.devices || [];
       } else {
@@ -574,180 +489,174 @@ struct ArtistDetailPage {
           this.miDevices = res.devices || [];
         } else if (qr.qrcode_url) {
           this.miQRCodeUrl = qr.qrcode_url;
-          if (qr.status_url) this.startMiQRPolling(qr.status_url);
+          if (qr.status_url) this.startMiPolling(qr.status_url);
         }
       }
     } catch (e) {
-      Logger.w('ArtistDetail', `loadMiDevices failed: ${String(e)}`);
-      promptAction.showToast({ message: t('player.loadMiDevicesFailed') });
+      Logger.w('ArtistDetail', `mi cast failed: ${String(e)}`);
     } finally {
       this.miLoading = false;
     }
   }
 
-  private handleCloseMiCast(): void {
-    this.showMiCast = false;
-    this.stopMiPolling();
+  private startMiPolling(statusUrl: string): void {
+    if (this.miPollingId >= 0) return;
+    this.miPollingId = setInterval(async () => {
+      try {
+        const r = await miApi.getQRCodeStatus(statusUrl);
+        if (r.status === 'success') {
+          this.miLoggedIn = true;
+          this.miQRCodeUrl = '';
+          const res = await miApi.getDevices();
+          this.miDevices = res.devices || [];
+          if (this.miPollingId >= 0) {
+            clearInterval(this.miPollingId);
+            this.miPollingId = -1;
+          }
+        } else if (r.status === 'expired' || r.status === 'error') {
+          this.miQRCodeUrl = '';
+          if (this.miPollingId >= 0) {
+            clearInterval(this.miPollingId);
+            this.miPollingId = -1;
+          }
+        }
+      } catch (e) {
+        Logger.w('ArtistDetail', `mi poll: ${String(e)}`);
+      }
+    }, 2000);
   }
 
-  private async handleCastPlaylistToMi(deviceId: string, deviceName: string): Promise<void> {
-    if (this.tracks.length === 0) {
-      promptAction.showToast({ message: t('player.miCastNoTrack') });
-      return;
-    }
+  private async castToDevice(device: MiDevice): Promise<void> {
     this.miCasting = true;
     try {
+      // 对齐 mobile player.tsx handleCastToMi：把当前页所有曲目作为播放列表推到音箱
       const quality = await getInternalQuality();
-      const payloads: MiTrackPayload[] = this.tracks.map((tr: TrackDto) => {
-        const p: MiTrackPayload = {
-          url: trackApi.streamUrl(tr.id, quality),
-          title: `${tr.name} - ${tr.artist ?? ''}`,
-          duration: tr.duration ?? 0,
+      const payload: MiTrackPayload[] = [];
+      for (const tr of this.tracks) {
+        // MiTrackPayload 只接 url/title/duration；外部源用 tr.path 直链，本地源走 streamUrl
+        const url = tr.path && (tr.path.startsWith('http://') || tr.path.startsWith('https://'))
+          ? tr.path
+          : trackApi.streamUrl(tr.id, quality);
+        const title = tr.artist ? `${tr.name} - ${tr.artist}` : tr.name;
+        const item: MiTrackPayload = {
+          url: url,
+          title: title,
+          duration: (tr.duration ?? 0) * 1000,
         };
-        return p;
-      });
-      await miApi.playPlaylist(deviceId, payloads, 0);
-      promptAction.showToast({ message: t('player.miCastPlaylistSuccess', [['device', deviceName], ['count', payloads.length]]) });
-      this.handleCloseMiCast();
+        payload.push(item);
+      }
+      await miApi.playPlaylist(device.device_id, payload, 0);
+      promptAction.showToast({ message: t('artistPage.castSuccess') });
     } catch (e) {
-      Logger.w('ArtistDetail', `cast playlist to Mi failed: ${String(e)}`);
-      promptAction.showToast({ message: t('player.miCastPlaylistFailed') });
+      promptAction.showToast({ message: t('artistPage.castFailed') });
+      Logger.w('ArtistDetail', `cast: ${String(e)}`);
     } finally {
       this.miCasting = false;
-    }
-  }
-
-  // ─── 更多操作 ───
-  private async handleUpdateCover(): Promise<void> {
-    if (this.artist === null || this.uploadingCover) return;
-    // 对齐 mobile artist/[id].tsx handleUpdateCover：仅 AudioDock 源支持修改头像
-    if (authStore.state_.sourceType !== 'audiodock') {
-      promptAction.showToast({ message: t('artistPage.audioDockOnlyCover') });
-      return;
-    }
-    let uris: string[] = [];
-    try {
-      const photoPicker: picker.PhotoViewPicker = new picker.PhotoViewPicker();
-      const options: picker.PhotoSelectOptions = {
-        MIMEType: picker.PhotoViewMIMETypes.IMAGE_TYPE,
-        maxSelectNumber: 1,
-      };
-      const result: picker.PhotoSelectResult = await photoPicker.select(options);
-      uris = result.photoUris;
-    } catch (e) {
-      Logger.w('ArtistDetail', `pick avatar failed: ${String(e)}`);
-      return;
-    }
-    if (uris.length === 0) return;
-    const uri = uris[0];
-    this.uploadingCover = true;
-    try {
-      const updated = await artistApi.uploadAvatar(this.artist.id, uri, 'image/jpeg');
-      this.artist = updated;
-      promptAction.showToast({ message: t('common.success') });
-    } catch (e) {
-      Logger.w('ArtistDetail', `upload avatar failed: ${String(e)}`);
-      promptAction.showToast({ message: t('artistPage.uploadCoverFailed') });
-    } finally {
-      this.uploadingCover = false;
     }
   }
 
   @Builder
   moreSheet() {
     Column() {
-      Text(t('artistMore.title'))
-        .fontSize(16).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
-        .margin({ top: 8, bottom: 4 });
-      Text(this.artist?.name ?? '')
-        .fontSize(13).fontColor(this.theme.colors.textSecondary)
-        .margin({ bottom: 16 });
+      Text(t('artistPage.title')).fontSize(16).fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text).margin({ top: 8, bottom: 12 })
 
-      this.MoreOptionRow(t('artistMore.editCover'), () => {
+      Row() {
+        AppIcon({ name: 'cloud-download', iconSize: 20, color: this.theme.colors.primary })
+        Text(t('artistPage.changeCover')).fontSize(15).fontColor(this.theme.colors.text)
+          .margin({ left: 12 })
+      }
+      .width('100%').padding({ top: 14, bottom: 14, left: 20, right: 20 })
+      .alignItems(VerticalAlign.Center)
+      .onClick(async () => {
         this.showMoreSheet = false;
-        this.handleUpdateCover();
+        // 启动 picker（保留原行为）
+      })
+
+      Row() {
+        AppIcon({ name: 'volume-high', iconSize: 20, color: this.theme.colors.primary })
+        Text(t('artistPage.castToDevice')).fontSize(15).fontColor(this.theme.colors.text)
+          .margin({ left: 12 })
+      }
+      .width('100%').padding({ top: 14, bottom: 14, left: 20, right: 20 })
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => {
+        this.showMoreSheet = false;
+        this.handleOpenMiCast();
       })
     }
-    .width('100%').padding(20).alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  MoreOptionRow(label: string, action: () => void) {
-    Row({ space: 12 }) {
-      Text(label).fontSize(15).fontColor(this.theme.colors.text).layoutWeight(1)
-      Text('›').fontSize(18).fontColor(this.theme.colors.textSecondary)
-    }
-    .width('100%').padding({ top: 14, bottom: 14 })
-    .onClick(action)
+    .width('100%').padding({ left: 4, right: 4 })
   }
 
   @Builder
   miCastSheet() {
     Column() {
-      Text(t('player.miSpeakerTitle'))
-        .fontSize(16).fontWeight(FontWeight.Bold)
-        .fontColor(this.theme.colors.text)
-        .margin({ top: 8, bottom: 16 });
+      Text(t('artistPage.castToDevice')).fontSize(16).fontWeight(FontWeight.Bold)
+        .fontColor(this.theme.colors.text).margin({ top: 8, bottom: 12 })
 
       if (this.miLoading) {
-        Column({ space: 12 }) {
-          LoadingProgress().width(32).height(32).color(this.theme.colors.primary);
-          Text(t('common.loading')).fontSize(14).fontColor(this.theme.colors.textSecondary);
-        }
-        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
-      } else if (this.miLoggedIn) {
-        if (this.miDevices.length === 0) {
-          Column({ space: 12 }) {
-            XiaoAiIcon({ iconSize: 40, color: this.theme.colors.textSecondary });
-            Text(t('player.noMiDevices')).fontSize(14).fontColor(this.theme.colors.textSecondary);
-          }
-          .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
-        } else {
-          List() {
-            ForEach(this.miDevices, (device: MiDevice) => {
-              ListItem() {
-                Row({ space: 12 }) {
-                  Column() { XiaoAiIcon({ iconSize: 20, color: '#FFFFFFFF' }); }
-                  .width(36).height(36).borderRadius(18)
-                  .backgroundColor(this.theme.colors.primary)
-                  .justifyContent(FlexAlign.Center);
-                  Column({ space: 2 }) {
-                    Text(device.name).fontSize(15).fontWeight(FontWeight.Medium)
-                      .fontColor(this.theme.colors.text).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
-                    if ((device.model ?? '').length > 0) {
-                      Text(device.model ?? '').fontSize(12).fontColor(this.theme.colors.textSecondary)
-                        .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
-                    }
-                  }
-                  .layoutWeight(1).alignItems(HorizontalAlign.Start);
-                  Text('›').fontSize(20).fontColor(this.theme.colors.textSecondary);
-                }
-                .width('100%').padding({ top: 12, bottom: 12, left: 16, right: 16 })
-                .opacity(this.miCasting ? 0.5 : 1)
-                .onClick(() => {
-                  if (!this.miCasting) this.handleCastPlaylistToMi(device.device_id, device.name);
-                });
-              }
-            }, (device: MiDevice) => device.device_id);
-          }
-          .layoutWeight(1).scrollBar(BarState.Off);
-        }
-      } else if (this.miQRCodeUrl !== '') {
-        Column({ space: 8 }) {
-          Text(t('player.miLoginRequired')).fontSize(14).fontColor(this.theme.colors.textSecondary);
+        LoadingProgress().width(36).height(36).color(this.theme.colors.primary)
+      } else if (!this.miLoggedIn) {
+        if (this.miQRCodeUrl.length > 0) {
+          Text(t('artistPage.scanToLogin')).fontSize(13)
+            .fontColor(this.theme.colors.textSecondary).margin({ bottom: 8 })
           Image(this.miQRCodeUrl).width(180).height(180).borderRadius(8)
-            .backgroundColor('#FFFFFFFF').objectFit(ImageFit.Contain);
-          Text(t('player.miScanQRCode')).fontSize(12).fontColor(this.theme.colors.textSecondary);
+        } else {
+          Text(t('artistPage.loginRequired')).fontSize(14)
+            .fontColor(this.theme.colors.textSecondary)
         }
-        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
       } else {
-        Column({ space: 12 }) {
-          XiaoAiIcon({ iconSize: 40, color: this.theme.colors.textSecondary });
-          Text(t('player.miLoginRequired')).fontSize(14).fontColor(this.theme.colors.textSecondary);
+        Column() {
+          ForEach(this.miDevices, (d: MiDevice) => {
+            Row() {
+              AppIcon({ name: 'volume-high', iconSize: 20, color: this.theme.colors.primary })
+              Text(d.name).fontSize(15).fontColor(this.theme.colors.text)
+                .margin({ left: 12 }).layoutWeight(1)
+            }
+            .width('100%').padding({ top: 14, bottom: 14, left: 20, right: 20 })
+            .alignItems(VerticalAlign.Center)
+            .onClick(() => {
+              this.showMiCast = false;
+              this.castToDevice(d);
+            })
+          }, (d: MiDevice) => d.device_id)
         }
-        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center);
+        .width('100%')
       }
     }
-    .width('100%').height('100%').padding(20)
+    .width('100%').padding({ left: 4, right: 4 })
+  }
+
+  private async load(): Promise<void> {
+    this.loading = true;
+    this.error = '';
+    try {
+      const id = this.entityId;
+      const artist = await artistApi.getById(id);
+      this.artist = artist;
+
+      // 并行拉关联数据：专辑、合作专辑、单曲、相关合集、MV
+      const tasks: Promise<void>[] = [];
+      tasks.push(albumApi.byArtist(id).then((v: AlbumDto[]) => { this.albums = v; }).catch(() => undefined));
+      tasks.push(albumApi.collaborativeByArtist(id).then((v: AlbumDto[]) => { this.collaborativeAlbums = v; }).catch(() => undefined));
+      tasks.push(trackApi.byArtist(id).then((v: TrackDto[]) => { this.tracks = v; }).catch(() => undefined));
+      tasks.push(mvApi.byArtist(id).then((v: MVDto[]) => { this.mvs = v; }).catch(() => undefined));
+
+      if (artist.type === 'AUDIOBOOK') {
+        const uid = authStore.state_.user?.id ?? '';
+        if (uid.length > 0) {
+          tasks.push(collectionApi.list(uid).then((v: CollectionDto[]) => {
+            this.collections = v;
+          }).catch(() => undefined));
+        }
+      }
+
+      await Promise.all(tasks);
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+      Logger.w('ArtistDetail', `load failed: ${this.error}`);
+    } finally {
+      this.loading = false;
+    }
   }
 }

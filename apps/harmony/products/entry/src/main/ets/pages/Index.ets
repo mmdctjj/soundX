@@ -65,7 +65,7 @@ struct Index {
 
   private navigateByAuth(): void {
     let target = 'pages/SourceSelectPage';
-    if (authStore.state_.token && authStore.state_.serverAddress) target = 'pages/MainPage';
+    if (authStore.state_.token && authStore.state_.serverAddress) target = 'pages/RootShellPage';
     else if (authStore.state_.serverAddress) target = 'pages/LoginPage';
     hilog.info(DOMAIN, TAG, `[4] navigating to ${target}`);
     router.replaceUrl({ url: target }).then(() => {

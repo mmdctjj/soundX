@@ -71,6 +71,16 @@ export default class EntryAbility extends UIAbility {
     handleWechatWant(want);
   }
 
+  /**
+   * 回到前台时重设系统栏/窗口底色。
+   * 切后台瞬间系统可能用启动白底生成任务卡片快照（闪白），
+   * 回前台重设可确保窗口底色与状态栏颜色始终跟随当前主题。
+   */
+  onForeground(): void {
+    const mode: ThemeMode = AppStorage.get<ThemeMode>('themeMode') ?? 'light';
+    applySystemBar(mode);
+  }
+
   onDestroy(): void {
     Logger.i(TAG, 'onDestroy');
     themeAutoStore.stop();
@@ -92,6 +102,10 @@ export default class EntryAbility extends UIAbility {
     // 系统不会等 async onCreate 结束就回调本方法；必须等初始化（语言/主题写入 AppStorage）
     // 完成后再加载页面，否则首帧会用默认中文构建，且 tabBar 等一次性构建的 UI 之后不再刷新。
     if (this.initPromise) await this.initPromise;
+
+    // 先 loadContent 让页面尽快渲染；系统栏设置在 getMainWindow 回调里异步完成。
+    // setSystemBarWindow 内部会开启沉浸式（setWindowLayoutFullScreen），
+    // 之后 applySystemBar 才能真正改变状态栏/底部小横条区域颜色。
     windowStage.loadContent('pages/Index', (err: Error) => {
       if (err) Logger.e(TAG, `loadContent: ${err.message}`);
     });

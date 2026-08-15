@@ -773,7 +773,10 @@ struct PlayerPage {
       const artists = await artistApi.latest({ type: 'MUSIC', random: false, pageSize: 50 });
       const found = artists.find((a: ArtistDto) => a.name === name);
       if (found) {
-        router.pushUrl({ url: 'pages/ArtistDetailPage', params: { id: String(found.id) } });
+        // ArtistDetailPage 已迁入 NavDestination；PlayerPage 是独立 Page 没法直接持有 pathStack，
+        // 用 pendingNavDest + router.back() 桥接：RootShellPage.onPageShow 会读取并 pushPath
+        AppStorage.setOrCreate('pendingNavDest', { name: 'ArtistDetail', id: String(found.id) });
+        router.back();
       } else {
         promptAction.showToast({ message: t('common.unknownArtist') });
       }
@@ -787,7 +790,9 @@ struct PlayerPage {
       const albums = await albumApi.latest({ type: 'MUSIC', random: false, pageSize: 50 });
       const found = albums.find((a: AlbumDto) => a.name === name);
       if (found) {
-        router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id: String(found.id) } });
+        // 同 navigateToArtist：pendingNavDest + router.back() 桥接
+        AppStorage.setOrCreate('pendingNavDest', { name: 'AlbumDetail', id: String(found.id) });
+        router.back();
       } else {
         promptAction.showToast({ message: t('common.unknownAlbum') });
       }

@@ -11,14 +11,16 @@ import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
 import { CoverImage } from '../components/CoverImage';
 import { AppIcon } from '../components/AppIcon';
-import { GlobalBottomBar } from '../components/GlobalBottomBar';
 import { Logger } from 'audiodock_common';
 
 interface PlaylistDetail extends PlaylistDto { tracks: TrackDto[] }
 
-@Entry
 @Component
-struct PlaylistDetailPage {
+export struct PlaylistDetailContent {
+  // 路由栈与 id 由 RootShellPage 通过 navDestination builder 注入
+  // 注意：属性名不能用 'id'（ArkUI CustomComponent 保留），统一用 'entityId'
+  pathStack: NavPathStack = new NavPathStack();
+  entityId: string = '';
   @State data: PlaylistDetail | null = null;
   @State loading: boolean = true;
   @State error: string = '';
@@ -26,7 +28,6 @@ struct PlaylistDetailPage {
   @State showRename: boolean = false;
   @State newName: string = '';
   @State renaming: boolean = false;
-  private entityId: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @StorageProp('appLang') appLang: string = 'zh-CN';
   @State private langAtBuild: string = getLang();
@@ -38,9 +39,6 @@ struct PlaylistDetailPage {
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
-    interface RouterParams { id?: string }
-    const p = router.getParams() as RouterParams;
-    this.entityId = p.id ?? '';
     this.load();
   }
 
@@ -63,7 +61,7 @@ struct PlaylistDetailPage {
       // Header
       Row() {
         Text('‹').fontSize(28).fontColor(this.theme.colors.text)
-          .onClick(() => router.back())
+          .onClick(() => this.pathStack.pop())
           .width(44).height(44).textAlign(TextAlign.Center)
         Text(this.data?.name ?? '')
           .fontSize(18).fontWeight(FontWeight.Bold)
@@ -97,7 +95,8 @@ struct PlaylistDetailPage {
         this.Content()
       }
 
-      GlobalBottomBar()
+      // GlobalBottomBar 已由 RootShellPage 在 Navigation 容器外统一挂载，跨页面常驻。
+      // 这里不再手动挂载，避免每次进详情页重建一份。
     }
     .width('100%').height('100%').backgroundColor(this.theme.colors.background)
     .bindSheet($$this.showMore, this.MoreSheet(), {
@@ -323,7 +322,7 @@ struct PlaylistDetailPage {
         try {
           await playlistApi.remove(this.entityId);
           promptAction.showToast({ message: t('common.success') });
-          router.back();
+          this.pathStack.pop();
         } catch (e) {
           promptAction.showToast({ message: t('common.operationFailed') });
         }

@@ -76,6 +76,11 @@ class ListRow {
   }
 }
 
+/** NavDestination 详情页 param：ArkTS 严格模式不允许内联对象字面量，必须显式类/接口 */
+interface DetailNavParam {
+  id: string;
+}
+
 class TabInfo {
   key: string = '';
   label: string = '';
@@ -88,6 +93,8 @@ class TabInfo {
 
 @Component
 export struct PersonalTab {
+  // 路由栈由 RootShellPage 注入；进 NavDestination 内的页面用它，独立 Page 仍走 router.pushUrl
+  pathStack: NavPathStack = new NavPathStack();
   // 内容模式由 AppStorage 全局同步（对齐 mobile usePlayMode）：设置页/首页/声仓
   // 任一处切换有声书模式，本页经 @Watch 实时重载列表与菜单（TTS 入口等）。
   @StorageLink('playMode') @Watch('onModeChange') mode: string = 'MUSIC';
@@ -544,9 +551,11 @@ export struct PersonalTab {
 
   private onRowClick(row: ListRow): void {
     if (row.kind === 'playlist' && row.playlist) {
-      router.pushUrl({ url: 'pages/PlaylistDetailPage', params: { id: String(row.playlist.id) } });
+      const param: DetailNavParam = { id: String(row.playlist.id) };
+      this.pathStack.pushPath({ name: 'PlaylistDetail', param: param });
     } else if (row.kind === 'album' && row.album) {
-      router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id: String(row.album.id) } });
+      const param: DetailNavParam = { id: String(row.album.id) };
+      this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
     } else if (row.kind === 'track' && row.track) {
       this.playTrackRow(row);
     }

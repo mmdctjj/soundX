@@ -1,4 +1,3 @@
-import router from '@ohos.router';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
@@ -8,8 +7,8 @@ import { MiniPlayer } from './MiniPlayer';
 /**
  * 全局底部 Tab 栏，对齐 mobile 的 GlobalBottomBar：
  * MiniPlayer + 三个 tab（推荐/声仓/我的）。
- * 在详情页（搜索/专辑/艺术家/播放列表/合集）底部展示，
- * 点击 tab 返回 MainPage 并切换到对应 tab。
+ * 在 RootShellPage 内、与 Navigation 平级渲染，跨页面常驻（对齐 mobile _layout.tsx 的平级挂载）。
+ * 详情页（搜索/专辑/艺术家/播放列表/合集）底部展示，点击 tab 跳回 MainTabs。
  *
  * 车机模式（carModeEnabled=true）下隐藏 MiniPlayer，只保留 tab 栏——
  * 此时左侧 MainPage 已有完整的嵌入式播放器，再叠一个 miniPlayer 体验冗余。
@@ -17,8 +16,10 @@ import { MiniPlayer } from './MiniPlayer';
  */
 @Component
 export struct GlobalBottomBar {
+  pathStack: NavPathStack = new NavPathStack();
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @StorageLink('carModeEnabled') carModeEnabled: boolean = false;
+  @StorageLink('mainTabIndex') mainTabIndex: number = 0;
   @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
 
@@ -31,9 +32,14 @@ export struct GlobalBottomBar {
   }
 
   private switchToTab(index: number): void {
-    // 通过 AppStorage 通知 MainPage 切换 tab，然后返回
+    // 通过 AppStorage 通知 MainPageContent 切换 tab，然后跳回主页 destination
     AppStorage.setOrCreate('mainTabIndex', index);
-    router.back();
+    try {
+      // NavPathStack 的 API 是 popToName(name, animate?)，不是 popTo({ name })
+      this.pathStack.popToName('MainTabs', false);
+    } catch (e) {
+      // 兜底：如果路径栈里没有 MainTabs（如首次进入），就忽略
+    }
   }
 
   build() {
@@ -51,20 +57,27 @@ export struct GlobalBottomBar {
       .width('100%').height(56)
       .justifyContent(FlexAlign.SpaceAround)
       .alignItems(VerticalAlign.Center)
-      .backgroundColor(this.theme.colors.surface)
       .border({ width: { top: 0.5 }, color: this.theme.colors.border })
     }
     .width('100%')
+    .backgroundColor(this.theme.colors.surface)
+    // tab 栏背景延伸到底部小横条区域，让小横条区域与 tab 栏同色（对齐 mobile 的
+    // height: 49 + insets.bottom + paddingBottom: insets.bottom）。tab 内容仍在安全区内避让。
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
   }
 
   @Builder
   TabItem(label: string, icon: AppIconName, index: number) {
     Column() {
-      AppIcon({ name: icon, iconSize: 24, color: this.theme.colors.tabBarInactive })
+      AppIcon({
+        name: icon,
+        iconSize: 24,
+        color: this.mainTabIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive,
+      })
         .margin({ bottom: 4 })
       Text(label)
         .fontSize(12)
-        .fontColor(this.theme.colors.tabBarInactive)
+        .fontColor(this.mainTabIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive)
     }
     .width('33%').height(56).justifyContent(FlexAlign.Center)
     .onClick(() => this.switchToTab(index))

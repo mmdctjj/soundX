@@ -14,7 +14,6 @@ import { playerStore } from '../context/PlayerStore';
 import { likesHistory } from '../services/LikesHistoryService';
 import { CoverImage } from '../components/CoverImage';
 import { AppIcon } from '../components/AppIcon';
-import { GlobalBottomBar } from '../components/GlobalBottomBar';
 
 const DEBOUNCE_MS = 500;
 const RESULT_LIMIT = 30;
@@ -29,9 +28,15 @@ interface ResultSection {
   type: string; // 'artist' | 'album' | 'track'
 }
 
-@Entry
+/** NavDestination 详情页 param：ArkTS 严格模式不允许内联对象字面量，必须显式类/接口 */
+interface DetailNavParam {
+  id: string;
+}
+
 @Component
-struct SearchPage {
+export struct SearchContent {
+  // 路由栈由 RootShellPage 注入；NavDestination 内页面用它，PlayerPage 仍走 router.pushUrl
+  pathStack: NavPathStack = new NavPathStack();
   @State keyword: string = '';
   @State tracks: TrackDto[] = [];
   @State albums: AlbumDto[] = [];
@@ -167,7 +172,7 @@ struct SearchPage {
       Row({ space: 10 }) {
         Button() { Text('‹').fontSize(28).fontColor(this.theme.colors.text) }
           .width(36).height(36).backgroundColor(Color.Transparent)
-          .onClick((): void => router.back())
+          .onClick((): void => { this.pathStack.pop(); })
 
         Row() {
           Text('⌕').fontSize(20).fontColor(this.theme.colors.textSecondary)
@@ -203,7 +208,8 @@ struct SearchPage {
         this.resultsView()
       }
 
-      GlobalBottomBar()
+      // GlobalBottomBar 已由 RootShellPage 在 Navigation 容器外统一挂载，跨页面常驻。
+      // 这里不再手动挂载，避免每次进详情页重建一份。
       }
       .width('100%').height('100%')
 
@@ -362,9 +368,11 @@ struct SearchPage {
       if (type === 'track') {
         this.playTrack(id);
       } else if (type === 'album') {
-        router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id: id } });
+        const param: DetailNavParam = { id: id };
+        this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
       } else if (type === 'artist') {
-        router.pushUrl({ url: 'pages/ArtistDetailPage', params: { id: id } });
+        const param: DetailNavParam = { id: id };
+        this.pathStack.pushPath({ name: 'ArtistDetail', param: param });
       }
     })
   }

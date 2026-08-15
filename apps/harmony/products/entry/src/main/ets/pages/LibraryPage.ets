@@ -40,8 +40,15 @@ class TabInfo {
   }
 }
 
+/** NavDestination 详情页 param：ArkTS 严格模式不允许内联对象字面量，必须显式类/接口 */
+interface DetailNavParam {
+  id: string;
+}
+
 @Component
 export struct LibraryTab {
+  // 路由栈由 RootShellPage 注入；进 NavDestination 内的页面用它，独立 Page 仍走 router.pushUrl
+  pathStack: NavPathStack = new NavPathStack();
   // 内容模式由 AppStorage 全局同步（对齐 mobile 共享的 usePlayMode context）：
   // 首页/声仓/设置页任一处切换，另一处经 @Watch 自动重载。
   @StorageLink('playMode') @Watch('onModeChange') mode: string = 'MUSIC';
@@ -290,19 +297,22 @@ export struct LibraryTab {
   }
 
   navigateToSearch(): void {
-    router.pushUrl({ url: 'pages/SearchPage' });
+    this.pathStack.pushPath({ name: 'Search' });
   }
 
   navigateToArtist(id: string): void {
-    router.pushUrl({ url: 'pages/ArtistDetailPage', params: { id: id } });
+    const param: DetailNavParam = { id: id };
+    this.pathStack.pushPath({ name: 'ArtistDetail', param: param });
   }
 
   navigateToAlbum(id: string): void {
-    router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id: id } });
+    const param: DetailNavParam = { id: id };
+    this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
   }
 
   navigateToCollection(id: string): void {
-    router.pushUrl({ url: 'pages/CollectionDetailPage', params: { id: id } });
+    const param: DetailNavParam = { id: id };
+    this.pathStack.pushPath({ name: 'CollectionDetail', param: param });
   }
 
   navigateToMv(id: string): void {

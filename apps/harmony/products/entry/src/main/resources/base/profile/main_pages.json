@@ -1,13 +1,8 @@
 {
   "src": [
     "pages/Index",
-    "pages/MainPage",
-    "pages/AlbumDetailPage",
-    "pages/ArtistDetailPage",
-    "pages/PlaylistDetailPage",
-    "pages/CollectionDetailPage",
+    "pages/RootShellPage",
     "pages/MVDetailPage",
-    "pages/SearchPage",
     "pages/SettingsPage",
     "pages/SourceManagePage",
     "pages/PlayerPage",

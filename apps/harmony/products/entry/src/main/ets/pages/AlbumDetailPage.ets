@@ -11,7 +11,6 @@ import { DetailHero } from '../components/DetailHero';
 import { TrackRow } from '../components/TrackRow';
 import { AppIcon } from '../components/AppIcon';
 import { XiaoAiIcon } from '../components/XiaoAiIcon';
-import { GlobalBottomBar } from '../components/GlobalBottomBar';
 import { mvPlaylistStore } from '../store/MvPlaylistStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { getInternalQuality } from '../services/trackQuality';
@@ -25,9 +24,12 @@ const PAGE_SIZE: number = 20000;
 
 const SKELETON_ROWS: number[] = [0, 1, 2, 3, 4, 5, 6, 7];
 
-@Entry
 @Component
-struct AlbumDetailPage {
+export struct AlbumDetailContent {
+  // 路由栈与 id 由 RootShellPage 通过 navDestination builder 注入
+  // 注意：属性名不能用 'id'（ArkUI CustomComponent 保留），统一用 'entityId'
+  pathStack: NavPathStack = new NavPathStack();
+  entityId: string = '';
   @State album: AlbumDto | null = null;
   @State tracks: TrackDto[] = [];
   @State mvs: MVDto[] = [];
@@ -55,7 +57,6 @@ struct AlbumDetailPage {
   @State miCasting: boolean = false;
   @State uploadingCover: boolean = false;
   private miPollingId: number = -1;
-  private entityId: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
@@ -68,9 +69,6 @@ struct AlbumDetailPage {
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
-    interface RouterParams { id?: string }
-    const p = router.getParams() as RouterParams;
-    this.entityId = p.id ?? '';
     this.load();
     this.unsubLike = likesHistory.on('albumLike', (e) => {
       const ev = e as EventPayloadId;
@@ -132,7 +130,7 @@ struct AlbumDetailPage {
         CommonNavBar({
           title: this.album?.name ?? '',
           theme: this.theme,
-          onBack: () => router.back(),
+          onBack: () => this.pathStack.pop(),
           showMore: true,
           onMore: () => { this.showMoreSheet = true; },
         })
@@ -156,7 +154,8 @@ struct AlbumDetailPage {
       } else {
         this.Content()
       }
-      GlobalBottomBar()
+      // GlobalBottomBar 已由 RootShellPage 在 Navigation 容器外统一挂载，跨页面常驻。
+      // 这里不再手动挂载，避免每次进详情页重建一份。
 
       // ArkUI 每个组件只能绑定一个 bindSheet，用不可见锚点分散绑定（对齐 PlayerPage 的做法）。
       // 之前两个 bindSheet 都挂在根 Column 上，导致「···」更多弹窗点了不显示。

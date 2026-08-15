@@ -30,6 +30,11 @@ interface TabTitleParam {
   title: string;
 }
 
+/** NavDestination 详情页 param：ArkTS 严格模式不允许内联对象字面量，必须显式类/接口 */
+interface DetailNavParam {
+  id: string;
+}
+
 class Section {
   id: string = '';
   title: string = '';
@@ -49,6 +54,8 @@ class Section {
 
 @Component
 export struct HomeTab {
+  // 路由栈由 RootShellPage 注入；进 NavDestination 内的页面用它，独立 Page 仍走 router.pushUrl
+  pathStack: NavPathStack = new NavPathStack();
   @State sections: Section[] = [];
   @State loading: boolean = true;
   @State refreshing: boolean = false;
@@ -296,7 +303,7 @@ export struct HomeTab {
   }
 
   navigateToSearch(): void {
-    router.pushUrl({ url: 'pages/SearchPage' });
+    this.pathStack.pushPath({ name: 'Search' });
   }
 
   navigateToSectionOrder(): void {
@@ -304,11 +311,13 @@ export struct HomeTab {
   }
 
   navigateToArtist(id: string): void {
-    router.pushUrl({ url: 'pages/ArtistDetailPage', params: { id: id } });
+    const param: DetailNavParam = { id: id };
+    this.pathStack.pushPath({ name: 'ArtistDetail', param: param });
   }
 
   navigateToAlbum(id: string): void {
-    router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id: id } });
+    const param: DetailNavParam = { id: id };
+    this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
   }
 
   async playTrack(track: TrackDto, queue: TrackDto[]): Promise<void> {
@@ -627,9 +636,10 @@ export struct HomeTab {
   }
 }
 
-@Entry
 @Component
-struct MainPage {
+export struct MainPageContent {
+  // 路由栈由 RootShellPage 注入；Tabs 内的跳转用它，跨 NavDestination 共享同一栈
+  pathStack: NavPathStack = new NavPathStack();
   @StorageLink('mainTabIndex') currentIndex: number = 0;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   // 车机模式三件套（对齐 mobile 的 SettingsContext + _layout.tsx）。
@@ -658,7 +668,7 @@ struct MainPage {
     syncStore.bindSocketEvents();
     playerStore.bindSyncSocketListeners();
     authStore.connectSyncSocket().catch((e: Error): void => {
-      Logger.w('MainPage', `connectSyncSocket failed: ${String(e)}`);
+      Logger.w('MainPageContent', `connectSyncSocket failed: ${String(e)}`);
     });
     // 启动时立刻按优先级链应用窗口方向（避免进入后再旋转闪一下）
     this.applyOrientation();
@@ -669,7 +679,7 @@ struct MainPage {
    * 车机模式开启 → 强制横屏；关闭 → 交由 autoOrientation 决定（AUTO_ROTATION 或 PORTRAIT）。
    */
   onCarModeChange(): void {
-    Logger.i('MainPage', `carModeEnabled -> ${this.carModeEnabled}`);
+    Logger.i('MainPageContent', `carModeEnabled -> ${this.carModeEnabled}`);
     this.applyOrientation();
   }
 
@@ -678,7 +688,7 @@ struct MainPage {
    * 仅在车机模式关闭时生效；开启车机模式时横屏锁始终最高优先级。
    */
   onAutoOrientationChange(): void {
-    Logger.i('MainPage', `autoOrientation -> ${this.autoOrientation}`);
+    Logger.i('MainPageContent', `autoOrientation -> ${this.autoOrientation}`);
     this.applyOrientation();
   }
 
@@ -699,10 +709,10 @@ struct MainPage {
       window.getLastWindow(ctx).then((win: window.Window): void => {
         win.setPreferredOrientation(target);
       }).catch((e: Error): void => {
-        Logger.w('MainPage', `getLastWindow failed: ${String(e)}`);
+        Logger.w('MainPageContent', `getLastWindow failed: ${String(e)}`);
       });
     } catch (e) {
-      Logger.w('MainPage', `applyOrientation failed: ${String(e)}`);
+      Logger.w('MainPageContent', `applyOrientation failed: ${String(e)}`);
     }
   }
 
@@ -713,7 +723,7 @@ struct MainPage {
       // 未存储过时默认 true，与 mobile SettingsContext.defaultSettings.acceptSync 一致
       syncStore.setAcceptSync(v === null ? true : v === 'true');
     } catch (e) {
-      Logger.w('MainPage', `loadAcceptSync error: ${e}`);
+      Logger.w('MainPageContent', `loadAcceptSync error: ${e}`);
     }
   }
 
@@ -731,7 +741,7 @@ struct MainPage {
         this.isVip = false;
       }
     } catch (e) {
-      Logger.w('MainPage', `loadVoiceAssistantGate error: ${e}`);
+      Logger.w('MainPageContent', `loadVoiceAssistantGate error: ${e}`);
     }
   }
 
@@ -746,19 +756,6 @@ struct MainPage {
     if (cur !== this.langAtBuild) this.langAtBuild = cur;
     // 设置页可能修改了语音助手开关，回显时重新读取门控状态
     this.loadVoiceAssistantGate();
-  }
-
-  @Builder
-  TabBuilder($$: TabTitleParam, index: number, icon: AppIconName) {
-    Column() {
-      AppIcon({ name: icon, iconSize: 24, color: this.currentIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive })
-        .margin({ bottom: 4 })
-      Text($$.title)
-        .fontSize(12)
-        .fontColor(this.currentIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive)
-        .fontWeight(this.currentIndex === index ? FontWeight.Bold : FontWeight.Normal)
-    }
-    .width('100%').height(56).justifyContent(FlexAlign.Center)
   }
 
   build() {
@@ -794,32 +791,19 @@ struct MainPage {
         .padding({ bottom: this.screenBottomInset })
         .backgroundColor(this.theme.colors.background)
       } else {
-        // ═══ 常规布局：Tabs + 悬浮 MiniPlayer（保持原有结构）═══
-        Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
-          TabContent() {
-            HomeTab()
+        // ═══ 常规布局：根据 mainTabIndex 渲染对应 Tab 内容═══
+        // 底部 Tab 与 MiniPlayer 由 RootShellPage 内的 GlobalBottomBar 统一渲染（跨页面常驻）
+        Column() {
+          if (this.currentIndex === 0) {
+            HomeTab({ pathStack: this.pathStack })
+          } else if (this.currentIndex === 1) {
+            LibraryTab({ pathStack: this.pathStack })
+          } else {
+            PersonalTab({ pathStack: this.pathStack })
           }
-          .tabBar(this.TabBuilder({ title: t('navTabs.recommend') }, 0, 'home'))
-
-          TabContent() {
-            LibraryTab()
-          }
-          .tabBar(this.TabBuilder({ title: t('navTabs.soundcang') }, 1, 'headphones'))
-
-          TabContent() {
-            PersonalTab()
-          }
-          .tabBar(this.TabBuilder({ title: t('navTabs.mine') }, 2, 'person'))
         }
         .width('100%').height('100%')
-        .barWidth('100%').barHeight(56)
-        .barBackgroundColor(this.theme.colors.tabBar)
-        .animationDuration(300)
-        .onChange((index: number) => {
-          this.currentIndex = index;
-        })
-
-        MiniPlayer().margin({ bottom: 56 })
+        .backgroundColor(this.theme.colors.background)
       }
 
       if (this.voiceAssistantEnabled && this.isVip) {
@@ -872,33 +856,17 @@ struct MainPage {
     })
   }
 
-  /** 车机模式右侧内容区：完整的 MainPage Tabs + MiniPlayer 省略（播放器已在左侧） */
+  /** 车机模式右侧内容区：根据 mainTabIndex 渲染 Tab 内容（底部 Tab 由 GlobalBottomBar 渲染） */
   @Builder
   carContentPanel() {
-    Stack({ alignContent: Alignment.Bottom }) {
-      Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
-        TabContent() {
-          HomeTab()
-        }
-        .tabBar(this.TabBuilder({ title: t('navTabs.recommend') }, 0, 'home'))
-
-        TabContent() {
-          LibraryTab()
-        }
-        .tabBar(this.TabBuilder({ title: t('navTabs.soundcang') }, 1, 'headphones'))
-
-        TabContent() {
-          PersonalTab()
-        }
-        .tabBar(this.TabBuilder({ title: t('navTabs.mine') }, 2, 'person'))
+    Column() {
+      if (this.currentIndex === 0) {
+        HomeTab({ pathStack: this.pathStack })
+      } else if (this.currentIndex === 1) {
+        LibraryTab({ pathStack: this.pathStack })
+      } else {
+        PersonalTab({ pathStack: this.pathStack })
       }
-      .width('100%').height('100%')
-      .barWidth('100%').barHeight(56)
-      .barBackgroundColor(this.theme.colors.tabBar)
-      .animationDuration(300)
-      .onChange((index: number) => {
-        this.currentIndex = index;
-      })
     }
     .layoutWeight(1)
     .height('100%')

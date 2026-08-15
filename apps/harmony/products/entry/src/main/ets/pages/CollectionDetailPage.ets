@@ -1,20 +1,25 @@
-import router from '@ohos.router';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import type { ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { collectionApi } from 'features_network';
 import type { CollectionDetailResp, CollectionAlbumItem } from 'features_network';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
-import { GlobalBottomBar } from '../components/GlobalBottomBar';
 
-@Entry
+/** NavDestination 详情页 param：ArkTS 严格模式不允许内联对象字面量，必须显式类/接口 */
+interface DetailNavParam {
+  id: string;
+}
+
 @Component
-struct CollectionDetailPage {
+export struct CollectionDetailContent {
+  // 路由栈与 id 由 RootShellPage 通过 navDestination builder 注入
+  // 注意：属性名不能用 'id'（ArkUI CustomComponent 保留），统一用 'entityId'
+  pathStack: NavPathStack = new NavPathStack();
+  entityId: string = '';
   @State data: CollectionDetailResp | null = null;
   @State loading: boolean = true;
   @State error: string = '';
   @State liked: boolean = false;
-  private entityId: string = '';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   private theme = buildTheme('light');
@@ -26,9 +31,6 @@ struct CollectionDetailPage {
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
-    interface RouterParams { id?: string }
-    const p = router.getParams() as RouterParams;
-    this.entityId = p.id ?? '';
     this.load();
     this.unsub = likesHistory.on('albumLike', (e) => {
       const ev = e as EventPayloadId;
@@ -64,7 +66,7 @@ struct CollectionDetailPage {
   LocalizedContent() {
     Column() {
       CommonNavBar({ title: this.data?.name ?? '', theme: this.theme,
-        onBack: () => router.back() });
+        onBack: () => this.pathStack.pop() });
       if (this.loading) {
         Column({ space: 12 }) {
           SkeletonBlock({ blockHeight: 160, theme: this.theme });
@@ -76,7 +78,8 @@ struct CollectionDetailPage {
       } else {
         this.content();
       }
-      GlobalBottomBar()
+      // GlobalBottomBar 已由 RootShellPage 在 Navigation 容器外统一挂载，跨页面常驻。
+      // 这里不再手动挂载，避免每次进详情页重建一份。
     }.width('100%').height('100%').backgroundColor(this.theme.colors.background)
   }
 
@@ -100,7 +103,8 @@ struct CollectionDetailPage {
           }
           .onClick(() => {
             if (it.album) {
-              router.pushUrl({ url: 'pages/AlbumDetailPage', params: { id: it.album.id } });
+              const param: DetailNavParam = { id: it.album.id };
+              this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
             }
           });
         }, (it: CollectionAlbumItem) => it.id);
