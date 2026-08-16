@@ -60,7 +60,9 @@ export struct GlobalBottomBar {
       .border({ width: { top: 0.5 }, color: this.theme.colors.border })
     }
     .width('100%')
-    .backgroundColor(this.theme.colors.surface)
+    // 对齐 mobile GlobalBottomBar 的 colors.tabBar（亮色=白/暗色=黑，与 MiniPlayer 的 background 一致），
+    // 之前用 surface（灰）导致 tab 栏和 MiniPlayer 之间有明显色差
+    .backgroundColor(this.theme.colors.tabBar)
     // tab 栏背景延伸到底部小横条区域，让小横条区域与 tab 栏同色（对齐 mobile 的
     // height: 49 + insets.bottom + paddingBottom: insets.bottom）。tab 内容仍在安全区内避让。
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])

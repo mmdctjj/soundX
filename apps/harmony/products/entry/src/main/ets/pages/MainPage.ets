@@ -795,16 +795,18 @@ export struct MainPageContent {
         .padding({ bottom: this.screenBottomInset })
         .backgroundColor(this.theme.colors.background)
       } else {
-        // ═══ 常规布局：根据 mainTabIndex 渲染对应 Tab 内容═══
+        // ═══ 常规布局：三个 Tab 常驻，仅切换显隐 ═══
+        // 之前用 if/else 按 currentIndex 切换，每次切 tab 整棵子树销毁重建，
+        // aboutToAppear 重新拉数据 → 每次都闪骨架屏。改成 Stack + visibility 后
+        // 状态/滚动位置/已加载数据全部保留，切回直接展示（对齐 mobile tab 导航的 keep-alive 体验）。
         // 底部 Tab 与 MiniPlayer 由 RootShellPage 内的 GlobalBottomBar 统一渲染（跨页面常驻）
-        Column() {
-          if (this.currentIndex === 0) {
-            HomeTab({ pathStack: this.pathStack })
-          } else if (this.currentIndex === 1) {
-            LibraryTab({ pathStack: this.pathStack })
-          } else {
-            PersonalTab({ pathStack: this.pathStack })
-          }
+        Stack() {
+          HomeTab({ pathStack: this.pathStack })
+            .visibility(this.currentIndex === 0 ? Visibility.Visible : Visibility.None)
+          LibraryTab({ pathStack: this.pathStack })
+            .visibility(this.currentIndex === 1 ? Visibility.Visible : Visibility.None)
+          PersonalTab({ pathStack: this.pathStack })
+            .visibility(this.currentIndex === 2 ? Visibility.Visible : Visibility.None)
         }
         .width('100%').height('100%')
         .backgroundColor(this.theme.colors.background)
@@ -860,17 +862,16 @@ export struct MainPageContent {
     })
   }
 
-  /** 车机模式右侧内容区：根据 mainTabIndex 渲染 Tab 内容（底部 Tab 由 GlobalBottomBar 渲染） */
+  /** 车机模式右侧内容区：三个 Tab 常驻切换显隐（同常规布局，避免切 tab 重载闪骨架屏） */
   @Builder
   carContentPanel() {
-    Column() {
-      if (this.currentIndex === 0) {
-        HomeTab({ pathStack: this.pathStack })
-      } else if (this.currentIndex === 1) {
-        LibraryTab({ pathStack: this.pathStack })
-      } else {
-        PersonalTab({ pathStack: this.pathStack })
-      }
+    Stack() {
+      HomeTab({ pathStack: this.pathStack })
+        .visibility(this.currentIndex === 0 ? Visibility.Visible : Visibility.None)
+      LibraryTab({ pathStack: this.pathStack })
+        .visibility(this.currentIndex === 1 ? Visibility.Visible : Visibility.None)
+      PersonalTab({ pathStack: this.pathStack })
+        .visibility(this.currentIndex === 2 ? Visibility.Visible : Visibility.None)
     }
     .layoutWeight(1)
     .height('100%')

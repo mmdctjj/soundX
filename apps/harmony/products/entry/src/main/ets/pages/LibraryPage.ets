@@ -93,6 +93,9 @@ export struct LibraryTab {
   // ForEach 仅按 key diff：整页重载（切模式/切 tab/心动模式）时递增版本拼进 key，
   // 否则 key 不变 ArkUI 保留旧组件，列表仍是旧内容/旧顺序。
   private listVersion: number = 0;
+  // ─── 每 tab 数据缓存：切 tab 回来不再重新拉数据闪骨架屏（对齐 mobile 的「已有数据直接展示」） ───
+  // key 格式 `${tab}_${mode}`（切内容模式后缓存自然失效，因为 key 变了）
+  private tabDataLoaded: Record<string, boolean> = {};
   private unsubPlayer: () => void = () => {};
   private songScroller: Scroller = new Scroller();
   private artistScroller: Scroller = new Scroller();
@@ -198,6 +201,15 @@ export struct LibraryTab {
     }
   }
 
+  /** 当前 tab 是否已有缓存数据（决定是否跳过加载直接展示） */
+  private hasTabCache(tab: string): boolean {
+    return this.tabDataLoaded[`${tab}_${this.mode}`] === true;
+  }
+
+  private markTabCache(tab: string): void {
+    this.tabDataLoaded[`${tab}_${this.mode}`] = true;
+  }
+
   /**
    * 加载当前 tab 数据。silent=true 用于下拉刷新：不显示骨架屏
    * （对齐 mobile setLoading(list.length === 0) 的行为）。
@@ -240,6 +252,7 @@ export struct LibraryTab {
         this.listVersion++;
         this.mvs = res.list;
       }
+      this.markTabCache(this.activeTab);
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
       Logger.e('LibraryTab', `loadTabData failed: ${this.error}`);
@@ -282,7 +295,11 @@ export struct LibraryTab {
     if (tab !== 'songs') {
       this.exitSelectionMode();
     }
-    this.loadTabData(false);
+    // 该 tab 已有数据则直接展示，不重新拉取（避免每次切 tab 闪骨架屏）；
+    // 数据更新交给下拉刷新（loadTabData(true) 强制 silent 拉取）。
+    if (!this.hasTabCache(tab)) {
+      this.loadTabData(false);
+    }
   }
 
   toggleHeartbeat(): void {
