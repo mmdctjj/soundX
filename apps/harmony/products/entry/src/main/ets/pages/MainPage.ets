@@ -329,7 +329,7 @@ export struct HomeTab {
         if (queue[i].id === track.id) { idx = i; break; }
       }
       await playerStore.playTrackList(list, idx);
-      router.pushUrl({ url: 'pages/PlayerPage' });
+      // 不再自动打开播放详情页：播放交给 MiniPlayer，用户点 MiniPlayer 再进详情
     } catch (e) {
       Logger.w('HomeTab', `playTrack failed: ${String(e)}`);
     }
@@ -522,6 +522,9 @@ export struct HomeTab {
               }
             }
             .width('100%').height('100%')
+            // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116），
+            // 否则「调整顺序」按钮被遮挡（对齐 mobile 首页 scrollContent paddingBottom: 100）
+            .padding({ bottom: 116 })
             .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
           }
           .width('100%').layoutWeight(1)
@@ -625,6 +628,7 @@ export struct HomeTab {
               Row().width(70).height(12).borderRadius(4).backgroundColor(this.theme.colors.border)
             }
             .margin({ right: 16 })
+            .alignItems(HorizontalAlign.Start)
           }, (i: number) => `sk-al-${i}`)
         }
         .padding({ left: 16 })

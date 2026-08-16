@@ -576,7 +576,7 @@ export struct PersonalTab {
         if (queue[i].id === targetId) { idx = i; break; }
       }
       await playerStore.playTrackList(list, idx);
-      router.pushUrl({ url: 'pages/PlayerPage' });
+      // 不再自动打开播放详情页：播放交给 MiniPlayer，用户点 MiniPlayer 再进详情
     } catch (e) {
       Logger.w('PersonalTab', `playTrack failed: ${String(e)}`);
     }

@@ -108,7 +108,10 @@ export struct CollectionDetailContent {
             }
           });
         }, (it: CollectionAlbumItem) => it.id);
-      }.layoutWeight(1);
+      }
+      .layoutWeight(1)
+      // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116）
+      .padding({ bottom: 116 });
     }.padding(16).layoutWeight(1);
   }
 

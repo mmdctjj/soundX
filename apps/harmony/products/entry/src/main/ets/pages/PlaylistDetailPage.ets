@@ -1,4 +1,3 @@
-import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
@@ -86,7 +85,7 @@ export struct PlaylistDetailContent {
           Text(this.error || t('detail.retry_failed'))
             .fontSize(14).fontColor(this.theme.colors.textSecondary)
           Button(t('common.retry'))
-            .backgroundColor(this.theme.colors.primary).fontColor('#FFFFFF').borderRadius(18)
+            .backgroundColor(this.theme.colors.primary).fontColor(this.theme.colors.onPrimary).borderRadius(18)
             .margin({ top: 12 })
             .onClick(() => this.load())
         }
@@ -119,21 +118,25 @@ export struct PlaylistDetailContent {
         this.CoverWall()
       }
 
-      // 播放全部按钮
+      // 播放全部按钮（文字/图标用 onPrimary：暗色模式下 primary 是白色，
+      // 硬编码 '#FFFFFF' 会白底白字；mobile 用的是 colors.background，等价语义）
       ListItem() {
         Row() {
-          AppIcon({ name: 'play', iconSize: 18, color: '#FFFFFF' })
+          AppIcon({ name: 'play', iconSize: 18, color: this.theme.colors.onPrimary })
           Text(t('playlist.playAll'))
             .fontSize(15).fontWeight(FontWeight.Medium)
-            .fontColor('#FFFFFF').margin({ left: 8 })
+            .fontColor(this.theme.colors.onPrimary).margin({ left: 8 })
         }
         .width('100%').height(48)
         .justifyContent(FlexAlign.Center)
         .backgroundColor(this.theme.colors.primary)
         .borderRadius(12)
-        .margin({ left: 16, right: 16, top: 12, bottom: 12 })
+        // 宽度 100% + 左右间距放在外层 ListItem 的 padding 上：
+        // ListItem 里 margin 不会从 100% 宽度中扣除（会向右溢出），
+        // 而 Row 不写 100% 又会收缩成内容宽度。
         .onClick(() => this.handlePlayAll())
       }
+      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
 
       // 曲目列表
       ForEach(this.data!.tracks, (tr: TrackDto, index: number) => {
@@ -172,6 +175,9 @@ export struct PlaylistDetailContent {
       }, (tr: TrackDto) => tr.id)
     }
     .width('100%').layoutWeight(1)
+    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116），
+    // 否则最后几行曲目被遮挡（对齐 mobile 的列表底部留白）
+    .padding({ bottom: 116 })
     .scrollBar(BarState.Off)
   }
 
@@ -255,9 +261,9 @@ export struct PlaylistDetailContent {
 
       Button() {
         if (this.renaming) {
-          LoadingProgress().width(20).height(20).color('#FFFFFF')
+          LoadingProgress().width(20).height(20).color(this.theme.colors.onPrimary)
         } else {
-          Text(t('common.confirm')).fontSize(15).fontWeight(FontWeight.Medium).fontColor('#FFFFFF')
+          Text(t('common.confirm')).fontSize(15).fontWeight(FontWeight.Medium).fontColor(this.theme.colors.onPrimary)
         }
       }
       .width('100%').height(46)
@@ -291,7 +297,7 @@ export struct PlaylistDetailContent {
       const tracks: Track[] = [];
       for (const x of this.data.tracks) tracks.push(await resolveTrackToPlayer(x, false));
       await playerStore.playTrackList(tracks, 0);
-      router.pushUrl({ url: 'pages/PlayerPage' });
+      // 不再自动打开播放详情页：播放交给 MiniPlayer，用户点 MiniPlayer 再进详情
     } catch (e) {
       Logger.w('PlaylistDetail', `playAll failed: ${String(e)}`);
     }
@@ -303,7 +309,7 @@ export struct PlaylistDetailContent {
       const tracks: Track[] = [];
       for (const x of this.data.tracks) tracks.push(await resolveTrackToPlayer(x, false));
       await playerStore.playTrackList(tracks, index);
-      router.pushUrl({ url: 'pages/PlayerPage' });
+      // 不再自动打开播放详情页：播放交给 MiniPlayer，用户点 MiniPlayer 再进详情
     } catch (e) {
       Logger.w('PlaylistDetail', `playFromIndex failed: ${String(e)}`);
     }

@@ -35,10 +35,13 @@ class MoreOption {
 }
 
 /**
- * 播放器详情页，布局与行为对齐 mobile 的 PlayerDetailView（竖屏）：
- * 顶部左侧返回（chevron-down）、右侧更多按钮（⋮，打开选项半模态）；中部封面 200×200（点按切换歌词）/ 歌词列表
- * （高亮当前行并自动滚动居中，点按切回封面）；底部信息行（曲名+艺人+喜欢）、
- * 进度条（松手 seek）、控制行（播放模式 / 上一首 / 播放暂停 / 下一首 / 播放列表）。
+ * 播放器详情页，布局与行为对齐 mobile 的 PlayerDetailView：
+ * 竖屏：顶部左侧返回（chevron-down）、右侧更多按钮（⋮，打开选项半模态）；中部封面 200×200
+ * （点按切换歌词）/ 歌词列表（高亮当前行并自动滚动居中，点按切回封面）；底部信息行
+ * （曲名+艺人+喜欢）、进度条（松手 seek）、控制行（播放模式 / 上一首 / 播放暂停 / 下一首 / 播放列表）。
+ * 横屏（根容器 width > height）：左右双列布局——左列封面 250×250 居中 + 返回/更多按钮
+ * 绝对定位于左上/右上 + 控制条悬浮左列底部（bottom:40, left:10%），空间不足时 3s 无操作
+ * 自动隐藏控制条、点封面切换显隐；右列常驻歌词列表（有声书时为播放列表）。
  * 播放列表用半模态展示，点击行跳转播放。
  */
 @Entry
@@ -80,6 +83,16 @@ struct PlayerPage {
   private unsub: () => void = () => {};
   private unsubLike: () => void = () => {};
   private sleepTimerId: number = -1;
+  // ─── 横屏布局状态（对齐 mobile player.tsx landscape 逻辑） ───
+  // isLandscape：根容器 onAreaChange 测得 width > height 时进入横屏双列布局
+  @State private isLandscape: boolean = false;
+  // controlsVisible + controlsOpacity：空间不足（needsAutoHide）时控制条 3s 无操作自动隐藏
+  @State private controlsVisible: boolean = true;
+  @State private controlsOpacity: number = 1;
+  @State private containerHeight: number = 0;
+  @State private leftColumnWidth: number = 0;
+  private controlsHeight: number = 0;
+  private hideTimerId: number = -1;
 
   onThemeModeChange(): void {
     this.theme = buildTheme(this.themeMode);
@@ -95,7 +108,9 @@ struct PlayerPage {
         this.lastTrackId = curId;
         this.refreshLike();
       }
-      if (this.showLyrics && this.view.activeLyricIndex !== this.lastLyricIndex) {
+      // 横屏时右侧歌词常驻（对齐 mobile: isLandscape ? type !== AUDIOBOOK : showLyrics）
+      const lyricsVisible = this.isLandscape || this.showLyrics;
+      if (lyricsVisible && this.view.activeLyricIndex !== this.lastLyricIndex) {
         this.lastLyricIndex = this.view.activeLyricIndex;
         if (this.lastLyricIndex >= 0) {
           this.lyricScroller.scrollToIndex(this.lastLyricIndex, true, ScrollAlign.CENTER);
@@ -139,7 +154,51 @@ struct PlayerPage {
       clearInterval(this.sleepTimerId);
       this.sleepTimerId = -1;
     }
+    if (this.hideTimerId !== -1) {
+      clearTimeout(this.hideTimerId);
+      this.hideTimerId = -1;
+    }
     this.stopMiPolling();
+  }
+
+  // ─── 横屏控制条自动隐藏（对齐 mobile player.tsx resetHideTimer / needsAutoHide） ───
+  // needsAutoHide = isLandscape && 封面(250) + 控制条高度 + 80 > 容器高度
+  private needsAutoHide(): boolean {
+    return this.isLandscape && this.controlsHeight > 0 &&
+      250 + this.controlsHeight + 80 > this.containerHeight;
+  }
+
+  // 悬浮控制条顶部 y 坐标：对齐 mobile bottom:40（容器高 - 40 - 控制条自身高），不小于 0
+  private controlsTop(): number {
+    return Math.max(0, this.containerHeight - 40 - this.controlsHeight);
+  }
+
+  private resetHideTimer(): void {
+    if (this.hideTimerId !== -1) {
+      clearTimeout(this.hideTimerId);
+      this.hideTimerId = -1;
+    }
+    if (!this.needsAutoHide()) {
+      this.showLandscapeControls();
+      return;
+    }
+    this.showLandscapeControls();
+    this.hideTimerId = setTimeout(() => {
+      this.hideTimerId = -1;
+      if (this.isLandscape && this.needsAutoHide()) {
+        this.controlsVisible = false;
+        animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+          this.controlsOpacity = 0;
+        });
+      }
+    }, 3000);
+  }
+
+  private showLandscapeControls(): void {
+    this.controlsVisible = true;
+    animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+      this.controlsOpacity = 1;
+    });
   }
 
   private current(): Track | null {
@@ -367,66 +426,91 @@ struct PlayerPage {
     Stack({ alignContent: Alignment.TopStart }) {
       // 主体内容（占满 Stack 100%×100%）
       Column() {
-        this.header();
         if (this.view.queue.length === 0) {
+          if (!this.isLandscape) {
+            this.header();
+          }
           Text(t('player.empty'))
             .fontColor(this.theme.colors.textSecondary)
             .margin({ top: 80 });
+        } else if (this.isLandscape) {
+          this.landscapeContent();
         } else {
+          this.header();
           this.content();
         }
-
-        // ArkUI 每个组件只能绑定一个 bindSheet，用不可见锚点分散绑定
-        Column().width(0).height(0)
-          .bindSheet($$this.showPlaylist, this.playlistSheet(), {
-            height: '60%',
-            dragBar: true,
-            backgroundColor: this.theme.colors.background,
-          })
-        Column().width(0).height(0)
-          .bindSheet($$this.showMore, this.moreSheet(), {
-            height: '55%',
-            dragBar: true,
-            backgroundColor: this.theme.colors.surface,
-          })
-        Column().width(0).height(0)
-          .bindSheet($$this.showSleepTimer, this.sleepTimerSheet(), {
-            height: 360,
-            dragBar: true,
-            backgroundColor: this.theme.colors.surface,
-          })
-        Column().width(0).height(0)
-          .bindSheet($$this.showAddToPlaylist, this.addToPlaylistSheet(), {
-            height: '50%',
-            dragBar: true,
-            backgroundColor: this.theme.colors.surface,
-          })
-        Column().width(0).height(0)
-          .bindSheet($$this.showLyricsSize, this.lyricsSizeSheet(), {
-            height: 280,
-            dragBar: true,
-            backgroundColor: this.theme.colors.surface,
-          })
-        Column().width(0).height(0)
-          .bindSheet($$this.showControlPos, this.controlPosSheet(), {
-            height: 260,
-            dragBar: true,
-            backgroundColor: this.theme.colors.surface,
-          })
-        Column().width(0).height(0)
-          .bindSheet($$this.showMiCast, this.miCastSheet(), {
-            height: 420,
-            dragBar: true,
-            backgroundColor: this.theme.colors.surface,
-          })
-        Column().width(0).height(0)
-          .bindSheet($$this.showSyncInvite, this.syncInviteSheet(), {
-            height: '70%',
-            dragBar: true,
-            backgroundColor: this.theme.colors.surface,
-          })
       }
-      .width('100%').height('100%');
+      .width('100%').height('100%')
+      .onAreaChange((oldVal: Area, newVal: Area) => {
+        // 对齐 mobile: isLandscape = width > height；方向切换时重置自动隐藏计时
+        const landscape = (newVal.width as number) > (newVal.height as number);
+        const changed = landscape !== this.isLandscape;
+        this.isLandscape = landscape;
+        this.containerHeight = newVal.height as number;
+        if (changed) {
+          if (this.needsAutoHide()) {
+            this.resetHideTimer();
+          } else {
+            if (this.hideTimerId !== -1) {
+              clearTimeout(this.hideTimerId);
+              this.hideTimerId = -1;
+            }
+            this.showLandscapeControls();
+          }
+        }
+      });
+
+      // ArkUI 每个组件只能绑定一个 bindSheet，用不可见锚点分散绑定。
+      // 独立挂在 Stack 层而非内容 Column 内：竖屏时内容 Column 被 if/else 整段替换会重建锚点，
+      // 导致已打开的半模态跟随旧子树销毁。
+      Column().width(0).height(0)
+        .bindSheet($$this.showPlaylist, this.playlistSheet(), {
+          height: '60%',
+          dragBar: true,
+          backgroundColor: this.theme.colors.background,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showMore, this.moreSheet(), {
+          height: '55%',
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showSleepTimer, this.sleepTimerSheet(), {
+          height: 360,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showAddToPlaylist, this.addToPlaylistSheet(), {
+          height: '50%',
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showLyricsSize, this.lyricsSizeSheet(), {
+          height: 280,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showControlPos, this.controlPosSheet(), {
+          height: 260,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showMiCast, this.miCastSheet(), {
+          height: 420,
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
+      Column().width(0).height(0)
+        .bindSheet($$this.showSyncInvite, this.syncInviteSheet(), {
+          height: '70%',
+          dragBar: true,
+          backgroundColor: this.theme.colors.surface,
+        })
 
       // 同步邀请通知：覆盖在所有内容之上（顶级 Stack，作为叠层不参与主轴 layout）
       Stack() { SyncNotification() }
@@ -452,6 +536,164 @@ struct PlayerPage {
     }
     .width('100%').height(56)
     .padding({ left: 10, right: 10 });
+  }
+
+  /**
+   * 横屏布局（对齐 mobile player.tsx 的 landscape 分支）：
+   * 左列：返回/更多按钮绝对定位于左上/右上，封面 250×250 居中，
+   *       控制条悬浮叠在左列底部（bottom:40, left:10%），空间不足时 3s 无操作自动隐藏，点封面切换显隐；
+   * 右列：歌词列表常驻居中滚动（有声书时显示播放列表）。
+   */
+  @Builder landscapeContent() {
+    Row() {
+      // ── 左列（对齐 landscapeLeft: flex:1, center, padding:24） ──
+      Stack({ alignContent: Alignment.Center }) {
+        CoverImage({
+          path: this.current()?.coverUrl ?? null,
+          imgWidth: 250,
+          imgHeight: 250,
+          radius: 15,
+          fallbackText: (this.current()?.title ?? '?').substring(0, 1),
+        })
+          .onClick(() => {
+            // 对齐 mobile: needsAutoHide 时点封面切换控制条显隐
+            if (this.needsAutoHide()) {
+              if (this.controlsVisible) {
+                if (this.hideTimerId !== -1) {
+                  clearTimeout(this.hideTimerId);
+                  this.hideTimerId = -1;
+                }
+                this.controlsVisible = false;
+                animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+                  this.controlsOpacity = 0;
+                });
+              } else {
+                this.resetHideTimer();
+              }
+            }
+          });
+
+        // 悬浮控制条（对齐 landscapeControls: absolute, bottom:40, left:10%, width:80%, radius:16, padding:10）
+        Column() {
+          this.controls();
+        }
+        .width('80%')
+        .borderRadius(16)
+        .padding(10)
+        .backgroundColor(this.theme.colors.background)
+        .position({ x: '10%', y: this.controlsTop() })
+        .opacity(this.controlsOpacity)
+        .hitTestBehavior(this.controlsVisible ? HitTestMode.Default : HitTestMode.None)
+        .onAreaChange((oldVal: Area, newVal: Area) => {
+          const firstMeasure = this.controlsHeight <= 0;
+          this.controlsHeight = newVal.height as number;
+          if (firstMeasure && this.needsAutoHide()) {
+            this.resetHideTimer();
+          }
+        });
+
+        // 返回按钮（对齐 landscapeBackBtn: absolute, top:20, left:20, zIndex:10）
+        Row() {
+          AppIcon({ name: 'chevron-down', iconSize: 26, color: this.theme.colors.text });
+        }
+        .width(44).height(44)
+        .justifyContent(FlexAlign.Center)
+        .position({ x: 20, y: 20 })
+        .zIndex(10)
+        .onClick(() => router.back());
+
+        // 更多按钮（对齐 landscapeMoreBtn: absolute, top:20, right:20, zIndex:10）
+        Row() {
+          Text('⋮')
+            .fontSize(22)
+            .fontColor(this.theme.colors.text)
+            .textAlign(TextAlign.Center);
+        }
+        .width(44).height(44)
+        .justifyContent(FlexAlign.Center)
+        .position({ x: this.leftColumnWidth - 64, y: 20 })
+        .zIndex(10)
+        .onClick(() => { this.showMore = true; });
+      }
+      .layoutWeight(1)
+      .height('100%')
+      .padding(24)
+      // 左列 Stack 有 padding:24，position 以自身宽为基准，'.translate(-64)' 需要补偿 padding
+      // 因此把左列宽度测出来算右侧偏移，保证按钮贴右边缘（对齐 mobile right:20）
+      .onAreaChange((oldVal: Area, newVal: Area) => {
+        this.leftColumnWidth = newVal.width as number;
+      });
+
+      // ── 右列（对齐 landscapeRight: flex:1, padding:24, paddingTop:34, paddingBottom:14, center） ──
+      Column() {
+        if (this.current()?.contentType === 'AUDIOBOOK') {
+          this.playlistPanel();
+        } else {
+          this.lyricsView();
+        }
+      }
+      .layoutWeight(1)
+      .height('100%')
+      .padding({ left: 24, right: 24, top: 34, bottom: 14 })
+      .justifyContent(FlexAlign.Center);
+    }
+    .width('100%')
+    .layoutWeight(1);
+  }
+
+  /** 横屏右列播放列表面板（对齐 mobile landscape 中 AUDIOBOOK 时的 renderPlaylist 内联列表）。 */
+  @Builder playlistPanel() {
+    List() {
+      ForEach(this.view.queue, (track: Track, index: number) => {
+        ListItem() {
+          Row({ space: 10 }) {
+            if (index === this.view.currentIndex && this.view.isPlaying) {
+              PlayingIndicator({ color: this.theme.colors.primary })
+                .width(30);
+            } else {
+              Text(`${index + 1}`)
+                .fontSize(14)
+                .fontColor(index === this.view.currentIndex
+                  ? this.theme.colors.primary
+                  : this.theme.colors.textSecondary)
+                .width(30)
+                .textAlign(TextAlign.Center);
+            }
+            CoverImage({
+              path: track.coverUrl ?? null,
+              imgWidth: 20,
+              imgHeight: 20,
+              radius: 2,
+              fallbackText: (track.title ?? '?').substring(0, 1),
+            });
+            Column({ space: 2 }) {
+              Text(track.title)
+                .fontSize(15)
+                .fontColor(index === this.view.currentIndex
+                  ? this.theme.colors.primary
+                  : this.theme.colors.text)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis });
+              Text(track.artist ?? '')
+                .fontSize(12)
+                .fontColor(this.theme.colors.textSecondary)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis });
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start);
+          }
+          .width('100%')
+          .padding({ top: 10, bottom: 10, left: 16, right: 16 })
+          .onClick(() => {
+            playerStore.playTrackList(this.view.queue, index).catch(() => undefined);
+          });
+        }
+      }, (track: Track, index: number) => `${index}_${track.id}`);
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .scrollBar(BarState.Off);
   }
 
   @Builder content() {
@@ -487,7 +729,10 @@ struct PlayerPage {
       Text(t('player.noLyrics'))
         .fontSize(16)
         .fontColor(this.theme.colors.textSecondary)
-        .onClick(() => { this.showLyrics = false; });
+        .onClick(() => {
+          // 横屏时歌词常驻右列，不做切换（对齐 mobile 横屏无点按切回）
+          if (!this.isLandscape) this.showLyrics = false;
+        });
     } else {
       List({ scroller: this.lyricScroller }) {
         ForEach(this.view.lyrics, (line: LyricLine, index: number) => {
@@ -508,7 +753,9 @@ struct PlayerPage {
       .width('100%')
       .height('100%')
       .scrollBar(BarState.Off)
-      .onClick(() => { this.showLyrics = false; });
+      .onClick(() => {
+        if (!this.isLandscape) this.showLyrics = false;
+      });
     }
   }
 

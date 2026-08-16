@@ -281,6 +281,8 @@ export struct SearchContent {
       .width('100%').alignItems(HorizontalAlign.Start)
     }
     .layoutWeight(1).scrollBar(BarState.Off).align(Alignment.Top)
+    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116）
+    .padding({ bottom: 116 })
   }
 
   // ─── 搜索结果：分段列表（对齐 mobile sections） ───
@@ -322,6 +324,8 @@ export struct SearchContent {
       }
     }
     .layoutWeight(1).scrollBar(BarState.Off).divider({ strokeWidth: 0.5, color: this.theme.colors.border, startMargin: 80, endMargin: 15 })
+    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116）
+    .padding({ bottom: 116 })
   }
 
   @Builder
@@ -386,7 +390,7 @@ export struct SearchContent {
       if (!target) return;
       const list = [await resolveTrackToPlayer(target, false)];
       await playerStore.playTrackList(list, 0);
-      router.pushUrl({ url: 'pages/PlayerPage' });
+      // 不再自动打开播放详情页：播放交给 MiniPlayer，用户点 MiniPlayer 再进详情
     } catch (e) {
       Logger.w('Search', `playTrack: ${String(e)}`);
     }

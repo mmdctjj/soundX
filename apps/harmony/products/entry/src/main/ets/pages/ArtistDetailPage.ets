@@ -33,7 +33,7 @@ export struct ArtistDetailContent {
   // 注意：属性名不能用 'id' — ArkUI CustomComponent 把 'id' 保留为通用属性（CommonAttribute.id），
   // 自定义属性必须避开。统一用 'entityId' 表示详情页目标 id。
   pathStack: NavPathStack = new NavPathStack();
-  entityId: string = '';
+  entityId: string = ''; 
   @State artist: ArtistDto | null = null;
   @State albums: AlbumDto[] = [];
   @State collaborativeAlbums: AlbumDto[] = [];
@@ -259,9 +259,12 @@ export struct ArtistDetailContent {
             Row() {
               if (this.isSelectionMode) {
                 Column() {
-                  Text(this.selectedTrackIds.indexOf(tr.id) >= 0 ? '☑' : '☐')
-                    .fontSize(20)
-                    .fontColor(this.selectedTrackIds.indexOf(tr.id) >= 0 ? this.theme.colors.primary : this.theme.colors.textSecondary)
+                  // 对齐 mobile：Ionicons checkbox / square-outline（不用 emoji，各端渲染不一致）
+                  AppIcon({
+                    name: this.selectedTrackIds.indexOf(tr.id) >= 0 ? 'checkbox' : 'square-outline',
+                    iconSize: 20,
+                    color: this.selectedTrackIds.indexOf(tr.id) >= 0 ? this.theme.colors.primary : this.theme.colors.textSecondary,
+                  })
                 }
                 .width(32).justifyContent(FlexAlign.Center)
               }
@@ -289,7 +292,9 @@ export struct ArtistDetailContent {
     }
     .layoutWeight(1)
     .width('100%')
-    .padding({ bottom: 40 })
+    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116），
+    // 否则最后几行曲目被遮挡（对齐 mobile 的列表底部留白）
+    .padding({ bottom: 116 })
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
   }
@@ -437,8 +442,7 @@ export struct ArtistDetailContent {
       const list: Track[] = [];
       for (const x of this.tracks) list.push(await resolveTrackToPlayer(x, false));
       await playerStore.playTrackList(list, index);
-      // PlayerPage 是独立 @Entry Page，保持 router.pushUrl
-      router.pushUrl({ url: 'pages/PlayerPage' });
+      // 不再自动打开播放详情页：播放交给 MiniPlayer，用户点 MiniPlayer 再进详情
     } catch (e) {
       Logger.w('ArtistDetail', `play failed: ${String(e)}`);
     }
@@ -635,12 +639,18 @@ export struct ArtistDetailContent {
       const artist = await artistApi.getById(id);
       this.artist = artist;
 
+      // 对齐 mobile artist/[id].tsx 的 artistQueryKey：
+      // 后端 byArtist 系列接口按艺人「名字」查询；仅 Emby 源按 id 查。
+      // 之前直接传 entityId，AudioDock 源下查不到 → 专辑/合作专辑/单曲全空，只剩「所有单曲 (0)」。
+      const artistQueryKey =
+        authStore.state_.sourceType === 'emby' ? id : artist.name;
+
       // 并行拉关联数据：专辑、合作专辑、单曲、相关合集、MV
       const tasks: Promise<void>[] = [];
-      tasks.push(albumApi.byArtist(id).then((v: AlbumDto[]) => { this.albums = v; }).catch(() => undefined));
-      tasks.push(albumApi.collaborativeByArtist(id).then((v: AlbumDto[]) => { this.collaborativeAlbums = v; }).catch(() => undefined));
-      tasks.push(trackApi.byArtist(id).then((v: TrackDto[]) => { this.tracks = v; }).catch(() => undefined));
-      tasks.push(mvApi.byArtist(id).then((v: MVDto[]) => { this.mvs = v; }).catch(() => undefined));
+      tasks.push(albumApi.byArtist(artistQueryKey).then((v: AlbumDto[]) => { this.albums = v; }).catch(() => undefined));
+      tasks.push(albumApi.collaborativeByArtist(artistQueryKey).then((v: AlbumDto[]) => { this.collaborativeAlbums = v; }).catch(() => undefined));
+      tasks.push(trackApi.byArtist(artistQueryKey).then((v: TrackDto[]) => { this.tracks = v; }).catch(() => undefined));
+      tasks.push(mvApi.byArtist(artistQueryKey).then((v: MVDto[]) => { this.mvs = v; }).catch(() => undefined));
 
       if (artist.type === 'AUDIOBOOK') {
         const uid = authStore.state_.user?.id ?? '';

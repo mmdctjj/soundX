@@ -328,7 +328,7 @@ export struct LibraryTab {
       const list: Track[] = [];
       for (const item of this.tracks) list.push(await resolveTrackToPlayer(item, false));
       await playerStore.playTrackList(list, index);
-      router.pushUrl({ url: 'pages/PlayerPage' });
+      // 不再自动打开播放详情页：播放交给 MiniPlayer，用户点 MiniPlayer 再进详情
     } catch (e) {
       Logger.w('LibraryTab', `play failed: ${String(e)}`);
     }
@@ -774,9 +774,12 @@ export struct LibraryTab {
     Row() {
       if (this.isSelectionMode) {
         Column() {
-          Text(this.isSelected(track.id) ? '☑' : '☐')
-            .fontSize(24)
-            .fontColor(this.isSelected(track.id) ? this.theme.colors.primary : this.theme.colors.textSecondary)
+          // 对齐 mobile：Ionicons checkbox / square-outline（不用 emoji，各端渲染不一致）
+          AppIcon({
+            name: this.isSelected(track.id) ? 'checkbox' : 'square-outline',
+            iconSize: 24,
+            color: this.isSelected(track.id) ? this.theme.colors.primary : this.theme.colors.textSecondary,
+          })
         }
         .width(48).height(48).justifyContent(FlexAlign.Center).margin({ right: 12 })
       } else {

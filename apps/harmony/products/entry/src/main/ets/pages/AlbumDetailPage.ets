@@ -233,9 +233,12 @@ export struct AlbumDetailContent {
             Row() {
               if (this.isSelectionMode) {
                 Column() {
-                  Text(this.selectedTrackIds.indexOf(tr.id) >= 0 ? '☑' : '☐')
-                    .fontSize(20)
-                    .fontColor(this.selectedTrackIds.indexOf(tr.id) >= 0 ? this.theme.colors.primary : this.theme.colors.textSecondary)
+                  // 对齐 mobile：Ionicons checkbox / square-outline（不用 emoji，各端渲染不一致）
+                  AppIcon({
+                    name: this.selectedTrackIds.indexOf(tr.id) >= 0 ? 'checkbox' : 'square-outline',
+                    iconSize: 20,
+                    color: this.selectedTrackIds.indexOf(tr.id) >= 0 ? this.theme.colors.primary : this.theme.colors.textSecondary,
+                  })
                 }
                 .width(32).justifyContent(FlexAlign.Center)
               }
@@ -262,7 +265,9 @@ export struct AlbumDetailContent {
     }
     .layoutWeight(1)
     .width('100%')
-    .padding({ left: 20, right: 20, bottom: 40 })
+    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116），
+    // 否则最后几行曲目被遮挡（对齐 mobile 的列表底部留白）
+    .padding({ left: 20, right: 20, bottom: 116 })
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
   }
@@ -444,7 +449,7 @@ export struct AlbumDetailContent {
       for (const x of this.tracks) list.push(await resolveTrackToPlayer(x, false));
       await playerStore.playTrackList(list, index);
       if (startMs > 0) await playerStore.seek(startMs);
-      router.pushUrl({ url: 'pages/PlayerPage' });
+      // 不再自动打开播放详情页：播放交给 MiniPlayer，用户点 MiniPlayer 再进详情
     } catch (e) {
       Logger.w('AlbumDetail', `play failed: ${String(e)}`);
     }
