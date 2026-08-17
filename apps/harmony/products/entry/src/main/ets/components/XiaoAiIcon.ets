@@ -7,12 +7,14 @@ import type { Theme, ThemeMode } from 'features_ui';
  */
 function hexToRgb(hex: string): number[] {
   // 主题色格式为 #AARRGGBB；兼容 #RRGGBB。
+  // 注意：colorFilter 矩阵要求 [0,1] 浮点数（参考官方示例 0.33/0.5/1.0），
+  // 直接传 0-255 整数会被当作超大值 clamp 成 1.0，最终全白。
   let h = hex.replace('#', '');
   if (h.length === 8) h = h.substring(2);
   const r = parseInt(h.substring(0, 2), 16);
   const g = parseInt(h.substring(2, 4), 16);
   const b = parseInt(h.substring(4, 6), 16);
-  return [isNaN(r) ? 0 : r, isNaN(g) ? 0 : g, isNaN(b) ? 0 : b];
+  return [isNaN(r) ? 0 : r / 255, isNaN(g) ? 0 : g / 255, isNaN(b) ? 0 : b / 255];
 }
 
 /** 生成把图形染成纯色 (r,g,b)、保留原始 alpha 的 4x5 颜色矩阵。 */

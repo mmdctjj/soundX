@@ -129,6 +129,11 @@ struct SettingsPage {
   @State screenInsetModalVisible: boolean = false;
   // 屏幕边距 slider 实时拖动值（松手/点击才持久化，对齐 mobile 的 Slider.onChange End 行为）
   @State screenInsetDraft: number = 0;
+  // 注销会员账号确认弹窗显示控制（ArkUI promptAction.showDialog 不返回 button index，
+  // 必须用 bindContentCover 自定义弹窗才能区分取消 vs 确认，对齐 mobile Alert.alert 行为）
+  @State deleteMemberConfirmVisible: boolean = false;
+  // 注销请求进行中：禁用弹窗内的确认按钮，避免重复点击
+  @State deleteMemberPending: boolean = false;
 
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);
@@ -358,10 +363,10 @@ struct SettingsPage {
     // 3) 持久化 + 同步 AppStorage
     await this.updateBoolSetting('carModeEnabled', val);
     AppStorage.setOrCreate<boolean>('carModeEnabled', val);
-    // 4) 开启时强制跳到 MainPage 触发车机布局（对齐 mobile 的 router.replace('/(tabs)')）
+    // 4) 开启时强制跳到 RootShellPage 触发车机布局（对齐 mobile 的 router.replace('/(tabs)')）
     if (val) {
       try {
-        router.replaceUrl({ url: 'pages/MainPage' });
+        router.replaceUrl({ url: 'pages/RootShellPage' });
       } catch (e) {
         Logger.w('SettingsPage', `navigate to MainPage failed: ${String(e)}`);
       }
@@ -442,6 +447,51 @@ struct SettingsPage {
       router.replaceUrl({ url: 'pages/SourceSelectPage' });
     } catch (e) {
       Logger.e('SettingsPage', `logout failed: ${String(e)}`);
+    }
+  }
+
+  /**
+   * 注销会员账号入口（对齐 mobile settings.tsx handleDeleteMemberAccount）：
+   * 1) 校验 plus_token；没有就先弹 Toast 并跳 MemberLoginPage
+   * 2) 否则弹出自定义确认弹窗（ArkUI showDialog 不返回 button index，必须用 bindContentCover）
+   * 3) 用户在弹窗内点「确认注销」才真正调 plusApi.deleteMe()
+   */
+  private async handleDeleteMemberAccount(): Promise<void> {
+    const plusToken: string | null = await kvStore.get('plus_token');
+    if (!plusToken) {
+      promptAction.showToast({ message: t('settings.loginFirst') });
+      router.replaceUrl({ url: 'pages/MemberLoginPage' });
+      return;
+    }
+    this.deleteMemberConfirmVisible = true;
+  }
+
+  /**
+   * 用户在确认弹窗里点「确认注销」后真正调接口（替代 showDialog.then 拿 buttonIndex 的写法）。
+   * 成功：清理 plus 状态、Toast 成功、跳 MemberLoginPage；失败：Toast 失败。
+   */
+  private async confirmDeleteMemberAccount(): Promise<void> {
+    if (this.deleteMemberPending) {
+      return;
+    }
+    this.deleteMemberPending = true;
+    try {
+      const res = await plusApi.deleteMe();
+      if (!res || !res.ok) {
+        throw new Error('deleteMe returned ok=false');
+      }
+      // 清理会员态（对齐 mobile：setPlusToken(null) + 清 kvStore）
+      setPlusAuthToken(null);
+      await kvStore.delete('plus_token');
+      await kvStore.delete('plus_userId');
+      this.deleteMemberConfirmVisible = false;
+      promptAction.showToast({ message: t('settings.deleteMemberSuccess') });
+      router.replaceUrl({ url: 'pages/MemberLoginPage' });
+    } catch (e) {
+      Logger.e('SettingsPage', `deleteMemberAccount failed: ${String(e)}`);
+      promptAction.showToast({ message: t('settings.deleteMemberFailed') });
+    } finally {
+      this.deleteMemberPending = false;
     }
   }
 
@@ -840,6 +890,19 @@ struct SettingsPage {
             .margin({ top: 30 })
             .onClick(() => this.logout())
 
+          // ═══ 注销会员账号（对齐 mobile settings.tsx deleteMemberButton） ═══
+          Button(t('settings.deleteMemberAccount'))
+            .width('100%')
+            .height(50)
+            .backgroundColor('#FFF1F0')
+            .fontColor('#CF1322')
+            .fontSize(17)
+            .fontWeight(FontWeight.Medium)
+            .borderRadius(12)
+            .border({ width: 1, color: '#FFCCC7' })
+            .margin({ top: 12 })
+            .onClick(() => this.handleDeleteMemberAccount())
+
           // Footer version
           Text(`AudioDock HarmonyOS v${this.version}`)
             .fontSize(12)
@@ -862,10 +925,92 @@ struct SettingsPage {
           dragBar: true,
           backgroundColor: this.theme.colors.surface,
         })
+
+      // 注销会员账号二次确认弹窗（ArkUI promptAction.showDialog 不返回 button index，
+      // 用 bindContentCover + 自定义按钮区分取消 vs 确认，对齐 mobile Alert.alert 行为）
+      Column().width(0).height(0)
+        .bindContentCover($$this.deleteMemberConfirmVisible, this.deleteMemberConfirmCover(), {
+          modalTransition: ModalTransition.DEFAULT,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          onDisappear: (): void => {
+            // 弹窗关闭时复位 pending，避免下次打开时按钮仍处于禁用
+            this.deleteMemberPending = false;
+          },
+        })
     }
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme.colors.background)
+  }
+
+  /** 注销会员账号二次确认全屏弹窗（对齐 mobile settings.tsx handleDeleteMemberAccount 的 Alert.alert） */
+  @Builder
+  deleteMemberConfirmCover() {
+    Stack() {
+      // 半透明遮罩，点击空白处关闭弹窗（取消语义）
+      Column()
+        .width('100%')
+        .height('100%')
+        .onClick((): void => {
+          if (!this.deleteMemberPending) {
+            this.deleteMemberConfirmVisible = false;
+          }
+        })
+
+      // 居中卡片
+      Column() {
+        Text(t('settings.deleteMemberAccount'))
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme.colors.text)
+          .margin({ top: 24, bottom: 12 })
+          .textAlign(TextAlign.Center)
+
+        Text(t('settings.deleteMemberConfirm'))
+          .fontSize(14)
+          .fontColor(this.theme.colors.textSecondary)
+          .lineHeight(20)
+          .padding({ left: 24, right: 24 })
+          .textAlign(TextAlign.Center)
+
+        Row() {
+          Button(t('common.cancel'))
+            .layoutWeight(1)
+            .height(44)
+            .backgroundColor(this.theme.colors.surface)
+            .fontColor(this.theme.colors.text)
+            .fontSize(15)
+            .borderRadius(10)
+            .border({ width: 1, color: this.theme.colors.border })
+            .enabled(!this.deleteMemberPending)
+            .onClick((): void => {
+              this.deleteMemberConfirmVisible = false;
+            })
+
+          Button(this.deleteMemberPending ? t('common.loading') : t('settings.deleteMemberAccount'))
+            .layoutWeight(1)
+            .height(44)
+            .backgroundColor('#CF1322')
+            .fontColor('#FFFFFF')
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .borderRadius(10)
+            .margin({ left: 12 })
+            .enabled(!this.deleteMemberPending)
+            .onClick((): void => {
+              this.confirmDeleteMemberAccount();
+            })
+        }
+        .width('100%')
+        .padding({ left: 24, right: 24, top: 24, bottom: 24 })
+      }
+      .width('80%')
+      .constraintSize({ maxWidth: 420 })
+      .backgroundColor(this.theme.colors.card)
+      .borderRadius(16)
+    }
+    .width('100%')
+    .height('100%')
   }
 
   /** 屏幕边距调整半模态（对齐 mobile Slider 0–160 + 重置） */

@@ -10,6 +10,7 @@ import type { AlbumDto, TrackDto, MVDto, AlbumTracksResp, MiDevice, MiTrackPaylo
 import { DetailHero } from '../components/DetailHero';
 import { TrackRow } from '../components/TrackRow';
 import { AppIcon } from '../components/AppIcon';
+import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { XiaoAiIcon } from '../components/XiaoAiIcon';
 import { mvPlaylistStore } from '../store/MvPlaylistStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
@@ -42,6 +43,7 @@ export struct AlbumDetailContent {
   @State currentMs: number = 0;
   @State isSelectionMode: boolean = false;
   @State selectedTrackIds: string[] = [];
+  @State addToPlaylistVisible: boolean = false;
   @State showMoreSheet: boolean = false;
   @State showMiCast: boolean = false;
   @State showCollectionPicker: boolean = false;
@@ -101,11 +103,25 @@ export struct AlbumDetailContent {
     // 语言切换时重建整页：条件读取 langAtBuild 建立依赖（框架只追踪读取状态变量的表达式，
     // t() 是普通函数无法被追踪），语言变化使 if 分支切换，旧子树销毁、新子树重建，
     // 所有 t() 文案（含局部 @Builder 和 @Prop 传串的子组件）都按新语言重新求值。
-    if (this.langAtBuild === 'zh-CN') {
-      this.LocalizedContent()
-    } else {
-      this.LocalizedContent()
+    Column() {
+      if (this.langAtBuild === 'zh-CN') {
+        this.LocalizedContent()
+      } else {
+        this.LocalizedContent()
+      }
+      if (this.addToPlaylistVisible) {
+        AddToPlaylistModal({
+          visible: this.addToPlaylistVisible,  // @Link 双绑：父 @State 直接传 this.xxx 即可
+          // 多选模式：按 selectedTrackIds 过滤；MoreSheet 入口（整张专辑）：传全部 tracks
+          tracks: this.isSelectionMode
+            ? this.tracks.filter((tr): boolean => this.selectedTrackIds.includes(tr.id))
+            : this.tracks,
+          contentMode: this.isAudiobook() ? 'AUDIOBOOK' : 'MUSIC',
+          onClose: (): void => { this.addToPlaylistVisible = false; },
+        })
+      }
     }
+    .width('100%').height('100%')
   }
 
   @Builder
@@ -121,7 +137,7 @@ export struct AlbumDetailContent {
           AppIcon({ name: 'plus', iconSize: 22, color: this.selectedTrackIds.length > 0 ? this.theme.colors.text : this.theme.colors.textSecondary })
             .margin({ right: 16 })
             .onClick(() => {
-              if (this.selectedTrackIds.length > 0) promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
+              if (this.selectedTrackIds.length > 0) this.addToPlaylistVisible = true;
             })
         }
         .width('100%').height(56).padding({ left: 16, right: 16 })
@@ -654,7 +670,7 @@ export struct AlbumDetailContent {
       })
       this.MoreOptionRow(t('albumMore.addToPlaylist'), () => {
         this.showMoreSheet = false;
-        promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
+        this.addToPlaylistVisible = true;
       })
       // 对齐 mobile AlbumMoreModal：仅有声书专辑显示「加入合集」
       if (this.isAudiobook()) {

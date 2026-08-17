@@ -108,6 +108,7 @@ export class HarmonyHttpClient {
         const httpErr = HttpError.fromStatus(response.status, response.data as object | null);
         let finalErr = httpErr;
         for (const i of this.errInterceptors) finalErr = await i.intercept(finalErr);
+        Logger.w('LoginDiag', `http fail url=${this.buildUrl(config)} status=${response.status} err=${finalErr.message}`);
         throw finalErr;
       }
 
@@ -116,6 +117,7 @@ export class HarmonyHttpClient {
         // 后端所有响应都带 code（含错误响应，错误时无 data 字段）
         if (env.code !== undefined) {
           const code = env.code;
+          Logger.i('LoginDiag', `http ok url=${this.buildUrl(config)} status=${response.status} env.code=${code}`);
           // 后端成功约定是 code: 200（services/api/src/common/const.ts ISuccessResponse）
           if (code !== 200) {
             // env.message 形参类型是 string，但运行时可能是对象/数组（部分旧后端把

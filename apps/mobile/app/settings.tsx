@@ -841,7 +841,7 @@ export default function SettingsScreen() {
 
           {renderActionRow(
             t("settings.userAgreement"),
-            t("settings.userAgreement"),
+            t("settings.userAgreementDescription"),
             () => {
               trackEvent({
                 feature: "settings",
@@ -857,7 +857,7 @@ export default function SettingsScreen() {
 
           {renderActionRow(
             t("settings.privacyPolicy"),
-            t("settings.privacyPolicy"),
+            t("settings.privacyPolicyDescription"),
             () => {
               trackEvent({
                 feature: "settings",

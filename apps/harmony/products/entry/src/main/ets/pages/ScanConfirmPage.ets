@@ -105,7 +105,7 @@ struct ScanConfirmPage {
             { text: t('common.ok'), color: this.theme.colors.primary },
           ],
         }).then((): void => {
-          router.replaceUrl({ url: 'pages/MainPage' });
+          router.replaceUrl({ url: 'pages/RootShellPage' });
         });
       } else if (status.status === 'failed' || status.status === 'expired') {
         this.unsubscribe?.();
@@ -116,7 +116,7 @@ struct ScanConfirmPage {
           buttons: [
             { text: t('scanLogin.back'), color: this.theme.colors.primary },
           ],
-        }).then((): void => { router.replaceUrl({ url: 'pages/MainPage' }); });
+        }).then((): void => { router.replaceUrl({ url: 'pages/RootShellPage' }); });
       }
     });
   }

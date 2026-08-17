@@ -74,6 +74,15 @@ export interface VipStatusResponse {
   expiresAt: string | null;
 }
 
+/**
+ * 注销会员账号返回结构（对齐 mobile packages/services/src/plus.ts 的 DeletePlusMeResponse）。
+ * 后端 UserController_removeMe 返回 ISuccessResponse<{ok: true}>。
+ * hm 端 plus.ets 的 plusRequest 会解 envelope 直接返回 data，所以这里只声明 data 字段。
+ */
+export interface DeleteMeResponse {
+  ok: boolean;
+}
+
 export interface CouponsResponse {
   data: CouponItem[];
   total: number;
@@ -176,6 +185,7 @@ export interface PlusApi {
   getMyCoupons(): Promise<CouponItem[]>;
   createPayment(userId: string, plan: string, method: string, price: number, couponCode?: string): Promise<CreatePaymentResponse>;
   getVipStatus(userId: string): Promise<VipStatusResponse>;
+  deleteMe(): Promise<DeleteMeResponse>;
 }
 
 class PlusApiImpl implements PlusApi {
@@ -222,6 +232,11 @@ class PlusApiImpl implements PlusApi {
   async getVipStatus(userId: string): Promise<VipStatusResponse> {
     const params: UserIdParams = { userId };
     return plusRequest<VipStatusResponse>('GET', '/vip/status', undefined, params);
+  }
+
+  async deleteMe(): Promise<DeleteMeResponse> {
+    // 对齐 mobile packages/services/src/plus.ts plusDeleteMe：DELETE /users/me
+    return plusRequest<DeleteMeResponse>('DELETE', '/users/me');
   }
 }
 

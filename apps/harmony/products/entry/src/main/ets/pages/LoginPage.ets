@@ -121,6 +121,7 @@ struct LoginPage {
   private async handleSubmit(): Promise<void> {
     const internal: string = this.internalAddress.trim();
     const external: string = this.externalAddress.trim();
+    Logger.i('LoginDiag', `submit start sourceType=${this.sourceType} isLogin=${this.isLogin} internal=${internal} external=${external} username=${this.username}`);
     if (!internal && !external) {
       promptAction.showToast({ message: '请至少输入一个数据源地址（内网或外网）' });
       return;
@@ -137,6 +138,7 @@ struct LoginPage {
     this.loading = true;
     try {
       const bestAddress: string | null = await selectBestServer(internal, external, this.sourceType);
+      Logger.i('LoginDiag', `bestAddress=${bestAddress ?? 'null'} mappedType=${SOURCEMAP[this.sourceType] || 'audiodock'}`);
       if (!bestAddress) {
         promptAction.showToast({ message: t('login.cannotConnectAnyAddress') });
         return;
@@ -211,9 +213,11 @@ struct LoginPage {
         await authStore.register({ username: this.username, password: this.password });
       }
 
-      router.replaceUrl({ url: 'pages/MainPage' });
+      router.replaceUrl({ url: 'pages/RootShellPage' });
     } catch (e) {
-      promptAction.showToast({ message: e instanceof HttpError ? e.message : String(e) });
+      const errMsg: string = e instanceof HttpError ? e.message : String(e);
+      Logger.e('LoginDiag', `submit failed err=${errMsg} type=${e instanceof HttpError ? `HttpError(${e.status})` : typeof e}`);
+      promptAction.showToast({ message: errMsg });
     } finally {
       this.loading = false;
     }

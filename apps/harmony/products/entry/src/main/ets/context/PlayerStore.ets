@@ -160,6 +160,27 @@ export class PlayerStore {
     this.contentMode = next;
   }
 
+  // insertTracksNext: insert tracks right after the currently playing one.
+  // Mirrors mobile PlayerContext.insertTracksNext (apps/mobile/src/context/PlayerContext.tsx:2260).
+  // - Empty queue: treat as play-this-batch via playTrackList(tracks, 0)
+  // - Otherwise: splice into queue at currentIndex + 1, no currentIndex move, no audio restart
+  insertTracksNext(tracks: Track[]): void {
+    if (tracks.length === 0) return;
+    if (this.queue.length === 0 || this.currentIndex < 0) {
+      this.playTrackList(tracks, 0).catch(() => undefined);
+      return;
+    }
+    const insertAt = Math.min(this.currentIndex + 1, this.queue.length);
+    this.queue = [
+      ...this.queue.slice(0, insertAt),
+      ...tracks,
+      ...this.queue.slice(insertAt),
+    ];
+    this.persistState();
+    this.notify();
+    this.broadcastSync('playlist', this.queue);
+  }
+
   async playNext(): Promise<void> {
     if (this.queue.length === 0) return;
     const next = this.computeNextIndex();

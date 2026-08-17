@@ -1,4 +1,7 @@
 import http from '@ohos.net.http';
+import { Logger } from 'audiodock_common';
+
+const TAG = 'LoginDiag';
 
 // ============ 数据源映射（对齐 mobile 端 packages/services） ============
 export const SOURCEMAP: Record<string, string> = {
@@ -41,6 +44,7 @@ export async function checkServerConnectivity(address: string, sourceType: strin
       connectTimeout: 3000,
     };
     const response: http.HttpResponse = await httpRequest.request(pingUrl, opts);
+    Logger.i(TAG, `ping url=${pingUrl} code=${response.responseCode} alive=${response.responseCode >= 200 && response.responseCode < 300}`);
     if (response.responseCode >= 200 && response.responseCode < 300) {
       return true;
     }
