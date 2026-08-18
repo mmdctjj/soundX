@@ -7,7 +7,7 @@ import {
   artistApi, albumApi, trackApi, userDataApi, plusApi, setPlusAuthToken,
 } from 'features_network';
 import type { ArtistDto, AlbumDto, TrackDto } from 'features_network';
-import { MiniPlayer } from '../components/MiniPlayer';
+import { MiniPlayer, miniPlayerHasContent } from '../components/MiniPlayer';
 import { SquirrelAgent } from '../components/SquirrelAgent';
 import { AppIcon, AppIconName } from '../components/AppIcon';
 import { CoverImage } from '../components/CoverImage';
@@ -522,9 +522,9 @@ export struct HomeTab {
               }
             }
             .width('100%').height('100%')
-            // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116），
+            // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度），
             // 否则「调整顺序」按钮被遮挡（对齐 mobile 首页 scrollContent paddingBottom: 100）
-            .padding({ bottom: 116 })
+            .padding({ bottom: miniPlayerHasContent() ? 116 : 56 })
             .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
           }
           .width('100%').layoutWeight(1)

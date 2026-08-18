@@ -13,6 +13,7 @@ import { ensureMicPermission, startRecording, stopRecording, speechToText } from
 import { playerStore } from '../context/PlayerStore';
 import { likesHistory } from '../services/LikesHistoryService';
 import { CoverImage } from '../components/CoverImage';
+import { miniPlayerHasContent } from '../components/MiniPlayer';
 import { AppIcon } from '../components/AppIcon';
 
 const DEBOUNCE_MS = 500;
@@ -281,8 +282,8 @@ export struct SearchContent {
       .width('100%').alignItems(HorizontalAlign.Start)
     }
     .layoutWeight(1).scrollBar(BarState.Off).align(Alignment.Top)
-    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116）
-    .padding({ bottom: 116 })
+    // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度）
+    .padding({ bottom: miniPlayerHasContent() ? 116 : 56 })
   }
 
   // ─── 搜索结果：分段列表（对齐 mobile sections） ───
@@ -324,8 +325,8 @@ export struct SearchContent {
       }
     }
     .layoutWeight(1).scrollBar(BarState.Off).divider({ strokeWidth: 0.5, color: this.theme.colors.border, startMargin: 80, endMargin: 15 })
-    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116）
-    .padding({ bottom: 116 })
+    // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度）
+    .padding({ bottom: miniPlayerHasContent() ? 116 : 56 })
   }
 
   @Builder

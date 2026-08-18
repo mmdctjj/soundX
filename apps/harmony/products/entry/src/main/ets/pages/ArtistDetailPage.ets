@@ -11,6 +11,7 @@ import { SectionHeader } from '../components/SectionHeader';
 import { AlbumCarouselCard } from '../components/AlbumCarouselCard';
 import { TrackRow } from '../components/TrackRow';
 import { AppIcon } from '../components/AppIcon';
+import { miniPlayerHasContent } from '../components/MiniPlayer';
 import { XiaoAiIcon } from '../components/XiaoAiIcon';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { mvPlaylistStore } from '../store/MvPlaylistStore';
@@ -305,9 +306,9 @@ export struct ArtistDetailContent {
     }
     .layoutWeight(1)
     .width('100%')
-    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116），
+    // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度），
     // 否则最后几行曲目被遮挡（对齐 mobile 的列表底部留白）
-    .padding({ bottom: 116 })
+    .padding({ bottom: miniPlayerHasContent() ? 116 : 56 })
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
   }

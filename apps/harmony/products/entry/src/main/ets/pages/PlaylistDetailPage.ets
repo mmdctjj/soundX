@@ -9,6 +9,7 @@ import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
 import { CoverImage } from '../components/CoverImage';
+import { miniPlayerHasContent } from '../components/MiniPlayer';
 import { AppIcon } from '../components/AppIcon';
 import { Logger } from 'audiodock_common';
 
@@ -175,9 +176,9 @@ export struct PlaylistDetailContent {
       }, (tr: TrackDto) => tr.id)
     }
     .width('100%').layoutWeight(1)
-    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116），
+    // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度），
     // 否则最后几行曲目被遮挡（对齐 mobile 的列表底部留白）
-    .padding({ bottom: 116 })
+    .padding({ bottom: miniPlayerHasContent() ? 116 : 56 })
     .scrollBar(BarState.Off)
   }
 

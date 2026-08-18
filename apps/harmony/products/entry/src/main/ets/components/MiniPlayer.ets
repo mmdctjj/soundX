@@ -6,6 +6,11 @@ import type { PlayerStateView, Track } from '../context/PlayerStore';
 import { CoverImage } from './CoverImage';
 import { AppIcon } from './AppIcon';
 
+/** 迷你播放器是否有内容（队列非空）。空队列时不占高度，供页面计算底部避让留白。 */
+export function miniPlayerHasContent(): boolean {
+  return playerStore.view().queue.length > 0;
+}
+
 /**
  * 全局迷你播放器，布局与行为对齐 mobile 的 MiniPlayer：
  * 封面 40×40 + 标题/艺人 + 上一首/播放暂停/下一首，点击整行进 PlayerPage。

@@ -15,6 +15,8 @@ struct MemberLoginPage {
   @State loading: boolean = false;
   @State sendingCode: boolean = false;
   @State countdown: number = 0;
+  @State agreed: boolean = false;
+  @State agreeShakeX: number = 0;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
@@ -68,11 +70,24 @@ struct MemberLoginPage {
     }, 1000);
   }
 
+  // 未勾选协议时：协议行左右摇摆提示
+  shakeAgreeRow(): void {
+    const offsets: number[] = [0, -10, 10, -8, 8, -5, 5, 0];
+    offsets.forEach((x, i) => {
+      setTimeout(() => { this.agreeShakeX = x; }, i * 45);
+    });
+  }
+
   async handleLogin(): Promise<void> {
     const p = this.phone.trim();
     const c = this.code.trim();
     if (!p || !c) {
       promptAction.showToast({ message: t('member.enterPhoneAndCode') });
+      return;
+    }
+    if (!this.agreed) {
+      promptAction.showToast({ message: t('memberLogin.mustAgree') });
+      this.shakeAgreeRow();
       return;
     }
     this.loading = true;
@@ -172,14 +187,16 @@ struct MemberLoginPage {
                 .padding({ left: 15, right: 15 })
                 .onChange((v: string) => { this.code = v; })
 
-              Button(this.sendingCode ? '...' : (this.countdown > 0 ? `${this.countdown}s` : t('memberLogin.getCode')))
+              Button() {
+                Text(this.sendingCode ? '...' : (this.countdown > 0 ? `${this.countdown}s` : t('memberLogin.getCode')))
+                  .fontColor(this.theme.colors.background)
+                  .fontSize(14).fontWeight(FontWeight.Bold)
+              }
                 .height(50)
                 .constraintSize({ minWidth: 110 })
                 .borderRadius(12)
                 .border({ width: { right: 1, top: 1, bottom: 1 }, color: this.theme.colors.border })
                 .backgroundColor(this.theme.colors.primary)
-                .fontColor(this.theme.colors.background)
-                .fontSize(14).fontWeight(FontWeight.Bold)
                 .enabled(this.countdown === 0 && !this.sendingCode)
                 .opacity(this.countdown > 0 || this.sendingCode ? 0.6 : 1)
                 .onClick(() => this.handleSendCode())
@@ -205,8 +222,16 @@ struct MemberLoginPage {
           .enabled(!this.loading)
           .onClick(() => this.handleLogin())
 
-          // Privacy links
+          // Privacy links（勾选同意后才能登录）
           Row() {
+            Checkbox()
+              .select(this.agreed)
+              .selectedColor(this.theme.colors.primary)
+              .shape(CheckBoxShape.ROUNDED_SQUARE)
+              .width(18)
+              .height(18)
+              .margin({ right: 6 })
+              .onChange((v: boolean) => { this.agreed = v; })
             Text(t('memberLogin.loginAgree'))
               .fontSize(12).fontColor(this.theme.colors.textSecondary)
             Text(t('memberLogin.privacyPolicy'))
@@ -220,6 +245,9 @@ struct MemberLoginPage {
           }
           .width('100%').justifyContent(FlexAlign.Center)
           .margin({ top: 10 })
+          .translate({ x: this.agreeShakeX })
+          .animation({ duration: 45, curve: Curve.EaseInOut })
+          .onClick(() => { this.agreed = !this.agreed; })
         }
         .width('100%')
         .padding({ left: 30, right: 30, top: 60 })

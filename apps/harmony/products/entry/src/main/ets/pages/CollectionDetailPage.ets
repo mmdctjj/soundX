@@ -4,6 +4,7 @@ import { t, getLang } from 'features_i18n';
 import { collectionApi } from 'features_network';
 import type { CollectionDetailResp, CollectionAlbumItem } from 'features_network';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
+import { miniPlayerHasContent } from '../components/MiniPlayer';
 
 /** NavDestination 详情页 param：ArkTS 严格模式不允许内联对象字面量，必须显式类/接口 */
 interface DetailNavParam {
@@ -110,8 +111,8 @@ export struct CollectionDetailContent {
         }, (it: CollectionAlbumItem) => it.id);
       }
       .layoutWeight(1)
-      // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116）
-      .padding({ bottom: 116 });
+      // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度）
+      .padding({ bottom: miniPlayerHasContent() ? 116 : 56 });
     }.padding(16).layoutWeight(1);
   }
 

@@ -410,29 +410,32 @@ struct MemberBenefitsPage {
             .margin({ bottom: 16 })
           }
 
-          // Payment method
-          Text(t('memberBenefitsPage.paymentMethod'))
-            .fontSize(16).fontWeight(FontWeight.Bold)
-            .fontColor(this.theme.colors.text)
-            .margin({ bottom: 12 })
-            .alignSelf(ItemAlign.Start)
+          // [支付按钮已隐藏] 恢复时把 if (false) 改回 if (true)
+          if (false) {
+            // Payment method
+            Text(t('memberBenefitsPage.paymentMethod'))
+              .fontSize(16).fontWeight(FontWeight.Bold)
+              .fontColor(this.theme.colors.text)
+              .margin({ bottom: 12 })
+              .alignSelf(ItemAlign.Start)
 
-          // WeChat Pay button (primary for HM)
-          Button() {
-            if (this.loading) {
-              LoadingProgress().width(20).height(20).color('#FFFFFF')
-            } else {
-              Text(t('memberBenefitsPage.wechat'))
-                .fontSize(16).fontWeight(FontWeight.Medium)
-                .fontColor('#FFFFFF')
+            // WeChat Pay button (primary for HM)
+            Button() {
+              if (this.loading) {
+                LoadingProgress().width(20).height(20).color('#FFFFFF')
+              } else {
+                Text(t('memberBenefitsPage.wechat'))
+                  .fontSize(16).fontWeight(FontWeight.Medium)
+                  .fontColor('#FFFFFF')
+              }
             }
+            .width('100%').height(50)
+            .borderRadius(12)
+            .backgroundColor('#07C160')
+            .margin({ bottom: 12 })
+            .enabled(!this.loading)
+            .onClick(() => this.handlePayment())
           }
-          .width('100%').height(50)
-          .borderRadius(12)
-          .backgroundColor('#07C160')
-          .margin({ bottom: 12 })
-          .enabled(!this.loading)
-          .onClick(() => this.handlePayment())
 
           // Refund note
           Text(t('memberBenefitsPage.noRefund'))

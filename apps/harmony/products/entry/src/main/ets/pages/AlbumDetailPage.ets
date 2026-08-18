@@ -10,6 +10,7 @@ import type { AlbumDto, TrackDto, MVDto, AlbumTracksResp, MiDevice, MiTrackPaylo
 import { DetailHero } from '../components/DetailHero';
 import { TrackRow } from '../components/TrackRow';
 import { AppIcon } from '../components/AppIcon';
+import { miniPlayerHasContent } from '../components/MiniPlayer';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { XiaoAiIcon } from '../components/XiaoAiIcon';
 import { mvPlaylistStore } from '../store/MvPlaylistStore';
@@ -281,9 +282,9 @@ export struct AlbumDetailContent {
     }
     .layoutWeight(1)
     .width('100%')
-    // 避让悬浮的 GlobalBottomBar（MiniPlayer 60 + Tab 栏 56 = 116），
+    // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度），
     // 否则最后几行曲目被遮挡（对齐 mobile 的列表底部留白）
-    .padding({ left: 20, right: 20, bottom: 116 })
+    .padding({ left: 20, right: 20, bottom: miniPlayerHasContent() ? 116 : 56 })
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
   }
