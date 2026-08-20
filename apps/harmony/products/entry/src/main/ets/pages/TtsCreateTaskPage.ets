@@ -78,15 +78,13 @@ struct TtsCreateTaskPage {
       const profile = await plusApi.getMe(plusUserId);
       const tier = profile?.vipTier ?? '';
       if (!tier || tier === 'NONE') {
+        // [软下线] 去开通入口已隐藏，仅保留会员功能提示。恢复时还原 goActivate 按钮与跳 MemberBenefitsPage 的 then 分支。
         promptAction.showDialog({
           title: t('common.memberFeature'),
           message: t('common.ttsVipRequired'),
           buttons: [
             { text: t('common.cancel'), color: this.theme.colors.textSecondary },
-            { text: t('common.goActivate'), color: this.theme.colors.primary },
           ],
-        }).then((res) => {
-          if (res.index === 1) router.replaceUrl({ url: 'pages/MemberBenefitsPage' });
         });
         return false;
       }

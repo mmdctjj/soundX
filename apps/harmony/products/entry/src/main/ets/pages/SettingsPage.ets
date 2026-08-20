@@ -342,21 +342,17 @@ struct SettingsPage {
         }
       }
       if (!isVip) {
+        // [软下线] 前往会员页入口已隐藏，仅保留 VIP 功能提示。恢复时还原 goToMemberPage 按钮、
+        // result.index === 1 判断与跳 MemberBenefitsPage 的代码。
         // ArkUI 的 promptAction.showDialog buttons 不支持 onClick 字段，
-        // 必须 await 返回值根据 index 判断：0 = 取消，1 = 前往会员页面
-        const result = await promptAction.showDialog({
+        // 必须 await 返回值根据 index 判断
+        await promptAction.showDialog({
           title: t('settings.vipOnly'),
           message: t('settings.carModeVipOnly'),
           buttons: [
             { text: t('common.cancel'), color: '#888' },
-            { text: t('settings.goToMemberPage'), color: '#3F51B5' },
           ],
         }).catch((): undefined => undefined);
-        if (result?.index === 1) {
-          router.pushUrl({ url: 'pages/MemberBenefitsPage' }).catch((e: Error): void => {
-            Logger.w('SettingsPage', `navigate to MemberBenefitsPage failed: ${String(e)}`);
-          });
-        }
         return;
       }
     }

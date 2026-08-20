@@ -198,14 +198,17 @@ struct MemberDetailPage {
                 .padding({ top: 24 })
                 .border({ width: { top: 0.5 }, color: this.theme.colors.border })
               } else {
-                Button(t('memberDetailPage.benefits'))
-                  .width('100%').height(50)
-                  .borderRadius(12)
-                  .backgroundColor(this.theme.colors.primary)
-                  .fontColor('#FFFFFF')
-                  .fontSize(16).fontWeight(FontWeight.Medium)
-                  .margin({ top: 20 })
-                  .onClick(() => router.pushUrl({ url: 'pages/MemberBenefitsPage' }))
+                // [软下线] 会员权益（去开通）按钮已隐藏，恢复时把 if (false) 改回 if (true)
+                if (false) {
+                  Button(t('memberDetailPage.benefits'))
+                    .width('100%').height(50)
+                    .borderRadius(12)
+                    .backgroundColor(this.theme.colors.primary)
+                    .fontColor('#FFFFFF')
+                    .fontSize(16).fontWeight(FontWeight.Medium)
+                    .margin({ top: 20 })
+                    .onClick(() => router.pushUrl({ url: 'pages/MemberBenefitsPage' }))
+                }
               }
             }
             .width('100%')

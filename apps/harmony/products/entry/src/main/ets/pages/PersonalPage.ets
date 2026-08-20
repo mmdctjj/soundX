@@ -112,6 +112,9 @@ export struct PersonalTab {
   @State newPlaylistName: string = '';
   @State creating: boolean = false;
   @State isPlusVip: boolean = false;
+  // 会员体系登录态（plus_token 是否存在），驱动皇冠三段显隐：
+  // 未登录 → 展示灰色皇冠引导会员登录；已登录会员 → 金色皇冠；已登录非会员 → 隐藏。
+  @State isPlusLoggedIn: boolean = false;
   // 库导入进度 modal 相关
   @State importModalVisible: boolean = false;
   @State importTask: ImportTask | null = null;
@@ -166,10 +169,11 @@ export struct PersonalTab {
 
   private async loadVipStatus(): Promise<void> {
     try {
+      const plusToken = await kvStore.get('plus_token');
+      this.isPlusLoggedIn = !!plusToken && plusToken.length > 0;
       const plusUserId = await kvStore.get('plus_user_id');
       if (plusUserId !== null && plusUserId.length > 0) {
-        const token = await kvStore.get('plus_token');
-        if (token) setPlusAuthToken(token);
+        if (plusToken) setPlusAuthToken(plusToken);
         const profile = await plusApi.getMe(plusUserId);
         this.isPlusVip = !!profile.vipTier && profile.vipTier !== 'NONE';
       }
@@ -363,17 +367,13 @@ export struct PersonalTab {
       router.pushUrl({ url: 'pages/TtsTaskListPage' });
       return;
     }
+    // [软下线] 去开通入口已隐藏，仅保留会员功能提示。恢复时还原 goActivate 按钮与跳 MemberBenefitsPage 的 then 分支。
     promptAction.showDialog({
       title: t('common.memberFeature'),
       message: t('common.ttsVipRequired'),
       buttons: [
         { text: t('common.cancel'), color: this.theme.colors.textSecondary },
-        { text: t('common.goActivate'), color: this.theme.colors.primary },
       ],
-    }).then((res) => {
-      if (res.index === 1) {
-        router.pushUrl({ url: 'pages/MemberBenefitsPage' });
-      }
     });
   }
 
@@ -399,17 +399,13 @@ export struct PersonalTab {
       router.pushUrl({ url: 'pages/ScanPage' });
       return;
     }
+    // [软下线] 去开通入口已隐藏，仅保留会员功能提示。恢复时还原 goActivate 按钮与跳 MemberBenefitsPage 的 then 分支。
     promptAction.showDialog({
       title: t('personalPage.memberOnlyTitle'),
       message: t('personalPage.scanLoginVipRequired'),
       buttons: [
         { text: t('common.cancel'), color: this.theme.colors.textSecondary },
-        { text: t('common.goActivate'), color: this.theme.colors.primary },
       ],
-    }).then((res) => {
-      if (res.index === 1) {
-        router.pushUrl({ url: 'pages/MemberBenefitsPage' });
-      }
     });
   }
 
@@ -504,29 +500,16 @@ export struct PersonalTab {
   }
 
   // 会员入口：点击用户名旁皇冠图标跳转。
-  // 逻辑对齐 mobile 端 personal.tsx 的皇冠点击：
-  //   未登录会员体系 → 引导会员登录页；已登录会员 → 会员详情页；已登录非会员 → 会员开通页。
+  // 三段逻辑：未登录会员体系 → 引导会员登录页；已登录会员 → 会员详情页；
+  // 已登录非会员 → 皇冠已隐藏不可达（防御性保留注释）。
+  // [软下线] 非会员跳 MemberBenefitsPage（去开通）的分支已移除，恢复时参考 git 历史。
   async onCrownClick(): Promise<void> {
-    const plusToken = await kvStore.get('plus_token');
-    if (!plusToken) {
-      promptAction.showDialog({
-        title: t('common.memberFeature'),
-        message: t('common.loginFirst'),
-        buttons: [
-          { text: t('common.cancel'), color: this.theme.colors.textSecondary },
-          { text: t('personalPage.memberLogin'), color: this.theme.colors.primary },
-        ],
-      }).then((res) => {
-        if (res.index === 1) {
-          router.pushUrl({ url: 'pages/MemberLoginPage' });
-        }
-      });
+    if (!this.isPlusLoggedIn) {
+      router.pushUrl({ url: 'pages/MemberLoginPage' });
       return;
     }
     if (this.isPlusVip) {
       router.pushUrl({ url: 'pages/MemberDetailPage' });
-    } else {
-      router.pushUrl({ url: 'pages/MemberBenefitsPage' });
     }
   }
 
@@ -785,9 +768,13 @@ export struct PersonalTab {
       Row() {
         Text(this.username || t('common.notLoggedIn'))
           .fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.theme.colors.text)
-        AppIcon({ name: 'crown', iconSize: 24, color: this.isPlusVip ? '#FFD700' : this.theme.colors.textSecondary })
-          .margin({ left: 8 })
-          .onClick((): void => { this.onCrownClick(); })
+        // 皇冠三段逻辑：未登录会员体系 → 灰色皇冠（点击引导会员登录）；
+        // 已登录会员 → 金色皇冠（点击进会员权益页）；已登录非会员 → 隐藏。
+        if (this.isPlusVip || !this.isPlusLoggedIn) {
+          AppIcon({ name: 'crown', iconSize: 24, color: this.isPlusVip ? '#FFD700' : this.theme.colors.textSecondary })
+            .margin({ left: 8 })
+            .onClick((): void => { this.onCrownClick(); })
+        }
       }
       .alignItems(VerticalAlign.Center)
     }
@@ -979,7 +966,8 @@ export struct PersonalTab {
         this.MenuItemBuilder('arrow-clockwise', t('personal.incrementalUpdate'), 'incremental')
         this.MenuDivider()
         this.MenuItemBuilder('repeat', t('personal.fullUpdate'), 'full')
-        if (this.sourceType !== 'Emby' && this.mode !== 'MUSIC') {
+        // [软下线] 非会员隐藏 TTS 有声书入口：菜单项增加 isPlusVip 判断。恢复时去掉 && this.isPlusVip 即可。
+        if (this.sourceType !== 'Emby' && this.mode !== 'MUSIC' && this.isPlusVip) {
           this.MenuDivider()
           this.MenuItemBuilder('headphones', t('personal.ttsConversion'), 'tts')
         }

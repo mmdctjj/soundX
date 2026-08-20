@@ -44,6 +44,7 @@ struct SourceManagePage {
   @State reportDescription: string = '';
   @State reportingKey: string = '';
   @State reportingId: string = '';
+  @State reportSubmitting: boolean = false;
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
@@ -152,9 +153,11 @@ struct SourceManagePage {
     this.reportingId = '';
     this.reportTitle = '';
     this.reportDescription = '';
+    this.reportSubmitting = false;
   }
 
   // 提交举报（按用户要求：总是弹窗提示举报成功，不发真实接口）
+  // 加 1s loading 模拟提交过程再提示成功。
   private submitReport(): void {
     const title = this.reportTitle.trim();
     const desc = this.reportDescription.trim();
@@ -162,13 +165,17 @@ struct SourceManagePage {
       promptAction.showToast({ message: t('sourceManage.reportRequired') });
       return;
     }
-    this.closeReportDialog();
-    // 提交后弹窗提示举报成功
-    promptAction.showDialog({
-      title: t('sourceManage.reportSuccess'),
-      message: '',
-      buttons: [{ text: t('common.ok'), color: this.theme.colors.primary }],
-    });
+    if (this.reportSubmitting) return;
+    this.reportSubmitting = true;
+    setTimeout(() => {
+      this.reportSubmitting = false;
+      this.closeReportDialog();
+      promptAction.showDialog({
+        title: t('sourceManage.reportSuccess'),
+        message: '',
+        buttons: [{ text: t('common.ok'), color: this.theme.colors.primary }],
+      });
+    }, 1000);
   }
 
   private isExpanded(id: string): boolean {
@@ -351,20 +358,8 @@ struct SourceManagePage {
         .margin({ top: 12 })
       }
 
-      // 操作行：举报 + 删除 + 连接
+      // 操作行：删除 + 举报 + 连接
       Row({ space: 8 }) {
-        // 举报按钮：感叹号图标
-        Column() {
-          SymbolGlyph($r('sys.symbol.exclamationmark'))
-            .fontSize(18)
-            .fontColor(['#FFFFFF'])
-        }
-        .width(40).height(36).borderRadius(8)
-        .backgroundColor('#FF9500')
-        .justifyContent(FlexAlign.Center)
-        .accessibilityText(t('sourceManage.reportDataSource'))
-        .onClick(() => this.openReportDialog(key, cfg.id))
-
         // 删除按钮：删除图标
         Column() {
           SymbolGlyph($r('sys.symbol.trash'))
@@ -375,6 +370,19 @@ struct SourceManagePage {
         .backgroundColor('#FF4444')
         .justifyContent(FlexAlign.Center)
         .onClick(() => this.deleteConfig(key, cfg.id))
+
+        // 举报按钮：文字（原感叹号图标已改为文字展示）
+        Column() {
+          Text(t('sourceManage.reportDataSource'))
+            .fontSize(13).fontWeight(FontWeight.Medium)
+            .fontColor('#FFFFFF')
+        }
+        .height(36).borderRadius(8)
+        .padding({ left: 10, right: 10 })
+        .backgroundColor('#FF9500')
+        .justifyContent(FlexAlign.Center)
+        .accessibilityText(t('sourceManage.reportDataSource'))
+        .onClick(() => this.openReportDialog(key, cfg.id))
 
         Column() {
           if (this.loadingId === cfg.id) {
@@ -477,13 +485,18 @@ struct SourceManagePage {
           .onClick(() => this.closeReportDialog())
 
           Column() {
-            Text(t('sourceManage.reportSubmit'))
-              .fontSize(15).fontWeight(FontWeight.Medium)
-              .fontColor(this.theme.colors.onPrimary)
+            if (this.reportSubmitting) {
+              LoadingProgress().width(20).height(20).color(this.theme.colors.onPrimary)
+            } else {
+              Text(t('sourceManage.reportSubmit'))
+                .fontSize(15).fontWeight(FontWeight.Medium)
+                .fontColor(this.theme.colors.onPrimary)
+            }
           }
           .layoutWeight(1).height(40).borderRadius(8)
           .backgroundColor(this.theme.colors.primary)
           .justifyContent(FlexAlign.Center)
+          .opacity(this.reportSubmitting ? 0.7 : 1)
           .onClick(() => this.submitReport())
         }
         .width('100%')

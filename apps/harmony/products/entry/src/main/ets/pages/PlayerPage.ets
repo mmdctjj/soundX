@@ -72,6 +72,8 @@ struct PlayerPage {
   @State private syncView: SyncStateView = syncStore.view();
   @State private showSyncInvite: boolean = false;
   @State private syncCheckLoading: boolean = false;
+  // [软下线] 非会员隐藏同步控制入口：isPlusVip=false 时不渲染同步按钮。
+  @State private isPlusVip: boolean = false;
   private unsubSync: (() => void) | null = null;
   private unsubPlayerLeft: (() => void) | null = null;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
@@ -140,9 +142,25 @@ struct PlayerPage {
     const cur = this.current();
     this.lastTrackId = cur ? cur.id : '';
     this.refreshLike();
+    this.loadVipStatus();
     const params = router.getParams() as Record<string, string> | undefined;
     const trackId = params?.['trackId'];
     if (trackId) this.loadSingle(trackId);
+  }
+
+  // [软下线] 校验 plus VIP 状态，驱动同步控制入口的显隐（对齐 PersonalPage.loadVipStatus）
+  private async loadVipStatus(): Promise<void> {
+    try {
+      const plusUserId = await kvStore.get('plus_user_id');
+      if (plusUserId !== null && plusUserId.length > 0) {
+        const token = await kvStore.get('plus_token');
+        if (token) setPlusAuthToken(token);
+        const profile = await plusApi.getMe(plusUserId);
+        this.isPlusVip = !!profile.vipTier && profile.vipTier !== 'NONE';
+      }
+    } catch (e) {
+      Logger.w('PlayerPage', `loadVipStatus failed: ${String(e)}`);
+    }
   }
 
   aboutToDisappear(): void {
@@ -792,19 +810,22 @@ struct PlayerPage {
         })
           .onClick(() => { this.handleOpenMiCast(); });
 
-        // 同步播放按钮（对齐 mobile player.tsx Ionicons people / people-outline）
-        AppIcon({
-          name: this.syncView.isSynced ? 'person-fill' : 'person',
-          iconSize: 24,
-          color: this.syncView.isSynced ? this.theme.colors.primary : this.theme.colors.text,
-        })
-          .width(28).height(28)
-          .margin({ left: 4 })
-          .onClick((): void => {
-            this.handleSyncPress().catch((e: Error): void => {
-              Logger.w('PlayerPage', `handleSyncPress rejected: ${String(e)}`);
+        // [软下线] 非会员隐藏同步控制入口：仅会员渲染同步播放按钮。
+        // 恢复时去掉外层 if (this.isPlusVip) 条件即可（对齐 mobile player.tsx Ionicons people / people-outline）
+        if (this.isPlusVip) {
+          AppIcon({
+            name: this.syncView.isSynced ? 'person-fill' : 'person',
+            iconSize: 24,
+            color: this.syncView.isSynced ? this.theme.colors.primary : this.theme.colors.text,
+          })
+            .width(28).height(28)
+            .margin({ left: 4 })
+            .onClick((): void => {
+              this.handleSyncPress().catch((e: Error): void => {
+                Logger.w('PlayerPage', `handleSyncPress rejected: ${String(e)}`);
+              });
             });
-          });
+        }
       }
       .width('100%')
       .alignItems(VerticalAlign.Top)

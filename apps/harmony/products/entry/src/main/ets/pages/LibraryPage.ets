@@ -250,7 +250,8 @@ export struct LibraryTab {
       } else if (this.activeTab === 'mvs' && this.mode === 'MUSIC') {
         const res = await mvApi.list({ pageSize: GRID_PAGE, skip: 0 });
         this.listVersion++;
-        this.mvs = res.list;
+        // 倒序展示：最新添加的 MV 排在前面
+        this.mvs = res.list.slice().reverse();
       }
       this.markTabCache(this.activeTab);
     } catch (e) {
