@@ -241,4 +241,4 @@ docker-compose up
 
 ## ⭐ Star History
 
-[![Star History Chart](https://star-history.dera.page/svg?repos=mmdctjj/AudioDock&type=Date)](https://star-history.dera.page/#mmdctjj/AudioDock&type=Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=mmdctjj/AudioDock&type=Date)](https://star-history.com/#mmdctjj/AudioDock&Date)
