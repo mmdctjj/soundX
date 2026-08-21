@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import {
   Alert,
   BackHandler,
+  Linking,
   ScrollView,
   StyleSheet,
   Switch,
@@ -29,9 +30,9 @@ import { trackEvent } from "../src/services/tracking";
 import { goBackOrReplace } from "../src/utils/navigation";
 import { usePlayMode } from "../src/utils/playMode";
 import { getLocalVersion } from "../src/utils/updateUtils";
-import { useCheckUpdate } from "@/hooks/useCheckUpdate";
-import { UpdateModal } from "@/src/components/UpdateModal";
 import { getCachedVipStatus } from "../src/utils/vipStatus";
+import { useCheckUpdate } from "../hooks/useCheckUpdate";
+import { UpdateModal } from "../src/components/UpdateModal";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -50,6 +51,16 @@ export default function SettingsScreen() {
   const { mode, setMode } = usePlayMode();
   const { logout, user, sourceType, device, plusToken, setPlusToken } =
     useAuth();
+  const {
+    checking: checkingUpdate,
+    updateInfo: manualUpdateInfo,
+    opening: manualOpening,
+    progress: manualProgress,
+    checkUpdate,
+    startUpdate,
+    ignoreUpdate,
+    cancelUpdate,
+  } = useCheckUpdate();
   const {
     acceptRelay,
     acceptSync,
@@ -75,24 +86,11 @@ export default function SettingsScreen() {
     covers: string;
     music: string;
     audiobooks: string;
-    apks: string;
   }>({
     covers: "0 B",
     music: "0 B",
     audiobooks: "0 B",
-    apks: "0 B",
   });
-
-  const {
-    checkUpdate,
-    progress,
-    isUpdating,
-    updateInfo,
-    startUpdate,
-    ignoreUpdate,
-    cancelUpdate,
-  } = useCheckUpdate();
-  const [updateModalVisible, setUpdateModalVisible] = React.useState(false);
 
   const formatSize = (size: number) => {
     if (size === 0) return "0 B";
@@ -109,7 +107,6 @@ export default function SettingsScreen() {
       covers: formatSize(sizes.covers),
       music: formatSize(sizes.music),
       audiobooks: formatSize(sizes.audiobooks),
-      apks: formatSize(sizes.apks),
     });
   };
 
@@ -124,7 +121,7 @@ export default function SettingsScreen() {
   };
 
   const handleClearCache = async (
-    category: "covers" | "music" | "audiobooks" | "apks",
+    category: "covers" | "music" | "audiobooks",
     label: string,
   ) => {
     Alert.alert(
@@ -150,7 +147,7 @@ export default function SettingsScreen() {
   const renderCacheRow = (
     label: string,
     size: string,
-    category: "covers" | "music" | "audiobooks" | "apks",
+    category: "covers" | "music" | "audiobooks",
   ) => (
     <TouchableOpacity
       style={[styles.settingRow, { borderBottomColor: colors.border }]}
@@ -373,13 +370,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleCheckUpdate = async () => {
-    const info = await checkUpdate();
-    if (info) {
-      setUpdateModalVisible(true);
-    }
-  };
-
   const handleDeleteMemberAccount = () => {
     if (!plusToken) {
       Alert.alert(t("settings.loginFirst"), t("settings.loginFirst"));
@@ -425,6 +415,15 @@ export default function SettingsScreen() {
         },
       ],
     );
+  };
+
+  const handleCheckUpdate = async () => {
+    if (checkingUpdate) return;
+    const info = await checkUpdate();
+    if (!info) {
+      Alert.alert(t("update.upToDate"));
+    }
+    // 有新版本 → 由本页底部挂载的 UpdateModal 弹出（本页 useCheckUpdate 实例）
   };
 
   return (
@@ -768,7 +767,6 @@ export default function SettingsScreen() {
             detailedSizes.audiobooks,
             "audiobooks",
           )}
-          {renderCacheRow(t("settings.apkFiles"), detailedSizes.apks, "apks")}
         </View>
 
         <View style={styles.section}>
@@ -798,20 +796,21 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.settingRow, { borderBottomColor: colors.border }]}
+            disabled={checkingUpdate}
             onPress={() => void handleCheckUpdate()}
           >
             <View style={styles.settingInfo}>
               <Text style={[styles.settingLabel, { color: colors.text }]}>
-                {t("settings.checkUpdate")}
+                {checkingUpdate ? t("update.checking") : t("update.checkUpdate")}
               </Text>
               <Text
                 style={[styles.settingDescription, { color: colors.secondary }]}
               >
-                {t("settings.checkUpdateDescription")}
+                {t("update.checkUpdateDescription")}
               </Text>
             </View>
             <Ionicons
-              name="chevron-forward"
+              name={checkingUpdate ? "sync" : "chevron-forward"}
               size={20}
               color={colors.secondary}
             />
@@ -848,6 +847,38 @@ export default function SettingsScreen() {
             t("settings.experienceProgramDescription"),
             experienceProgramEnabled,
             (val) => updateSetting("experienceProgramEnabled", val),
+          )}
+
+          {renderActionRow(
+            t("settings.userAgreement"),
+            t("settings.userAgreementDescription"),
+            () => {
+              trackEvent({
+                feature: "settings",
+                eventName: "user_agreement_open",
+                userId: user?.id ? String(user.id) : undefined,
+                deviceId: device?.id ? String(device.id) : undefined,
+              });
+              Linking.openURL("https://www.audiodock.cn/docs/user-agreement/").catch((err) =>
+                console.warn("Failed to open user agreement", err),
+              );
+            },
+          )}
+
+          {renderActionRow(
+            t("settings.privacyPolicy"),
+            t("settings.privacyPolicyDescription"),
+            () => {
+              trackEvent({
+                feature: "settings",
+                eventName: "privacy_policy_open",
+                userId: user?.id ? String(user.id) : undefined,
+                deviceId: device?.id ? String(device.id) : undefined,
+              });
+              Linking.openURL("https://www.audiodock.cn/docs/privacy-policy/").catch((err) =>
+                console.warn("Failed to open privacy policy", err),
+              );
+            },
           )}
         </View>
 
@@ -979,22 +1010,14 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
-
       <UpdateModal
-        visible={updateModalVisible}
-        progress={progress}
-        isUpdating={isUpdating}
-        updateInfo={updateInfo}
-        onBackground={() => setUpdateModalVisible(false)}
+        visible={!!manualUpdateInfo}
+        updateInfo={manualUpdateInfo}
+        opening={manualOpening}
+        progress={manualProgress}
         onUpdate={startUpdate}
-        onIgnore={() => {
-          ignoreUpdate();
-          setUpdateModalVisible(false);
-        }}
-        onCancel={() => {
-          cancelUpdate();
-          setUpdateModalVisible(false);
-        }}
+        onIgnore={ignoreUpdate}
+        onClose={cancelUpdate}
       />
     </View>
   );

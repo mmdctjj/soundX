@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-// iOS 通过 App Store 更新，无需 APK 下载；只在 Android 上加载原生下载模块
-// （SystemDownloadManager 仅注册了 android 平台，iOS 上 requireNativeModule 会抛错）
+// 小米手机走「国内仓库 APK 直装」，需要系统下载器原生模块；
+// 该模块仅注册了 android 平台，iOS 上 requireNativeModule 会抛错，需按平台懒加载
 const SystemDownloadManager =
   Platform.OS === 'android'
     ? require('../../modules/system-download-manager').default
@@ -24,6 +24,10 @@ export const getLocalVersion = () => {
  * 规则：主版本号逐段比较；相同时有 prerelease 的一方更小
  * （1.2.3-beta.1 < 1.2.3），两边都有 prerelease 则逐段比较标识符，
  * 数字段按数值比，非数字段按字典序，数字段小于非数字段。
+ *
+ * 历史来源：从 commit f7d5fa28（删除 commit）之前的 92 行版本恢复，
+ * 仅移除 APK 直装相关的 `downloadAndInstallApk` 函数（不再需要，
+ * 因为 v1 改走应用商店跳转，不再依赖原生下载模块）。
  */
 export const compareVersions = (remote: string, local: string): number => {
   const [core1, pre1] = splitVersion(remote);
@@ -74,19 +78,29 @@ const splitVersion = (v: string): [number[], string[]] => {
   ];
 };
 
+/**
+ * 下载并安装 APK（小米手机走国内仓库直装时使用）。
+ *
+ * 委托给系统 DownloadManager 创建下载任务，完成后自动拉起安装；
+ * 进度回调为 0.05（开始）→ 1（任务已创建/完成），无法精确到字节级，
+ * 因为系统下载器不暴露实时进度（v1 简化版，与 master 同款语义）。
+ */
 export const downloadAndInstallApk = async (
   downloadUrl: string,
-  onProgress: (progress: number) => void
-) => {
-  if (Platform.OS !== 'android') return;
+  onProgress: (progress: number) => void,
+): Promise<void> => {
+  if (Platform.OS !== 'android' || !SystemDownloadManager) {
+    console.warn('[updateUtils] APK 直装仅支持 Android');
+    return;
+  }
 
   onProgress(0.05);
 
   try {
-    await SystemDownloadManager!.downloadApk(downloadUrl);
+    await SystemDownloadManager.downloadApk(downloadUrl);
     onProgress(1);
   } catch (e) {
-    console.error('创建系统下载任务失败:', e);
+    console.error('[updateUtils] 创建系统下载任务失败:', e);
     throw e;
   }
 };

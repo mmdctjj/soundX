@@ -1,0 +1,11 @@
+{
+  "name": "features_network",
+  "version": "1.0.0",
+  "description": "AudioDock HarmonyOS Network Feature",
+  "main": "Index.ets",
+  "author": "AudioDock",
+  "license": "ISC",
+  "dependencies": {
+    "audiodock_common": { "path": "../../common/audiodock_common" }
+  }
+}

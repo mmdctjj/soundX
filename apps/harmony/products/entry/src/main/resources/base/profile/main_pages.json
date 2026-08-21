@@ -1,0 +1,25 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/RootShellPage",
+    "pages/MVDetailPage",
+    "pages/SettingsPage",
+    "pages/SourceManagePage",
+    "pages/PlayerPage",
+    "pages/SourceSelectPage",
+    "pages/LoginPage",
+    "pages/LanguagePage",
+    "pages/PlaybackQualityPage",
+    "pages/SectionOrderPage",
+    "pages/MemberLoginPage",
+    "pages/MemberBenefitsPage",
+    "pages/MemberDetailPage",
+    "pages/MemberPaymentSuccessPage",
+    "pages/TtsTaskListPage",
+    "pages/TtsCreateTaskPage",
+    "pages/TtsConfigPage",
+    "pages/ScanPage",
+    "pages/ScanConfirmPage",
+    "pages/ProductUpdatesPage"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "features_i18n",
+  "version": "1.0.0",
+  "description": "AudioDock HarmonyOS i18n Feature",
+  "main": "Index.ets",
+  "author": "AudioDock",
+  "license": "ISC",
+  "dependencies": {
+    "audiodock_common": { "path": "../../common/audiodock_common" }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "audiodock_common",
+  "version": "1.0.0",
+  "description": "AudioDock shared common library",
+  "main": "Index.ets",
+  "author": "AudioDock",
+  "license": "ISC",
+  "dependencies": {}
+}

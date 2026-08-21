@@ -10,6 +10,7 @@ dist/
 **/release
 .jwt_secret
 
+/video
 **/android/build
 **/ios/build
 **/data

@@ -1,106 +1,185 @@
 import React from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MarkdownContent from './MarkdownContent';
+import {
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { UpdateInfo } from '../../hooks/useCheckUpdate';
+import MarkdownContent from './MarkdownContent';
 import { useTheme } from '../context/ThemeContext';
+import type { UpdateInfo } from '../../hooks/useCheckUpdate';
 
 interface UpdateModalProps {
+  /** 是否展示 */
   visible: boolean;
-  progress: number;
-  isUpdating: boolean;
+  /** 远端版本信息（null 时 modal 不展示内容） */
   updateInfo: UpdateInfo | null;
+  /** 是否正在跳转商店 / 创建下载任务（用于按钮 loading / 下载中视图） */
+  opening: boolean;
+  /** APK 下载进度（0~1，小米模式下载中才有意义） */
+  progress: number;
+  /** 点击「立即更新 / 前往应用商店」 */
   onUpdate: () => void;
+  /** 点击「忽略此版本」 */
   onIgnore: () => void;
-  onCancel: () => void;
-  onBackground: () => void;
+  /** 关闭弹窗（不忽略，下次启动仍会询问；下载中点击 = 后台继续下载） */
+  onClose: () => void;
 }
 
-export const UpdateModal = ({ 
-  visible, 
-  progress, 
-  isUpdating,
+/**
+ * 版本更新弹窗（v2，支持双模式）
+ *
+ * 更新方式由 useCheckUpdate 按设备品牌决定：
+ *   - mode=xiaomi（小米/红米）：「立即更新」→ 系统下载器下载 APK，
+ *     下载中展示进度条 + 「隐藏弹窗（后台继续下载）」按钮
+ *   - mode=store（iOS / OPPO / vivo / 荣耀…）：「前往应用商店」→ 跳商店
+ *
+ * 两种模式共用：
+ *   - 标题：发现新版本 v{version}
+ *   - 内容：GitHub Release body（markdown 渲染）
+ *   - 次按钮：忽略此版本（写入 AsyncStorage）
+ */
+export const UpdateModal = ({
+  visible,
   updateInfo,
+  opening,
+  progress,
   onUpdate,
   onIgnore,
-  onCancel,
-  onBackground 
+  onClose,
 }: UpdateModalProps) => {
   const { t } = useTranslation();
-
-  const isDownloading = isUpdating || progress > 0;
-
   const { colors } = useTheme();
+
+  /** 小米模式且正在创建下载任务 → 展示下载中视图 */
+  const isDownloading = opening && updateInfo?.mode === 'xiaomi';
 
   return (
     <Modal
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={isDownloading ? onBackground : onCancel}
-      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+      onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={styles.backdropCenter}>
-        <View style={[styles.card, { backgroundColor: colors.background }]}>
+      <View style={styles.backdrop}>
+        <View style={[styles.dialog, { backgroundColor: colors.card }]}>
           {isDownloading ? (
             <>
               <Text style={[styles.title, { color: colors.text }]}>
                 {progress > 0 ? t('update.systemDownloadStarted') : t('update.preparing')}
               </Text>
-              
-              {/* 进度条区域 */}
+
               <View style={styles.progressContainer}>
-                <View style={[styles.progressBarBackground, { backgroundColor: colors.card }]}>
-                  <View style={[styles.progressBarFill, { width: `${progress * 100}%`, backgroundColor: colors.text }]} />
+                <View style={[styles.progressBarBackground, { backgroundColor: colors.background }]}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      { width: `${Math.min(Math.max(progress, 0.05), 1) * 100}%`, backgroundColor: colors.primary },
+                    ]}
+                  />
                 </View>
               </View>
-              <Text style={styles.percentText}>
-                {progress > 0 ? t('update.systemDownloadDescription') : t('update.requestingLink')}
+              <Text style={[styles.progressHint, { color: colors.secondary }]}>
+                {progress > 0
+                  ? t('update.systemDownloadDescription')
+                  : t('update.requestingLink')}
               </Text>
-              
-              {(isUpdating || progress < 1) && (
-                <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 10 }} />
-              )}
 
-              {/* 底部按钮区域 */}
-              <TouchableOpacity style={[styles.backgroundBtn, { backgroundColor: colors.background }]} onPress={onBackground}>
-                <Text style={[styles.backgroundBtnText, { color: colors.text }]}>{t('update.hideDialogBackgroundDownload')}</Text>
+              <TouchableOpacity
+                style={[styles.secondaryButton, { borderColor: colors.border }]}
+                activeOpacity={0.8}
+                onPress={onClose}
+              >
+                <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+                  {t('update.hideDialogBackgroundDownload')}
+                </Text>
               </TouchableOpacity>
             </>
           ) : updateInfo ? (
             <>
-               <Text style={[styles.title, { color: colors.text }]}>{t('update.foundNewVersion')} {updateInfo.version}</Text>
-                <ScrollView style={styles.scrollView}>
-                  <MarkdownContent
-                    style={{
-                      body: { color: colors.text, fontSize: 14, lineHeight: 20 },
-                      heading1: { color: colors.text, fontSize: 20, fontWeight: 'bold' },
-                      heading2: { color: colors.text, fontSize: 18, fontWeight: 'bold' },
-                      bullet_list: { marginVertical: 8 },
-                      link: { color: colors.primary },
-                    }}
-                  >
-                    {updateInfo.body}
-                  </MarkdownContent>
-                </ScrollView>
-               
-               <View style={styles.buttonContainer}>
-                 <TouchableOpacity style={[styles.ignoreBtn, { backgroundColor: colors.background }]} onPress={onIgnore}>
-                   <Text style={[styles.ignoreBtnText, { color: colors.text }]}>{t('update.ignoreThisVersion')}</Text>
-                 </TouchableOpacity>
-                 <TouchableOpacity
-                   style={[
-                     styles.updateBtn,
-                     { backgroundColor: colors.primary, opacity: isUpdating ? 0.7 : 1 },
-                   ]}
-                   onPress={onUpdate}
-                   disabled={isUpdating}
-                 >
-                   <Text style={[styles.updateBtnText, { color: colors.background }]}>
-                     {isUpdating ? t('update.preparing2') : t('update.updateNow')}
-                   </Text>
-                 </TouchableOpacity>
-               </View>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {t('update.foundNewVersion')} v{updateInfo.version}
+              </Text>
+
+              <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+                <MarkdownContent
+                  style={{
+                    body: { color: colors.text, fontSize: 14, lineHeight: 22 },
+                    heading1: {
+                      color: colors.text,
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      marginVertical: 6,
+                    },
+                    heading2: {
+                      color: colors.text,
+                      fontSize: 16,
+                      fontWeight: 'bold',
+                      marginVertical: 4,
+                    },
+                    heading3: {
+                      color: colors.text,
+                      fontSize: 15,
+                      fontWeight: '600',
+                      marginVertical: 4,
+                    },
+                    bullet_list: { marginVertical: 6 },
+                    list_item: { marginVertical: 2 },
+                    link: { color: colors.primary },
+                    code_inline: {
+                      backgroundColor: colors.background,
+                      color: colors.primary,
+                      borderRadius: 4,
+                      paddingHorizontal: 4,
+                    },
+                  }}
+                >
+                  {updateInfo.body}
+                </MarkdownContent>
+              </ScrollView>
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryButton,
+                    { borderColor: colors.border },
+                    opening && styles.buttonDisabled,
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={onIgnore}
+                  disabled={opening}
+                >
+                  <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+                    {t('update.ignoreThisVersion')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: colors.primary },
+                    opening && styles.buttonDisabled,
+                  ]}
+                  activeOpacity={0.8}
+                  onPress={onUpdate}
+                  disabled={opening}
+                >
+                  {opening ? (
+                    <ActivityIndicator size="small" color={colors.background} />
+                  ) : (
+                    <Text style={[styles.primaryButtonText, { color: colors.background }]}>
+                      {updateInfo.mode === 'xiaomi'
+                        ? t('update.updateNow')
+                        : t('update.openStore')}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </>
           ) : null}
         </View>
@@ -110,95 +189,78 @@ export const UpdateModal = ({
 };
 
 const styles = StyleSheet.create({
-  backdropCenter: {
+  backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
   },
-  card: {
-    width: '80%',
-    maxHeight: '70%',
-    backgroundColor: 'white',
+  dialog: {
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '80%',
     borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    elevation: 8,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 20,
+    fontWeight: '700',
     textAlign: 'center',
+    marginBottom: 16,
   },
-  scrollView: {
-    width: '100%',
+  body: {
+    maxHeight: 360,
     marginBottom: 20,
-  },
-  content: {
-    fontSize: 14,
-    lineHeight: 20,
   },
   progressContainer: {
-    width: '100%',
-    height: 6,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   progressBarBackground: {
-    width: '100%',
-    height: '100%',
+    height: 6,
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressBarFill: {
-    height: '100%',
+    height: 6,
+    borderRadius: 3,
   },
-  percentText: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 10,
+  progressHint: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 19,
   },
-  backgroundBtn: {
-    marginTop: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  backgroundBtnText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  buttonContainer: {
+  buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 10,
+    gap: 12,
   },
-  ignoreBtn: {
+  primaryButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  ignoreBtnText: {
-    color: '#666',
-    fontSize: 14,
+  primaryButtonText: {
+    fontSize: 16,
     fontWeight: '600',
   },
-  updateBtn: {
+  secondaryButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  updateBtnText: {
-    color: 'white',
-    fontSize: 14,
+  secondaryButtonText: {
+    fontSize: 16,
     fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });

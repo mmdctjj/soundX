@@ -9,6 +9,7 @@ import {
   type VipCurrentLowestPricePlan,
 } from "@soundx/services";
 import { useRouter } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,6 +19,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  ToastAndroid,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -559,6 +561,27 @@ export default function MemberBenefitsScreen() {
     );
   };
 
+  const handleContactSupport = async () => {
+    try {
+      // 1. 复制邮箱到剪贴板
+      await Clipboard.setStringAsync("audiodock@audiodock.cn");
+      // 2. 提示已复制
+      if (Platform.OS === "android") {
+        ToastAndroid.show(t("common.copiedToClipboard"), ToastAndroid.SHORT);
+      } else {
+        Alert.alert(t("common.copiedToClipboard"));
+      }
+      // 3. 2s 后跳转邮件
+      setTimeout(() => {
+        Linking.openURL("mailto:audiodock@audiodock.cn").catch((e) =>
+          console.warn("open mail failed", e),
+        );
+      }, 2000);
+    } catch (error) {
+      console.warn("Contact support failed", error);
+    }
+  };
+
   const comparisonData = [
     { feature: t("member.basicFeatures"), free: true, member: true },
     { feature: t("member.deviceRelay"), free: true, member: true },
@@ -1002,6 +1025,19 @@ export default function MemberBenefitsScreen() {
 
         <TouchableOpacity
           style={[
+            styles.contactSupportButton,
+            { borderColor: colors.primary },
+          ]}
+          onPress={handleContactSupport}
+        >
+          <Ionicons name="mail-outline" size={20} color={colors.primary} />
+          <Text style={[styles.contactSupportText, { color: colors.primary }]}>
+            {t("memberBenefitsPage.contactSupport")}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
             styles.logoutButton,
             { backgroundColor: "#FF3B30", borderColor: "#FF3B30" },
           ]}
@@ -1227,6 +1263,22 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: "#FF3B30",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  contactSupportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    width: "100%",
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: "transparent",
+    marginTop: 30,
+  },
+  contactSupportText: {
     fontSize: 16,
     fontWeight: "600",
   },

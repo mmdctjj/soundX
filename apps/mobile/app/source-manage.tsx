@@ -9,7 +9,9 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../src/context/AuthContext";
 import { useTheme } from "../src/context/ThemeContext";
 import { selectBestServer } from "../src/utils/networkUtils";
@@ -31,6 +34,7 @@ export default function SourceManageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { switchServer } = useAuth();
+  const { t } = useTranslation();
 
   const [configs, setConfigs] = useState<
     Record<
@@ -41,6 +45,15 @@ export default function SourceManageScreen() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [networkType, setNetworkType] = useState<Network.NetworkStateType>(Network.NetworkStateType.UNKNOWN);
+
+  // 举报弹窗状态
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportTitle, setReportTitle] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reportingConfig, setReportingConfig] = useState<{
+    key: string;
+    id: string;
+  } | null>(null);
 
   useEffect(() => {
     loadAllConfigs();
@@ -127,6 +140,35 @@ export default function SourceManageScreen() {
   const saveConfig = async (key: string) => {
     const config = configs[key];
     await AsyncStorage.setItem(`sourceConfig_${key}`, JSON.stringify(config));
+  };
+
+  // 打开举报弹窗
+  const openReportModal = (key: string, id: string) => {
+    setReportingConfig({ key, id });
+    setReportTitle("");
+    setReportDescription("");
+    setReportModalVisible(true);
+  };
+
+  // 关闭举报弹窗
+  const closeReportModal = () => {
+    setReportModalVisible(false);
+    setReportingConfig(null);
+    setReportTitle("");
+    setReportDescription("");
+  };
+
+  // 提交举报（按用户要求，提交即弹窗提示成功，不发真实请求）
+  const submitReport = () => {
+    const title = reportTitle.trim();
+    const description = reportDescription.trim();
+    if (!title || !description) {
+      Alert.alert(t("common.error"), t("sourceManage.reportRequired"));
+      return;
+    }
+    closeReportModal();
+    // 提交后弹窗提示举报成功
+    Alert.alert(t("sourceManage.reportSuccess"), "", [{ text: t("common.ok") }]);
   };
 
   const handleConnect = async (key: string, id: string) => {
@@ -357,17 +399,48 @@ export default function SourceManageScreen() {
                       flexDirection: "row",
                       alignItems: "center",
                       marginTop: 0,
-                      gap: 0,
+                      gap: 8,
                     }}
                   >
+                    {/* 举报按钮：感叹号图标 */}
                     <TouchableOpacity
                       style={[
                         styles.connectButton,
-                        { padding: 5, width: 40, backgroundColor: "red" },
+                        {
+                          padding: 5,
+                          width: 40,
+                          height: 36,
+                          backgroundColor: "#FF9500",
+                        },
+                      ]}
+                      onPress={() => openReportModal(key, uniqueId)}
+                      accessibilityLabel={t("sourceManage.reportDataSource")}
+                    >
+                      <Ionicons
+                        name="alert-circle-outline"
+                        size={18}
+                        color="#fff"
+                      />
+                    </TouchableOpacity>
+
+                    {/* 删除按钮：删除图标 */}
+                    <TouchableOpacity
+                      style={[
+                        styles.connectButton,
+                        {
+                          padding: 5,
+                          width: 40,
+                          height: 36,
+                          backgroundColor: "#FF3B30",
+                        },
                       ]}
                       onPress={() => deleteConfig(key, uniqueId)}
                     >
-                      <Ionicons name="trash-outline" size={18} color="#fff" />
+                      <Ionicons
+                        name="trash-outline"
+                        size={18}
+                        color="#fff"
+                      />
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -376,7 +449,7 @@ export default function SourceManageScreen() {
                         {
                           backgroundColor: networkConnectDisabled ? colors.border : colors.primary,
                           flex: 1,
-                          marginHorizontal: 10,
+                          height: 36,
                           marginTop: 0,
                         },
                       ]}
@@ -425,6 +498,116 @@ export default function SourceManageScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* 举报弹窗：中间位置 */}
+      <Modal
+        visible={reportModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeReportModal}
+        statusBarTranslucent
+      >
+        <Pressable
+          style={styles.reportModalBackdrop}
+          onPress={closeReportModal}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.reportModalWrapper}
+            pointerEvents="box-none"
+          >
+            <Pressable
+              style={[
+                styles.reportModalCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+              onPress={(e) => e.stopPropagation?.()}
+            >
+              <Text style={[styles.reportModalTitle, { color: colors.text }]}>
+                {t("sourceManage.reportDataSource")}
+              </Text>
+
+              <Text style={[styles.reportModalLabel, { color: colors.secondary }]}>
+                {t("sourceManage.reportTitle")}
+              </Text>
+              <TextInput
+                style={[
+                  styles.reportModalInput,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                value={reportTitle}
+                onChangeText={setReportTitle}
+                placeholder={t("sourceManage.reportTitlePlaceholder")}
+                placeholderTextColor={colors.secondary}
+                maxLength={50}
+              />
+
+              <Text
+                style={[
+                  styles.reportModalLabel,
+                  { color: colors.secondary, marginTop: 12 },
+                ]}
+              >
+                {t("sourceManage.reportDescription")}
+              </Text>
+              <TextInput
+                style={[
+                  styles.reportModalInput,
+                  styles.reportModalTextarea,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                value={reportDescription}
+                onChangeText={setReportDescription}
+                placeholder={t("sourceManage.reportDescriptionPlaceholder")}
+                placeholderTextColor={colors.secondary}
+                multiline
+                maxLength={500}
+                textAlignVertical="top"
+              />
+
+              <View style={styles.reportModalActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.reportModalBtn,
+                    { backgroundColor: colors.border },
+                  ]}
+                  onPress={closeReportModal}
+                >
+                  <Text
+                    style={[styles.reportModalBtnText, { color: colors.text }]}
+                  >
+                    {t("sourceManage.reportCancel")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.reportModalBtn,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  onPress={submitReport}
+                >
+                  <Text
+                    style={[
+                      styles.reportModalBtnText,
+                      { color: colors.background },
+                    ]}
+                  >
+                    {t("sourceManage.reportSubmit")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </KeyboardAvoidingView>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -520,5 +703,61 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 16,
     fontWeight: "bold",
+  },
+  reportModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  reportModalWrapper: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  reportModalCard: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 20,
+  },
+  reportModalTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  reportModalLabel: {
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  reportModalInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  reportModalTextarea: {
+    minHeight: 96,
+    paddingTop: 10,
+  },
+  reportModalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  reportModalBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  reportModalBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

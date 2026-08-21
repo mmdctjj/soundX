@@ -310,7 +310,6 @@ export interface DetailedCacheSize {
   covers: number;
   music: number;
   audiobooks: number;
-  apks: number;
 }
 
 /**
@@ -321,23 +320,10 @@ export const getDetailedCacheSize = async (): Promise<DetailedCacheSize> => {
     covers: 0,
     music: 0,
     audiobooks: 0,
-    apks: 0,
   };
 
   try {
-    // 1. APKs (in cacheDirectory)
-    const cacheDir = FileSystem.cacheDirectory || '';
-    if (cacheDir) {
-      const files = await FileSystem.readDirectoryAsync(cacheDir);
-      for (const file of files) {
-        if (file.endsWith('.apk')) {
-          const info = await FileSystem.getInfoAsync(`${cacheDir}${file}`);
-          if (info.exists) result.apks += info.size || 0;
-        }
-      }
-    }
-
-    // 2. Music & Audiobooks (in CACHE_DIR)
+    // 1. Music & Audiobooks (in CACHE_DIR)
     const stored = await AsyncStorage.getItem(OFFLINE_TRACKS_KEY);
     if (stored) {
       const tracks: Track[] = JSON.parse(stored);
@@ -355,7 +341,7 @@ export const getDetailedCacheSize = async (): Promise<DetailedCacheSize> => {
       }
     }
 
-    // 3. Covers (project persistent directory)
+    // 2. Covers (project persistent directory)
     result.covers = await getDirectorySize(COVER_CACHE_DIR);
 
   } catch (e) {
@@ -371,18 +357,6 @@ export const getDetailedCacheSize = async (): Promise<DetailedCacheSize> => {
 export const clearSpecificCache = async (category: keyof DetailedCacheSize) => {
   try {
     switch (category) {
-      case 'apks':
-        const cacheDir = FileSystem.cacheDirectory || '';
-        if (cacheDir) {
-          const files = await FileSystem.readDirectoryAsync(cacheDir);
-          for (const file of files) {
-            if (file.endsWith('.apk')) {
-              await FileSystem.deleteAsync(`${cacheDir}${file}`, { idempotent: true });
-            }
-          }
-        }
-        break;
-      
       case 'covers':
         await FileSystem.deleteAsync(COVER_CACHE_DIR, { idempotent: true });
         await ensureCoverCacheDirExists();
@@ -419,9 +393,8 @@ export const clearCache = async () => {
     await FileSystem.deleteAsync(CACHE_DIR, { idempotent: true });
     await ensureCacheDirExists();
     await AsyncStorage.removeItem(OFFLINE_TRACKS_KEY);
-    // Also clear covers and apks for full clear
+    // Also clear covers for full clear
     await clearSpecificCache('covers');
-    await clearSpecificCache('apks');
   } catch (e) {
     console.error('Failed to clear cache', e);
   }
@@ -432,5 +405,5 @@ export const clearCache = async () => {
  */
 export const getCacheSize = async (): Promise<number> => {
   const detailed = await getDetailedCacheSize();
-  return detailed.music + detailed.audiobooks + detailed.covers + detailed.apks;
+  return detailed.music + detailed.audiobooks + detailed.covers;
 };

@@ -630,6 +630,7 @@ const Login: React.FC = () => {
                 <Input
                   prefix={<HddOutlined />}
                   placeholder={isWeb() ? "/api" : "http://192.168.x.x"}
+                  autoCapitalize="off"
                 />
               </AutoComplete>
             </Form.Item>
@@ -652,7 +653,7 @@ const Login: React.FC = () => {
                 }))}
                 onSelect={(val) => restoreCredentials(val, sourceType)}
               >
-                <Input prefix={<HddOutlined />} placeholder="http://example.com..." />
+                <Input prefix={<HddOutlined />} placeholder="http://example.com..." autoCapitalize="off" />
               </AutoComplete>
             </Form.Item>
 

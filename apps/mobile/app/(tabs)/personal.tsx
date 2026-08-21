@@ -46,6 +46,7 @@ import {
   getDownloadedTracks,
   removeDownloadedTrack,
 } from "../../src/services/cache";
+import { openStoreDebug } from "../../src/services/openStore";
 import { trackEvent } from "../../src/services/tracking";
 import { getImageUrl } from "../../src/utils/image";
 import { usePlayMode } from "../../src/utils/playMode";
@@ -54,9 +55,7 @@ import {
   refreshVipStatus,
 } from "../../src/utils/vipStatus";
 
-import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { CachedImage } from "@/src/components/CachedImage";
-import { UpdateModal } from "@/src/components/UpdateModal";
 import {
   AntDesign,
   Ionicons,
@@ -191,17 +190,7 @@ export default function PersonalScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [permission, setPermission] = useState<any>(null);
-  const {
-    checkUpdate,
-    progress,
-    isUpdating,
-    updateInfo,
-    startUpdate,
-    ignoreUpdate,
-    cancelUpdate,
-  } = useCheckUpdate();
 
-  const [isModalVisible, setModalVisible] = useState(false);
   const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -327,22 +316,10 @@ export default function PersonalScreen() {
     }
   };
 
-  useEffect(() => {
-    if (updateInfo) {
-      setModalVisible(true);
-    }
-  }, [updateInfo]);
-
   const [activeTab, setActiveTab] = useState<TabType>("playlists");
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>("track");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    checkUpdate().then((info) => {
-      if (info) setModalVisible(true);
-    });
-  }, []);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -718,6 +695,17 @@ export default function PersonalScreen() {
       setCreateModalVisible(true);
     }
     setPendingMenuAction(null);
+  };
+
+  /**
+   * 测试按钮：跳转到"对应的"应用商店
+   * - Android: market:// scheme，系统自动路由到已装商店
+   * - iOS: App Store 公网页面
+   * 仅供调试，正式版可移除。
+   */
+  const handleOpenStoreDebug = async () => {
+    setMenuVisible(false);
+    await openStoreDebug();
   };
 
   const pollTaskStatus = async (taskId: string) => {
@@ -1211,23 +1199,6 @@ export default function PersonalScreen() {
         />
       )}
 
-      <UpdateModal
-        visible={isModalVisible}
-        progress={progress}
-        isUpdating={isUpdating}
-        updateInfo={updateInfo}
-        onBackground={() => setModalVisible(false)}
-        onUpdate={startUpdate}
-        onIgnore={() => {
-          ignoreUpdate();
-          setModalVisible(false);
-        }}
-        onCancel={() => {
-          cancelUpdate();
-          setModalVisible(false);
-        }}
-      />
-
       <Modal
         isVisible={createModalVisible}
         onBackdropPress={() => setCreateModalVisible(false)}
@@ -1392,6 +1363,18 @@ export default function PersonalScreen() {
               <Ionicons name="trash-outline" size={22} color={colors.text} />
               <Text style={[styles.menuItemText, { color: colors.text }]}>
                 {t("personal.compactData")}
+              </Text>
+            </TouchableOpacity>
+            <View
+              style={[styles.menuDivider, { backgroundColor: colors.border }]}
+            />
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleOpenStoreDebug}
+            >
+              <Ionicons name="storefront-outline" size={22} color={colors.text} />
+              <Text style={[styles.menuItemText, { color: colors.text }]}>
+                测试：打开应用商店
               </Text>
             </TouchableOpacity>
           </View>

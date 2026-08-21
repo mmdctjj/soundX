@@ -1,0 +1,11 @@
+{
+  "name": "features_socket",
+  "version": "1.0.0",
+  "description": "AudioDock HarmonyOS Socket Feature",
+  "main": "Index.ets",
+  "author": "AudioDock",
+  "license": "ISC",
+  "dependencies": {
+    "audiodock_common": { "path": "../../common/audiodock_common" }
+  }
+}

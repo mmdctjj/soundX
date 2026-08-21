@@ -59,6 +59,7 @@
     "deleteSelected": "Delete Selected",
     "moveTo": "Move to",
     "copyTo": "Copy to",
+    "copiedToClipboard": "Copied to clipboard",
     "rename": "Rename",
     "trackCount": "{{count}} tracks",
     "unknownArtist": "Unknown Artist",
@@ -1035,7 +1036,16 @@
     "cannotConnectMissing": "Cannot connect (missing external)",
     "noDataSourceConfig": "No data source configuration",
     "internalAddress": "Internal Address",
-    "externalAddress": "External Address"
+    "externalAddress": "External Address",
+    "reportDataSource": "Report Data Source",
+    "reportTitle": "Report Title",
+    "reportDescription": "Report Description",
+    "reportTitlePlaceholder": "Enter report title",
+    "reportDescriptionPlaceholder": "Describe the reason in detail",
+    "reportSubmit": "Submit",
+    "reportCancel": "Cancel",
+    "reportSuccess": "Report submitted",
+    "reportRequired": "Both title and description are required"
   },
   "cover": {
     "continuePlaying": "Continue playing",
@@ -1479,7 +1489,8 @@
     "feature": "Benefits",
     "nonMember": "Non-member",
     "member": "Member",
-    "logoutAction": "Log Out / Switch Member Account"
+    "logoutAction": "Log Out / Switch Member Account",
+    "contactSupport": "Contact Support"
   },
   "memberBenefitsPage": {
     "notice": "Notice",
@@ -1525,7 +1536,8 @@
     "logoutTitle": "Log Out Member Account",
     "logoutMessage": "Are you sure you want to log out from the member account?",
     "logoutAction": "Log Out Member Account",
-    "ongoingActivity": "{{name}} promotion is ongoing"
+    "ongoingActivity": "{{name}} promotion is ongoing",
+    "contactSupport": "Contact Support"
   },
   "playerPage": {
     "notice": "Notice",
@@ -1613,7 +1625,16 @@
     "preparing2": "Preparing...",
     "updateNow": "Update Now",
     "systemDownloadStarted": "System downloader started",
-    "systemDownloadDescription": "The APK will install automatically after download. Check the notification shade for progress."
+    "systemDownloadDescription": "The APK will install automatically after download. Check the notification shade for progress.",
+    "upToDate": "You're up to date",
+    "defaultReleaseNotes": "Update now to enjoy new features",
+    "openStoreFailedTitle": "Cannot open App Store",
+    "openStoreFailedBody": "Please check your network or try again later",
+    "openStore": "Open App Store",
+    "later": "Later",
+    "checking": "Checking for updates...",
+    "checkUpdate": "Check for Updates",
+    "checkUpdateDescription": "Check if a new version is available"
   },
   "playerMore": {
     "moreOptions": "More Options",

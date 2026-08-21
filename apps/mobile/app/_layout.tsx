@@ -17,6 +17,7 @@ export const unstable_settings = {
 const SWAP_BUTTON_SIZE = 42;
 
 import { PlaylistModal } from "../src/components/PlaylistModal";
+import { PrivacyAgreementDialog } from "../src/components/PrivacyAgreementDialog";
 import { SquirrelAgent } from "../src/components/SquirrelAgent";
 import { GlobalBottomBar } from "../src/components/GlobalBottomBar";
 import { SettingsProvider, useSettings } from "../src/context/SettingsContext";
@@ -24,6 +25,8 @@ import { SyncProvider } from "../src/context/SyncContext";
 import { syncWidgetMembership } from "../src/native/WidgetBridge";
 import { PlayerDetailView } from "./player";
 import { Ionicons } from "@expo/vector-icons";
+import { UpdateModal } from "../src/components/UpdateModal";
+import { useCheckUpdate } from "../hooks/useCheckUpdate";
 
 function RootLayoutNav() {
   const { token, isLoading, plusToken, user } = useAuth();
@@ -308,6 +311,26 @@ function RootLayoutNav() {
     return () => clearInterval(timer);
   }, [plusToken]);
 
+  // ─── 版本更新检查（启动 1.5s 后静默触发，仅一次） ────────────────────
+  const {
+    updateInfo,
+    opening: openingStore,
+    progress,
+    checkUpdate,
+    startUpdate,
+    ignoreUpdate,
+    cancelUpdate,
+  } = useCheckUpdate();
+  const hasAutoCheckedRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoCheckedRef.current) return;
+    hasAutoCheckedRef.current = true;
+    const timer = setTimeout(() => {
+      void checkUpdate();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [checkUpdate]);
+
   const stack = (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -518,26 +541,36 @@ function RootLayoutNav() {
       {(segments[0] as string) !== "player" && <PlaylistModal />}
       {(segments[0] as string) !== "player" && voiceAssistantEnabled && isVip && <SquirrelAgent />}
       {theme === 'festive' && segments[0] !== 'player' && (
-        <Animated.View 
-          pointerEvents="none" 
+        <Animated.View
+          pointerEvents="none"
           style={[
-            styles.festiveOverlay, 
-            { 
+            styles.festiveOverlay,
+            {
               opacity: fuAnim.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0.04, 0.10]
-              }) 
+              })
             }
           ]}
         >
-          <ExpoImage 
-            source={require('../assets/dexopt/fu.svg')} 
-            style={styles.festiveFu} 
+          <ExpoImage
+            source={require('../assets/dexopt/fu.svg')}
+            style={styles.festiveFu}
             tintColor="#D4AF37"
             contentFit="contain"
           />
         </Animated.View>
       )}
+      <PrivacyAgreementDialog />
+      <UpdateModal
+        visible={!!updateInfo}
+        updateInfo={updateInfo}
+        opening={openingStore}
+        progress={progress}
+        onUpdate={startUpdate}
+        onIgnore={ignoreUpdate}
+        onClose={cancelUpdate}
+      />
     </>
   );
 }

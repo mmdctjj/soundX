@@ -179,6 +179,16 @@ mkdir -p /app/packages/db/prisma\n\
 echo "Running prisma db push..."\n\
 cd /app/packages/db && npx prisma@6 db push --accept-data-loss --skip-generate\n\
 \n\
+# 2b. 对齐迁移历史：db push 不会写 _prisma_migrations，\n\
+#     把 migrations/ 下所有迁移标记为已应用，确保历史跟实际 schema 一致\n\
+echo "Reconciling migration history..."\n\
+for migration_dir in /app/packages/db/prisma/migrations/*/; do\n\
+  [ -f "${migration_dir}migration.sql" ] || continue\n\
+  migration_name=$(basename "$migration_dir")\n\
+  echo "  - marking $migration_name as applied"\n\
+  npx prisma@6 migrate resolve --applied "$migration_name" 2>&1 | grep -v "already" || true\n\
+done\n\
+\n\
 # 3. 启动 Nginx (后台运行)\n\
 echo "Starting Nginx..."\n\
 nginx\n\

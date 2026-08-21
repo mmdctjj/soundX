@@ -1,0 +1,91 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/ctjj/.ohos/config/default_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A4A2D27F6B81E405E0D4772349ED5FEE681889A2246037D0D33E1EE70E80741EB71B7B4A6938E",
+          "profile": "/Users/ctjj/.ohos/config/default_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/ctjj/.ohos/config/default_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.p12",
+          "storePassword": "0000001A4D31C436EAFB78766C6035001A7EF2429A7FC715549DB7B33F128203DC7518A23C33AEB761D0"
+        }
+      },
+      {
+        "name": "release",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/ctjj/.ohos/config/release_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A44D5583D6BAC073DBA756C8F7325F747220B6EE86FE35AD76905A87BEC09171F0830051531DC",
+          "profile": "/Users/ctjj/.ohos/config/release_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/ctjj/.ohos/config/release_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.p12",
+          "storePassword": "0000001AFF11EA1F12A178ADF4A937A3541E6A824C8071C44927F73DA064C8AF48D943B159EB5AD1E90C"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "targetSdkVersion": "6.0.2(22)"
+      },
+      {
+        "name": "release",
+        "signingConfig": "release",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "targetSdkVersion": "6.0.2(22)"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./products/entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "release"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "audiodock_common",
+      "srcPath": "./common/audiodock_common"
+    },
+    {
+      "name": "features_storage",
+      "srcPath": "./features/storage"
+    },
+    {
+      "name": "features_network",
+      "srcPath": "./features/network"
+    },
+    {
+      "name": "features_ui",
+      "srcPath": "./features/ui"
+    },
+    {
+      "name": "features_i18n",
+      "srcPath": "./features/i18n"
+    },
+    {
+      "name": "features_socket",
+      "srcPath": "./features/socket"
+    },
+    {
+      "name": "features_player",
+      "srcPath": "./features/player"
+    }
+  ]
+}
