@@ -16,13 +16,7 @@ import { getDownloadedTracks, removeDownloadedTrack } from '../services/download
 import type { DownloadedMeta } from '../services/downloadService';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
-import common from '@ohos.app.ability.common';
-import Want from '@ohos.app.ability.Want';
-
-/** 鸿蒙应用 bundleName，与 AppScope/app.json5#bundleName 一致 */
-const HARMONY_BUNDLE_NAME: string = 'com.audiodock.harmony';
-/** 华为 AppGallery 的 bundleName（harmonyOS 设备主要走它） */
-const HUAWEI_APP_GALLERY_BUNDLE: string = 'com.huawei.appmarket';
+import { jumpToAppMarket } from '../utils/browserUtils';
 
 // ArkTS strict 拒绝内联对象字面量类型，所以用 class 显式表达
 // "三态联合"，再用 `kind` 区分渲染。
@@ -341,45 +335,18 @@ export struct PersonalTab {
   }
 
   /**
-   * 调试专用：调起华为 AppGallery 跳转到本应用详情页。
+   * 调起华为 AppGallery 跳转到本应用详情页（复用 browserUtils.jumpToAppMarket）。
    *
    * 方案：
    *   1. 优先用 `appmarket://` scheme + bundleName 直接拉起 AppGallery
-   *      （与 Android 的 `market://details?id=` 思路一致，但鸿蒙走 startAbility）
    *   2. 失败 → 兜底 `ohos.want.action.viewData` 打开 AppGallery web URL，
    *      让系统根据已注册的 deep link 路由
-   *   3. 全失败 → toast 提示，不抛异常
+   *   3. 全失败 → 打日志，不抛异常
    *
-   * 备注：appId 暂用 PLACEHOLDER，等上架后替换。
+   * 备注：appId 暂用 PLACEHOLDER，等上架后替换（browserUtils 内维护）。
    */
-  async jumpToAppMarketDebug(): Promise<void> {
-    const ctx = getContext(this) as common.UIAbilityContext;
-
-    // 方案 1：appmarket:// scheme + AppGallery bundleName
-    try {
-      const want: Want = {
-        bundleName: HUAWEI_APP_GALLERY_BUNDLE,
-        uri: `appmarket://${HARMONY_BUNDLE_NAME}`,
-      };
-      await ctx.startAbility(want);
-      Logger.i('PersonalTab', 'jumpToAppMarket: scheme 拉起成功');
-      return;
-    } catch (e) {
-      Logger.w('PersonalTab', `appmarket scheme 失败，回退 web URL: ${String(e)}`);
-    }
-
-    // 方案 2：兜底打开 AppGallery web URL（appId 待替换为真实值）
-    try {
-      const want: Want = {
-        action: 'ohos.want.action.viewData',
-        uri: 'https://appgallery.huawei.com/app/C_PLACEHOLDER',
-      };
-      await ctx.startAbility(want);
-      Logger.i('PersonalTab', 'jumpToAppMarket: web URL 拉起成功');
-    } catch (e) {
-      Logger.e('PersonalTab', `jumpToAppMarket: 全部失败: ${String(e)}`);
-      promptAction.showToast({ message: '打开应用商店失败' });
-    }
+  jumpToAppMarketDebug(): void {
+    jumpToAppMarket(getContext(this));
   }
 
   // 对齐 mobile handleOpenTtsTasks：校验会员登录与 VIP 状态后进入 TTS 任务列表。

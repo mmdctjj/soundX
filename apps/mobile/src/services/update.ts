@@ -26,14 +26,19 @@ export interface DownloadLatestData {
 export interface LatestVersionResult {
   /** 远端版本号（如 "1.3.0"），null 表示接口异常 */
   version: string | null;
+  /**
+   * 远端下发的文件列表（如小米走国内仓库 APK 直装时使用）。
+   * null 表示接口未下发 / 异常。
+   */
+  files: DownloadFileInfo[] | null;
 }
 
 /**
  * 调用后端 plus 服务拉取最新版本号
  *
  * @param product 服务端约定的产品标识（当前 AudioDock 传 "audiodock"）
- * @returns 远端版本号；接口异常时返回 `{ version: null }`，调用方据此决定
- *          是否弹窗（应静默失败，不打扰用户）
+ * @returns 远端版本号 + 文件列表；接口异常时返回 `{ version: null, files: null }`，
+ *          调用方据此决定是否弹窗（应静默失败，不打扰用户）
  */
 export const getLatestVersion = async (
   product: string = 'audiodock',
@@ -46,18 +51,18 @@ export const getLatestVersion = async (
 
     if (body?.code !== 200 || !body?.data) {
       console.log('[update] /download/latest 返回异常:', body);
-      return { version: null };
+      return { version: null, files: null };
     }
 
     const remoteVersion = body.data.version;
     if (!remoteVersion) {
-      return { version: null };
+      return { version: null, files: null };
     }
-    return { version: remoteVersion };
+    return { version: remoteVersion, files: body.data.files ?? null };
   } catch (e) {
     // 网络异常 / 401 / 5xx：全部静默，UI 不弹窗
     console.warn('[update] /download/latest 请求失败:', e);
-    return { version: null };
+    return { version: null, files: null };
   }
 };
 

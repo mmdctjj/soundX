@@ -1,4 +1,11 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+// 小米手机走「国内仓库 APK 直装」，需要系统下载器原生模块；
+// 该模块仅注册了 android 平台，iOS 上 requireNativeModule 会抛错，需按平台懒加载
+const SystemDownloadManager =
+  Platform.OS === 'android'
+    ? require('../../modules/system-download-manager').default
+    : null;
 
 /**
  * 1. 获取本地版本号 (例如 "1.0.58")
@@ -69,4 +76,31 @@ const splitVersion = (v: string): [number[], string[]] => {
     core.split('.').map((n) => Number(n) || 0),
     pre ? pre.split('.') : [],
   ];
+};
+
+/**
+ * 下载并安装 APK（小米手机走国内仓库直装时使用）。
+ *
+ * 委托给系统 DownloadManager 创建下载任务，完成后自动拉起安装；
+ * 进度回调为 0.05（开始）→ 1（任务已创建/完成），无法精确到字节级，
+ * 因为系统下载器不暴露实时进度（v1 简化版，与 master 同款语义）。
+ */
+export const downloadAndInstallApk = async (
+  downloadUrl: string,
+  onProgress: (progress: number) => void,
+): Promise<void> => {
+  if (Platform.OS !== 'android' || !SystemDownloadManager) {
+    console.warn('[updateUtils] APK 直装仅支持 Android');
+    return;
+  }
+
+  onProgress(0.05);
+
+  try {
+    await SystemDownloadManager.downloadApk(downloadUrl);
+    onProgress(1);
+  } catch (e) {
+    console.error('[updateUtils] 创建系统下载任务失败:', e);
+    throw e;
+  }
 };

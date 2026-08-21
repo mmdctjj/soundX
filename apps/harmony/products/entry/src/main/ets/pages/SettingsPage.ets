@@ -12,7 +12,7 @@ import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { getInternalQuality, getExternalQuality } from '../services/trackQuality';
 import { applySystemBar } from '../services/systemBar';
-import { openInBrowser } from '../utils/browserUtils';
+import { openInBrowser, jumpToAppMarket } from '../utils/browserUtils';
 import { plusApi, setPlusAuthToken } from 'features_network';
 import { getLatestVersion, fetchReleaseBody, compareVersions } from '../services/updateService';
 
@@ -1193,8 +1193,16 @@ struct SettingsPage {
           message: body.length > 0 ? body : latestTag,
           buttons: [
             { text: t('common.close'), color: this.theme.colors.textSecondary },
+            { text: t('settings.goUpdate'), color: this.theme.colors.primary },
           ],
-        }).catch(() => undefined);
+        }).then((res): void => {
+          // showDialog 回调按 button index 区分：0=关闭, 1=去更新
+          if (res.index === 1) {
+            jumpToAppMarket(getContext(this));
+          }
+        }).catch((e: Error): void => {
+          Logger.w('SettingsPage', `update dialog failed: ${String(e)}`);
+        });
       } else {
         promptAction.showToast({ message: t('settings.upToDate') });
       }

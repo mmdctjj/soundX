@@ -315,6 +315,7 @@ function RootLayoutNav() {
   const {
     updateInfo,
     opening: openingStore,
+    progress,
     checkUpdate,
     startUpdate,
     ignoreUpdate,
@@ -565,6 +566,7 @@ function RootLayoutNav() {
         visible={!!updateInfo}
         updateInfo={updateInfo}
         opening={openingStore}
+        progress={progress}
         onUpdate={startUpdate}
         onIgnore={ignoreUpdate}
         onClose={cancelUpdate}

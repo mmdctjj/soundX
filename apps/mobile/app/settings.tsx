@@ -32,6 +32,7 @@ import { usePlayMode } from "../src/utils/playMode";
 import { getLocalVersion } from "../src/utils/updateUtils";
 import { getCachedVipStatus } from "../src/utils/vipStatus";
 import { useCheckUpdate } from "../hooks/useCheckUpdate";
+import { UpdateModal } from "../src/components/UpdateModal";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -50,7 +51,16 @@ export default function SettingsScreen() {
   const { mode, setMode } = usePlayMode();
   const { logout, user, sourceType, device, plusToken, setPlusToken } =
     useAuth();
-  const { checking: checkingUpdate, checkUpdate } = useCheckUpdate();
+  const {
+    checking: checkingUpdate,
+    updateInfo: manualUpdateInfo,
+    opening: manualOpening,
+    progress: manualProgress,
+    checkUpdate,
+    startUpdate,
+    ignoreUpdate,
+    cancelUpdate,
+  } = useCheckUpdate();
   const {
     acceptRelay,
     acceptSync,
@@ -413,7 +423,7 @@ export default function SettingsScreen() {
     if (!info) {
       Alert.alert(t("update.upToDate"));
     }
-    // 有新版本 → 弹窗由 _layout.tsx 全局 UpdateModal 接管
+    // 有新版本 → 由本页底部挂载的 UpdateModal 弹出（本页 useCheckUpdate 实例）
   };
 
   return (
@@ -1000,6 +1010,15 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+      <UpdateModal
+        visible={!!manualUpdateInfo}
+        updateInfo={manualUpdateInfo}
+        opening={manualOpening}
+        progress={manualProgress}
+        onUpdate={startUpdate}
+        onIgnore={ignoreUpdate}
+        onClose={cancelUpdate}
+      />
     </View>
   );
 }

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import * as Device from 'expo-device';
 
 /**
  * 平台判断统一封装
@@ -29,6 +30,24 @@ export const getPlatform = (): 'ios' | 'android' | 'web' | (typeof Platform.OS e
  * 是否原生环境（iOS / Android）。Web 端不算原生。
  */
 export const isNative = (): boolean => isIOS() || isAndroid();
+
+/**
+ * 是否小米系设备（含红米）。
+ *
+ * 小米手机走「国内仓库 APK 直装」更新，其他 Android 品牌（OPPO/vivo/荣耀…）
+ * 走应用商店跳转，所以版本检查 / 更新入口需要按品牌分流。
+ */
+export const isXiaomiDevice = (): boolean => {
+  if (!isAndroid()) return false;
+  const brand = (Device.brand || '').toLowerCase();
+  const manufacturer = (Device.manufacturer || '').toLowerCase();
+  return (
+    brand.includes('xiaomi') ||
+    brand.includes('redmi') ||
+    manufacturer.includes('xiaomi') ||
+    manufacturer.includes('redmi')
+  );
+};
 
 // 预留：未来如果支持 HarmonyOS React Native 包，可启用
 // export const isHarmony = (): boolean => Platform.OS === 'harmony' || Platform.OS === 'openharmony';

@@ -18,40 +18,45 @@ interface UpdateModalProps {
   visible: boolean;
   /** 远端版本信息（null 时 modal 不展示内容） */
   updateInfo: UpdateInfo | null;
-  /** 是否正在跳转商店（用于按钮 loading） */
+  /** 是否正在跳转商店 / 创建下载任务（用于按钮 loading / 下载中视图） */
   opening: boolean;
-  /** 点击「立即跳转」 */
+  /** APK 下载进度（0~1，小米模式下载中才有意义） */
+  progress: number;
+  /** 点击「立即更新 / 前往应用商店」 */
   onUpdate: () => void;
   /** 点击「忽略此版本」 */
   onIgnore: () => void;
-  /** 关闭弹窗（不忽略，下次启动仍会询问） */
+  /** 关闭弹窗（不忽略，下次启动仍会询问；下载中点击 = 后台继续下载） */
   onClose: () => void;
 }
 
 /**
- * 版本更新弹窗（v1 简化版）
+ * 版本更新弹窗（v2，支持双模式）
  *
- * 仅做「提示 + 跳转」：
+ * 更新方式由 useCheckUpdate 按设备品牌决定：
+ *   - mode=xiaomi（小米/红米）：「立即更新」→ 系统下载器下载 APK，
+ *     下载中展示进度条 + 「隐藏弹窗（后台继续下载）」按钮
+ *   - mode=store（iOS / OPPO / vivo / 荣耀…）：「前往应用商店」→ 跳商店
+ *
+ * 两种模式共用：
  *   - 标题：发现新版本 v{version}
  *   - 内容：GitHub Release body（markdown 渲染）
- *   - 主按钮：立即跳转（调 onUpdate → 跳应用商店）
- *   - 次按钮：忽略此版本（调 onIgnore → 写入 AsyncStorage）
- *   - 关闭：系统返回键 / 点击遮罩 → onClose（不忽略）
- *
- * 历史来源：恢复自 commit f7d5fa28 删除前的 204 行 UpdateModal.tsx，
- * 移除进度条 + 下载相关 state 与分支，新增 storeUrl 不展示（用户已
- * 在「立即跳转」按钮里隐式确认跳商店）。
+ *   - 次按钮：忽略此版本（写入 AsyncStorage）
  */
 export const UpdateModal = ({
   visible,
   updateInfo,
   opening,
+  progress,
   onUpdate,
   onIgnore,
   onClose,
 }: UpdateModalProps) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
+
+  /** 小米模式且正在创建下载任务 → 展示下载中视图 */
+  const isDownloading = opening && updateInfo?.mode === 'xiaomi';
 
   return (
     <Modal
@@ -63,7 +68,39 @@ export const UpdateModal = ({
     >
       <View style={styles.backdrop}>
         <View style={[styles.dialog, { backgroundColor: colors.card }]}>
-          {updateInfo ? (
+          {isDownloading ? (
+            <>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {progress > 0 ? t('update.systemDownloadStarted') : t('update.preparing')}
+              </Text>
+
+              <View style={styles.progressContainer}>
+                <View style={[styles.progressBarBackground, { backgroundColor: colors.background }]}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      { width: `${Math.min(Math.max(progress, 0.05), 1) * 100}%`, backgroundColor: colors.primary },
+                    ]}
+                  />
+                </View>
+              </View>
+              <Text style={[styles.progressHint, { color: colors.secondary }]}>
+                {progress > 0
+                  ? t('update.systemDownloadDescription')
+                  : t('update.requestingLink')}
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.secondaryButton, { borderColor: colors.border }]}
+                activeOpacity={0.8}
+                onPress={onClose}
+              >
+                <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+                  {t('update.hideDialogBackgroundDownload')}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : updateInfo ? (
             <>
               <Text style={[styles.title, { color: colors.text }]}>
                 {t('update.foundNewVersion')} v{updateInfo.version}
@@ -136,7 +173,9 @@ export const UpdateModal = ({
                     <ActivityIndicator size="small" color={colors.background} />
                   ) : (
                     <Text style={[styles.primaryButtonText, { color: colors.background }]}>
-                      {t('update.openStore')}
+                      {updateInfo.mode === 'xiaomi'
+                        ? t('update.updateNow')
+                        : t('update.openStore')}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -175,6 +214,24 @@ const styles = StyleSheet.create({
   body: {
     maxHeight: 360,
     marginBottom: 20,
+  },
+  progressContainer: {
+    marginBottom: 12,
+  },
+  progressBarBackground: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: 6,
+    borderRadius: 3,
+  },
+  progressHint: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 19,
   },
   buttonRow: {
     flexDirection: 'row',

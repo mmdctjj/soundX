@@ -3,9 +3,14 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 import { getLatestVersion } from '../src/services/update';
+import type { DownloadFileInfo } from '../src/services/update';
 import { getCurrentStoreUrl, openStoreByPlatform } from '../src/services/openStore';
-import { compareVersions, getLocalVersion } from '../src/utils/updateUtils';
-import { isNative } from '../src/utils/platform';
+import {
+  compareVersions,
+  downloadAndInstallApk,
+  getLocalVersion,
+} from '../src/utils/updateUtils';
+import { isNative, isXiaomiDevice } from '../src/utils/platform';
 
 /** 配置常量：GitHub 仓库（用于拉取 release changelog） */
 const GITHUB_USER = 'mmdctjj';
@@ -21,22 +26,37 @@ export interface UpdateInfo {
   version: string;
   /** 更新说明（GitHub Release body markdown） */
   body: string;
-  /** 当前平台对应的应用商店 URL */
-  storeUrl: string;
+  /**
+   * 更新方式：
+   * - xiaomi：小米设备，走「国内仓库 APK 直装」（downloadUrl 非空）
+   * - store：其他平台（iOS / OPPO / vivo / 荣耀…），跳应用商店（storeUrl 非空）
+   */
+  mode: 'xiaomi' | 'store';
+  /** 商店 URL（mode=store 时使用） */
+  storeUrl?: string;
+  /** APK 直装 URL（mode=xiaomi 时使用，来自后端 /download/latest files） */
+  downloadUrl?: string;
 }
 
 /** Hook 内部状态 */
 interface UseCheckUpdateState {
   /** 是否正在检查中（用于按钮 loading 态） */
   checking: boolean;
-  /** 是否正在跳转商店 */
+  /** 是否正在跳转商店 / 创建下载任务 */
   opening: boolean;
+  /** APK 下载进度（0~1，仅 mode=xiaomi 且下载中时有意义） */
+  progress: number;
   /** 发现的更新信息（null = 当前已是最新 / 已忽略 / 接口异常） */
   updateInfo: UpdateInfo | null;
 }
 
 /**
  * 版本检查 Hook
+ *
+ * 更新方式按设备品牌分流：
+ *   - 小米 / 红米（isXiaomiDevice）→ 国内仓库 APK 直装
+ *     （从后端 /download/latest files 中取 platform=android 的 url）
+ *   - 其他平台（iOS / OPPO / vivo / 荣耀…）→ 跳转应用商店
  *
  * 用法：
  *   const { checking, updateInfo, checkUpdate, startUpdate, ignoreUpdate } =
@@ -59,15 +79,13 @@ interface UseCheckUpdateState {
  *     onIgnore={ignoreUpdate}
  *     onCancel={cancelUpdate}
  *   />
- *
- * 历史来源：恢复自 commit f7d5fa28（删除前）的 145 行 hooks/useCheckUpdate.ts，
- * 移除了 APK 直装相关分支，新增 services/update + services/openStore 调用。
  */
 export const useCheckUpdate = () => {
   const { t } = useTranslation();
   const [state, setState] = useState<UseCheckUpdateState>({
     checking: false,
     opening: false,
+    progress: 0,
     updateInfo: null,
   });
 
@@ -80,7 +98,8 @@ export const useCheckUpdate = () => {
       const res = await fetch(
         `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/tags/v${version}`,
       );
-      const data = await res.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json();
       if (data?.body) return data.body;
     } catch (e) {
       console.warn('[useCheckUpdate] fetch github release body failed:', e);
@@ -89,18 +108,26 @@ export const useCheckUpdate = () => {
   };
 
   /**
+   * 从后端下发的 files 中取 Android APK 直装地址（小米用）
+   */
+  const pickAndroidApkUrl = (files: DownloadFileInfo[] | null): string | null => {
+    const apk = files?.find((f) => f.platform === 'android');
+    return apk?.url || null;
+  };
+
+  /**
    * 执行一次版本检查
    *
    * @returns 发现的 UpdateInfo，若无需更新/已忽略/接口异常则返回 null
    */
   const checkUpdate = useCallback(async (): Promise<UpdateInfo | null> => {
-    // Web 端不支持跳转商店，直接跳过
+    // Web 端不支持跳转商店 / APK 直装，直接跳过
     if (!isNative()) return null;
 
     setState((s) => ({ ...s, checking: true }));
     try {
-      // 1. 调后端拿远端版本
-      const { version: remoteVersion } = await getLatestVersion();
+      // 1. 调后端拿远端版本 + 文件列表
+      const { version: remoteVersion, files } = await getLatestVersion();
       if (!remoteVersion) return null;
 
       // 2. 检查是否被用户忽略
@@ -117,15 +144,31 @@ export const useCheckUpdate = () => {
         return null;
       }
 
-      // 4. 拉 changelog + 算商店 URL
+      // 4. 拉 changelog
       const body = await fetchReleaseBody(remoteVersion);
-      const storeUrl = getCurrentStoreUrl();
-      if (!storeUrl) {
-        console.warn('[useCheckUpdate] no store url for current platform');
-        return null;
+
+      // 5. 按设备品牌分流更新方式
+      const info: UpdateInfo = { version: remoteVersion, body, mode: 'store' };
+
+      if (isXiaomiDevice()) {
+        // 小米 / 红米：走国内仓库 APK 直装
+        const downloadUrl = pickAndroidApkUrl(files);
+        if (!downloadUrl) {
+          console.warn('[useCheckUpdate] 小米设备但未下发 APK 下载地址');
+          return null;
+        }
+        info.mode = 'xiaomi';
+        info.downloadUrl = downloadUrl;
+      } else {
+        // 其他平台（iOS / OPPO / vivo / 荣耀…）：跳应用商店
+        const storeUrl = getCurrentStoreUrl();
+        if (!storeUrl) {
+          console.warn('[useCheckUpdate] no store url for current platform');
+          return null;
+        }
+        info.storeUrl = storeUrl;
       }
 
-      const info: UpdateInfo = { version: remoteVersion, body, storeUrl };
       setState((s) => ({ ...s, updateInfo: info }));
       return info;
     } catch (e) {
@@ -137,19 +180,31 @@ export const useCheckUpdate = () => {
   }, []);
 
   /**
-   * 打开应用商店（用户点击「立即跳转」时调用）
+   * 执行更新（用户点击「立即更新」时调用）
+   *
+   * - 小米：调原生系统下载器下载 APK，下载完成后自动拉起安装
+   * - 其他：打开应用商店
    */
   const startUpdate = useCallback(async () => {
     setState((s) => ({ ...s, opening: true }));
     try {
-      const ok = await openStoreByPlatform();
-      if (!ok) {
-        Alert.alert(t('update.openStoreFailedTitle'), t('update.openStoreFailedBody'));
+      if (state.updateInfo?.mode === 'xiaomi' && state.updateInfo.downloadUrl) {
+        await downloadAndInstallApk(state.updateInfo.downloadUrl, (p) => {
+          setState((s) => ({ ...s, progress: p }));
+        });
+      } else {
+        const ok = await openStoreByPlatform();
+        if (!ok) {
+          Alert.alert(t('update.openStoreFailedTitle'), t('update.openStoreFailedBody'));
+        }
       }
+    } catch (e) {
+      console.warn('[useCheckUpdate] startUpdate error:', e);
+      Alert.alert(t('update.openStoreFailedTitle'), t('update.openStoreFailedBody'));
     } finally {
       setState((s) => ({ ...s, opening: false }));
     }
-  }, [t]);
+  }, [state.updateInfo, t]);
 
   /**
    * 忽略当前版本（写入 AsyncStorage）
@@ -158,19 +213,20 @@ export const useCheckUpdate = () => {
     if (state.updateInfo) {
       await AsyncStorage.setItem(IGNORED_VERSION_KEY, state.updateInfo.version);
     }
-    setState((s) => ({ ...s, updateInfo: null }));
+    setState((s) => ({ ...s, updateInfo: null, progress: 0 }));
   }, [state.updateInfo]);
 
   /**
    * 关闭弹窗（不忽略，下次启动仍会再询问）
    */
   const cancelUpdate = useCallback(() => {
-    setState((s) => ({ ...s, updateInfo: null }));
+    setState((s) => ({ ...s, updateInfo: null, progress: 0 }));
   }, []);
 
   return {
     checking: state.checking,
     opening: state.opening,
+    progress: state.progress,
     updateInfo: state.updateInfo,
     checkUpdate,
     startUpdate,
