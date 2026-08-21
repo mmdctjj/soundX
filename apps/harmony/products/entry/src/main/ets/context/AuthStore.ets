@@ -115,7 +115,12 @@ export class AuthStore {
 
   private async persist(res: LoginResponse): Promise<void> {
     const url = httpClient.getBaseURL();
-    const user: AuthMe = { id: String(res.id), username: res.username, nickname: res.nickname };
+    const user: AuthMe = {
+      id: String(res.id),
+      username: res.username,
+      nickname: res.nickname,
+      avatar: res.avatar,
+    };
     this.state = {
       serverAddress: url,
       sourceType: this.state.sourceType,
@@ -127,6 +132,25 @@ export class AuthStore {
     await kvStore.set(`user_${url}`, JSON.stringify(user));
     if (res.device) await kvStore.set(`device_${url}`, String(res.device.id));
     httpClient.setAuthToken(res.token);
+    this.notify();
+  }
+
+  /**
+   * 头像上传后更新当前用户头像：同步内存 state + 落盘 kvStore（user_{url}）+ 通知订阅者。
+   * 对齐 mobile personal.tsx 上传成功后写 AsyncStorage user_{baseUrl}。
+   */
+  async updateAvatar(avatarUrl: string): Promise<void> {
+    const url = this.state.serverAddress;
+    const current = this.state.user;
+    if (!url || !current) return;
+    const next: AuthMe = {
+      id: current.id,
+      username: current.username,
+      nickname: current.nickname,
+      avatar: avatarUrl,
+    };
+    this.state.user = next;
+    await kvStore.set(`user_${url}`, JSON.stringify(next)).catch((): void => undefined);
     this.notify();
   }
 

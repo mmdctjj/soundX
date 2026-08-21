@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "storeFile": "/Users/ctjj/Documents/资料/ad/ad.p12",
-          "storePassword": "0000001A982E65C57DD04F696E4418C7F0C6BE81E8301944305E482511D8EE5634A7AC8FBF2482D02792",
-          "keyAlias": "ad",
-          "keyPassword": "0000001A8ED117ECA9CD8996D0659D6A98AFDE9C646F817B025B71977025418407F4373FABDF5F54B87B",
+          "certpath": "/Users/ctjj/.ohos/config/default_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A4A2D27F6B81E405E0D4772349ED5FEE681889A2246037D0D33E1EE70E80741EB71B7B4A6938E",
+          "profile": "/Users/ctjj/.ohos/config/default_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.p7b",
           "signAlg": "SHA256withECDSA",
-          "profile": "/Users/ctjj/Documents/资料/ad/adRelease.p7b",
-          "certpath": "/Users/ctjj/Documents/资料/ad/ad.cer"
+          "storeFile": "/Users/ctjj/.ohos/config/default_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.p12",
+          "storePassword": "0000001A4D31C436EAFB78766C6035001A7EF2429A7FC715549DB7B33F128203DC7518A23C33AEB761D0"
         }
       },
       {

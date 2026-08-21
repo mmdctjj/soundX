@@ -19,6 +19,7 @@
     "pages/TtsCreateTaskPage",
     "pages/TtsConfigPage",
     "pages/ScanPage",
-    "pages/ScanConfirmPage"
+    "pages/ScanConfirmPage",
+    "pages/ProductUpdatesPage"
   ]
 }

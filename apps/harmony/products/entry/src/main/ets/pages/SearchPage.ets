@@ -9,7 +9,7 @@ import type { TrackDto, AlbumDto, ArtistDto } from 'features_network';
 import { rdbStore } from 'features_storage';
 import { Logger } from 'audiodock_common';
 import { resolveTrackToPlayer } from '../services/trackResolver';
-import { ensureMicPermission, startRecording, stopRecording, speechToText } from '../services/speechService';
+import { ensureMicPermission, startRecording, stopRecording, speechToText, AsrError } from '../services/speechService';
 import { playerStore } from '../context/PlayerStore';
 import { likesHistory } from '../services/LikesHistoryService';
 import { CoverImage } from '../components/CoverImage';
@@ -432,8 +432,19 @@ export struct SearchContent {
         await this.runSearch(trimmed);
       }
     } catch (e) {
+      // 错误细分（历史 bug：所有错误都 toast 'recognizeFailed'，看不出真实原因）
       Logger.w('Search', `speechToText failed: ${String(e)}`);
-      promptAction.showToast({ message: t('search.recognizeFailed') });
+      let msgKey: string = 'search.recognizeFailed';
+      if (e instanceof AsrError) {
+        if (e.kind === 'empty') {
+          msgKey = 'search.recognizeEmptyResult';
+        } else if (e.kind === 'parse') {
+          msgKey = 'search.recognizeServerError';
+        } else if (e.kind === 'upload') {
+          msgKey = e.statusCode >= 400 ? 'search.recognizeServerError' : 'search.recognizeNetworkError';
+        }
+      }
+      promptAction.showToast({ message: t(msgKey) });
     } finally {
       this.searching = false;
     }

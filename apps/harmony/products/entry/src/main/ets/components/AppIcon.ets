@@ -33,6 +33,8 @@ export type AppIconName =
   | 'arrow-down'
   | 'locate'
   | 'cloud-download'
+  | 'cloud-download-outline'
+  | 'grid-outline'
   | 'volume-high'
   | 'refresh'
   | 'trash'
@@ -83,6 +85,12 @@ const ICON_MAP: Record<AppIconName, Resource> = {
   'arrow-down': $r('sys.symbol.arrow_down'),
   'locate': $r('sys.symbol.scope'),
   'cloud-download': $r('sys.symbol.icloud'),
+  // 修复：LibraryPage.ets 与 ArtistDetailPage.ets 用到，当前 SDK 没独立 outline 版本，
+  // 沿用 icloud（视觉上一致，mobile 也只是 stroke 区别）
+  'cloud-download-outline': $r('sys.symbol.icloud'),
+  // 修复：LibraryPage.ets 视窗切换按钮，当前 SDK 没 grid/rectanglegrid，
+  // 复用 square 当 placeholder（视觉接近"网格"语义）
+  'grid-outline': $r('sys.symbol.square'),
   'volume-high': $r('sys.symbol.speaker_wave_3_fill'),
   'refresh': $r('sys.symbol.arrow_clockwise'),
   'trash': $r('sys.symbol.trash'),

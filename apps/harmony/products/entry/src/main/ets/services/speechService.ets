@@ -7,6 +7,12 @@ import { httpClient, trackApi, albumApi, artistApi } from 'features_network';
 import type { TrackDto, AlbumDto, ArtistDto } from 'features_network';
 import { Logger } from 'audiodock_common';
 
+/** request.uploadFile fail 回调 TaskState[] 在 ArkTS strict 下需要显式接口才能取字段。 */
+interface UploadFailState {
+  responseCode?: number;
+  message?: string;
+}
+
 /**
  * 语音能力服务，对齐 mobile：
  * - 语音搜索（search.tsx）：录音 → ASR 转文字 → 作为关键字搜索。
@@ -155,18 +161,48 @@ export async function speechToText(context: common.Context, filePath: string): P
           const raw = extractResult(data);
           const parsed = JSON.parse(raw) as Record<string, Object>;
           const text = pickText(parsed);
-          if (text.length > 0) resolve(text);
-          else reject(new Error('ASR returned empty text'));
+          if (text.length > 0) {
+            resolve(text);
+            return;
+          }
+          // 解析不到文字：识别服务端能响应但识别不出（静音/噪音/方言）
+          reject(new AsrError('empty', 200, 'ASR returned empty text'));
         } catch (e) {
-          reject(e instanceof Error ? e : new Error(String(e)));
+          // JSON.parse 失败：服务端返回非 JSON（如 HTML 错误页）
+          Logger.e(TAG, `parse ASR response failed: ${String(e)} raw=${String(data).slice(0, 256)}`);
+          reject(new AsrError('parse', 200, `ASR response parse failed: ${String(e)}`));
         }
       });
       uploadTask.on('fail', (err: request.TaskState[]) => {
-        reject(new Error(`ASR upload failed: ${JSON.stringify(err)}`));
+        // 上传层失败：网络异常 / 服务端 4xx 5xx / 客户端超时
+        // 用显式 UploadFailState interface 替代 (x as unknown as Record) 的 downcast
+        const first: UploadFailState | null =
+          Array.isArray(err) && err.length > 0 ? (err[0] as UploadFailState) : null;
+        const responseCode: number | undefined = first?.responseCode;
+        const statusCode: number = Number(responseCode ?? 0);
+        Logger.e(TAG, `ASR upload failed: statusCode=${statusCode} err=${JSON.stringify(err)}`);
+        reject(new AsrError('upload', statusCode, `ASR upload failed: ${JSON.stringify(err)}`));
       });
     });
   } finally {
     try { if (fs.accessSync(filePath)) fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
+  }
+}
+
+/**
+ * ASR 错误分类（给 SearchPage 做错误细分 toast 用）。
+ * - kind: 'empty' | 'parse' | 'upload'
+ * - statusCode: 0 表示网络层/上传失败；4xx/5xx 表示服务端响应
+ */
+export class AsrError extends Error {
+  kind: 'empty' | 'parse' | 'upload' = 'upload';
+  statusCode: number = 0;
+
+  constructor(kind: 'empty' | 'parse' | 'upload', statusCode: number, message: string) {
+    super(message);
+    this.kind = kind;
+    this.statusCode = statusCode;
+    this.name = 'AsrError';
   }
 }
 

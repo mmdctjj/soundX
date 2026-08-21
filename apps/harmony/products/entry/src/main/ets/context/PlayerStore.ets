@@ -3,6 +3,8 @@ import { kvStore } from 'features_storage';
 import { audioBackend, findActiveLine, parseLRC } from 'features_player';
 import { socketService } from 'features_socket';
 import type { LyricLine } from 'features_player';
+import { userDataApi } from 'features_network';
+import type { TrackDto } from 'features_network';
 import { syncStore } from './SyncStore';
 import { authStore } from './AuthStore';
 
@@ -65,6 +67,26 @@ function buildTrackFromRaw(raw: Record<string, Object>): Track {
   };
 }
 
+/**
+ * 从 features_network 拉到的 TrackHistoryItem.track / TrackLikeItem.track（强类型 TrackDto）
+ * 重建 PlayerStore.Track。字段映射同 services/trackResolver.ets#toPlayerTrack，
+ * 听过/收藏页面只展示，不直接播放，故 url 留空字符串。
+ */
+function buildTrackFromDto(dto: TrackDto): Track {
+  return {
+    id: dto.id,
+    title: dto.name,
+    url: '',
+    artist: dto.artist,
+    album: dto.album,
+    duration: dto.duration,
+    ext: dto.ext,
+    coverUrl: dto.cover,
+    lyrics: dto.lyrics,
+    contentType: dto.type,
+  };
+}
+
 export interface PlayerStateView {
   queue: Track[];
   currentIndex: number;
@@ -79,6 +101,9 @@ export interface PlayerStateView {
   activeLyricIndex: number;
   lyrics: LyricLine[];
   currentLyric: string;
+  /** 修复 3：听过/收藏 tab 数据（对齐 mobile PlaylistModal current/history/favorites） */
+  historyTracks: Track[];
+  favoritesTracks: Track[];
 }
 
 type Listener = () => void;
@@ -99,6 +124,9 @@ export class PlayerStore {
   currentLyric: string = '';
   /** 当前内容模式 MUSIC | AUDIOBOOK（对齐 mobile PlayModeContext），决定状态持久化的键。 */
   contentMode: string = 'MUSIC';
+  // 修复 3：听过/收藏数据
+  historyTracks: Track[] = [];
+  favoritesTracks: Track[] = [];
   /** 已加载进音频后端的曲目 id，用于恢复态下点播放时判断是否需要重新 load。 */
   private loadedTrackId: string = '';
 
@@ -118,7 +146,43 @@ export class PlayerStore {
       shuffleSeed: this.shuffleSeed, radioMode: this.radioMode,
       activeLyricIndex: this.activeLyricIndex,
       lyrics: this.lyrics, currentLyric: this.currentLyric,
+      historyTracks: this.historyTracks,
+      favoritesTracks: this.favoritesTracks,
     };
+  }
+
+  /**
+   * 修复 3：拉听过的曲目（对齐 mobile PlaylistModal L101-138 调 userDataApi.trackHistory）。
+   * 把 TrackHistoryItem 数组投影成 Track[]，存到 view.historyTracks 并 notify。
+   */
+  async loadHistory(): Promise<void> {
+    try {
+      const resp = await userDataApi.trackHistory({ pageSize: 50, loadCount: 1, type: 'MUSIC' });
+      // LoadMoreResp<T>.list —— 不是 .items（错误 #22/#23 修复）
+      // ArkTS 严格模式禁用 type predicate / intersection types / 对象字面量当类型，
+      // 这里用 filter(Boolean) + map 内 as TrackDto 显式收窄。
+      this.historyTracks = (resp.list ?? [])
+        .filter((it): boolean => !!it.track)
+        .map((it): Track => buildTrackFromDto(it.track as TrackDto));
+      this.notify();
+    } catch (e) {
+      Logger.w('PlayerStore', `loadHistory failed: ${String(e)}`);
+    }
+  }
+
+  /**
+   * 修复 3：拉收藏的曲目（对齐 mobile PlaylistModal 调 userDataApi.likedTracks）。
+   */
+  async loadFavorites(): Promise<void> {
+    try {
+      const resp = await userDataApi.likedTracks({ pageSize: 50, loadCount: 1, type: 'MUSIC' });
+      this.favoritesTracks = (resp.list ?? [])
+        .filter((it): boolean => !!it.track)
+        .map((it): Track => buildTrackFromDto(it.track as TrackDto));
+      this.notify();
+    } catch (e) {
+      Logger.w('PlayerStore', `loadFavorites failed: ${String(e)}`);
+    }
   }
 
   setLyricsText(raw: string): void {
@@ -150,6 +214,28 @@ export class PlayerStore {
     await this.loadCurrent();
     const cur = this.queue[this.currentIndex];
     if (cur) this.broadcastSync('track_change', cur);
+  }
+
+  // ─── 修复 7：电台模式（对齐 mobile PlayerContext.tsx enter/exitRadioPlaybackContext） ───
+
+  /**
+   * 进入电台模式：把 radioMode 置 true 并播指定曲目。
+   * 调用方（MainPage.toggleRadioMode）负责跳路由与拿曲目。
+   */
+  async startRadioMode(track: Track): Promise<void> {
+    this.radioMode = true;
+    this.notify();
+    await this.playTrack(track);
+  }
+
+  /**
+   * 退出电台模式：复位 radioMode。
+   * 注：实际切歌/停止仍由用户主动操作（mobile 也是仅 reset state）。
+   */
+  exitRadioPlaybackContext(): void {
+    if (!this.radioMode) return;
+    this.radioMode = false;
+    this.notify();
   }
 
   /** 新曲目的内容模式与当前不同时，先持久化当前模式状态再切换（对齐 mobile switchContentModeForIncomingTrack）。 */

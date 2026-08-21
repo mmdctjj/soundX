@@ -86,6 +86,8 @@ export struct LibraryTab {
   @State numColumns: number = 3;
   @State itemWidth: number = 100;
   @State columnsTemplate: string = '1fr 1fr 1fr';
+  // 修复 5：视窗切换（list/grid），对齐 mobile folder/index.tsx layoutMode
+  @State viewMode: 'list' | 'grid' = 'list';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @StorageProp('appLang') appLang: string = 'zh-CN';
   @State theme: Theme = buildTheme('light');
@@ -106,6 +108,14 @@ export struct LibraryTab {
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);
     this.computeGridLayout();
+    // 修复 5：从 KV 恢复视窗模式
+    kvStore.get('library_view_mode')
+      .then((v: string | null): void => {
+        if (v === 'grid' || v === 'list') this.viewMode = v;
+      })
+      .catch((e: Error): void => {
+        Logger.w('LibraryPage', `read library_view_mode failed: ${String(e)}`);
+      });
     this.unsubPlayer = playerStore.subscribe(() => this.syncCurrentTrack());
     this.syncCurrentTrack();
     // mobile：AUDIOBOOK 模式下 songs tab 不存在，回落到 artists
@@ -139,6 +149,17 @@ export struct LibraryTab {
     } catch (e) {
       Logger.w('LibraryTab', `computeGridLayout failed: ${String(e)}`);
     }
+  }
+
+  /**
+   * 修复 5：切换 list/grid 视窗，写入 KV 持久化（对齐 mobile folder/index.tsx L286-296）。
+   * 持久化键：library_view_mode。
+   */
+  private toggleViewMode(): void {
+    this.viewMode = this.viewMode === 'list' ? 'grid' : 'list';
+    kvStore.set('library_view_mode', this.viewMode).catch((e: Error): void => {
+      Logger.w('LibraryPage', `save library_view_mode failed: ${String(e)}`);
+    });
   }
 
   private syncCurrentTrack(): void {
@@ -692,6 +713,19 @@ export struct LibraryTab {
             .onClick(() => this.playFrom(0))
           }
         }
+        // 修复 5：视窗切换（list/grid），对齐 mobile folder/index.tsx L286-296
+        // 当前是 list 时显示 grid-outline 提示可切到网格；反之亦然
+        Column() {
+          AppIcon({
+            name: this.viewMode === 'list' ? 'grid-outline' : 'list-outline',
+            iconSize: 18,
+            color: this.theme.colors.primary,
+          });
+        }
+        .width(36).height(36).borderRadius(18).backgroundColor(this.theme.colors.card)
+        .justifyContent(FlexAlign.Center).margin({ right: 12 })
+        .onClick(() => this.toggleViewMode())
+
         // 搜索（用 AppIcon 矢量图标，尺寸与旁边 play iconSize:20 一致；
         // 旧实现用 ⌕ 文本字符渲染尺寸明显偏小，与其他按钮不一致）
         Column() {
@@ -856,6 +890,59 @@ export struct LibraryTab {
     .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
   }
 
+  /**
+   * 修复 5：songs tab 的网格视图（对齐 mobile folder/index.tsx grid mode）。
+   * 3 列起步，按 numColumns 自动撑满，封面 1:1，下方 1-2 行文字。
+   */
+  @Builder
+  SongGridBuilder() {
+    Scroll(this.songScroller) {
+      Column() {
+        Grid() {
+          ForEach(this.tracks, (track: TrackDto, index: number) => {
+            GridItem() {
+              Column() {
+                CoverImage({
+                  path: track.cover,
+                  imgWidth: this.itemWidth,
+                  imgHeight: this.itemWidth,
+                  radius: 8,
+                  fallbackText: track.name,
+                })
+                Text(track.name)
+                  .fontSize(13).fontWeight(FontWeight.Medium)
+                  .fontColor(this.theme.colors.text).margin({ top: 8 })
+                  .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .textAlign(TextAlign.Center).width(this.itemWidth)
+                if (track.artist) {
+                  Text(track.artist)
+                    .fontSize(11).fontColor(this.theme.colors.textSecondary)
+                    .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .textAlign(TextAlign.Center).width(this.itemWidth)
+                    .margin({ top: 2 })
+                }
+              }
+              .alignItems(HorizontalAlign.Center)
+              .onClick(() => {
+                if (this.isSelectionMode) {
+                  this.toggleTrackSelection(track.id);
+                } else {
+                  this.playFrom(index);
+                }
+              })
+            }
+          }, (track: TrackDto) => `${track.id}-v${this.listVersion}`)
+        }
+        .columnsTemplate(this.columnsTemplate).columnsGap(GAP).rowsGap(GAP)
+        .padding({ left: 20, right: 20 })
+        .width('100%')
+        this.FooterBuilder(t('libraryPage.loadedTracks', [['count', this.tracks.length]]))
+      }
+      .width('100%').alignItems(HorizontalAlign.Start)
+    }
+    .width('100%').height('100%').scrollBar(BarState.Off).align(Alignment.Top)
+  }
+
   @Builder
   ArtistGridBuilder() {
     Scroll(this.artistScroller) {
@@ -1010,7 +1097,12 @@ export struct LibraryTab {
   @Builder
   TabContentBuilder() {
     if (this.activeTab === 'songs' && this.mode === 'MUSIC') {
-      this.SongListBuilder()
+      // 修复 5：songs tab 根据 viewMode 选择 List / Grid
+      if (this.viewMode === 'grid') {
+        this.SongGridBuilder()
+      } else {
+        this.SongListBuilder()
+      }
     } else if (this.activeTab === 'artists') {
       this.ArtistGridBuilder()
     } else if (this.activeTab === 'albums') {

@@ -6,6 +6,14 @@ import { t, getLang } from 'features_i18n';
 import { getInternalQuality, getExternalQuality } from '../services/trackQuality';
 import type { Quality } from '../services/trackQuality';
 
+/**
+ * AppStorage 中转参数类型：SettingsPage pushUrl 前写入，PlaybackQualityPage aboutToAppear 时读。
+ * ArkTS 不允许在 AppStorage.get<...> 泛型里直接写内联对象字面量，必须先抽出顶层接口。
+ */
+interface PendingNetworkParam {
+  network?: string;
+}
+
 class QualityOption {
   value: Quality = 'high';
   labelKey: string = '';
@@ -35,9 +43,18 @@ struct PlaybackQualityPage {
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
-    interface RouterParams { network?: string }
-    const p = router.getParams() as RouterParams;
-    this.isInternal = (p.network ?? 'internal') === 'internal';
+    // 历史 bug：aboutToAppear 阶段 router.getParams() 经常拿不到，导致 isInternal 一直是默认 true，
+    // 用户点"外网播放品质"进去也会按内网读/写。
+    // 改为：从 AppStorage 读 pendingPlaybackQuality（SettingsPage pushUrl 前写入）。
+    // 兜底：从 router.getParams 也读一次（鸿蒙偶发能拿到）。
+    const params = router.getParams() as PendingNetworkParam;
+    if (params && typeof params.network === 'string') {
+      this.isInternal = params.network === 'internal';
+      AppStorage.setOrCreate<PendingNetworkParam>('pendingPlaybackQuality', { network: params.network });
+    } else {
+      const stored = AppStorage.get<PendingNetworkParam>('pendingPlaybackQuality');
+      this.isInternal = (stored?.network ?? 'internal') === 'internal';
+    }
     this.loadCurrent();
   }
 
@@ -53,6 +70,8 @@ struct PlaybackQualityPage {
   async handleSelect(quality: Quality) {
     const key = this.isInternal ? 'internalPlaybackQuality' : 'externalPlaybackQuality';
     await kvStore.set(key, quality);
+    // 通知 SettingsPage 在 onPageShow 时重新读 KV 刷新右侧标签（历史 bug：直接 router.back 不通知，回显永远是旧值）
+    AppStorage.setOrCreate('settingsPageShouldReload', true);
     router.back();
   }
 

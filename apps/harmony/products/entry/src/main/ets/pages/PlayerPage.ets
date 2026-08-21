@@ -1,11 +1,12 @@
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
+import type { common } from '@kit.AbilityKit';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { formatDuration, Logger } from 'audiodock_common';
 import { trackApi, playlistApi, artistApi, albumApi, miApi, plusApi, setPlusAuthToken } from 'features_network';
-import type { PlaylistDto, ArtistDto, AlbumDto, MiDevice } from 'features_network';
+import type { PlaylistDto, ArtistDto, AlbumDto, MiDevice, TrackDto } from 'features_network';
 import { kvStore } from 'features_storage';
 import type { LyricLine } from 'features_player';
 import { playerStore } from '../context/PlayerStore';
@@ -15,6 +16,7 @@ import type { SyncStateView } from '../context/SyncStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { getInternalQuality } from '../services/trackQuality';
 import { likesHistory } from '../services/LikesHistoryService';
+import { downloadTrack, isTrackDownloaded } from '../services/downloadService';
 import type { EventPayload, EventPayloadId } from '../services/LikesHistoryService';
 import { CoverImage } from '../components/CoverImage';
 import { AppIcon } from '../components/AppIcon';
@@ -50,6 +52,9 @@ struct PlayerPage {
   @State private view: PlayerStateView = playerStore.view();
   @State private showLyrics: boolean = false;
   @State private showPlaylist: boolean = false;
+  // 修复 3：播放列表三 Tab（current/history/favorites），对齐 mobile PlaylistModal TabType
+  @State private playlistTab: 'current' | 'history' | 'favorites' = 'current';
+  @State private playlistTabLoaded: Record<string, boolean> = {};
   @State private showMore: boolean = false;
   @State private liked: boolean = false;
   @State private showSleepTimer: boolean = false;
@@ -58,6 +63,9 @@ struct PlayerPage {
   @State private showControlPos: boolean = false;
   @State private sleepTimerRemaining: number = 0;
   @State private lyricFontSize: number = 16;
+  // 修复 1：当前曲目下载状态（对齐 mobile PlayerMoreModal isDownloaded / isDownloading）
+  @State private isDownloaded: boolean = false;
+  @State private isDownloading: boolean = false;
   @State private controlBottomOffset: number = 0;
   @State private playlists: PlaylistDto[] = [];
   // 小爱音箱投放相关状态（对齐 mobile player.tsx 的 mi* 状态）
@@ -72,7 +80,9 @@ struct PlayerPage {
   @State private syncView: SyncStateView = syncStore.view();
   @State private showSyncInvite: boolean = false;
   @State private syncCheckLoading: boolean = false;
-  // [软下线] 非会员隐藏同步控制入口：isPlusVip=false 时不渲染同步按钮。
+  // [修复 2] 同步控制入口常驻（不再软下线）。isPlusVip 仍用于：
+  // - 加载状态（页面打开时拉一次 plus profile）
+  // - 非会员点击 sync 时弹"开通 Plus"对话框（对齐 mobile player.tsx handleSyncPress 的 VIP 校验）
   @State private isPlusVip: boolean = false;
   private unsubSync: (() => void) | null = null;
   private unsubPlayerLeft: (() => void) | null = null;
@@ -102,6 +112,24 @@ struct PlayerPage {
 
   aboutToAppear(): void {
     this.theme = buildTheme(this.themeMode);
+    // 恢复歌词字号（对齐 mobile player.tsx useEffect onMount 读 AsyncStorage 'lyric_font_size'）
+    kvStore.get('lyric_font_size')
+      .then((v: string | null): void => {
+        const n: number = v !== null ? Number(v) : NaN;
+        if (!Number.isNaN(n) && n >= 12 && n <= 40) this.lyricFontSize = n;
+      })
+      .catch((e: Error): void => {
+        Logger.w('PlayerPage', `read lyric_font_size failed: ${String(e)}`);
+      });
+    // 恢复控制组底部偏移（对齐 mobile player.tsx L328 读 AsyncStorage 'player_controls_bottom_offset'）
+    kvStore.get('player_controls_bottom_offset')
+      .then((v: string | null): void => {
+        const n: number = v !== null ? Number(v) : NaN;
+        if (!Number.isNaN(n) && n >= 0 && n <= 120) this.controlBottomOffset = n;
+      })
+      .catch((e: Error): void => {
+        Logger.w('PlayerPage', `read player_controls_bottom_offset failed: ${String(e)}`);
+      });
     this.unsub = playerStore.subscribe(() => {
       this.view = playerStore.view();
       const cur = this.current();
@@ -109,6 +137,8 @@ struct PlayerPage {
       if (curId !== this.lastTrackId) {
         this.lastTrackId = curId;
         this.refreshLike();
+        // 修复 1：曲目变化时刷新 isDownloaded
+        this.refreshDownloadStatus();
       }
       // 横屏时右侧歌词常驻（对齐 mobile: isLandscape ? type !== AUDIOBOOK : showLyrics）
       const lyricsVisible = this.isLandscape || this.showLyrics;
@@ -142,6 +172,7 @@ struct PlayerPage {
     const cur = this.current();
     this.lastTrackId = cur ? cur.id : '';
     this.refreshLike();
+    this.refreshDownloadStatus();
     this.loadVipStatus();
     const params = router.getParams() as Record<string, string> | undefined;
     const trackId = params?.['trackId'];
@@ -735,7 +766,12 @@ struct PlayerPage {
       .width('100%')
       .justifyContent(FlexAlign.Center);
 
-      this.controls();
+      // 控制组底部偏移（对齐 mobile player.tsx L1406 <View style={{ marginBottom: controlsBottomOffset }}>）
+      Column() {
+        this.controls();
+      }
+      .width('100%')
+      .margin({ bottom: this.controlBottomOffset });
     }
     .width('100%')
     .layoutWeight(1)
@@ -756,7 +792,11 @@ struct PlayerPage {
         ForEach(this.view.lyrics, (line: LyricLine, index: number) => {
           ListItem() {
             Text(line.text)
-              .fontSize(index === this.view.activeLyricIndex ? 17 : 15)
+              // 修复：之前用硬编码 17/15，导致即使 lyricFontSize 已持久化、弹层里 +/- 也实际不会改变歌词大小
+              // 现在以 lyricFontSize 为基线，活动行 +1、非活动行 -1，对齐 mobile player.tsx 的 ActiveLyricLine.fontSize 处理
+              .fontSize(index === this.view.activeLyricIndex
+                ? this.lyricFontSize + 1
+                : this.lyricFontSize - 1)
               .fontWeight(index === this.view.activeLyricIndex ? FontWeight.Bold : FontWeight.Medium)
               .fontColor(index === this.view.activeLyricIndex
                 ? this.theme.colors.primary
@@ -810,22 +850,20 @@ struct PlayerPage {
         })
           .onClick(() => { this.handleOpenMiCast(); });
 
-        // [软下线] 非会员隐藏同步控制入口：仅会员渲染同步播放按钮。
-        // 恢复时去掉外层 if (this.isPlusVip) 条件即可（对齐 mobile player.tsx Ionicons people / people-outline）
-        if (this.isPlusVip) {
-          AppIcon({
-            name: this.syncView.isSynced ? 'person-fill' : 'person',
-            iconSize: 24,
-            color: this.syncView.isSynced ? this.theme.colors.primary : this.theme.colors.text,
-          })
-            .width(28).height(28)
-            .margin({ left: 4 })
-            .onClick((): void => {
-              this.handleSyncPress().catch((e: Error): void => {
-                Logger.w('PlayerPage', `handleSyncPress rejected: ${String(e)}`);
-              });
+        // 修复 2：去掉软下线，同步播放按钮常驻（对齐 mobile player.tsx Ionicons people / people-outline）
+        // 非会员点击时 handleSyncPress 内部弹"请开通 Plus"对话框（参考 mobile player.tsx L268-322）
+        AppIcon({
+          name: this.syncView.isSynced ? 'person-fill' : 'person',
+          iconSize: 24,
+          color: this.syncView.isSynced ? this.theme.colors.primary : this.theme.colors.text,
+        })
+          .width(28).height(28)
+          .margin({ left: 4 })
+          .onClick((): void => {
+            this.handleSyncPress().catch((e: Error): void => {
+              Logger.w('PlayerPage', `handleSyncPress rejected: ${String(e)}`);
             });
-        }
+          });
       }
       .width('100%')
       .alignItems(VerticalAlign.Top)
@@ -903,61 +941,191 @@ struct PlayerPage {
         .fontWeight(FontWeight.Bold)
         .fontColor(this.theme.colors.text)
         .margin({ top: 8, bottom: 8 });
-      List() {
-        ForEach(this.view.queue, (track: Track, index: number) => {
-          ListItem() {
-            Row({ space: 10 }) {
-              if (index === this.view.currentIndex && this.view.isPlaying) {
-                PlayingIndicator({ color: this.theme.colors.primary })
-                  .width(30);
-              } else {
-                Text(`${index + 1}`)
-                  .fontSize(14)
-                  .fontColor(index === this.view.currentIndex
-                    ? this.theme.colors.primary
-                    : this.theme.colors.textSecondary)
-                  .width(30)
-                  .textAlign(TextAlign.Center);
-              }
-              CoverImage({
-                path: track.coverUrl ?? null,
-                imgWidth: 20,
-                imgHeight: 20,
-                radius: 2,
-                fallbackText: (track.title ?? '?').substring(0, 1),
-              });
-              Column({ space: 2 }) {
-                Text(track.title)
-                  .fontSize(15)
-                  .fontColor(index === this.view.currentIndex
-                    ? this.theme.colors.primary
-                    : this.theme.colors.text)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis });
-                Text(track.artist ?? '')
-                  .fontSize(12)
-                  .fontColor(this.theme.colors.textSecondary)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis });
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start);
-            }
-            .width('100%')
-            .padding({ top: 10, bottom: 10, left: 16, right: 16 })
-            .onClick(() => {
-              this.showPlaylist = false;
-              playerStore.playTrackList(this.view.queue, index).catch(() => undefined);
-            });
-          }
-        }, (track: Track, index: number) => `${index}_${track.id}`);
+
+      // 修复 3：Tab 切换行（当前 / 听过 / 收藏），对齐 mobile PlaylistModal L234-268
+      Row({ space: 16 }) {
+        this.PlaylistTabBtn('current', t('player.playlistTitle'));
+        this.PlaylistTabBtn('history', t('common.listened'));
+        this.PlaylistTabBtn('favorites', t('common.favorites'));
       }
-      .layoutWeight(1)
-      .scrollBar(BarState.Off);
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 4, bottom: 12 })
+
+      // 列表内容（按 tab 切换数据源）
+      if (this.playlistTab === 'current') {
+        List() {
+          ForEach(this.view.queue, (track: Track, index: number) => {
+            ListItem() {
+              Row({ space: 10 }) {
+                if (index === this.view.currentIndex && this.view.isPlaying) {
+                  PlayingIndicator({ color: this.theme.colors.primary })
+                    .width(30);
+                } else {
+                  Text(`${index + 1}`)
+                    .fontSize(14)
+                    .fontColor(index === this.view.currentIndex
+                      ? this.theme.colors.primary
+                      : this.theme.colors.textSecondary)
+                    .width(30)
+                    .textAlign(TextAlign.Center);
+                }
+                CoverImage({
+                  path: track.coverUrl ?? null,
+                  imgWidth: 20,
+                  imgHeight: 20,
+                  radius: 2,
+                  fallbackText: (track.title ?? '?').substring(0, 1),
+                });
+                Column({ space: 2 }) {
+                  Text(track.title)
+                    .fontSize(15)
+                    .fontColor(index === this.view.currentIndex
+                      ? this.theme.colors.primary
+                      : this.theme.colors.text)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis });
+                  Text(track.artist ?? '')
+                    .fontSize(12)
+                    .fontColor(this.theme.colors.textSecondary)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis });
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start);
+              }
+              .width('100%')
+              .padding({ top: 10, bottom: 10, left: 16, right: 16 })
+              .onClick(() => {
+                this.showPlaylist = false;
+                playerStore.playTrackList(this.view.queue, index).catch(() => undefined);
+              });
+            }
+          }, (track: Track, index: number) => `${index}_${track.id}`);
+        }
+        .layoutWeight(1)
+        .scrollBar(BarState.Off);
+      } else if (this.playlistTab === 'history') {
+        List() {
+          ForEach(this.view.historyTracks, (track: Track) => {
+            ListItem() {
+              Row({ space: 10 }) {
+                CoverImage({
+                  path: track.coverUrl ?? null,
+                  imgWidth: 20,
+                  imgHeight: 20,
+                  radius: 2,
+                  fallbackText: (track.title ?? '?').substring(0, 1),
+                });
+                Column({ space: 2 }) {
+                  Text(track.title)
+                    .fontSize(15)
+                    .fontColor(this.theme.colors.text)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis });
+                  Text(track.artist ?? '')
+                    .fontSize(12)
+                    .fontColor(this.theme.colors.textSecondary)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis });
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start);
+              }
+              .width('100%')
+              .padding({ top: 10, bottom: 10, left: 16, right: 16 })
+              .onClick(() => {
+                this.showPlaylist = false;
+                playerStore.playTrackList([track], 0).catch(() => undefined);
+              });
+            }
+          }, (track: Track): string => track.id);
+        }
+        .layoutWeight(1)
+        .scrollBar(BarState.Off);
+      } else {
+        // favorites
+        List() {
+          ForEach(this.view.favoritesTracks, (track: Track) => {
+            ListItem() {
+              Row({ space: 10 }) {
+                CoverImage({
+                  path: track.coverUrl ?? null,
+                  imgWidth: 20,
+                  imgHeight: 20,
+                  radius: 2,
+                  fallbackText: (track.title ?? '?').substring(0, 1),
+                });
+                Column({ space: 2 }) {
+                  Text(track.title)
+                    .fontSize(15)
+                    .fontColor(this.theme.colors.text)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis });
+                  Text(track.artist ?? '')
+                    .fontSize(12)
+                    .fontColor(this.theme.colors.textSecondary)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis });
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start);
+              }
+              .width('100%')
+              .padding({ top: 10, bottom: 10, left: 16, right: 16 })
+              .onClick(() => {
+                this.showPlaylist = false;
+                playerStore.playTrackList([track], 0).catch(() => undefined);
+              });
+            }
+          }, (track: Track): string => track.id);
+        }
+        .layoutWeight(1)
+        .scrollBar(BarState.Off);
+      }
     }
     .width('100%')
     .height('100%')
     .padding({ left: 4, right: 4 });
+  }
+
+  /** 修复 3：播放列表 Tab 按钮（带 active 高亮 + 首次切到该 tab 时按需拉数据） */
+  @Builder
+  PlaylistTabBtn(key: 'current' | 'history' | 'favorites', label: string) {
+    Column() {
+      Text(label)
+        .fontSize(14)
+        .fontWeight(this.playlistTab === key ? FontWeight.Bold : FontWeight.Normal)
+        .fontColor(this.playlistTab === key ? this.theme.colors.primary : this.theme.colors.textSecondary)
+      if (this.playlistTab === key) {
+        Text('')
+          .width(20)
+          .height(2)
+          .backgroundColor(this.theme.colors.primary)
+          .margin({ top: 4 })
+      }
+    }
+    .alignItems(HorizontalAlign.Center)
+    .padding({ top: 4, bottom: 4 })
+    .onClick(() => { this.selectPlaylistTab(key); });
+  }
+
+  /**
+   * 切 tab 时按需触发懒加载（避免冷启动慢；切到 history/favorites 才调 API）。
+   * 对齐 mobile PlaylistModal useEffect onTabChange。
+   */
+  private selectPlaylistTab(key: 'current' | 'history' | 'favorites'): void {
+    this.playlistTab = key;
+    if (this.playlistTabLoaded[key]) return;
+    this.playlistTabLoaded[key] = true;
+    if (key === 'history') {
+      playerStore.loadHistory().catch((e: Error): void => {
+        Logger.w('PlayerPage', `loadHistory rejected: ${String(e)}`);
+      });
+    } else if (key === 'favorites') {
+      playerStore.loadFavorites().catch((e: Error): void => {
+        Logger.w('PlayerPage', `loadFavorites rejected: ${String(e)}`);
+      });
+    }
   }
 
   @Builder moreSheet() {
@@ -994,10 +1162,18 @@ struct PlayerPage {
   }
 
   private getMoreOptions(): MoreOption[] {
+    // 对齐 mobile PlayerMoreModal.tsx L333-340：下载项随状态切换文案（downloading/downloaded/download）
+    const dlLabel: string = this.isDownloading
+      ? t('playerMore.downloading', [['name', this.current()?.title ?? '']])
+      : this.isDownloaded
+        ? t('playerMore.downloaded')
+        : t('playerMore.download');
     const opts: MoreOption[] = [
       new MoreOption('artist', t('playerMore.artistDetails')),
       new MoreOption('album', t('playerMore.albumDetails')),
       new MoreOption('track', t('playerMore.trackDetails')),
+      // 修复 1：更多选项-下载入口（历史 bug：菜单根本没渲染 download 项）
+      new MoreOption('download', dlLabel),
       new MoreOption('sleepTimer', this.sleepTimerRemaining > 0
         ? `${t('playerMore.sleepTimer')} (${this.sleepTimerRemaining}min)` : t('playerMore.sleepTimer')),
       new MoreOption('addToPlaylist', t('playerMore.addToPlaylist')),
@@ -1023,6 +1199,12 @@ struct PlayerPage {
         message: `ID: ${cur.id}\n${cur.artist ? t('common.artists') + ': ' + cur.artist + '\n' : ''}${cur.album ? t('playerMore.albumDetails') + ': ' + cur.album + '\n' : ''}${cur.duration ? t('player.sleepTimer') + ': ' + formatDuration((cur.duration) * 1000) : ''}`,
         buttons: [{ text: t('common.close'), color: this.theme.colors.primary }],
       });
+    } else if (key === 'download') {
+      // 修复 1：点击"下载" → 调 downloadService.downloadTrack
+      if (!cur || this.isDownloaded || this.isDownloading) return;
+      this.handleDownloadCurrent().catch((e: Error): void => {
+        Logger.w('PlayerPage', `handleDownloadCurrent failed: ${String(e)}`);
+      });
     } else if (key === 'sleepTimer') {
       setTimeout(() => { this.showSleepTimer = true; }, 150);
     } else if (key === 'addToPlaylist') {
@@ -1038,9 +1220,13 @@ struct PlayerPage {
 
   private async navigateToArtist(name: string): Promise<void> {
     try {
-      const artists = await artistApi.latest({ type: 'MUSIC', random: false, pageSize: 50 });
-      const found = artists.find((a: ArtistDto) => a.name === name);
-      if (found) {
+      // 历史 bug：用 latest(50) + find 命中率极低（曲目艺人不在最近 50 则永远 toast unknown）。
+      // 改用 search API，按名字精确匹配；limit=10 是兜底（搜索结果按相关度排，取首条最稳）。
+      const results = await artistApi.search(name, 10);
+      // 优先取完全同名；否则取第一条非空
+      const found: ArtistDto | undefined =
+        results.find((a: ArtistDto): boolean => a.name === name) ?? results[0];
+      if (found && found.id) {
         // ArtistDetailPage 已迁入 NavDestination；PlayerPage 是独立 Page 没法直接持有 pathStack，
         // 用 pendingNavDest + router.back() 桥接：RootShellPage.onPageShow 会读取并 pushPath
         AppStorage.setOrCreate('pendingNavDest', { name: 'ArtistDetail', id: String(found.id) });
@@ -1049,15 +1235,18 @@ struct PlayerPage {
         promptAction.showToast({ message: t('common.unknownArtist') });
       }
     } catch (e) {
+      Logger.w('PlayerPage', `navigateToArtist failed: ${String(e)}`);
       promptAction.showToast({ message: t('common.operationFailed') });
     }
   }
 
   private async navigateToAlbum(name: string): Promise<void> {
     try {
-      const albums = await albumApi.latest({ type: 'MUSIC', random: false, pageSize: 50 });
-      const found = albums.find((a: AlbumDto) => a.name === name);
-      if (found) {
+      // 同 navigateToArtist：改用 albumApi.search 而非 latest(50) + find
+      const results = await albumApi.search(name, 10);
+      const found: AlbumDto | undefined =
+        results.find((a: AlbumDto): boolean => a.name === name) ?? results[0];
+      if (found && found.id) {
         // 同 navigateToArtist：pendingNavDest + router.back() 桥接
         AppStorage.setOrCreate('pendingNavDest', { name: 'AlbumDetail', id: String(found.id) });
         router.back();
@@ -1065,6 +1254,7 @@ struct PlayerPage {
         promptAction.showToast({ message: t('common.unknownAlbum') });
       }
     } catch (e) {
+      Logger.w('PlayerPage', `navigateToAlbum failed: ${String(e)}`);
       promptAction.showToast({ message: t('common.operationFailed') });
     }
   }
@@ -1203,8 +1393,10 @@ struct PlayerPage {
         .selectedColor(this.theme.colors.primary)
         .blockColor(this.theme.colors.primary)
         .onChange((v: number, mode: SliderChangeMode) => {
+          // 实时更新（对齐 mobile onValueChange 实时反馈）；松手/点击时落盘
+          this.controlBottomOffset = v;
           if (mode === SliderChangeMode.End || mode === SliderChangeMode.Click) {
-            this.controlBottomOffset = v;
+            this.saveControlOffset(v);
           }
         });
       Text(`${this.controlBottomOffset}`)
@@ -1212,7 +1404,7 @@ struct PlayerPage {
         .margin({ top: 8, bottom: 16 });
       Button(t('common.reset'))
         .backgroundColor(this.theme.colors.primary).fontColor('#FFFFFF').borderRadius(18)
-        .onClick(() => { this.controlBottomOffset = 0; })
+        .onClick(() => { this.controlBottomOffset = 0; this.saveControlOffset(0); })
     }
     .width('100%').padding(20).alignItems(HorizontalAlign.Center)
   }
@@ -1323,6 +1515,76 @@ struct PlayerPage {
 
   private saveLyricSize(): void {
     kvStore.set('lyric_font_size', String(this.lyricFontSize)).catch(() => undefined);
+  }
+
+  private saveControlOffset(v: number): void {
+    kvStore.set('player_controls_bottom_offset', String(v)).catch(() => undefined);
+  }
+
+  // ─── 修复 1：当前曲目下载相关 ───
+
+  /**
+   * 刷新当前曲目的"是否已下载"状态。
+   * 异步探测 FileCache.hasAudio(trackId, ext)，多种 ext 任意命中即 true。
+   */
+  private refreshDownloadStatus(): void {
+    const cur = this.current();
+    if (!cur) {
+      this.isDownloaded = false;
+      return;
+    }
+    isTrackDownloaded(cur.id)
+      .then((yes: boolean): void => { this.isDownloaded = yes; })
+      .catch((e: Error): void => {
+        Logger.w('PlayerPage', `isTrackDownloaded(${cur.id}) failed: ${String(e)}`);
+      });
+  }
+
+  /**
+   * 下载当前曲目（对齐 mobile PlayerMoreModal.handleDownload）。
+   * 入口：onMoreOption('download') 或 controls 区未来扩展的下载图标。
+   * 修复：Track 没有 path 字段，用 trackApi.getById 拿 TrackDto（含 path）再传。
+   */
+  private async handleDownloadCurrent(): Promise<void> {
+    const cur = this.current();
+    if (!cur) return;
+    if (this.isDownloaded || this.isDownloading) return;
+    this.isDownloading = true;
+    try {
+      // 优先用当前 Track 上已有的 url/title/artist/album/coverUrl 兜底；
+      // 再用 trackApi.getById 补 path（外部源 URL）或覆盖 title。
+      let dto: TrackDto | null = null;
+      try {
+        dto = await trackApi.getById(cur.id);
+      } catch (e) {
+        Logger.w('PlayerPage', `getById(${cur.id}) failed: ${String(e)}`);
+      }
+      const trackDto: TrackDto = dto ?? {
+        id: cur.id,
+        name: cur.title,
+        artist: cur.artist,
+        album: cur.album,
+        duration: cur.duration,
+        cover: cur.coverUrl,
+        path: cur.url,
+        ext: cur.ext,
+        lyrics: cur.lyrics,
+        type: cur.contentType,
+      };
+      const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      await downloadTrack(ctx, trackDto);
+      this.isDownloaded = true;
+      promptAction.showToast({
+        message: t('common.downloadSuccess', [['name', cur.title]]),
+      });
+    } catch (e) {
+      Logger.w('PlayerPage', `download track failed: ${String(e)}`);
+      promptAction.showToast({
+        message: t('common.downloadFailed', [['name', cur.title]]),
+      });
+    } finally {
+      this.isDownloading = false;
+    }
   }
 
   private loadSingle(trackId: string): void {

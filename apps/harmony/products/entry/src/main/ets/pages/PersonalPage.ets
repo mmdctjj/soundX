@@ -5,13 +5,15 @@ import { kvStore } from 'features_storage';
 import { t } from 'features_i18n';
 import { Logger } from 'audiodock_common';
 import { playlistApi, userDataApi, plusApi, setPlusAuthToken, userApi, taskApi } from 'features_network';
-import type { PlaylistDto, TrackDto, AlbumDto, ImportTask, ImportTaskMode, AuthMe } from 'features_network';
+import type { PlaylistDto, TrackDto, AlbumDto, ImportTask, ImportTaskMode } from 'features_network';
 import { AppIcon, AppIconName } from '../components/AppIcon';
 import { CoverImage } from '../components/CoverImage';
 import { authStore } from '../context/AuthStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
+import { getDownloadedTracks, removeDownloadedTrack } from '../services/downloadService';
+import type { DownloadedMeta } from '../services/downloadService';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import common from '@ohos.app.ability.common';
@@ -48,6 +50,25 @@ class ListRow {
     const r = new ListRow();
     r.kind = 'playlist';
     r.playlist = item;
+    return r;
+  }
+
+  // 已下载曲目 → TrackDto（字段映射：trackId→id / title→name / coverUrl→cover）。
+  // 保留 ext/type，供点击播放时 resolveTrackToPlayer 命中本地 FileCache。
+  static fromDownloaded(m: DownloadedMeta): ListRow {
+    const r = new ListRow();
+    r.kind = 'track';
+    const t: TrackDto = {
+      id: m.trackId,
+      name: m.title,
+      artist: m.artist,
+      album: m.album,
+      duration: m.duration,
+      cover: m.coverUrl,
+      ext: m.ext,
+      type: m.type,
+    };
+    r.track = t;
     return r;
   }
 
@@ -98,7 +119,8 @@ export struct PersonalTab {
   // 内容模式由 AppStorage 全局同步（对齐 mobile usePlayMode）：设置页/首页/声仓
   // 任一处切换有声书模式，本页经 @Watch 实时重载列表与菜单（TTS 入口等）。
   @StorageLink('playMode') @Watch('onModeChange') mode: string = 'MUSIC';
-  @State sourceType: string = 'AudioDock';
+  // 与 AuthStore.SourceType / SOURCEMAP / kvStore 写入端保持一致（全小写）
+  @State sourceType: string = 'audiodock';
   @State activeTab: string = 'playlists';
   @State activeSubTab: string = 'album';
   @State loading: boolean = true;
@@ -157,7 +179,8 @@ export struct PersonalTab {
     this.avatar = user?.avatar ?? '';
     try {
       const savedSource = await kvStore.get('selectedSourceType');
-      if (savedSource) this.sourceType = savedSource;
+      // 防御性 toLowerCase：与 SourceManagePage.ets:223 / LoginPage.ets:203 写入端保持一致
+      if (savedSource) this.sourceType = savedSource.toLowerCase();
     } catch (e) {
       Logger.w('PersonalTab', `read storage failed: ${String(e)}`);
     }
@@ -186,8 +209,22 @@ export struct PersonalTab {
     this.loading = true;
     this.error = '';
     if (this.activeTab === 'downloads') {
-      this.rows = [];
-      this.loading = false;
+      try {
+        const metas: DownloadedMeta[] = await getDownloadedTracks();
+        // 按内容模式过滤（对齐 mobile personal.tsx L479 tracks.filter(t => t.type === mode)）；
+        // type 缺失的历史数据兜底全显示。
+        const filtered: DownloadedMeta[] = metas.filter(
+          (m: DownloadedMeta): boolean => !m.type || m.type === this.mode
+        );
+        const rows: ListRow[] = [];
+        for (const m of filtered) rows.push(ListRow.fromDownloaded(m));
+        this.rows = rows;
+      } catch (e) {
+        this.error = e instanceof Error ? e.message : String(e);
+        Logger.e('PersonalTab', `load downloads failed: ${this.error}`);
+      } finally {
+        this.loading = false;
+      }
       return;
     }
     if (this.userId.length === 0) {
@@ -439,7 +476,9 @@ export struct PersonalTab {
   // 头像更换：photoAccessHelper 选择图片 → userApi.uploadAvatar(multipart) → 更新本地 + 后端
   async onAvatarClick(): Promise<void> {
     if (this.uploadingAvatar) return;
-    if (this.sourceType !== 'AudioDock') {
+    // sourceType 全小写比对，与 AuthStore.SourceType / kvStore 写入端对齐
+    // 历史 bug：默认值与判断曾用 'AudioDock' 大写，与实际存储 'audiodock' 不一致，导致头像永远走错误分支
+    if (this.sourceType !== 'audiodock') {
       promptAction.showDialog({
         title: t('personalPage.updateFailed'),
         message: t('personalPage.avatarUnsupported'),
@@ -474,17 +513,8 @@ export struct PersonalTab {
         (res.avatar !== undefined && res.avatar.length > 0 ? res.avatar : (res.url ?? uri.split('/').pop() ?? ''));
       // 更新本组件显示
       this.avatar = nextAvatar;
-      // 更新 authStore 单例（全局状态）；直接创建新的 AuthMe 对象
-      const current = authStore.state_.user;
-      if (current) {
-        const merged: AuthMe = {
-          id: current.id,
-          username: current.username,
-          nickname: current.nickname,
-          avatar: nextAvatar,
-        };
-        authStore.state_.user = merged;
-      }
+      // 更新 authStore（内存 + 落盘 kvStore + 通知订阅者），对齐 mobile 上传后写 AsyncStorage user_{baseUrl}
+      await authStore.updateAvatar(nextAvatar);
     } catch (e) {
       Logger.e('PersonalTab', `upload avatar failed: ${String(e)}`);
       promptAction.showDialog({
@@ -563,6 +593,29 @@ export struct PersonalTab {
     } catch (e) {
       Logger.w('PersonalTab', `playTrack failed: ${String(e)}`);
     }
+  }
+
+  // 下载 tab 长按删除（对齐 mobile handleDeleteDownload）：
+  // 确认框 → removeDownloadedTrack → 重新加载列表。
+  private handleDeleteDownload(row: ListRow): void {
+    if (!row.track) return;
+    const trackId: string = row.track.id;
+    promptAction.showDialog({
+      title: t('personalPage.deleteDownloadTitle'),
+      message: t('personalPage.deleteDownloadMessage'),
+      buttons: [
+        { text: t('common.cancel'), color: this.theme.colors.textSecondary },
+        { text: t('common.delete'), color: '#FF3B30' },
+      ],
+    }).then((res): void => {
+      if (res.index === 1) {
+        removeDownloadedTrack(trackId)
+          .then((): Promise<void> => this.loadData())
+          .catch((e: Error): void => {
+            Logger.w('PersonalTab', `remove downloaded track failed: ${String(e)}`);
+          });
+      }
+    });
   }
 
   // ─────────────── 库导入（增量/全量/精简） ───────────────
@@ -892,6 +945,12 @@ export struct PersonalTab {
     .padding(15).alignItems(VerticalAlign.Center)
     .border({ width: { bottom: 0.5 }, color: this.theme.colors.border })
     .onClick((): void => this.onRowClick(row))
+    .gesture(
+      LongPressGesture({ repeat: false })
+        .onAction((event: GestureEvent): void => {
+          if (this.activeTab === 'downloads') this.handleDeleteDownload(row);
+        })
+    )
   }
 
   @Builder

@@ -1,8 +1,8 @@
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
 import { window } from '@kit.ArkUI';
-import { kvStore } from 'features_storage';
-import { Logger } from 'audiodock_common';
+import { kvStore, fileCache } from 'features_storage';
+import { Logger, formatSize } from 'audiodock_common';
 import { authStore } from '../context/AuthStore';
 import { playerStore } from '../context/PlayerStore';
 import { syncStore } from '../context/SyncStore';
@@ -14,6 +14,7 @@ import { getInternalQuality, getExternalQuality } from '../services/trackQuality
 import { applySystemBar } from '../services/systemBar';
 import { openInBrowser } from '../utils/browserUtils';
 import { plusApi, setPlusAuthToken } from 'features_network';
+import { getLatestVersion, fetchReleaseBody, compareVersions } from '../services/updateService';
 
 // 设置项开关行：独立子组件，刻意不用 @Builder。
 // 本页踩坑记录（提交 1c419826 起的四轮修复）证明：@Builder 按值内联展开后，
@@ -123,6 +124,13 @@ struct SettingsPage {
   @State externalQuality: string = '';
   @State sourceType: string = '';
   @State version: string = '1.2.0.1';
+  // 缓存管理三档大小（页面显示文案用）
+  @State coverCacheSize: string = '';
+  @State musicCacheSize: string = '';
+  @State audiobookCacheSize: string = '';
+  // 检查更新 / 参与内测 loading
+  @State checkingUpdate: boolean = false;
+  @State joiningBeta: boolean = false;
   // 车机模式：VIP 门控状态（aboutToAppear 时拉一次）
   @State carModeIsVip: boolean = false;
   // 屏幕边距 Slider 半模态显示控制
@@ -166,6 +174,10 @@ struct SettingsPage {
       this.externalQuality = await getExternalQuality();
       // 同步控制：把 kvStore 里的开关状态同步到 SyncStore，避免两者脱节
       syncStore.setAcceptSync(this.acceptSync);
+      // 缓存三档大小（修复 11：点击无响应 → 让封面/音乐/有声书三行右侧显示当前大小）
+      this.loadCacheSizes().catch((e: Error): void => {
+        Logger.w('SettingsPage', `loadCacheSizes during loadSettings failed: ${String(e)}`);
+      });
     } catch (e) {
       Logger.w('SettingsPage', `load settings failed: ${String(e)}`);
     }
@@ -595,6 +607,15 @@ struct SettingsPage {
     // 因此用 langAtBuild 把重建延迟到页面可见时。
     const cur = getLang();
     if (cur !== this.langAtBuild) this.langAtBuild = cur;
+
+    // 从 PlaybackQualityPage 返回时，若 quality 被改过，回显要重新拉 KV
+    const shouldReload: boolean = AppStorage.get<boolean>('settingsPageShouldReload') === true;
+    if (shouldReload) {
+      AppStorage.setOrCreate('settingsPageShouldReload', false);
+      this.loadSettings().catch((e: Error): void => {
+        Logger.w('SettingsPage', `reload after quality change failed: ${String(e)}`);
+      });
+    }
   }
 
   build() {
@@ -660,7 +681,12 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.internalPlaybackQuality'),
             t('settings.internalPlaybackQualityDescription'),
-            () => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'internal' } }),
+            () => {
+              // 用 AppStorage 替代 router.getParams()：aboutToAppear 阶段 getParams 经常拿不到，
+              // 改为 PlaybackQualityPage 在 onPageShow 时从 AppStorage 读
+              AppStorage.setOrCreate('pendingPlaybackQuality', { network: 'internal' });
+              router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'internal' } });
+            },
             this.getQualityLabel(this.internalQuality),
           )
 
@@ -668,7 +694,10 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.externalPlaybackQuality'),
             t('settings.externalPlaybackQualityDescription'),
-            () => router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'external' } }),
+            () => {
+              AppStorage.setOrCreate('pendingPlaybackQuality', { network: 'external' });
+              router.pushUrl({ url: 'pages/PlaybackQualityPage', params: { network: 'external' } });
+            },
             this.getQualityLabel(this.externalQuality),
           )
 
@@ -813,22 +842,25 @@ struct SettingsPage {
           // ═══ 存储管理 Section ═══
           this.SectionTitle(t('settings.storage'))
 
+          // 封面缓存
           this.ActionRow(
             t('settings.coverCache'),
-            t('settings.tapToClear'),
-            (): void => {},
+            `${this.coverCacheSize} · ${t('settings.tapToClear')}`,
+            (): void => { this.confirmClearCache('covers'); },
           )
 
+          // 音乐缓存
           this.ActionRow(
             t('settings.musicCache'),
-            t('settings.tapToClear'),
-            (): void => {},
+            `${this.musicCacheSize} · ${t('settings.tapToClear')}`,
+            (): void => { this.confirmClearCache('music'); },
           )
 
+          // 有声书缓存
           this.ActionRow(
             t('settings.audiobookCache'),
-            t('settings.tapToClear'),
-            (): void => {},
+            `${this.audiobookCacheSize} · ${t('settings.tapToClear')}`,
+            (): void => { this.confirmClearCache('audiobooks'); },
           )
 
           // ═══ 关于 Section ═══
@@ -837,19 +869,19 @@ struct SettingsPage {
           this.ActionRow(
             t('settings.productUpdates'),
             t('settings.productUpdatesDescription'),
-            (): void => {},
+            (): void => { router.pushUrl({ url: 'pages/ProductUpdatesPage' }); },
           )
 
           this.ActionRow(
             t('settings.checkUpdate'),
             t('settings.checkUpdateDescription'),
-            (): void => {},
+            (): void => { this.handleCheckUpdate(); },
           )
 
           this.ActionRow(
             t('settings.joinBetaTest'),
             t('settings.betaTestDescription'),
-            (): void => {},
+            (): void => { this.handleJoinBeta(); },
           )
 
           this.ActionRow(
@@ -1069,5 +1101,173 @@ struct SettingsPage {
     .width('100%')
     .padding({ left: 16, right: 16, bottom: 16 })
     .alignItems(HorizontalAlign.Center)
+  }
+
+  // ─── 修复 11：缓存清理 / 检查更新 / 参与内测 的 handler 实现 ───
+
+  /**
+   * 加载三档缓存大小（settings.coverCache / musicCache / audiobookCache 行右侧文案）。
+   * 对齐 mobile apps/mobile/app/settings.tsx renderCacheRow 调用 getDetailedCacheSize。
+   */
+  private async loadCacheSizes(): Promise<void> {
+    try {
+      const sizes = await fileCache.sizeByCategory();
+      this.coverCacheSize = formatSize(sizes['covers'] ?? 0);
+      this.musicCacheSize = formatSize(sizes['music'] ?? 0);
+      this.audiobookCacheSize = formatSize(sizes['audiobooks'] ?? 0);
+    } catch (e) {
+      Logger.w('SettingsPage', `loadCacheSizes failed: ${String(e)}`);
+      this.coverCacheSize = '-';
+      this.musicCacheSize = '-';
+      this.audiobookCacheSize = '-';
+    }
+  }
+
+  /**
+   * 缓存清理确认弹窗（覆盖/音乐/有声书三档共用）。
+   * 对齐 mobile settings.tsx handleClearCache 的 Alert.alert 二次确认。
+   */
+  private confirmClearCache(category: 'covers' | 'music' | 'audiobooks'): void {
+    const sizeText: string = category === 'covers'
+      ? this.coverCacheSize
+      : category === 'music'
+        ? this.musicCacheSize
+        : this.audiobookCacheSize;
+    const labelKey: string = category === 'covers'
+      ? 'settings.coverCache'
+      : category === 'music'
+        ? 'settings.musicCache'
+        : 'settings.audiobookCache';
+    promptAction.showDialog({
+      title: `${t(labelKey)} · ${sizeText}`,
+      message: t('settings.cacheConfirmMessage'),
+      buttons: [
+        { text: t('common.cancel'), color: this.theme.colors.textSecondary },
+        { text: t('settings.cacheConfirmClear'), color: this.theme.colors.primary },
+      ],
+    }).then((result): void => {
+      // promptAction.showDialog 不返回 index；用 result.index（-1 表示关闭）兜底确认
+      if (result && result.index === 1) {
+        this.clearCache(category);
+      } else {
+        // 兜底：用户点了主按钮但 index 解析失败，按"按了确认"处理
+        // 某些 API 版本下 result.index 始终为 0，需要二次 prompt 确认。
+        // 这里采取保守策略：仅当用户主动点确认按钮才执行清理。
+      }
+    }).catch((e: Error): void => {
+      Logger.w('SettingsPage', `clear cache confirm dialog failed: ${String(e)}`);
+    });
+  }
+
+  private async clearCache(category: 'covers' | 'music' | 'audiobooks'): Promise<void> {
+    try {
+      await fileCache.clearCategory(category);
+      await this.loadCacheSizes();
+      promptAction.showToast({ message: t('settings.cacheCleared') });
+    } catch (e) {
+      Logger.w('SettingsPage', `clear cache(${category}) failed: ${String(e)}`);
+      promptAction.showToast({ message: t('common.operationFailed') });
+    }
+  }
+
+  /**
+   * 检查更新（对齐 mobile handleCheckUpdate）：拉 GitHub releases/latest，
+   * 有新版本就弹窗显示更新说明 + 跳转链接；无新版本 toast 提示。
+   */
+  private async handleCheckUpdate(): Promise<void> {
+    if (this.checkingUpdate) return;
+    this.checkingUpdate = true;
+    try {
+      const latestTag: string = await getLatestVersion();
+      if (latestTag.length === 0) {
+        promptAction.showToast({ message: t('common.operationFailed') });
+        return;
+      }
+      const localVer: string = `v${this.version}`;
+      // 仅当远端版本号 > 本地版本号时提示有新版本；否则当作"已是最新"
+      if (compareVersions(latestTag, localVer) > 0) {
+        const info = await fetchReleaseBody(latestTag);
+        const body: string = info?.body ?? '';
+        promptAction.showDialog({
+          title: t('settings.updateAvailable', [['version', latestTag]]),
+          message: body.length > 0 ? body : latestTag,
+          buttons: [
+            { text: t('common.close'), color: this.theme.colors.textSecondary },
+          ],
+        }).catch(() => undefined);
+      } else {
+        promptAction.showToast({ message: t('settings.upToDate') });
+      }
+    } catch (e) {
+      Logger.w('SettingsPage', `handleCheckUpdate failed: ${String(e)}`);
+      promptAction.showToast({ message: t('common.operationFailed') });
+    } finally {
+      this.checkingUpdate = false;
+    }
+  }
+
+  /**
+   * 参与内测（对齐 mobile handleRedeemInternalTestCode）：
+   * - 必须先登录 Plus 账号
+   * - 已经开通 VIP 的提示无需重复
+   * - 调用 plusApi.participateInternalTest 给账号 +1 个月 VIP
+   * - 写回本地缓存并刷新 isPlusVip
+   */
+  private async handleJoinBeta(): Promise<void> {
+    if (this.joiningBeta) return;
+    try {
+      const plusUserId: string | null = await kvStore.get('plus_user_id');
+      if (!plusUserId || plusUserId.length === 0) {
+        promptAction.showDialog({
+          title: t('common.loginFirst'),
+          message: t('settings.loginMemberFirst'),
+          buttons: [{ text: t('common.ok'), color: this.theme.colors.primary }],
+        }).catch(() => undefined);
+        return;
+      }
+      const plusToken: string | null = await kvStore.get('plus_token');
+      if (plusToken) setPlusAuthToken(plusToken);
+
+      // 先查一次 VIP 状态，避免重复申请
+      const me = await plusApi.getMe(plusUserId);
+      if (me.vipTier && me.vipTier !== 'NONE') {
+        promptAction.showToast({ message: t('settings.betaTestAlreadyHas') });
+        return;
+      }
+
+      this.joiningBeta = true;
+      const startsAt: Date = new Date();
+      const endsAt: Date = new Date(startsAt);
+      endsAt.setMonth(endsAt.getMonth() + 1);
+      const result = await plusApi.participateInternalTest(
+        startsAt.toISOString(),
+        endsAt.toISOString(),
+      );
+      if (!result.ok) {
+        throw new Error(t('settings.betaTestFailed'));
+      }
+      // 写回本地缓存（对齐 mobile AsyncStorage.setItem('plus_vip_status', 'true') 等）
+      await kvStore.set('plus_vip_status', 'true');
+      await kvStore.set('plus_vip_data', JSON.stringify({
+        ok: result.ok,
+        vipTier: result.vipTier ?? 'PLUS',
+        vipStartsAt: result.vipStartsAt ?? startsAt.toISOString(),
+        vipEndsAt: result.vipEndsAt ?? endsAt.toISOString(),
+      }));
+      await kvStore.set('plus_vip_updated_at', Date.now().toString());
+      // 刷新本页 isPlusVip（如有 UI 依赖）；此处只 toast 提示成功
+      promptAction.showDialog({
+        title: t('settings.betaTestSuccess'),
+        message: t('settings.betaTestSuccess'),
+        buttons: [{ text: t('common.ok'), color: this.theme.colors.primary }],
+      }).catch(() => undefined);
+    } catch (e) {
+      Logger.w('SettingsPage', `handleJoinBeta failed: ${String(e)}`);
+      promptAction.showToast({
+        message: e instanceof Error ? e.message : t('settings.betaTestFailed'),
+      });
+    } finally {
+      this.joiningBeta = false;
+    }
   }
 }

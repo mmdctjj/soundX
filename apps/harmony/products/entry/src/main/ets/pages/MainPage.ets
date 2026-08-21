@@ -1,4 +1,5 @@
 import router from '@ohos.router';
+import promptAction from '@ohos.promptAction';
 import { window } from '@kit.ArkUI';
 import { kvStore } from 'features_storage';
 import { t, getLang } from 'features_i18n';
@@ -298,8 +299,51 @@ export struct HomeTab {
     await this.loadData();
   }
 
-  toggleRadioMode(): void {
-    this.isRadioMode = !this.isRadioMode;
+  /**
+   * 修复 7：进入/退出电台模式。
+   * 对齐 mobile PlayerContext.tsx startRadioMode / exitRadioPlaybackContext (L296-322, L1665-1677)：
+   * - 进入：调 trackApi.latest(random  true) 拿一首随机曲目，塞进 playerStore 并设 radioMode=true
+   * - 退出：调 playerStore.exitRadioPlaybackContext()（自动重置 radioMode）
+   * - 仅 MUSIC 模式可用（AUDIOBOOK / Emby 不开放）
+   * - 成功后跳转到 PlayerPage
+   */
+  async toggleRadioMode(): Promise<void> {
+    if (this.mode !== 'MUSIC') {
+      promptAction.showToast({ message: t('mainPage.radioUnavailable') });
+      return;
+    }
+    if (this.isRadioMode) {
+      // 已经在 radio 模式，再点是跳到 PlayerPage（对齐 mobile behavior）
+      router.pushUrl({ url: 'pages/PlayerPage' }).catch(() => undefined);
+      return;
+    }
+    this.isRadioMode = true;
+    try {
+      const resp = await trackApi.latest({ type: 'MUSIC', pageSize: 1, random: true });
+      const next = Array.isArray(resp) && resp.length > 0 ? resp[0] : null;
+      if (!next || !next.id) {
+        throw new Error('radio: empty list');
+      }
+      // 把 TrackDto 转成 Track 并启动播放（TrackDto 字段：name/cover/path，不是 title/coverUrl/url）
+      const track: Track = {
+        id: next.id,
+        title: next.name ?? '',
+        artist: next.artist,
+        album: next.album,
+        duration: next.duration,
+        url: next.path ?? '',
+        ext: next.ext,
+        coverUrl: next.cover,
+        lyrics: next.lyrics,
+        contentType: next.type,
+      };
+      await playerStore.startRadioMode(track);
+      router.pushUrl({ url: 'pages/PlayerPage' }).catch(() => undefined);
+    } catch (e) {
+      this.isRadioMode = false;
+      Logger.w('HomeTab', `toggleRadioMode failed: ${String(e)}`);
+      promptAction.showToast({ message: t('mainPage.radioStartFailed') });
+    }
   }
 
   navigateToSearch(): void {

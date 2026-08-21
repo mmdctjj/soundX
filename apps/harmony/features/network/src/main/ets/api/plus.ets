@@ -186,6 +186,22 @@ export interface PlusApi {
   createPayment(userId: string, plan: string, method: string, price: number, couponCode?: string): Promise<CreatePaymentResponse>;
   getVipStatus(userId: string): Promise<VipStatusResponse>;
   deleteMe(): Promise<DeleteMeResponse>;
+  /** 对齐 mobile packages/services/src/plus.ts plusParticipateInternalTest：POST /users/internal-test-codes/participate */
+  participateInternalTest(vipStartsAt: string, vipEndsAt: string): Promise<ParticipateInternalTestResponse>;
+}
+
+/** 与 mobile ParticipateInternalTestResponse 对齐：ok + vipTier + vipStartsAt + vipEndsAt */
+export interface ParticipateInternalTestResponse {
+  ok: boolean;
+  vipTier?: string;
+  vipStartsAt?: string;
+  vipEndsAt?: string;
+}
+
+/** participateInternalTest 请求体（对齐 mobile packages/services/src/plus.ts plusParticipateInternalTest）。 */
+interface ParticipateInternalTestBody {
+  vipStartsAt: string;
+  vipEndsAt: string;
 }
 
 class PlusApiImpl implements PlusApi {
@@ -237,6 +253,12 @@ class PlusApiImpl implements PlusApi {
   async deleteMe(): Promise<DeleteMeResponse> {
     // 对齐 mobile packages/services/src/plus.ts plusDeleteMe：DELETE /users/me
     return plusRequest<DeleteMeResponse>('DELETE', '/users/me');
+  }
+
+  async participateInternalTest(vipStartsAt: string, vipEndsAt: string): Promise<ParticipateInternalTestResponse> {
+    // 对齐 mobile packages/services/src/plus.ts plusParticipateInternalTest
+    const body: ParticipateInternalTestBody = { vipStartsAt, vipEndsAt };
+    return plusRequest<ParticipateInternalTestResponse>('POST', '/users/internal-test-codes/participate', body);
   }
 }
 

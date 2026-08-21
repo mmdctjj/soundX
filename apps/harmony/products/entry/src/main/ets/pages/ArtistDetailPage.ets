@@ -1,5 +1,6 @@
 import promptAction from '@ohos.promptAction';
 import router from '@ohos.router';
+import type { common } from '@kit.AbilityKit';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
@@ -46,8 +47,6 @@ export struct ArtistDetailContent {
   @State error: string = '';
   @State currentTrackId: string = '';
   @State isPlaying: boolean = false;
-  @State isSelectionMode: boolean = false;
-  @State selectedTrackIds: string[] = [];
   @State addToPlaylistVisible: boolean = false;
   @State showMoreSheet: boolean = false;
   @State showMiCast: boolean = false;
@@ -57,6 +56,10 @@ export struct ArtistDetailContent {
   @State miLoading: boolean = false;
   @State miCasting: boolean = false;
   @State uploadingCover: boolean = false;
+  // 修复 4：批量下载选择模式（对齐 mobile artist/[id].tsx 选择模式）
+  @State isSelectionMode: boolean = false;
+  @State selectedTrackIds: string[] = [];
+  @State isBatchDownloading: boolean = false;
   private miPollingId: number = -1;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
@@ -490,6 +493,43 @@ export struct ArtistDetailContent {
     }
   }
 
+  /**
+   * 修复 4：批量下载已选曲目（对齐 mobile artist/[id].tsx handleDownloadSelected L225-251）。
+   * 通过 downloadService.downloadTracks 顺序下载，每首完成调 onProgress(completed, total)。
+   * 修复：this.tracks 是 TrackDto[]（不是 Track），downloadService 接受 TrackDto[]；
+   * 同时不再动态 import 解构（ArkTS strict 不支持 dynamic destructuring）。
+   */
+  private async handleBatchDownload(): Promise<void> {
+    if (this.isBatchDownloading) return;
+    if (this.selectedTrackIds.length === 0) {
+      promptAction.showToast({ message: t('common.noData') });
+      return;
+    }
+    const toDownload: TrackDto[] = [];
+    for (const tid of this.selectedTrackIds) {
+      const found: TrackDto | undefined = this.tracks.find((tr: TrackDto): boolean => tr.id === tid);
+      if (found) toDownload.push(found);
+    }
+    if (toDownload.length === 0) return;
+
+    this.isBatchDownloading = true;
+    try {
+      const svcModule = await import('../services/downloadService');
+      await svcModule.downloadTracks(this.getUIContext().getHostContext() as common.UIAbilityContext, toDownload, (completed: number, total: number): void => {
+        if (completed === total) {
+          promptAction.showToast({ message: t('artistPage.batchDownloadComplete') });
+        }
+      });
+    } catch (e) {
+      Logger.w('ArtistDetail', `batch download failed: ${String(e)}`);
+      promptAction.showToast({ message: t('common.downloadFailed') });
+    } finally {
+      this.isBatchDownloading = false;
+      this.isSelectionMode = false;
+      this.selectedTrackIds = [];
+    }
+  }
+
   private async handleOpenMiCast(): Promise<void> {
     this.showMiCast = true;
     this.miLoading = true;
@@ -589,6 +629,21 @@ export struct ArtistDetailContent {
       .onClick(async () => {
         this.showMoreSheet = false;
         // 启动 picker（保留原行为）
+      })
+
+      // 修复 4：批量下载入口（对齐 mobile artist/[id].tsx L578-606 list-outline → 进入选择模式）
+      Row() {
+        AppIcon({ name: 'cloud-download-outline', iconSize: 20, color: this.theme.colors.primary })
+        Text(t('artistPage.batchDownloadTitle')).fontSize(15).fontColor(this.theme.colors.text)
+          .margin({ left: 12 })
+      }
+      .width('100%').padding({ top: 14, bottom: 14, left: 20, right: 20 })
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => {
+        this.showMoreSheet = false;
+        // 进入选择模式：复用 ArtistDetailPage 已有的 isSelectionMode 状态（mobile 端 L287-329 选择模式头部）
+        this.isSelectionMode = true;
+        this.selectedTrackIds = [];
       })
 
       Row() {

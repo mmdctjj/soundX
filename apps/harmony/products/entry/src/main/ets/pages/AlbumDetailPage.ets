@@ -1,6 +1,7 @@
 import router from '@ohos.router';
 import promptAction from '@ohos.promptAction';
 import picker from '@ohos.file.picker';
+import common from '@ohos.app.ability.common';
 import { buildTheme, CommonNavBar, CommonButton, EmptyView, SkeletonBlock } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
@@ -16,6 +17,7 @@ import { XiaoAiIcon } from '../components/XiaoAiIcon';
 import { mvPlaylistStore } from '../store/MvPlaylistStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
 import { getInternalQuality } from '../services/trackQuality';
+import { downloadTracks } from '../services/downloadService';
 import { likesHistory, EventPayloadId } from '../services/LikesHistoryService';
 import { playerStore } from '../context/PlayerStore';
 import type { Track } from '../context/PlayerStore';
@@ -59,6 +61,7 @@ export struct AlbumDetailContent {
   @State miLoading: boolean = false;
   @State miCasting: boolean = false;
   @State uploadingCover: boolean = false;
+  @State batchDownloading: boolean = false;
   private miPollingId: number = -1;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State private langAtBuild: string = getLang();
@@ -655,6 +658,47 @@ export struct AlbumDetailContent {
     }
   }
 
+  // 批量下载整张专辑（对齐 mobile album/[id].tsx 批量下载）：
+  // 确认框 → downloadService.downloadTracks 顺序下载 → 完成提示。
+  private handleBatchDownload(): void {
+    if (this.batchDownloading) return;
+    const album = this.album;
+    if (album === null) return;
+    if (this.tracks.length === 0) {
+      promptAction.showToast({ message: t('common.noData') });
+      return;
+    }
+    promptAction.showDialog({
+      title: t('albumMore.batchDownload'),
+      message: t('albumMore.confirmBatchDownload', [['albumName', album.name]]),
+      buttons: [
+        { text: t('common.cancel'), color: this.theme.colors.textSecondary },
+        { text: t('common.confirm'), color: this.theme.colors.primary },
+      ],
+    }).then((res): void => {
+      if (res.index === 1) {
+        this.startBatchDownload();
+      }
+    });
+  }
+
+  private async startBatchDownload(): Promise<void> {
+    this.batchDownloading = true;
+    const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    const albumName: string = this.album?.name ?? '';
+    try {
+      await downloadTracks(ctx, this.tracks);
+      promptAction.showToast({
+        message: t('albumMore.batchDownloadComplete', [['albumName', albumName]]),
+      });
+    } catch (e) {
+      Logger.w('AlbumDetail', `batch download failed: ${String(e)}`);
+      promptAction.showToast({ message: t('common.operationFailed') });
+    } finally {
+      this.batchDownloading = false;
+    }
+  }
+
   @Builder
   moreSheet() {
     Column() {
@@ -691,7 +735,7 @@ export struct AlbumDetailContent {
       })
       this.MoreOptionRow(t('albumMore.batchDownload'), () => {
         this.showMoreSheet = false;
-        promptAction.showToast({ message: '该功能暂未在鸿蒙端开放' });
+        this.handleBatchDownload();
       })
     }
     .width('100%').padding(20).alignItems(HorizontalAlign.Start)
