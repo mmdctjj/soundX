@@ -1,7 +1,7 @@
 {
   "name": "sound-x",
   "private": true,
-  "version": "1.2.0-beta.1",
+  "version": "1.2.0",
   "productName": "AudioDock",
   "author": "mmdctjj <mmdctjj@gmail.com>",
   "repository": {
