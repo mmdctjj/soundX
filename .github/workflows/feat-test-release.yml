@@ -137,7 +137,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload installers to MinIO
-        if: ${{ env.MINIO_ENDPOINT != '' }}
+        # test 分支默认推 MinIO：去掉 if 条件后 secrets 缺失会直接 fail（明显报错），
+        # 便于在仓库 Settings → Secrets 配置 MINIO_ENDPOINT / MINIO_BUCKET / MINIO_ACCESS / MINIO_SECRET / MINIO_REGION。
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ env.MINIO_ACCESS }}
@@ -254,7 +255,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload APK to MinIO
-        if: ${{ env.MINIO_ENDPOINT != '' }}
+        # test 分支默认推 MinIO：去掉 if 条件后 secrets 缺失会直接 fail（明显报错），
+        # 便于在仓库 Settings → Secrets 配置 MINIO_ENDPOINT / MINIO_BUCKET / MINIO_ACCESS / MINIO_SECRET / MINIO_REGION。
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ env.MINIO_ACCESS }}
