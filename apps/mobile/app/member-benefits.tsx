@@ -1000,7 +1000,6 @@ export default function MemberBenefitsScreen() {
                   {t("memberBenefitsPage.wechat")}
                 </Text>
               </TouchableOpacity>
-              {/* TODO: 临时隐藏支付宝支付按钮，保留支付逻辑 */}
               <TouchableOpacity
                 style={[
                   styles.paymentItem,
@@ -1008,7 +1007,6 @@ export default function MemberBenefitsScreen() {
                     backgroundColor: colors.card,
                     borderColor: colors.border,
                     opacity: loading ? 0.6 : 1,
-                    display: "none" as any,
                   },
                 ]}
                 onPress={() => handlePayment("ALIPAY")}

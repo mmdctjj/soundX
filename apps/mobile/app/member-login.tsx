@@ -25,7 +25,9 @@ import {
   createScanLoginSession,
   getScanLoginSession,
   plusLogin,
+  plusLoginWithEmail,
   plusSendCode,
+  plusSendEmailCode,
   reportScanLoginResult,
   setPlusToken,
   subscribeScanLoginSession,
@@ -38,6 +40,10 @@ import QRCode from "react-native-qrcode-svg";
 import { trackEvent } from "../src/services/tracking";
 
 const logo = require("../assets/images/logo.webp");
+
+type LoginMode = "phone" | "email";
+
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 export default function MemberLoginScreen() {
   const { colors } = useTheme();
@@ -52,7 +58,9 @@ export default function MemberLoginScreen() {
   const [scanStatus, setScanStatus] = useState<ScanLoginSessionStatus | null>(null);
 
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [mode, setMode] = useState<LoginMode>("phone");
   const [loading, setLoading] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -65,9 +73,16 @@ export default function MemberLoginScreen() {
   }, []);
 
   const handleSendCode = async () => {
-    if (!phone) {
-        Alert.alert("提示", "请输入手机号");
-        return;
+    if (mode === "phone") {
+        if (!phone) {
+            Alert.alert("提示", "请输入手机号");
+            return;
+        }
+    } else {
+        if (!EMAIL_REGEX.test(email.trim())) {
+            Alert.alert("提示", "请输入有效的邮箱地址");
+            return;
+        }
     }
     setSendingCode(true);
     trackEvent({
@@ -77,7 +92,9 @@ export default function MemberLoginScreen() {
       deviceId: device?.id ? String(device.id) : undefined,
     });
     try {
-        const res = await plusSendCode({ phone });
+        const res = mode === "phone"
+          ? await plusSendCode({ phone })
+          : await plusSendEmailCode({ email: email.trim() });
         if (res.data.code === 201 || res.data.code === 200) {
             setCountdown(60);
             const timer = setInterval(() => {
@@ -100,9 +117,16 @@ export default function MemberLoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!phone || !code) {
-        Alert.alert("提示", "请输入手机号和验证码");
-        return;
+    if (mode === "phone") {
+        if (!phone || !code) {
+            Alert.alert("提示", "请输入手机号和验证码");
+            return;
+        }
+    } else {
+        if (!email || !code) {
+            Alert.alert("提示", "请输入邮箱和验证码");
+            return;
+        }
     }
     setLoading(true);
     trackEvent({
@@ -112,10 +136,12 @@ export default function MemberLoginScreen() {
       deviceId: device?.id ? String(device.id) : undefined,
     });
     try {
-        const res = await plusLogin({ phone, code });
+        const res = mode === "phone"
+          ? await plusLogin({ phone, code })
+          : await plusLoginWithEmail({ email: email.trim(), code });
         if (res.data.code === 201 || res.data.code === 200) {
             const { token: plusToken, userId } = res.data.data;
-            
+
             // 保存 Plus Token
             await AsyncStorage.setItem("plus_token", plusToken);
             await AsyncStorage.setItem("plus_user_id", JSON.stringify(userId));
@@ -135,7 +161,7 @@ export default function MemberLoginScreen() {
               userId: user?.id ? String(user.id) : undefined,
               deviceId: device?.id ? String(device.id) : undefined,
             });
-            Alert.alert("登录失败", res.data.message || "手机号或验证码错误");
+            Alert.alert("登录失败", res.data.message || (mode === "phone" ? "手机号或验证码错误" : "邮箱或验证码错误"));
         }
     } catch (e: any) {
         trackEvent({
@@ -271,27 +297,36 @@ export default function MemberLoginScreen() {
       })
     : "";
 
-  const renderSmsForm = () => (
-    <View style={styles.form}>
-      <Text style={[styles.label, { color: colors.text }]}>手机号</Text>
-      <TextInput
-        style={[
-          styles.input,
-          {
-            color: colors.text,
-            borderColor: colors.border,
-            backgroundColor: colors.card,
-          },
-        ]}
-        placeholder="请输入手机号"
-        placeholderTextColor={colors.secondary}
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-        autoCapitalize="none"
-      />
+  const renderSmsForm = () => {
+    const isPhone = mode === "phone";
+    const identifierLabel = isPhone ? "手机号" : "邮箱";
+    const identifierPlaceholder = isPhone ? "请输入手机号" : "请输入邮箱";
+    const identifierValue = isPhone ? phone : email;
+    const identifierSetter = isPhone ? setPhone : (v: string) => setEmail(v);
+    const identifierKeyboardType = isPhone ? "phone-pad" : "email-address";
 
-      <Text style={[styles.label, { color: colors.text }]}>验证码</Text>
+    return (
+      <View style={styles.form}>
+        <Text style={[styles.label, { color: colors.text }]}>{identifierLabel}</Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              color: colors.text,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+            },
+          ]}
+          placeholder={identifierPlaceholder}
+          placeholderTextColor={colors.secondary}
+          value={identifierValue}
+          onChangeText={identifierSetter}
+          keyboardType={identifierKeyboardType as any}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={[styles.label, { color: colors.text }]}>验证码</Text>
       <View style={styles.codeRow}>
         <TextInput
           style={[
@@ -346,7 +381,8 @@ export default function MemberLoginScreen() {
         )}
       </TouchableOpacity>
     </View>
-  );
+    );
+  };
 
   const renderScanPanel = () => {
     if (!isLandscape) {
@@ -479,6 +515,47 @@ export default function MemberLoginScreen() {
                   </Text>
                 </View>
 
+                <View style={styles.tabRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.tabBtn,
+                      styles.tabBtnLeft,
+                      { borderColor: colors.border, backgroundColor: colors.card },
+                      mode === "phone" && { backgroundColor: colors.primary, borderColor: colors.primary },
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => setMode("phone")}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        { color: mode === "phone" ? colors.background : colors.text },
+                      ]}
+                    >
+                      手机号登录
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.tabBtn,
+                      styles.tabBtnRight,
+                      { borderColor: colors.border, backgroundColor: colors.card },
+                      mode === "email" && { backgroundColor: colors.primary, borderColor: colors.primary },
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => setMode("email")}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        { color: mode === "email" ? colors.background : colors.text },
+                      ]}
+                    >
+                      邮箱登录
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 {renderSmsForm()}
               </View>
             </View>
@@ -546,6 +623,30 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
+  },
+  tabRow: {
+    flexDirection: 'row',
+    marginBottom: 24,
+  },
+  tabBtn: {
+    flex: 1,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  tabBtnLeft: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  tabBtnRight: {
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   logo: {
     width: 80,

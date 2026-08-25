@@ -336,7 +336,11 @@
     "pluginDeleteFailed": "Failed to delete plugin",
     "pluginIndex": "Plugin {{index}}",
     "checkUpdate": "Check for Updates",
-    "checkUpdateDescription": "Check if a new version is available"
+    "checkUpdateDescription": "Check if a new version is available",
+    "userAgreement": "User Agreement",
+    "userAgreementDescription": "Read our terms of service",
+    "privacyPolicy": "Privacy Policy",
+    "privacyPolicyDescription": "Learn how we protect your data"
   },
   "uiPlugin": {
     "title": "UI Plugin",
@@ -921,7 +925,12 @@
     "privacyPolicy": "Privacy Policy",
     "userAgreement": "User Agreement",
     "loginAgree": "By logging in, you agree to the",
-    "and": "and"
+    "and": "and",
+    "tabPhoneLogin": "Phone Login",
+    "tabEmailLogin": "Email Login",
+    "email": "Email",
+    "enterEmail": "Please enter your email",
+    "validEmail": "Please enter a valid email address"
   },
   "productUpdates": {
     "title": "Product Updates",
