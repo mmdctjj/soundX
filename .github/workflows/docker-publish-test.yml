@@ -43,6 +43,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
       - name: Log in to Harbor
+        # test 分支默认推 Harbor：本 step 必须成功，否则后续 build-and-push 推 Harbor tag 时
+        # Docker daemon 无凭据会整体失败。secrets 缺失时请在仓库 Settings → Secrets
+        # 配置 HARBOR_REGISTRY / HARBOR_USERNAME / HARBOR_PASSWORD 后重跑。
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.HARBOR_REGISTRY }}

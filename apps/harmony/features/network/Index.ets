@@ -34,7 +34,8 @@ export type {
   TrackLikeItem, AlbumLikeItem, TrackHistoryItem, AlbumHistoryItem,
 } from './src/main/ets/api';
 export type {
-  PlusApi, PlusLoginResponse, PlusUserProfile, VipCurrentLowestPriceData,
+  PlusApi, PlusLoginResponse, PlusUserProfile, PlusSendEmailCodeResult,
+  VipCurrentLowestPriceData,
   VipPlanPrice, CouponItem, CreatePaymentResponse, WechatPayPayload,
 } from './src/main/ets/api/plus';
 export type {

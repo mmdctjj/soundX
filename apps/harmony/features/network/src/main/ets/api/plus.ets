@@ -97,6 +97,23 @@ interface LoginRequest {
   code: string;
 }
 
+/** 对齐 mobile packages/services/src/plus.ts 的 SendEmailCodeDto */
+interface SendEmailCodeRequest {
+  email: string;
+}
+
+/** 对齐 mobile packages/services/src/plus.ts 的 LoginWithEmailDto */
+interface LoginWithEmailRequest {
+  email: string;
+  code: string;
+}
+
+/** 对齐 mobile packages/services/src/plus.ts plusSendEmailCode 返回值 */
+export interface PlusSendEmailCodeResult {
+  email: string;
+  expiresAt: number;
+}
+
 /**
  * 与 mobile packages/services/src/plus.ts 的 CreatePaymentDto 字段完全对齐。
  * 后端 PaymentController_create 的 class-validator 必填校验项是 amount/currency/method/forVip/vipTier/forPoints/pointsAmount，
@@ -180,6 +197,10 @@ async function plusRequest<T>(method: string, path: string, data?: object, param
 export interface PlusApi {
   sendCode(phone: string): Promise<void>;
   login(phone: string, code: string): Promise<PlusLoginResponse>;
+  /** 对齐 mobile packages/services/src/plus.ts plusSendEmailCode：POST /auth/send-email-code */
+  sendEmailCode(email: string): Promise<PlusSendEmailCodeResult>;
+  /** 对齐 mobile packages/services/src/plus.ts plusLoginWithEmail：POST /auth/login-email */
+  loginWithEmail(email: string, code: string): Promise<PlusLoginResponse>;
   getMe(userId: string): Promise<PlusUserProfile>;
   getVipCurrentLowestPrice(): Promise<VipCurrentLowestPriceData>;
   getMyCoupons(): Promise<CouponItem[]>;
@@ -213,6 +234,16 @@ class PlusApiImpl implements PlusApi {
   async login(phone: string, code: string): Promise<PlusLoginResponse> {
     const req: LoginRequest = { phone, code };
     return plusRequest<PlusLoginResponse>('POST', '/auth/login', req);
+  }
+
+  async sendEmailCode(email: string): Promise<PlusSendEmailCodeResult> {
+    const req: SendEmailCodeRequest = { email };
+    return plusRequest<PlusSendEmailCodeResult>('POST', '/auth/send-email-code', req);
+  }
+
+  async loginWithEmail(email: string, code: string): Promise<PlusLoginResponse> {
+    const req: LoginWithEmailRequest = { email, code };
+    return plusRequest<PlusLoginResponse>('POST', '/auth/login-email', req);
   }
 
   async getMe(userId: string): Promise<PlusUserProfile> {

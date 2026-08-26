@@ -6,7 +6,9 @@ import {
   createScanLoginSession,
   getScanLoginSession,
   plusLogin,
+  plusLoginWithEmail,
   plusSendCode,
+  plusSendEmailCode,
   reportScanLoginResult,
   subscribeScanLoginSession,
   reportScanLoginResultViaSocket,
@@ -26,10 +28,14 @@ import styles from "./index.module.less";
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
+type LoginMode = "phone" | "email";
 type MemberLoginFormValues = {
   phone: string;
+  email: string;
   code: string;
 };
+
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 const MemberLogin: React.FC = () => {
   const { t } = useTranslation();
@@ -45,6 +51,7 @@ const MemberLogin: React.FC = () => {
 
   const [countdown, setCountdown] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<LoginMode>("phone");
 
   // Countdown timer logic
   useEffect(() => {
@@ -161,10 +168,12 @@ const MemberLogin: React.FC = () => {
         userId: user?.id ? String(user.id) : undefined,
         deviceId: device?.id ? String(device.id) : undefined,
       });
-      const values = await form.validateFields(["phone"]);
+      const values = await form.validateFields([mode === "phone" ? "phone" : "email"]);
 
       const hide = messageApi.loading("正在发送验证码...");
-      const res = await plusSendCode({ phone: values.phone });
+      const res = mode === "phone"
+        ? await plusSendCode({ phone: values.phone })
+        : await plusSendEmailCode({ email: (values as any).email });
       hide();
 
       if (res.data.code === 201 || res.data.code === 200) {
@@ -196,7 +205,9 @@ const MemberLogin: React.FC = () => {
       deviceId: device?.id ? String(device.id) : undefined,
     });
     try {
-      const res = await plusLogin({ phone: values.phone, code: values.code });
+      const res = mode === "phone"
+        ? await plusLogin({ phone: values.phone, code: values.code })
+        : await plusLoginWithEmail({ email: values.email, code: values.code });
       setLoading(false);
 
       if (res.data.code === 201 || res.data.code === 200) {
@@ -301,16 +312,70 @@ const MemberLogin: React.FC = () => {
                 size="large"
                 className={styles.form}
               >
+                <Form.Item name="loginMode" initialValue="phone" hidden>
+                  <Input />
+                </Form.Item>
+
+                {/* 登录方式切换（手机号 / 邮箱，默认手机号） */}
+                <div style={{ display: "flex", gap: 0, marginBottom: 16 }}>
+                  <Button
+                    type={mode === "phone" ? "primary" : "default"}
+                    block
+                    style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                    onClick={() => {
+                      setMode("phone");
+                      form.setFieldsValue({ loginMode: "phone" });
+                    }}
+                  >
+                    手机号登录
+                  </Button>
+                  <Button
+                    type={mode === "email" ? "primary" : "default"}
+                    block
+                    style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                    onClick={() => {
+                      setMode("email");
+                      form.setFieldsValue({ loginMode: "email" });
+                    }}
+                  >
+                    邮箱登录
+                  </Button>
+                </div>
+
                 <Form.Item
                   name="phone"
                   label="手机号"
-                  style={{ marginBottom: 10 }}
+                  style={{ marginBottom: 10, display: mode === "phone" ? "block" : "none" }}
                   rules={[
-                    { required: true, message: "请输入手机号" },
-                    { pattern: /^1[3-9]\d{9}$/, message: "请输入有效的手机号" },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (getFieldValue("loginMode") !== "phone") return Promise.resolve();
+                        if (!value) return Promise.reject(new Error("请输入手机号"));
+                        if (!/^1[3-9]\d{9}$/.test(value)) return Promise.reject(new Error("请输入有效的手机号"));
+                        return Promise.resolve();
+                      },
+                    }),
                   ]}
                 >
                   <Input placeholder="请输入手机号" />
+                </Form.Item>
+
+                <Form.Item
+                  name="email"
+                  label="邮箱"
+                  style={{ marginBottom: 10, display: mode === "email" ? "block" : "none" }}
+                  rules={[
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (getFieldValue("loginMode") !== "email") return Promise.resolve();
+                        if (!value) return Promise.reject(new Error("请输入邮箱"));
+                        if (!EMAIL_REGEX.test(value)) return Promise.reject(new Error("请输入有效的邮箱地址"));
+                        return Promise.resolve();
+                      },
+                    }),
+                  ]}
+                >
+                  <Input placeholder="请输入邮箱" />
                 </Form.Item>
 
                 <Form.Item label="验证码" style={{ marginBottom: 10 }}>

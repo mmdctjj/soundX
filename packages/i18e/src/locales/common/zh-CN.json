@@ -344,7 +344,11 @@
     "pluginDeleteFailed": "插件删除失败",
     "pluginIndex": "插件 {{index}}",
     "checkUpdate": "检查更新",
-    "checkUpdateDescription": "检测是否有新版本"
+    "checkUpdateDescription": "检测是否有新版本",
+    "userAgreement": "用户协议",
+    "userAgreementDescription": "查看用户服务条款与使用规范",
+    "privacyPolicy": "隐私政策",
+    "privacyPolicyDescription": "了解我们如何保护你的数据"
   },
   "uiPlugin": {
     "title": "UI 插件",
@@ -929,7 +933,12 @@
     "privacyPolicy": "隐私政策",
     "userAgreement": "用户协议",
     "loginAgree": "登录即代表同意",
-    "and": "和"
+    "and": "和",
+    "tabPhoneLogin": "手机号登录",
+    "tabEmailLogin": "邮箱登录",
+    "email": "邮箱",
+    "enterEmail": "请输入邮箱",
+    "validEmail": "请输入有效的邮箱地址"
   },
   "productUpdates": {
     "title": "产品动态",

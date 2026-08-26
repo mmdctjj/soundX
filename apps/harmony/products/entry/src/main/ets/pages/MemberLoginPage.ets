@@ -7,11 +7,16 @@ import { Logger } from 'audiodock_common';
 import { plusApi, setPlusAuthToken } from 'features_network';
 import { openInBrowser } from '../utils/browserUtils';
 
+type LoginMode = 'phone' | 'email';
+const EMAIL_REGEX: RegExp = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 @Entry
 @Component
 struct MemberLoginPage {
   @State phone: string = '';
+  @State email: string = '';
   @State code: string = '';
+  @State mode: LoginMode = 'phone';
   @State loading: boolean = false;
   @State sendingCode: boolean = false;
   @State countdown: number = 0;
@@ -38,22 +43,42 @@ struct MemberLoginPage {
   }
 
   async handleSendCode(): Promise<void> {
-    const p = this.phone.trim();
-    if (p.length < 11) {
-      promptAction.showToast({ message: t('memberLogin.validPhone') });
-      return;
-    }
-    this.sendingCode = true;
-    try {
-      await plusApi.sendCode(p);
-      promptAction.showToast({ message: t('memberLogin.codeSent') });
-      this.startCountdown();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      promptAction.showToast({ message: msg || t('memberLogin.codeFailed') });
-      Logger.e('MemberLogin', `sendCode failed: ${msg}`);
-    } finally {
-      this.sendingCode = false;
+    if (this.mode === 'phone') {
+      const p = this.phone.trim();
+      if (p.length < 11) {
+        promptAction.showToast({ message: t('memberLogin.validPhone') });
+        return;
+      }
+      this.sendingCode = true;
+      try {
+        await plusApi.sendCode(p);
+        promptAction.showToast({ message: t('memberLogin.codeSent') });
+        this.startCountdown();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        promptAction.showToast({ message: msg || t('memberLogin.codeFailed') });
+        Logger.e('MemberLogin', `sendCode failed: ${msg}`);
+      } finally {
+        this.sendingCode = false;
+      }
+    } else {
+      const e = this.email.trim();
+      if (!EMAIL_REGEX.test(e)) {
+        promptAction.showToast({ message: t('memberLogin.validEmail') });
+        return;
+      }
+      this.sendingCode = true;
+      try {
+        await plusApi.sendEmailCode(e);
+        promptAction.showToast({ message: t('memberLogin.codeSent') });
+        this.startCountdown();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        promptAction.showToast({ message: msg || t('memberLogin.codeFailed') });
+        Logger.e('MemberLogin', `sendEmailCode failed: ${msg}`);
+      } finally {
+        this.sendingCode = false;
+      }
     }
   }
 
@@ -79,11 +104,19 @@ struct MemberLoginPage {
   }
 
   async handleLogin(): Promise<void> {
-    const p = this.phone.trim();
     const c = this.code.trim();
-    if (!p || !c) {
-      promptAction.showToast({ message: t('member.enterPhoneAndCode') });
-      return;
+    if (this.mode === 'phone') {
+      const p = this.phone.trim();
+      if (!p || !c) {
+        promptAction.showToast({ message: t('member.enterPhoneAndCode') });
+        return;
+      }
+    } else {
+      const e = this.email.trim();
+      if (!e || !c) {
+        promptAction.showToast({ message: t('memberLogin.validEmail') });
+        return;
+      }
     }
     if (!this.agreed) {
       promptAction.showToast({ message: t('memberLogin.mustAgree') });
@@ -92,7 +125,9 @@ struct MemberLoginPage {
     }
     this.loading = true;
     try {
-      const res = await plusApi.login(p, c);
+      const res = this.mode === 'phone'
+        ? await plusApi.login(this.phone.trim(), c)
+        : await plusApi.loginWithEmail(this.email.trim(), c);
       await kvStore.set('plus_token', res.token);
       await kvStore.set('plus_user_id', res.userId);
       setPlusAuthToken(res.token);
@@ -147,25 +182,76 @@ struct MemberLoginPage {
           .width('100%').alignItems(HorizontalAlign.Center)
           .margin({ bottom: 40 })
 
-          // Phone input
-          Column() {
-            Text(t('memberLogin.phone'))
-              .fontSize(14).fontWeight(FontWeight.Medium)
-              .fontColor(this.theme.colors.text)
-              .margin({ bottom: 5 })
-              .alignSelf(ItemAlign.Start)
-            TextInput({ placeholder: t('memberLogin.enterPhone'), text: this.phone })
-              .type(InputType.PhoneNumber)
-              .height(50)
-              .borderRadius(12)
+          // 登录方式切换（默认手机号）
+          Row() {
+            Text(t('memberLogin.tabPhoneLogin'))
+              .fontSize(14)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.mode === 'phone' ? this.theme.colors.background : this.theme.colors.text)
+              .backgroundColor(this.mode === 'phone' ? this.theme.colors.primary : this.theme.colors.card)
               .border({ width: 1, color: this.theme.colors.border })
-              .backgroundColor(this.theme.colors.card)
-              .fontColor(this.theme.colors.text)
-              .fontSize(16)
-              .padding({ left: 15, right: 15 })
-              .onChange((v: string) => { this.phone = v; })
+              .borderRadius(12)
+              .height(44)
+              .layoutWeight(1)
+              .textAlign(TextAlign.Center)
+              .padding({ top: 12, bottom: 12 })
+              .onClick(() => { this.mode = 'phone'; })
+            Text(t('memberLogin.tabEmailLogin'))
+              .fontSize(14)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.mode === 'email' ? this.theme.colors.background : this.theme.colors.text)
+              .backgroundColor(this.mode === 'email' ? this.theme.colors.primary : this.theme.colors.card)
+              .border({ width: 1, color: this.theme.colors.border })
+              .borderRadius(12)
+              .height(44)
+              .layoutWeight(1)
+              .textAlign(TextAlign.Center)
+              .padding({ top: 12, bottom: 12 })
+              .margin({ left: 8 })
+              .onClick(() => { this.mode = 'email'; })
           }
-          .width('100%').margin({ bottom: 15 })
+          .width('100%').margin({ bottom: 20 })
+
+          // Identifier input (phone or email)
+          if (this.mode === 'phone') {
+            Column() {
+              Text(t('memberLogin.phone'))
+                .fontSize(14).fontWeight(FontWeight.Medium)
+                .fontColor(this.theme.colors.text)
+                .margin({ bottom: 5 })
+                .alignSelf(ItemAlign.Start)
+              TextInput({ placeholder: t('memberLogin.enterPhone'), text: this.phone })
+                .type(InputType.PhoneNumber)
+                .height(50)
+                .borderRadius(12)
+                .border({ width: 1, color: this.theme.colors.border })
+                .backgroundColor(this.theme.colors.card)
+                .fontColor(this.theme.colors.text)
+                .fontSize(16)
+                .padding({ left: 15, right: 15 })
+                .onChange((v: string) => { this.phone = v; })
+            }
+            .width('100%').margin({ bottom: 15 })
+          } else {
+            Column() {
+              Text(t('memberLogin.email'))
+                .fontSize(14).fontWeight(FontWeight.Medium)
+                .fontColor(this.theme.colors.text)
+                .margin({ bottom: 5 })
+                .alignSelf(ItemAlign.Start)
+              TextInput({ placeholder: t('memberLogin.enterEmail'), text: this.email })
+                .type(InputType.Email)
+                .height(50)
+                .borderRadius(12)
+                .border({ width: 1, color: this.theme.colors.border })
+                .backgroundColor(this.theme.colors.card)
+                .fontColor(this.theme.colors.text)
+                .fontSize(16)
+                .padding({ left: 15, right: 15 })
+                .onChange((v: string) => { this.email = v; })
+            }
+            .width('100%').margin({ bottom: 15 })
+          }
 
           // Code input + send button
           Column() {
