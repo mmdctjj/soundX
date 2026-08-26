@@ -49,6 +49,8 @@ interface DetailNavParam {
 export struct LibraryTab {
   // 路由栈由 RootShellPage 注入；进 NavDestination 内的页面用它，独立 Page 仍走 router.pushUrl
   pathStack: NavPathStack = new NavPathStack();
+  // 车机模式详情页跳转回调：非空时优先走右栏局部渲染，不进入全局路由
+  carNavCallback?: (name: string, id: string) => void;
   // 内容模式由 AppStorage 全局同步（对齐 mobile 共享的 usePlayMode context）：
   // 首页/声仓/设置页任一处切换，另一处经 @Watch 自动重载。
   @StorageLink('playMode') @Watch('onModeChange') mode: string = 'MUSIC';
@@ -336,22 +338,38 @@ export struct LibraryTab {
   }
 
   navigateToSearch(): void {
-    this.pathStack.pushPath({ name: 'Search' });
+    if (this.carNavCallback) {
+      this.carNavCallback('Search', '');
+    } else {
+      this.pathStack.pushPath({ name: 'Search' });
+    }
   }
 
   navigateToArtist(id: string): void {
-    const param: DetailNavParam = { id: id };
-    this.pathStack.pushPath({ name: 'ArtistDetail', param: param });
+    if (this.carNavCallback) {
+      this.carNavCallback('ArtistDetail', id);
+    } else {
+      const param: DetailNavParam = { id: id };
+      this.pathStack.pushPath({ name: 'ArtistDetail', param: param });
+    }
   }
 
   navigateToAlbum(id: string): void {
-    const param: DetailNavParam = { id: id };
-    this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+    if (this.carNavCallback) {
+      this.carNavCallback('AlbumDetail', id);
+    } else {
+      const param: DetailNavParam = { id: id };
+      this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+    }
   }
 
   navigateToCollection(id: string): void {
-    const param: DetailNavParam = { id: id };
-    this.pathStack.pushPath({ name: 'CollectionDetail', param: param });
+    if (this.carNavCallback) {
+      this.carNavCallback('CollectionDetail', id);
+    } else {
+      const param: DetailNavParam = { id: id };
+      this.pathStack.pushPath({ name: 'CollectionDetail', param: param });
+    }
   }
 
   navigateToMv(id: string): void {

@@ -12,7 +12,13 @@ export type PlayerPayload = TimeUpdatePayload | StateChangePayload | ErrorPayloa
 export type PlayerListener = (payload: PlayerPayload) => void;
 
 export interface IAudioPlayer {
-  load(url: string, headers?: Record<string, string>): Promise<void>;
+  /**
+   * @param contentType 'MUSIC' | 'AUDIOBOOK'（对齐 PlayerStore.Track.contentType），
+   *   用于设置 AVPlayer.audioRendererInfo.usage：
+   *   MUSIC → STREAM_USAGE_MUSIC，AUDIOBOOK → STREAM_USAGE_AUDIOBOOK。
+   *   系统靠音频流类型把发声流和 AVSession 关联，缺省会导致通知栏/锁屏不出现媒体播控卡片。
+   */
+  load(url: string, headers?: Record<string, string>, contentType?: string): Promise<void>;
   play(): Promise<void>;
   pause(): Promise<void>;
   stop(): Promise<void>;

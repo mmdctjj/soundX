@@ -32,16 +32,16 @@
       {
         "name": "default",
         "signingConfig": "default",
-        "compatibleSdkVersion": "6.0.2(22)",
+        "compatibleSdkVersion": "6.1.1(24)",
         "runtimeOS": "HarmonyOS",
-        "targetSdkVersion": "6.0.2(22)"
+        "targetSdkVersion": "6.1.1(24)"
       },
       {
         "name": "release",
         "signingConfig": "release",
-        "compatibleSdkVersion": "6.0.2(22)",
+        "compatibleSdkVersion": "6.1.1(24)",
         "runtimeOS": "HarmonyOS",
-        "targetSdkVersion": "6.0.2(22)"
+        "targetSdkVersion": "6.1.1(24)"
       }
     ]
   },

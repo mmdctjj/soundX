@@ -65,6 +65,17 @@
         "name": "ohos.permission.INTERNET"
       },
       {
+        // AVSession 通知栏播控 + 后台音频长时任务（startBackgroundRunning AUDIO_PLAYBACK）
+        "name": "ohos.permission.KEEP_BACKGROUND_RUNNING",
+        "reason": "$string:keep_bg_permission_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
         "name": "ohos.permission.MICROPHONE",
         "reason": "$string:mic_permission_reason",
         "usedScene": {

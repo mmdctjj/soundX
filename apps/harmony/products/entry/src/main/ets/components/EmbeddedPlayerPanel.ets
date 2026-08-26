@@ -3,6 +3,7 @@ import { formatDuration } from 'audiodock_common';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 import { t } from 'features_i18n';
+import type { LyricLine } from 'features_player';
 import { playerStore } from '../context/PlayerStore';
 import type { PlayerStateView, Track } from '../context/PlayerStore';
 import { CoverImage } from './CoverImage';
@@ -31,9 +32,13 @@ export struct EmbeddedPlayerPanel {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   @State theme: Theme = buildTheme('light');
   @State liked: boolean = false;
+  @State showLyrics: boolean = false;  // 封面/歌词切换：false=封面，true=歌词
   private unsub: () => void = () => {};
   private unsubLike: () => void = () => {};
   private lastTrackId: string = '';
+  // 歌词滚动状态：activeLyricIndex 变化时 scrollToIndex 居中当前行（对齐 PlayerPage 横屏右列的处理）。
+  private lyricScroller: Scroller = new Scroller();
+  private lastLyricIndex: number = -1;
 
   onThemeModeChange(): void {
     this.theme = buildTheme(this.themeMode);
@@ -48,6 +53,13 @@ export struct EmbeddedPlayerPanel {
       if (curId !== this.lastTrackId) {
         this.lastTrackId = curId;
         this.refreshLike();
+      }
+      // 歌词滚动：activeLyricIndex 变化时自动滚动到当前行（对齐 PlayerPage 横屏右列）。
+      // 9:16 窄面板里歌词区只占少量高度，scrollToIndex 居中即可。
+      if (this.view.activeLyricIndex !== this.lastLyricIndex &&
+          this.view.activeLyricIndex >= 0) {
+        this.lastLyricIndex = this.view.activeLyricIndex;
+        this.lyricScroller.scrollToIndex(this.lastLyricIndex, true, ScrollAlign.CENTER);
       }
     });
     this.unsubLike = likesHistory.on('trackLike', (p): void => {
@@ -99,6 +111,13 @@ export struct EmbeddedPlayerPanel {
 
   private openFullPlayer(): void {
     router.pushUrl({ url: 'pages/PlayerPage' }).catch((): void => undefined);
+  }
+
+  /** 切换封面/歌词显示（车机模式专用，不进入详情页） */
+  private toggleCoverLyrics(): void {
+    if (this.view.lyrics.length > 0) {
+      this.showLyrics = !this.showLyrics;
+    }
   }
 
   build() {
@@ -158,20 +177,45 @@ export struct EmbeddedPlayerPanel {
         .margin({ top: 12, bottom: 12 })
         .alignItems(HorizontalAlign.Center)
 
-        // 封面区（点按进入全屏 PlayerPage）
+        // 封面/歌词切换区（点击切换显示，不进入详情页）
         Stack() {
-          CoverImage({
-            path: this.current()?.coverUrl ?? null,
-            imgWidth: 200,
-            imgHeight: 200,
-            radius: 12,
-            fallbackText: (this.current()?.title ?? '?').substring(0, 1),
-          })
+          if (this.showLyrics && this.view.lyrics.length > 0) {
+            // 歌词视图（车机模式左侧 9:16 面板里的简化版，对齐 mobile landscape 右列）：
+            // 自动滚动当前行居中；无字号调节。点击切回封面。
+            List({ scroller: this.lyricScroller }) {
+              ForEach(this.view.lyrics, (line: LyricLine, index: number) => {
+                ListItem() {
+                  Text(line.text)
+                    .fontSize(index === this.view.activeLyricIndex ? 14 : 12)
+                    .fontWeight(index === this.view.activeLyricIndex
+                      ? FontWeight.Bold : FontWeight.Medium)
+                    .fontColor(index === this.view.activeLyricIndex
+                      ? this.theme.colors.primary : this.theme.colors.text)
+                    .opacity(index === this.view.activeLyricIndex ? 1 : 0.5)
+                    .textAlign(TextAlign.Center)
+                    .width('100%')
+                    .padding({ top: 4, bottom: 4, left: 12, right: 12 })
+                }
+              }, (line: LyricLine, index: number) => `${index}_${line.time}`);
+            }
+            .width('100%')
+            .height('100%')
+            .scrollBar(BarState.Off)
+          } else {
+            // 封面
+            CoverImage({
+              path: this.current()?.coverUrl ?? null,
+              imgWidth: 200,
+              imgHeight: 200,
+              radius: 12,
+              fallbackText: (this.current()?.title ?? '?').substring(0, 1),
+            })
+          }
         }
         .layoutWeight(1)
         .width('100%')
         .alignContent(Alignment.Center)
-        .onClick((): void => this.openFullPlayer())
+        .onClick((): void => this.toggleCoverLyrics())
 
         // 进度 + 控制行
         Column() {

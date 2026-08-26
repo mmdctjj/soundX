@@ -15,6 +15,11 @@ import { CoverImage } from '../components/CoverImage';
 import { EmbeddedPlayerPanel } from '../components/EmbeddedPlayerPanel';
 import { LibraryTab } from './LibraryPage';
 import { PersonalTab } from './PersonalPage';
+import { ArtistDetailContent } from './ArtistDetailPage';
+import { AlbumDetailContent } from './AlbumDetailPage';
+import { PlaylistDetailContent } from './PlaylistDetailPage';
+import { CollectionDetailContent } from './CollectionDetailPage';
+import { SearchContent } from './SearchPage';
 import { authStore } from '../context/AuthStore';
 import { likesHistory } from '../services/LikesHistoryService';
 import { resolveTrackToPlayer } from '../services/trackResolver';
@@ -57,6 +62,8 @@ class Section {
 export struct HomeTab {
   // 路由栈由 RootShellPage 注入；进 NavDestination 内的页面用它，独立 Page 仍走 router.pushUrl
   pathStack: NavPathStack = new NavPathStack();
+  // 车机模式详情页跳转回调：非空时优先走右栏局部渲染，不进入全局路由
+  carNavCallback?: (name: string, id: string) => void;
   @State sections: Section[] = [];
   @State loading: boolean = true;
   @State refreshing: boolean = false;
@@ -64,6 +71,9 @@ export struct HomeTab {
   // 内容模式由 AppStorage 全局同步（对齐 mobile 共享的 usePlayMode context）：
   // 首页/声仓/设置页任一处切换，另一处经 @Watch 自动重载。
   @StorageLink('playMode') @Watch('onModeChange') mode: string = 'MUSIC';
+  // 车机模式下 HomeTab 自己处于 MainPage.carContentPanel 内，车机 tab 栏已由 carContentPanel 自身 padding:56 避让，
+  // 这里同步读 carModeEnabled 把 HomeTab 内部 List 的 paddingBottom 设为 0，避免叠加 56 空白。
+  @StorageLink('carModeEnabled') carModeEnabled: boolean = false;
   @State isRadioMode: boolean = false;
   @State likedIds: string[] = [];
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
@@ -347,7 +357,11 @@ export struct HomeTab {
   }
 
   navigateToSearch(): void {
-    this.pathStack.pushPath({ name: 'Search' });
+    if (this.carModeEnabled) {
+      this.carNavCallback?.('Search', '');
+    } else {
+      this.pathStack.pushPath({ name: 'Search' });
+    }
   }
 
   navigateToSectionOrder(): void {
@@ -355,13 +369,21 @@ export struct HomeTab {
   }
 
   navigateToArtist(id: string): void {
-    const param: DetailNavParam = { id: id };
-    this.pathStack.pushPath({ name: 'ArtistDetail', param: param });
+    if (this.carModeEnabled) {
+      this.carNavCallback?.('ArtistDetail', id);
+    } else {
+      const param: DetailNavParam = { id: id };
+      this.pathStack.pushPath({ name: 'ArtistDetail', param: param });
+    }
   }
 
   navigateToAlbum(id: string): void {
-    const param: DetailNavParam = { id: id };
-    this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+    if (this.carModeEnabled) {
+      this.carNavCallback?.('AlbumDetail', id);
+    } else {
+      const param: DetailNavParam = { id: id };
+      this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+    }
   }
 
   async playTrack(track: TrackDto, queue: TrackDto[]): Promise<void> {
@@ -566,9 +588,10 @@ export struct HomeTab {
               }
             }
             .width('100%').height('100%')
-            // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度），
-            // 否则「调整顺序」按钮被遮挡（对齐 mobile 首页 scrollContent paddingBottom: 100）
-            .padding({ bottom: miniPlayerHasContent() ? 116 : 56 })
+            // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度）；
+            // 车机模式 GlobalBottomBar 已隐藏 + carContentPanel 自己加了 padding:56 避让车机 tab 栏，
+            // 这里设 0 避免叠加 56 空白（修复车机模式下「调整顺序」按钮上方多一大块空白）。
+            .padding({ bottom: this.carModeEnabled ? 0 : (miniPlayerHasContent() ? 116 : 56) })
             .scrollBar(BarState.Off).edgeEffect(EdgeEffect.Spring)
           }
           .width('100%').layoutWeight(1)
@@ -688,6 +711,9 @@ export struct HomeTab {
 export struct MainPageContent {
   // 路由栈由 RootShellPage 注入；Tabs 内的跳转用它，跨 NavDestination 共享同一栈
   pathStack: NavPathStack = new NavPathStack();
+  // 车机模式右栏详情页状态：非空时右栏渲染详情页，空时渲染三个 Tab
+  @State carDetailName: string = '';
+  @State carDetailId: string = '';
   @StorageLink('mainTabIndex') currentIndex: number = 0;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   // 车机模式三件套（对齐 mobile 的 SettingsContext + _layout.tsx）。
@@ -845,11 +871,11 @@ export struct MainPageContent {
         // 状态/滚动位置/已加载数据全部保留，切回直接展示（对齐 mobile tab 导航的 keep-alive 体验）。
         // 底部 Tab 与 MiniPlayer 由 RootShellPage 内的 GlobalBottomBar 统一渲染（跨页面常驻）
         Stack() {
-          HomeTab({ pathStack: this.pathStack })
+          HomeTab({ pathStack: this.pathStack, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id) })
             .visibility(this.currentIndex === 0 ? Visibility.Visible : Visibility.None)
-          LibraryTab({ pathStack: this.pathStack })
+          LibraryTab({ pathStack: this.pathStack, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id) })
             .visibility(this.currentIndex === 1 ? Visibility.Visible : Visibility.None)
-          PersonalTab({ pathStack: this.pathStack })
+          PersonalTab({ pathStack: this.pathStack, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id) })
             .visibility(this.currentIndex === 2 ? Visibility.Visible : Visibility.None)
         }
         .width('100%').height('100%')
@@ -906,19 +932,95 @@ export struct MainPageContent {
     })
   }
 
-  /** 车机模式右侧内容区：三个 Tab 常驻切换显隐（同常规布局，避免切 tab 重载闪骨架屏） */
+  /** 车机模式右侧内容区：三个 Tab 内容常驻切换显隐 + 底部 tab 栏 + 详情页覆盖层（不覆盖左侧播放器）。
+   *  用 if/else 按 carDetailName 切换内容，避免嵌套 Navigation 的兼容性问题。 */
   @Builder
   carContentPanel() {
-    Stack() {
-      HomeTab({ pathStack: this.pathStack })
-        .visibility(this.currentIndex === 0 ? Visibility.Visible : Visibility.None)
-      LibraryTab({ pathStack: this.pathStack })
-        .visibility(this.currentIndex === 1 ? Visibility.Visible : Visibility.None)
-      PersonalTab({ pathStack: this.pathStack })
-        .visibility(this.currentIndex === 2 ? Visibility.Visible : Visibility.None)
+    Column() {
+      // 上半：内容区（Tab 或详情页）
+      Stack() {
+        if (this.carDetailName === '') {
+          // 三个 Tab 内容常驻切换显隐（保留滚动位置/已加载数据）
+          Stack() {
+            HomeTab({ pathStack: this.pathStack, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id) })
+              .visibility(this.currentIndex === 0 ? Visibility.Visible : Visibility.None)
+            LibraryTab({ pathStack: this.pathStack, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id) })
+              .visibility(this.currentIndex === 1 ? Visibility.Visible : Visibility.None)
+            PersonalTab({ pathStack: this.pathStack, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id) })
+              .visibility(this.currentIndex === 2 ? Visibility.Visible : Visibility.None)
+          }
+          .width('100%')
+          .height('100%')
+        } else if (this.carDetailName === 'ArtistDetail') {
+          ArtistDetailContent({ pathStack: this.pathStack, entityId: this.carDetailId, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id), carBackCallback: (): void => this.closeCarDetail() })
+        } else if (this.carDetailName === 'AlbumDetail') {
+          AlbumDetailContent({ pathStack: this.pathStack, entityId: this.carDetailId, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id), carBackCallback: (): void => this.closeCarDetail() })
+        } else if (this.carDetailName === 'PlaylistDetail') {
+          PlaylistDetailContent({ pathStack: this.pathStack, entityId: this.carDetailId, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id), carBackCallback: (): void => this.closeCarDetail() })
+        } else if (this.carDetailName === 'CollectionDetail') {
+          CollectionDetailContent({ pathStack: this.pathStack, entityId: this.carDetailId, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id), carBackCallback: (): void => this.closeCarDetail() })
+        } else if (this.carDetailName === 'Search') {
+          SearchContent({ pathStack: this.pathStack, carNavCallback: (name: string, id: string): void => this.openCarDetail(name, id), carBackCallback: (): void => this.closeCarDetail() })
+        }
+      }
+      .layoutWeight(1)
+      .width('100%')
+      .backgroundColor(this.theme.colors.background)
+
+      // 下半：底部 tab 栏（与 GlobalBottomBar 同款样式/逻辑，写 AppStorage('mainTabIndex')）
+      Row() {
+        this.CarTabItem(t('navTabs.recommend'), 'home', 0)
+        this.CarTabItem(t('navTabs.soundcang'), 'headphones', 1)
+        this.CarTabItem(t('navTabs.mine'), 'person', 2)
+      }
+      .width('100%').height(56)
+      .justifyContent(FlexAlign.SpaceAround)
+      .alignItems(VerticalAlign.Center)
+      .border({ width: { top: 0.5 }, color: this.theme.colors.border })
+      .backgroundColor(this.theme.colors.tabBar)
     }
     .layoutWeight(1)
     .height('100%')
     .backgroundColor(this.theme.colors.background)
+  }
+
+  /** 关闭车机模式右栏详情页，返回 tab 内容 */
+  closeCarDetail(): void {
+    this.carDetailName = '';
+    this.carDetailId = '';
+  }
+
+  /** 车机模式下打开右栏详情页 */
+  openCarDetail(name: string, id: string): void {
+    this.carDetailName = name;
+    this.carDetailId = id;
+  }
+
+  /**
+   * 车机模式底部 tab 栏里的单个 tab 按钮（与 GlobalBottomBar.TabItem 同款结构）。
+   * 复用 mainTabIndex AppStorage：写入后 HomeTab/LibraryTab/PersonalTab 的
+   * @StorageLink('mainTabIndex') 触发重渲，visibility 切到对应子树。
+   */
+  @Builder
+  CarTabItem(label: string, icon: AppIconName, index: number) {
+    Column() {
+      AppIcon({
+        name: icon,
+        iconSize: 24,
+        color: this.currentIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive,
+      })
+        .margin({ bottom: 4 })
+      Text(label)
+        .fontSize(12)
+        .fontColor(this.currentIndex === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive)
+    }
+    .width('33%').height(56).justifyContent(FlexAlign.Center)
+    .onClick((): void => {
+      // 车机模式下切 tab：如果右栏在详情页，先关闭详情页回到 tab 根内容
+      if (this.carModeEnabled && this.carDetailName !== '') {
+        this.closeCarDetail();
+      }
+      AppStorage.setOrCreate<number>('mainTabIndex', index);
+    })
   }
 }
