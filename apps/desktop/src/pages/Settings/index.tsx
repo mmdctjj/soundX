@@ -29,6 +29,7 @@ import { useAuthStore } from "../../store/auth";
 import { useSettingsStore } from "../../store/settings";
 import { isTauri } from "../../utils/platform";
 import AdminSettings from "./AdminSettings";
+import CarModeSettings from "./CarModeSettings";
 import WebDavSourcesSettings from "./WebDavSourcesSettings";
 import LlmConfigSettings from "./LlmConfigSettings";
 import TtsConfigSettings from "./TtsConfigSettings";
@@ -198,6 +199,7 @@ const Settings: React.FC = () => {
   generalNav.push(
     { key: "general--general", title: t("settings.general") },
     { key: "general--desktopLyric", title: t("settings.desktopLyric") },
+    { key: "general--carMode", title: t("settings.carMode") },
     { key: "general--download", title: t("settings.downloadSettings") },
     { key: "general--about", title: t("settings.about") },
   );
@@ -503,9 +505,19 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </section>
-  
+
         <Divider className={styles.divider} />
-  
+
+        {/* Car Mode Settings */}
+        <section id="general--carMode" className={styles.section}>
+          <Title level={4} className={styles.sectionTitle}>
+            {t("settings.carMode")}
+          </Title>
+          <CarModeSettings />
+        </section>
+
+        <Divider className={styles.divider} />
+
         {/* Download Settings */}
         <section id="general--download" className={styles.section}>
           <Title level={4} className={styles.sectionTitle}>

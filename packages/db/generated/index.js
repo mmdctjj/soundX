@@ -392,7 +392,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/ctjj/Documents/projects/audiodock_worktree/packages/db/generated",
+      "value": "/Users/ctjj/Documents/projects/AudioDock/packages/db/generated",
       "fromEnvVar": null
     },
     "config": {
@@ -410,11 +410,12 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/ctjj/Documents/projects/audiodock_worktree/packages/db/prisma/schema.prisma",
+    "sourceFilePath": "/Users/ctjj/Documents/projects/AudioDock/packages/db/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null
+    "rootEnvPath": null,
+    "schemaEnvPath": "../.env"
   },
   "relativePath": "../prisma",
   "clientVersion": "6.8.2",

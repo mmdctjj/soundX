@@ -5,6 +5,9 @@ import { emitTo } from "@tauri-apps/api/event";
 import type { AudioQuality } from '../services/trackQuality';
 import { isTauri } from "../utils/platform";
 
+export type CarModeColumn = 'content' | 'cover' | 'lyrics';
+export type CarModeMergedView = 'cover' | 'lyrics' | 'both';
+
 export interface SettingsState {
   general: {
     autoLaunch: boolean;
@@ -37,10 +40,19 @@ export interface SettingsState {
     concurrentDownloads: number;
     cacheEnabled: boolean;
   };
+  carMode: {
+    enabled: boolean;
+    columnOrder: CarModeColumn[];
+    mergeCoverLyrics: boolean;
+    mergedDefaultView: CarModeMergedView;
+    /** 媒体栏（封面/歌词/合并栏）的像素宽度，按栏位 key 持久化；内容区 flex 自适应剩余宽度 */
+    columnWidths: Partial<Record<CarModeColumn, number>>;
+  };
 
   updateGeneral: (key: keyof SettingsState['general'], value: any) => void;
   updateDesktopLyric: (key: keyof SettingsState['desktopLyric'], value: any) => void;
   updateDownload: (key: keyof SettingsState['download'], value: any) => void;
+  updateCarMode: (key: keyof SettingsState['carMode'], value: any) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -74,6 +86,13 @@ export const useSettingsStore = create<SettingsState>()(
         quality: '320k',
         concurrentDownloads: 3,
         cacheEnabled: true,
+      },
+      carMode: {
+        enabled: false,
+        columnOrder: ['cover', 'content', 'lyrics'],
+        mergeCoverLyrics: false,
+        mergedDefaultView: 'cover',
+        columnWidths: { cover: 360, lyrics: 360 },
       },
 
       updateGeneral: (key, value) => {
@@ -122,10 +141,15 @@ export const useSettingsStore = create<SettingsState>()(
           invoke('update_download_path', { path: value }).catch(console.error);
         }
       },
+      updateCarMode: (key, value) => {
+        set((state) => ({
+          carMode: { ...state.carMode, [key]: value },
+        }));
+      },
     }),
     {
       name: 'soundx-settings',
-      version: 4,
+      version: 7,
       migrate: (persistedState: any, version: number) => {
         if (version === 0) {
           // Migration from version 0 to 1
@@ -160,6 +184,23 @@ export const useSettingsStore = create<SettingsState>()(
           }
           if (persistedState.general.externalPlaybackQuality === undefined) {
             persistedState.general.externalPlaybackQuality = 'standard';
+          }
+        }
+        if (version <= 4) {
+          // Migration to version 5: introduce carMode group
+          if (!persistedState.carMode) {
+            persistedState.carMode = {
+              enabled: false,
+              columnOrder: ['cover', 'content', 'lyrics'],
+              mergeCoverLyrics: false,
+              mergedDefaultView: 'cover',
+            };
+          }
+        }
+        if (persistedState.carMode) {
+          // version 5 -> 6: backfill columnWidths (early v5 builds lacked it)
+          if (persistedState.carMode.columnWidths === undefined) {
+            persistedState.carMode.columnWidths = { cover: 360, lyrics: 360 };
           }
         }
         return persistedState;
