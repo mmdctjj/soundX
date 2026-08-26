@@ -9,6 +9,7 @@ import { getThemeConfig } from "./config/themeConfig";
 import { MessageProvider } from "./context/MessageContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { useUiTheme } from "./hooks/useUiTheme";
+import CarMode, { type CarModeSeekBridge } from "./components/CarMode/index";
 import LyricWindow from "./pages/LyricWindow";
 import Recommended from "./pages/Recommended";
 
@@ -38,7 +39,7 @@ const MemberBenefits = lazy(() => import("./pages/MemberBenefits/index"));
 const MemberDetail = lazy(() => import("./pages/MemberDetail/index"));
 
 import { theme } from "antd";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import InviteListener from "./components/InviteListener";
 import MiniPlayer from "./components/MiniPlayer";
 import UpdateModal from "./components/UpdateModal";
@@ -103,6 +104,8 @@ const AppContent = () => {
   // Sync settings on startup
   const settings = useSettingsStore((state: SettingsState) => state);
   const { autoLaunch, language } = settings.general;
+  const carModeEnabled = settings.carMode?.enabled ?? false;
+  const carModeSeekBridgeRef = useRef<CarModeSeekBridge>({ current: null });
 
   useEffect(() => {
     if (language === "system") {
@@ -175,6 +178,38 @@ const AppContent = () => {
 
   const isAuthenticated = !!token;
 
+  // 业务页面 Routes（普通模式与车机模式共用）
+  const mainRoutes = (
+    <Suspense fallback={<Skeleton active />}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/recommended" replace />} />
+        <Route path="/recommended" element={<Recommended />} />
+        <Route path="/detail" element={<Detail />} />
+        <Route path="/artist/:id" element={<ArtistDetail />} />
+        <Route path="/category" element={<Category />} />
+        <Route path="/mvs" element={<Mvs />} />
+        <Route path="/mv" element={<MvDetail />} />
+        <Route path="/mv/:id" element={<MvDetail />} />
+        <Route path="/collections" element={<Collections />} />
+        <Route path="/collection/:id" element={<CollectionDetail />} />
+        <Route path="/songs" element={<Songs />} />
+        <Route path="/favorites" element={<Favorites />} />
+        <Route path="/listened" element={<Listened />} />
+        <Route path="/artists" element={<ArtistList />} />
+        <Route path="/playlist/:id" element={<PlaylistDetail />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/folders" element={<Folder />} />
+        <Route path="/folder/:id" element={<Folder />} />
+        <Route path="/downloads" element={<Downloads />} />
+        <Route path="/admin/users" element={<UserManagement />} />
+        <Route path="/tts/tasks" element={<TaskList />} />
+        <Route path="/tts/create" element={<CreateTask />} />
+        <Route path="/product-updates" element={<ProductUpdates />} />
+        <Route path="/task-center" element={<TaskCenter />} />
+      </Routes>
+    </Suspense>
+  );
+
   return (
     <ConfigProvider theme={themeConfig} locale={zhCN}>
       <RootWrapper mode={mode}>
@@ -204,111 +239,61 @@ const AppContent = () => {
                           backgroundColor: "transparent",
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            flex: 1,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Sidebar />
+                        {carModeEnabled ? (
+                          <CarMode seekBridge={carModeSeekBridgeRef.current}>
+                            <div
+                              style={{
+                                display: "flex",
+                                flex: 1,
+                                minWidth: 0,
+                                overflow: "hidden",
+                              }}
+                            >
+                              <Sidebar />
+                              <div
+                                style={{
+                                  flex: 1,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <Header />
+                                {mainRoutes}
+                              </div>
+                            </div>
+                          </CarMode>
+                        ) : (
                           <div
                             style={{
-                              flex: 1,
                               display: "flex",
-                              flexDirection: "column",
+                              flex: 1,
                               overflow: "hidden",
                             }}
                           >
-                            <Header />
-                            <Suspense fallback={<Skeleton active />}>
-                              <Routes>
-                                <Route
-                                  path="/"
-                                  element={
-                                    <Navigate to="/recommended" replace />
-                                  }
-                                />
-                                <Route
-                                  path="/recommended"
-                                  element={<Recommended />}
-                                />
-                                <Route path="/detail" element={<Detail />} />
-                                <Route
-                                  path="/artist/:id"
-                                  element={<ArtistDetail />}
-                                />
-                                <Route
-                                  path="/category"
-                                  element={<Category />}
-                                />
-                                <Route path="/mvs" element={<Mvs />} />
-                                <Route path="/mv" element={<MvDetail />} />
-                                <Route path="/mv/:id" element={<MvDetail />} />
-                                <Route
-                                  path="/collections"
-                                  element={<Collections />}
-                                />
-                                <Route
-                                  path="/collection/:id"
-                                  element={<CollectionDetail />}
-                                />
-                                <Route path="/songs" element={<Songs />} />
-                                <Route
-                                  path="/favorites"
-                                  element={<Favorites />}
-                                />
-                                <Route
-                                  path="/listened"
-                                  element={<Listened />}
-                                />
-                                <Route
-                                  path="/artists"
-                                  element={<ArtistList />}
-                                />
-                                <Route
-                                  path="/playlist/:id"
-                                  element={<PlaylistDetail />}
-                                />
-                                <Route
-                                  path="/settings"
-                                  element={<Settings />}
-                                />
-                                <Route path="/folders" element={<Folder />} />
-                                <Route
-                                  path="/folder/:id"
-                                  element={<Folder />}
-                                />
-                                <Route
-                                  path="/downloads"
-                                  element={<Downloads />}
-                                />
-                                <Route
-                                  path="/admin/users"
-                                  element={<UserManagement />}
-                                />
-                                <Route
-                                  path="/tts/tasks"
-                                  element={<TaskList />}
-                                />
-                                <Route
-                                  path="/tts/create"
-                                  element={<CreateTask />}
-                                />
-                                <Route
-                                  path="/product-updates"
-                                  element={<ProductUpdates />}
-                                />
-                                <Route
-                                  path="/task-center"
-                                  element={<TaskCenter />}
-                                />
-                              </Routes>
-                            </Suspense>
+                            <Sidebar />
+                            <div
+                              style={{
+                                flex: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                                overflow: "hidden",
+                              }}
+                            >
+                              <Header />
+                              {mainRoutes}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
-                        <Player />
+                        <Player
+                          hideMiniPlayer={carModeEnabled}
+                          seekBridge={
+                            carModeEnabled
+                              ? carModeSeekBridgeRef.current
+                              : undefined
+                          }
+                        />
                         <UpdateModal
                           visible={!!updateInfo}
                           updateInfo={updateInfo}

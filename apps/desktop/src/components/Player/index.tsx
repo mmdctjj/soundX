@@ -91,7 +91,14 @@ import { QueueList, type QueueListRef } from "./QueueList";
 
 const { Text, Title } = Typography;
 
-const Player: React.FC = () => {
+interface PlayerProps {
+  /** 车机模式下隐藏底部 mini 播放器条，但保留 <audio> 与全屏 Drawer */
+  hideMiniPlayer?: boolean;
+  /** 向车机模式暴露 seek 能力（audio 元素在 Player 内部） */
+  seekBridge?: { current: ((value: number) => void) | null };
+}
+
+const Player: React.FC<PlayerProps> = ({ hideMiniPlayer, seekBridge }) => {
   const { t } = useTranslation();
   const message = useMessage();
   const {
@@ -1003,6 +1010,16 @@ const Player: React.FC = () => {
       setCurrentTime(value);
     }
   };
+
+  // 向车机模式暴露 seek 能力
+  useEffect(() => {
+    if (seekBridge) {
+      seekBridge.current = handleSeek;
+      return () => {
+        seekBridge.current = null;
+      };
+    }
+  }, [seekBridge]);
 
   // Integrate System Media Controls
   useMediaSession({
@@ -2043,6 +2060,18 @@ const Player: React.FC = () => {
   };
 
   if (!currentTrack?.id) {
+    // 车机模式下即使暂无播放也要保持 <audio> 挂载，避免退出播放后整个音频链路被卸载
+    if (hideMiniPlayer) {
+      return (
+        <audio
+          ref={audioRef}
+          preload="auto"
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+        />
+      );
+    }
     return <></>;
   }
 
@@ -2064,7 +2093,7 @@ const Player: React.FC = () => {
         onCanPlay={() => setIsLoading(false)}
       />
 
-      {!isFullPlayerVisible && (
+      {!isFullPlayerVisible && !hideMiniPlayer && (
         <div className={styles.miniPlayer}>{renderMiniPlayer(true)}</div>
       )}
       <Drawer

@@ -8,6 +8,8 @@ const { Text } = Typography;
 interface LyricsProps {
   lyrics: string | null;
   currentTime: number;
+  /** 完全隐藏滚动条（保留滚动能力）。车机模式使用：自动滚动与手动滚动条交替出现会导致滚动条抽搐 */
+  hideScrollbar?: boolean;
 }
 
 interface LyricLine {
@@ -15,7 +17,7 @@ interface LyricLine {
   text: string;
 }
 
-const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
+const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime, hideScrollbar }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const [parsedLyrics, setParsedLyrics] = useState<LyricLine[]>([]);
@@ -174,7 +176,7 @@ const Lyrics: React.FC<LyricsProps> = ({ lyrics, currentTime }) => {
   return (
     <div
       className={`${styles.lyricsContainer} ${
-        showManualScrollbar ? styles.manualScrolling : ""
+        !hideScrollbar && showManualScrollbar ? styles.manualScrolling : ""
       }`}
       ref={containerRef}
       onScroll={handleScroll}
