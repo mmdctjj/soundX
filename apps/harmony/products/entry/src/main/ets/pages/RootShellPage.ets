@@ -50,6 +50,10 @@ struct RootShellPage {
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
   // 全局底部栏的显隐开关（NavDestination 子页用 hideBottomBar=false 显式请求显示；保留为后续扩展点）
   @StorageLink('hideBottomBar') hideBottomBar: boolean = false;
+  // 车机模式开启时整个 RootShellPage 的 GlobalBottomBar 必须隐藏——
+  // MainPageContent 的车机布局自己接管底部 tab 栏（嵌在 carContentPanel 里），
+  // GlobalBottomBar 再渲染会把 tab 横跨整屏底部，挤占播放器面板内容区。
+  @StorageLink('carModeEnabled') carModeEnabled: boolean = false;
   @State theme: Theme = buildTheme('light');
 
   onThemeModeChange(): void {
@@ -164,7 +168,7 @@ struct RootShellPage {
       // 让 Navigation 自身黑背景延伸，填充 NavDestination 透明层下方。
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
 
-      if (!this.hideBottomBar) {
+      if (!this.hideBottomBar && !this.carModeEnabled) {
         GlobalBottomBar({ pathStack: this.pathStack })
       }
     }

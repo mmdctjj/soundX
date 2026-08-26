@@ -1,4 +1,5 @@
 import media from '@ohos.multimedia.media';
+import audio from '@ohos.multimedia.audio';
 import fs from '@ohos.file.fs';
 import { BusinessError } from '@ohos.base';
 import { Logger } from 'audiodock_common';
@@ -13,6 +14,13 @@ export class AVPlayerBackend implements IAudioPlayer {
   private currentFd: number = -1;
   private prepareResolve: (() => void) | null = null;
   private prepareReject: ((err: Error) => void) | null = null;
+  /**
+   * 当前曲目的内容类型（MUSIC / AUDIOBOOK），load 时更新，
+   * 在 AVPlayer 进入 initialized 态时（首次 prepare 前）写入 audioRendererInfo.usage。
+   * 系统靠音频流类型把发声流和 AVSession 关联；缺省时音频流不被识别为媒体流，
+   * 通知栏/锁屏只显示长时任务普通通知，不出现系统媒体播控卡片。
+   */
+  private currentContentType: string = 'MUSIC';
 
   private async ensure(): Promise<media.AVPlayer> {
     if (this.player) return this.player;
@@ -28,8 +36,9 @@ export class AVPlayerBackend implements IAudioPlayer {
     }
   }
 
-  async load(url: string, _headers?: Record<string, string>): Promise<void> {
+  async load(url: string, _headers?: Record<string, string>, contentType?: string): Promise<void> {
     const p = await this.ensure();
+    this.currentContentType = contentType === 'AUDIOBOOK' ? 'AUDIOBOOK' : 'MUSIC';
     // AVPlayer.url 只接受 http(s) 网络地址；本地缓存文件必须走 fdSrc
     const isNetwork = url.startsWith('http://') || url.startsWith('https://');
     // 同一来源已加载则直接复用，避免重复 prepare（error 态不复用，允许重试）
@@ -122,6 +131,22 @@ export class AVPlayerBackend implements IAudioPlayer {
       const pl: StateChangePayload = { state: s as string };
       this.dispatch('stateChange', pl);
       if (s === 'initialized') {
+        // audioRendererInfo 只能在 initialized 态、首次 prepare 前设置（API 12+）。
+        // 声明正确的 StreamUsage（MUSIC / AUDIOBOOK），系统才会把这条音频流
+        // 识别为媒体流并和 AVSession 关联，通知栏/锁屏才展示媒体播控卡片。
+        try {
+          const usage = this.currentContentType === 'AUDIOBOOK'
+            ? audio.StreamUsage.STREAM_USAGE_AUDIOBOOK
+            : audio.StreamUsage.STREAM_USAGE_MUSIC;
+          const rendererInfo: audio.AudioRendererInfo = {
+            usage: usage,
+            rendererFlags: 0,
+          };
+          p.audioRendererInfo = rendererInfo;
+          Logger.i('AVPlayer', `audioRendererInfo set: usage=${this.currentContentType}`);
+        } catch (e) {
+          Logger.w('AVPlayer', `set audioRendererInfo: ${String(e)}`);
+        }
         p.prepare().catch((e: BusinessError) => {
           Logger.e('AVPlayer', `prepare error: ${e.message}`);
         });

@@ -39,7 +39,7 @@ const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 const MemberLogin: React.FC = () => {
   const { t } = useTranslation();
-  const { mode } = useTheme();
+  const { mode: themeMode } = useTheme();
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const [form] = Form.useForm();
@@ -268,7 +268,7 @@ const MemberLogin: React.FC = () => {
       <Content className={styles.container}>
         <div
           className={styles.card}
-          style={{ background: mode === 'dark' ? 'transparent' : token.colorBgContainer, border: mode === 'dark' ? 'none' : undefined, boxShadow: mode === 'dark' ? 'none' : undefined }}
+          style={{ background: themeMode === 'dark' ? 'transparent' : token.colorBgContainer, border: themeMode === 'dark' ? 'none' : undefined, boxShadow: themeMode === 'dark' ? 'none' : undefined }}
         >
           <Button
             type="text"

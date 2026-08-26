@@ -110,6 +110,8 @@ class TabInfo {
 export struct PersonalTab {
   // 路由栈由 RootShellPage 注入；进 NavDestination 内的页面用它，独立 Page 仍走 router.pushUrl
   pathStack: NavPathStack = new NavPathStack();
+  // 车机模式详情页跳转回调：非空时优先走右栏局部渲染，不进入全局路由
+  carNavCallback?: (name: string, id: string) => void;
   // 内容模式由 AppStorage 全局同步（对齐 mobile usePlayMode）：设置页/首页/声仓
   // 任一处切换有声书模式，本页经 @Watch 实时重载列表与菜单（TTS 入口等）。
   @StorageLink('playMode') @Watch('onModeChange') mode: string = 'MUSIC';
@@ -531,11 +533,21 @@ export struct PersonalTab {
 
   private onRowClick(row: ListRow): void {
     if (row.kind === 'playlist' && row.playlist) {
-      const param: DetailNavParam = { id: String(row.playlist.id) };
-      this.pathStack.pushPath({ name: 'PlaylistDetail', param: param });
+      const id = String(row.playlist.id);
+      if (this.carNavCallback) {
+        this.carNavCallback('PlaylistDetail', id);
+      } else {
+        const param: DetailNavParam = { id: id };
+        this.pathStack.pushPath({ name: 'PlaylistDetail', param: param });
+      }
     } else if (row.kind === 'album' && row.album) {
-      const param: DetailNavParam = { id: String(row.album.id) };
-      this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+      const id = String(row.album.id);
+      if (this.carNavCallback) {
+        this.carNavCallback('AlbumDetail', id);
+      } else {
+        const param: DetailNavParam = { id: id };
+        this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+      }
     } else if (row.kind === 'track' && row.track) {
       this.playTrackRow(row);
     }

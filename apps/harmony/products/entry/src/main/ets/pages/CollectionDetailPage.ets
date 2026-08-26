@@ -17,11 +17,18 @@ export struct CollectionDetailContent {
   // 注意：属性名不能用 'id'（ArkUI CustomComponent 保留），统一用 'entityId'
   pathStack: NavPathStack = new NavPathStack();
   entityId: string = '';
+  // 车机模式详情页跳转回调：非空时优先走右栏局部渲染，不进入全局路由
+  carNavCallback?: (name: string, id: string) => void;
+  // 车机模式返回回调：非空时返回按钮回退到右栏 tab 列表，不弹全局路由栈
+  carBackCallback?: () => void;
   @State data: CollectionDetailResp | null = null;
   @State loading: boolean = true;
   @State error: string = '';
   @State liked: boolean = false;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  // 车机模式下 GlobalBottomBar 已在 RootShellPage 隐藏，本页也走全屏 NavDestination，
+  // 不需要给 GlobalBottomBar/MiniPlayer 预留底部空间（修复底部多 56 空白）。
+  @StorageLink('carModeEnabled') carModeEnabled: boolean = false;
   @State private langAtBuild: string = getLang();
   private theme = buildTheme('light');
   private unsub: () => void = () => {};
@@ -67,7 +74,13 @@ export struct CollectionDetailContent {
   LocalizedContent() {
     Column() {
       CommonNavBar({ title: this.data?.name ?? '', theme: this.theme,
-        onBack: () => this.pathStack.pop() });
+        onBack: () => {
+          if (this.carBackCallback) {
+            this.carBackCallback();
+          } else {
+            this.pathStack.pop();
+          }
+        } });
       if (this.loading) {
         Column({ space: 12 }) {
           SkeletonBlock({ blockHeight: 160, theme: this.theme });
@@ -104,15 +117,19 @@ export struct CollectionDetailContent {
           }
           .onClick(() => {
             if (it.album) {
-              const param: DetailNavParam = { id: it.album.id };
-              this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+              if (this.carNavCallback) {
+                this.carNavCallback('AlbumDetail', it.album.id);
+              } else {
+                const param: DetailNavParam = { id: it.album.id };
+                this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+              }
             }
           });
         }, (it: CollectionAlbumItem) => it.id);
       }
       .layoutWeight(1)
       // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度）
-      .padding({ bottom: miniPlayerHasContent() ? 116 : 56 });
+      .padding({ bottom: this.carModeEnabled ? 0 : (miniPlayerHasContent() ? 116 : 56) });
     }.padding(16).layoutWeight(1);
   }
 

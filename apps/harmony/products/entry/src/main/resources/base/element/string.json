@@ -19,6 +19,10 @@
     {
       "name": "camera_permission_reason",
       "value": "用于扫码登录，通过相机扫描桌面端生成的二维码即可在新设备上快速登录"
+    },
+    {
+      "name": "keep_bg_permission_reason",
+      "value": "用于后台持续播放音乐，并在系统通知栏显示播控卡片，方便你随时控制播放进度"
     }
   ]
 }

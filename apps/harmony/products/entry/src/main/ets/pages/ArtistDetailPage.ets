@@ -36,7 +36,11 @@ export struct ArtistDetailContent {
   // 注意：属性名不能用 'id' — ArkUI CustomComponent 把 'id' 保留为通用属性（CommonAttribute.id），
   // 自定义属性必须避开。统一用 'entityId' 表示详情页目标 id。
   pathStack: NavPathStack = new NavPathStack();
-  entityId: string = ''; 
+  entityId: string = '';
+  // 车机模式详情页跳转回调：非空时优先走右栏局部渲染，不进入全局路由
+  carNavCallback?: (name: string, id: string) => void;
+  // 车机模式返回回调：非空时返回按钮回退到右栏 tab 列表，不弹全局路由栈
+  carBackCallback?: () => void;
   @State artist: ArtistDto | null = null;
   @State albums: AlbumDto[] = [];
   @State collaborativeAlbums: AlbumDto[] = [];
@@ -62,6 +66,9 @@ export struct ArtistDetailContent {
   @State isBatchDownloading: boolean = false;
   private miPollingId: number = -1;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  // 车机模式下 GlobalBottomBar 已在 RootShellPage 隐藏，本页也走全屏 NavDestination，
+  // 不需要给 GlobalBottomBar/MiniPlayer 预留底部空间（修复底部多 56 空白）。
+  @StorageLink('carModeEnabled') carModeEnabled: boolean = false;
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
   private unsubPlayer: () => void = () => {};
@@ -138,7 +145,13 @@ export struct ArtistDetailContent {
         CommonNavBar({
           title: '',
           theme: this.theme,
-          onBack: () => this.pathStack.pop(),
+          onBack: () => {
+            if (this.carBackCallback) {
+              this.carBackCallback();
+            } else {
+              this.pathStack.pop();
+            }
+          },
           showMore: true,
           onMore: () => { this.showMoreSheet = true; },
         })
@@ -309,9 +322,9 @@ export struct ArtistDetailContent {
     }
     .layoutWeight(1)
     .width('100%')
-    // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度），
-    // 否则最后几行曲目被遮挡（对齐 mobile 的列表底部留白）
-    .padding({ bottom: miniPlayerHasContent() ? 116 : 56 })
+    // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度）；
+    // 车机模式下 GlobalBottomBar 已隐藏，本页也走全屏 NavDestination，无需预留底部空间。
+    .padding({ bottom: this.carModeEnabled ? 0 : (miniPlayerHasContent() ? 116 : 56) })
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
   }
@@ -329,8 +342,12 @@ export struct ArtistDetailContent {
               progress: this.isAudiobook() ? (a.progress ?? 0) : 0,
               theme: this.theme,
               onCardClick: () => {
-                const param: DetailNavParam = { id: a.id };
-                this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+                if (this.carNavCallback) {
+                  this.carNavCallback('AlbumDetail', a.id);
+                } else {
+                  const param: DetailNavParam = { id: a.id };
+                  this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+                }
               },
             })
           }, (a: AlbumDto) => a.id)
@@ -362,8 +379,12 @@ export struct ArtistDetailContent {
               progress: 0,
               theme: this.theme,
               onCardClick: () => {
-                const param: DetailNavParam = { id: col.id };
-                this.pathStack.pushPath({ name: 'CollectionDetail', param: param });
+                if (this.carNavCallback) {
+                  this.carNavCallback('CollectionDetail', col.id);
+                } else {
+                  const param: DetailNavParam = { id: col.id };
+                  this.pathStack.pushPath({ name: 'CollectionDetail', param: param });
+                }
               },
             })
           }, (col: CollectionDto) => col.id)

@@ -366,7 +366,9 @@ export class PlayerStore {
     this.state = 'preparing';
     this.notify();
     try {
-      await audioBackend.load(t.url);
+      // contentType 透传给 AVPlayerBackend，用于设置 AVPlayer.audioRendererInfo.usage，
+      // 系统靠它把发声流和 AVSession 关联，通知栏/锁屏才展示媒体播控卡片。
+      await audioBackend.load(t.url, undefined, t.contentType ?? this.contentMode);
       await audioBackend.play();
       this.loadedTrackId = t.id;
       this.state = 'playing'; this.isPlaying = true;

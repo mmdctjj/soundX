@@ -38,6 +38,10 @@ interface DetailNavParam {
 export struct SearchContent {
   // 路由栈由 RootShellPage 注入；NavDestination 内页面用它，PlayerPage 仍走 router.pushUrl
   pathStack: NavPathStack = new NavPathStack();
+  // 车机模式详情页跳转回调：非空时优先走右栏局部渲染，不进入全局路由
+  carNavCallback?: (name: string, id: string) => void;
+  // 车机模式返回回调：非空时返回按钮回退到右栏 tab 列表，不弹全局路由栈
+  carBackCallback?: () => void;
   @State keyword: string = '';
   @State tracks: TrackDto[] = [];
   @State albums: AlbumDto[] = [];
@@ -49,6 +53,9 @@ export struct SearchContent {
   @State likedAlbumIds: string[] = [];
   @State isRecording: boolean = false;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  // 车机模式下 GlobalBottomBar 已在 RootShellPage 隐藏，本页也走全屏 NavDestination，
+  // 不需要给 GlobalBottomBar/MiniPlayer 预留底部空间（修复底部多 56 空白）。
+  @StorageLink('carModeEnabled') carModeEnabled: boolean = false;
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
   private debounceTimer: number | null = null;
@@ -173,7 +180,13 @@ export struct SearchContent {
       Row({ space: 10 }) {
         Button() { Text('‹').fontSize(28).fontColor(this.theme.colors.text) }
           .width(36).height(36).backgroundColor(Color.Transparent)
-          .onClick((): void => { this.pathStack.pop(); })
+          .onClick((): void => {
+            if (this.carBackCallback) {
+              this.carBackCallback();
+            } else {
+              this.pathStack.pop();
+            }
+          })
 
         Row() {
           Text('⌕').fontSize(20).fontColor(this.theme.colors.textSecondary)
@@ -283,7 +296,7 @@ export struct SearchContent {
     }
     .layoutWeight(1).scrollBar(BarState.Off).align(Alignment.Top)
     // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度）
-    .padding({ bottom: miniPlayerHasContent() ? 116 : 56 })
+    .padding({ bottom: this.carModeEnabled ? 0 : (miniPlayerHasContent() ? 116 : 56) })
   }
 
   // ─── 搜索结果：分段列表（对齐 mobile sections） ───
@@ -326,7 +339,7 @@ export struct SearchContent {
     }
     .layoutWeight(1).scrollBar(BarState.Off).divider({ strokeWidth: 0.5, color: this.theme.colors.border, startMargin: 80, endMargin: 15 })
     // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度）
-    .padding({ bottom: miniPlayerHasContent() ? 116 : 56 })
+    .padding({ bottom: this.carModeEnabled ? 0 : (miniPlayerHasContent() ? 116 : 56) })
   }
 
   @Builder
@@ -373,11 +386,19 @@ export struct SearchContent {
       if (type === 'track') {
         this.playTrack(id);
       } else if (type === 'album') {
-        const param: DetailNavParam = { id: id };
-        this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+        if (this.carNavCallback) {
+          this.carNavCallback('AlbumDetail', id);
+        } else {
+          const param: DetailNavParam = { id: id };
+          this.pathStack.pushPath({ name: 'AlbumDetail', param: param });
+        }
       } else if (type === 'artist') {
-        const param: DetailNavParam = { id: id };
-        this.pathStack.pushPath({ name: 'ArtistDetail', param: param });
+        if (this.carNavCallback) {
+          this.carNavCallback('ArtistDetail', id);
+        } else {
+          const param: DetailNavParam = { id: id };
+          this.pathStack.pushPath({ name: 'ArtistDetail', param: param });
+        }
       }
     })
   }

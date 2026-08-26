@@ -34,6 +34,10 @@ export struct AlbumDetailContent {
   // 注意：属性名不能用 'id'（ArkUI CustomComponent 保留），统一用 'entityId'
   pathStack: NavPathStack = new NavPathStack();
   entityId: string = '';
+  // 车机模式详情页跳转回调：非空时优先走右栏局部渲染，不进入全局路由
+  carNavCallback?: (name: string, id: string) => void;
+  // 车机模式返回回调：非空时返回按钮回退到右栏 tab 列表，不弹全局路由栈
+  carBackCallback?: () => void;
   @State album: AlbumDto | null = null;
   @State tracks: TrackDto[] = [];
   @State mvs: MVDto[] = [];
@@ -64,6 +68,9 @@ export struct AlbumDetailContent {
   @State batchDownloading: boolean = false;
   private miPollingId: number = -1;
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  // 车机模式下 GlobalBottomBar 已在 RootShellPage 隐藏，本页也走全屏 NavDestination，
+  // 不需要给 GlobalBottomBar/MiniPlayer 预留底部空间（修复底部多 56 空白）。
+  @StorageLink('carModeEnabled') carModeEnabled: boolean = false;
   @State private langAtBuild: string = getLang();
   @State theme: Theme = buildTheme('light');
   private unsubLike: () => void = () => {};
@@ -150,7 +157,13 @@ export struct AlbumDetailContent {
         CommonNavBar({
           title: this.album?.name ?? '',
           theme: this.theme,
-          onBack: () => this.pathStack.pop(),
+          onBack: () => {
+            if (this.carBackCallback) {
+              this.carBackCallback();
+            } else {
+              this.pathStack.pop();
+            }
+          },
           showMore: true,
           onMore: () => { this.showMoreSheet = true; },
         })
@@ -287,7 +300,7 @@ export struct AlbumDetailContent {
     .width('100%')
     // 避让悬浮的 GlobalBottomBar（Tab 栏 56 + MiniPlayer 60，MiniPlayer 空队列不占高度），
     // 否则最后几行曲目被遮挡（对齐 mobile 的列表底部留白）
-    .padding({ left: 20, right: 20, bottom: miniPlayerHasContent() ? 116 : 56 })
+    .padding({ left: 20, right: 20, bottom: this.carModeEnabled ? 0 : (miniPlayerHasContent() ? 116 : 56) })
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
   }
