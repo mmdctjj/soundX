@@ -1,6 +1,5 @@
 import {
   Button,
-  Card,
   Flex,
   Image,
   Input,
