@@ -41,14 +41,14 @@ export class PlaylistService {
     return await this.prisma.playlist.findUnique({
       where: { id },
       include: {
-        // 仅取前 4 首用于 playlist 摘要信息（如卡片），具体分页请走 findTracksPaged
+        // 保留完整 tracks 列表——mobile 详情页用 FlatList 虚拟化（不分页），
+        // 依赖 tracks 派生 photo wall（最多 11 个独特专辑封面）等。web 端如需分页请走 findTracksPaged。
         tracks: {
-          take: 4,
-          select: { id: true, cover: true },
-          orderBy: { id: 'asc' },
-        },
-        _count: {
-          select: { tracks: true },
+          include: {
+            artistEntity: true,
+            albumEntity: true,
+            likedByUsers: true,
+          },
         },
       },
     });

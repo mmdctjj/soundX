@@ -197,6 +197,8 @@ export class EmbyTrackAdapter implements ITrackAdapter {
     return this.getLatestTracks(type, true, pageSize);
   }
 
+  async getTracksByArtist(artist: string): Promise<ISuccessResponse<Track[]>>;
+  async getTracksByArtist(artist: string, opts: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<ILoadMoreData<Track>>>;
   async getTracksByArtist(artist: string, opts?: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<Track[]> | ISuccessResponse<ILoadMoreData<Track>>> {
     const trackType = mediaModeToTrackType();
     const userId = await this.ensureUserId();

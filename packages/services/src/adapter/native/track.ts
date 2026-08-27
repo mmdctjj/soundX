@@ -85,6 +85,8 @@ export class NativeTrackAdapter implements ITrackAdapter {
     });
   }
 
+  getTracksByArtist(artist: string): Promise<ISuccessResponse<Track[]>>;
+  getTracksByArtist(artist: string, opts: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<ILoadMoreData<Track>>>;
   getTracksByArtist(artist: string, opts?: { skip?: number; pageSize?: number }) {
     // 传 skip/pageSize 时后端返回 ILoadMoreData<Track>，否则保持原 Track[] 兼容老代码
     const usePage = !!(opts && (opts.skip !== undefined || opts.pageSize !== undefined));

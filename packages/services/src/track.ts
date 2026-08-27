@@ -56,7 +56,9 @@ import type {
   };
   
   export const getTracksByArtist = (artist: string, opts?: { skip?: number; pageSize?: number }) => {
-    return getAdapter().track.getTracksByArtist(artist, opts);
+    return opts
+      ? getAdapter().track.getTracksByArtist(artist, opts)
+      : getAdapter().track.getTracksByArtist(artist);
   };
   
   export const toggleTrackLike = (id: number | string, userId: number | string) => {

@@ -2,7 +2,15 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Injectable } from '@nestjs/common';
-import sharp from 'sharp';
+// sharp 0.35+ 是 ESM-first 包，类型用 `export default sharp`（dist/index.d.mts）。
+// 在 commonjs 目标下走 default import 会被 TS 编译成 `sharp_1.default(...)`，但
+// sharp 的 CJS 导出（dist/index.cjs）是函数本身、没有 `.default` 字段，运行时炸
+// `(0 , sharp_1.default) is not a function`。TS 也不接受 namespace import（类型不可调用）。
+// 项目 tsconfig 是 module=commonjs + moduleResolution=node，TS 不会按 package.json `exports`
+// 的 require.types 路径去加载 dist/index.d.cts（CJS 端 `export = sharp`，可调用）。
+// 这里直接 require 拿运行时函数、as any 绕开 TS 导入分析（sharp 的链式 API 仍正常用）。
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sharp = require('sharp') as any;
 import { DEFAULT_CACHE_DIR } from '../common/media-paths';
 
 export type OutputFormat = 'webp' | 'jpeg';

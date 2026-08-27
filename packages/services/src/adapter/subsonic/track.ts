@@ -155,7 +155,9 @@ export class SubsonicTrackAdapter implements ITrackAdapter {
       return this.getLatestTracks(type, true, pageSize);
   }
 
-  async getTracksByArtist(artist: string, opts?: { skip?: number; pageSize?: number }) {
+  async getTracksByArtist(artist: string): Promise<ISuccessResponse<Track[]>>;
+  async getTracksByArtist(artist: string, opts: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<ILoadMoreData<Track>>>;
+  async getTracksByArtist(artist: string, opts?: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<Track[]> | ISuccessResponse<ILoadMoreData<Track>>> {
     // search3
     const res = await this.client.get<{searchResult3: { song: SubsonicChild[] }}>("search3", { query: artist, songCount: 50 });
     const all = res.searchResult3?.song || [];

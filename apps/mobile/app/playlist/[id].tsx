@@ -14,14 +14,14 @@ import {
     playMiDevicePlaylist,
     updatePlaylist,
 } from "@soundx/services";
+import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
-    Image,
-    ScrollView,
+    FlatList,
     StyleSheet,
     Text,
     TextInput,
@@ -301,113 +301,122 @@ export default function PlaylistDetailScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Photo Wall - Staggered Grid */}
-        <View style={styles.photoWall}>
-          {uniqueAlbums.map((album, index) => {
-            const isSmall = [0, 3, 7, 10].includes(index);
-            const itemStyle = {
-              width: isSmall ? "16.66%" : "33.33%",
-              aspectRatio: isSmall ? 0.5 : 1,
-            };
+      <FlatList
+        data={tracks}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        // 仅渲染可视区附近 ~5 屏，减少长列表 DOM 节点
+        windowSize={5}
+        initialNumToRender={20}
+        maxToRenderPerBatch={20}
+        removeClippedSubviews
+        ListHeaderComponent={
+          <View style={styles.photoWall}>
+            {uniqueAlbums.map((album, index) => {
+              const isSmall = [0, 3, 7, 10].includes(index);
+              const itemStyle = {
+                width: isSmall ? "16.66%" : "33.33%",
+                aspectRatio: isSmall ? 0.5 : 1,
+              };
 
-            return (
-              <View
-                key={index}
-                style={[styles.photoWallItem, itemStyle as ViewStyle]}
-              >
-                <Image
-                  source={{
-                    uri: getImageUrl(album.cover, `https://picsum.photos/seed/${album.id}/400/400`),
-                  }}
-                  style={styles.photoWallImage}
-                />
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={styles.trackList}>
-          {tracks.map((track, index) => (
-            <TouchableOpacity
-              key={track.id}
-              style={[styles.trackItem, { borderBottomColor: colors.border }]}
-              onPress={() => {
-                if (isSelectionMode) {
-                  toggleTrackSelection(track.id);
-                  return;
-                }
-                playTrackList(tracks, index);
-              }}
-              onLongPress={() => {
-                if (isSelectionMode) return;
-                setSelectedTrack(track);
-                setTrackMoreVisible(true);
-              }}
-            >
-              <View style={styles.trackIndexContainer}>
-                {isSelectionMode ? (
-                  <Ionicons
-                    name={
-                      selectedTrackIds.includes(track.id)
-                        ? "checkbox"
-                        : "square-outline"
-                    }
-                    size={20}
-                    color={
-                      selectedTrackIds.includes(track.id)
-                        ? colors.primary
-                        : colors.secondary
-                    }
+              return (
+                <View
+                  key={index}
+                  style={[styles.photoWallItem, itemStyle as ViewStyle]}
+                >
+                  <ExpoImage
+                    source={{
+                      uri: getImageUrl(album.cover, `https://picsum.photos/seed/${album.id}/400/400`),
+                    }}
+                    style={styles.photoWallImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
                   />
-                ) : currentTrack?.id === track.id && isPlaying ? (
-                  <PlayingIndicator />
-                ) : (
-                  <Text
-                    style={[
-                      styles.trackIndex,
-                      {
-                        color:
-                          currentTrack?.id === track.id
-                            ? colors.primary
-                            : colors.secondary,
-                      },
-                    ]}
-                  >
-                    {index + 1}
-                  </Text>
-                )}
-              </View>
-              <Image
-                source={{
-                  uri: getImageUrl(track.cover, `https://picsum.photos/seed/${track.id}/20/20`),
-                }}
-                alt=""
-                style={{ width: 40, height: 40, borderRadius: 4 }}
-              />
-              <View style={styles.trackInfo}>
+                </View>
+              );
+            })}
+          </View>
+        }
+        renderItem={({ item: track, index }) => (
+          <TouchableOpacity
+            style={[styles.trackItem, { borderBottomColor: colors.border }]}
+            onPress={() => {
+              if (isSelectionMode) {
+                toggleTrackSelection(track.id);
+                return;
+              }
+              playTrackList(tracks, index);
+            }}
+            onLongPress={() => {
+              if (isSelectionMode) return;
+              setSelectedTrack(track);
+              setTrackMoreVisible(true);
+            }}
+          >
+            <View style={styles.trackIndexContainer}>
+              {isSelectionMode ? (
+                <Ionicons
+                  name={
+                    selectedTrackIds.includes(track.id)
+                      ? "checkbox"
+                      : "square-outline"
+                  }
+                  size={20}
+                  color={
+                    selectedTrackIds.includes(track.id)
+                      ? colors.primary
+                      : colors.secondary
+                  }
+                />
+              ) : currentTrack?.id === track.id && isPlaying ? (
+                <PlayingIndicator />
+              ) : (
                 <Text
-                  style={[styles.trackName, { color: colors.text }]}
-                  numberOfLines={1}
+                  style={[
+                    styles.trackIndex,
+                    {
+                      color:
+                        currentTrack?.id === track.id
+                          ? colors.primary
+                          : colors.secondary,
+                    },
+                  ]}
                 >
-                  {track.name}
+                  {index + 1}
                 </Text>
-                <Text
-                  style={[styles.trackArtist, { color: colors.secondary }]}
-                  numberOfLines={1}
-                >
-                  {track.artist}
-                </Text>
-              </View>
-              <Text style={[styles.trackDuration, { color: colors.secondary }]}>
-                {track.duration
-                  ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, "0")}`
-                  : "--:--"}
+              )}
+            </View>
+            <ExpoImage
+              source={{
+                uri: getImageUrl(track.cover, `https://picsum.photos/seed/${track.id}/40/40`),
+              }}
+              style={{ width: 40, height: 40, borderRadius: 4 }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              // expo-image 会按 size hint 自动缓存合适分辨率，原图 1500x1500 在 40x40 不浪费
+            />
+            <View style={styles.trackInfo}>
+              <Text
+                style={[styles.trackName, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {track.name}
               </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+              <Text
+                style={[styles.trackArtist, { color: colors.secondary }]}
+                numberOfLines={1}
+              >
+                {track.artist}
+              </Text>
+            </View>
+            <Text style={[styles.trackDuration, { color: colors.secondary }]}>
+              {track.duration
+                ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, "0")}`
+                : "--:--"}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
 
       <TrackMoreModal
         visible={trackMoreVisible}

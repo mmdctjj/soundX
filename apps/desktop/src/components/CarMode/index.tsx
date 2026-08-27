@@ -169,7 +169,7 @@ const CarMode: React.FC<CarModeProps> = ({ children, seekBridge }) => {
   };
 
   const coverUrl = currentTrack
-    ? resolveArtworkUri(currentTrack, { width: 360, format: "webp", quality: 80 }) ||
+    ? resolveArtworkUri(currentTrack, { width: 300, format: "webp", quality: 80 }) ||
       `https://picsum.photos/seed/${currentTrack.id}/600/600`
     : null;
 
