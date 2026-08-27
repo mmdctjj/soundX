@@ -28,3 +28,23 @@ export interface IPagedResult<T> {
 export type PageFetcher<T, TArgs extends Record<string, unknown> = Record<string, never>> = (
   args: { pageSize: number; skip: number } & TArgs,
 ) => Promise<IPagedResult<T>>;
+
+/** 后端协议层 ILoadMoreData 的最小契约（避免在 loadMore.ts 里 import 全套 models） */
+export interface ILoadMoreDataLite<T> {
+  list: T[];
+  loadCount: number;
+  pageSize: number;
+  total?: number;
+}
+
+/** 将后端 ILoadMoreData 转成前端 IPagedResult 的轻量辅助函数 */
+export function toPagedResult<T>(data: ILoadMoreDataLite<T> | undefined | null, pageSize: number): IPagedResult<T> {
+  const list = data?.list ?? [];
+  // 后端 ILoadMoreData 直接带 hasMore；缺省时用 list.length >= pageSize 兜底
+  const hasMore = (data as any)?.hasMore ?? list.length >= pageSize;
+  return {
+    list,
+    hasMore: !!hasMore,
+    total: data?.total,
+  };
+}
