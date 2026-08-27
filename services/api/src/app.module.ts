@@ -22,6 +22,7 @@ import { PlaylistController } from './controllers/playlist';
 import { SearchRecordController } from './controllers/search-record';
 import { ScanLoginController } from './controllers/scan-login.controller';
 import { TrackController } from './controllers/track';
+import { ImageOptimizeController } from './controllers/image-optimize.controller';
 import { UserController } from './controllers/user';
 import { UserAlbumHistoryController } from './controllers/user-album-history';
 import { UserAlbumLikeController } from './controllers/user-album-like';
@@ -58,6 +59,7 @@ import { UserTrackHistoryService } from './services/user-track-history';
 import { UserTrackLikeService } from './services/user-track-like';
 import { WebDavConfigService } from './services/webdav-config.service';
 import { MetadataPluginService } from './services/metadata-plugin.service';
+import { ImageOptimizeService } from './services/image-optimize.service';
 
 @Module({
   imports: [
@@ -111,6 +113,7 @@ import { MetadataPluginService } from './services/metadata-plugin.service';
     WebDavSourcesController,
     MetadataPluginsController,
     WebDavSyncController,
+    ImageOptimizeController,
   ],
   providers: [
     UserService,
@@ -150,6 +153,7 @@ import { MetadataPluginService } from './services/metadata-plugin.service';
     SyncGateway,
     WebDavConfigService,
     MetadataPluginService,
+    ImageOptimizeService,
   ],
 })
 export class AppModule {}
