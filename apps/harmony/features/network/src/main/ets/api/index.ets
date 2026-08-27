@@ -41,6 +41,9 @@ export type {
   MiDevice, MiDevicesResponse, MiAuthStatusResponse,
   MiQRCodeResponse, MiQRCodeStatusResponse, MiPlayByUrlResponse,
   MiTrackPayload, MiPlayPlaylistResponse, MiApi,
+  MiKeyword, MiKeywordsResponse, MiPageQuery,
+  MiConversation, MiCastRecord, MiPagedResponse,
+  MiSimpleResponse, MiAddKeywordResponse, MiKeywordPatch,
 } from './mi';
 export type {
   TtsProvider, TtsVoice, TtsFileItem, TtsReviewItem, TtsTask,

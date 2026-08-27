@@ -34,6 +34,11 @@ python src/main.py
 | HTTP_HOST | HTTP 服务监听地址 | 0.0.0.0 |
 | HTTP_PORT | HTTP 服务端口 | 8080 |
 | COMMAND_PREFIX | 语音指令前缀 | 本地播放 |
+| VOICE_KEYWORDS | 唤醒关键字（英文逗号分隔，**仅作首次种子**，DB 非空后不再生效） | 本地播放,播放声仓,声仓 |
+| PULL_ASK_INTERVAL_SEC | 对话记录轮询间隔（秒） | 1 |
+| LOG_LEVEL | 日志级别 | INFO |
+
+> **唤醒关键字优先级**：服务启动时若 SQLite 表 `wake_keywords` 为空，会把 `VOICE_KEYWORDS` 环境变量作为一次性种子写入；此后以数据库为准，管理页面（`/api/keywords` CRUD）修改即时生效（语音监听每 30s 热更新一次）。
 
 ## API 说明
 
@@ -42,9 +47,21 @@ python src/main.py
 - `GET /api/devices` — 获取绑定的小爱音箱列表
 - `GET /api/play?device_id=&song_index=` — 播放指定歌曲
 - `GET /api/control?device_id=&action=` — 播放控制 (stop/pause/tts)
+- `GET /api/keywords` — 唤醒关键字列表
+- `POST /api/keywords` — 新增唤醒关键字 `{keyword}`
+- `PUT /api/keywords/{id}` — 更新唤醒关键字 `{keyword?}/{enabled?}`
+- `DELETE /api/keywords/{id}` — 删除唤醒关键字
+- `GET /api/conversations?page=&size=&device_id=` — 对话历史（分页）
+- `GET /api/casts?page=&size=&device_id=` — 投放历史（分页）
+
+## 数据存储
+
+- SQLite 数据库：`data/xiaoai.db`（唤醒关键字 / 对话历史 / 投放历史三张表，自动建表）
+- 登录态缓存：`auth.json`（完整认证数据）+ `.mi.token`（miservice token），扫码成功后自动写入
+- **Docker 部署时**需将 `auth.json`、`.mi.token`、`data/` 挂载持久化，容器升级/重建后保持登录态与历史数据
 
 ## 注意事项
 
 - `HTTP_HOST` 必须是音箱在局域网能访问到的 IP，不能填 `127.0.0.1`
-- 首次运行会提示扫码登录小米账号，Token 自动缓存到 `.mi.token`
+- 首次运行会提示扫码登录小米账号，Token 自动缓存到 `.mi.token` 与 `auth.json`
 - 播放前会自动调用 `player_stop()` 抢占音箱控制权

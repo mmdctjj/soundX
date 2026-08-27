@@ -1,5 +1,16 @@
 # AudioDock 项目长期记忆
 
+## services/mi 小爱音箱管理（2026-08-28 新增）
+
+- **存储**：`services/mi/src/db.py` 内置 sqlite3，DB 文件 `services/mi/data/xiaoai.db`，三张表 `wake_keywords` / `conversation_history`（`UNIQUE(device_id, timestamp_ms, query)` 去重）/ `cast_history`；所有 DB 操作必须 `asyncio.to_thread` 包裹防阻塞事件循环。
+- **唤醒词优先级**：DB 优先。env `VOICE_KEYWORDS` 仅在 `init_db()` 首次启动且表为空时作种子；此后以 DB 为准（管理页 CRUD）。`voice_listener` 每 30s 自动 reload 唤醒词。
+- **管理 API**（`web_api/management.py`，前缀 `/api`）：keywords CRUD + `GET /conversations` / `GET /casts`（page/size/device_id/start_ms/end_ms 分页）。前端统一走 `{服务器}/mi/api/*`（NestJS `/mi` 代理）。
+- **埋点**：`voice_listener` 对话落库 + 语音抢答写 cast_history(source='voice')；`web_api/player.py` 的 play_by_url/play_playlist 成功后写 cast_history（失败仅 warning）。
+- **登录态持久化（docker）**：`auth.json` + `.mi.token` 在 `services/mi/` 下，容器重建会丢——两个 docker-compose 都需挂载 `services/mi/auth.json`、`.mi.token`、`data/` 三个路径。
+- **四端管理页**：desktop `Settings/MiSpeakerSettings.tsx`、mobile `app/mi-speaker.tsx`、mini `pages/mi-speaker/`、harmony `MiSpeakerPage.ets`（统一 4 Tab：登录/唤醒词/对话历史/投放历史）。
+- **ArkTS 注意**：接口签名里不能用对象字面量类型（如 `Promise<{success:boolean}>`），必须定义显式 interface（`MiSimpleResponse`/`MiKeywordPatch` 等）；`t(key, params)` 插值参数是 `Array<[string, string|number]>` 元组；`@Entry build()` 需 if/else 包 builder 调用。
+- **hvigor 构建副作用**：构建会改各模块 BuildProfile.ets 为 debug 并产生 `_tmp_*` 空文件，提交前需还原/清理。
+
 ## apps/harmony 构建环境
 
 - **hvigor 命令行构建**：`DEVECO_SDK_HOME` 必须指向 DevEco 内置 SDK 根目录 `/Applications/DevEco-Studio.app/Contents/sdk`（包含 `default/hms`、`default/openharmony` 的上一层），**不要**指向 `default/openharmony` 或外部 `~/Library/OpenHarmony/Sdk`。

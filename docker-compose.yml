@@ -37,6 +37,10 @@ services:
       - ./services/api/music/covers:/covers
       - app-db:/app/packages/db/prisma # 将数据库文件目录挂载出来持久化
       - ./services/api/.jwt_secret:/.jwt_secret
+      # 小爱音箱：认证文件 + SQLite 数据持久化（容器重建后保持登录态）
+      - ./services/mi/auth.json:/app/services/mi/auth.json
+      - ./services/mi/.mi.token:/app/services/mi/.mi.token
+      - ./services/mi/data:/app/services/mi/data
     restart: unless-stopped
     networks:
       - audiodock-network

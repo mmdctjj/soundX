@@ -440,6 +440,9 @@ export default function Personal() {
           <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/source-manage/index' })}>
             <Text className='header-icon icon icon-server' />
           </View>
+          <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/mi-speaker/index' })}>
+            <Text className='header-icon icon icon-speaker' />
+          </View>
           <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/settings/index' })}>
             <Text className='icon icon-settings' />
           </View>

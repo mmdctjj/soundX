@@ -33,6 +33,7 @@ import CarModeSettings from "./CarModeSettings";
 import WebDavSourcesSettings from "./WebDavSourcesSettings";
 import LlmConfigSettings from "./LlmConfigSettings";
 import TtsConfigSettings from "./TtsConfigSettings";
+import MiSpeakerSettings from "./MiSpeakerSettings";
 import PluginCenterSettings from "./PluginCenterSettings";
 import UIThemeSettings from "./UIThemeSettings";
 import styles from "./index.module.less";
@@ -696,6 +697,28 @@ const Settings: React.FC = () => {
                     {t("settings.ttsConfig")}
                   </Title>
                   <TtsConfigSettings />
+                </section>
+              </TabLayout>
+            ),
+          },
+          {
+            key: "miSpeaker",
+            label: t("miManage.title"),
+            children: (
+              <TabLayout
+                getContainer={getAnchorContainer}
+                nav={[
+                  {
+                    key: "miSpeaker--miManage",
+                    title: t("miManage.title"),
+                  },
+                ]}
+              >
+                <section id="miSpeaker--miManage" className={styles.section}>
+                  <Title level={4} className={styles.sectionTitle}>
+                    {t("miManage.title")}
+                  </Title>
+                  <MiSpeakerSettings />
                 </section>
               </TabLayout>
             ),

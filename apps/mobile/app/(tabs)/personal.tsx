@@ -1003,6 +1003,12 @@ export default function PersonalScreen() {
             <Ionicons name="server-outline" size={22} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => router.push("/mi-speaker")}
+            style={[styles.iconBtn, { marginRight: 10 }]}
+          >
+            <Ionicons name="volume-medium-outline" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => router.push("/settings")}
             style={styles.iconBtn}
           >

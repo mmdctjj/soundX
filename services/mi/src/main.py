@@ -19,10 +19,11 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.config import Config
+from src import db
 from src.music_library import MusicLibrary
 from src.speaker_player import SpeakerPlayer
 from src.voice_listener import VoiceCommandListener
-from src.web_api import music, player as player_api, auth
+from src.web_api import music, player as player_api, auth, management
 
 # 全局共享实例
 library: MusicLibrary | None = None
@@ -51,6 +52,9 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     global library, player, listener
+
+    # 初始化 SQLite 存储
+    db.init_db()
 
     # 初始化音乐库（不依赖登录）
     library = MusicLibrary()
@@ -95,6 +99,7 @@ async def shutdown_event():
 app.include_router(music.router, prefix="/api")
 app.include_router(player_api.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
+app.include_router(management.router, prefix="/api")
 
 
 # 音乐文件静态服务

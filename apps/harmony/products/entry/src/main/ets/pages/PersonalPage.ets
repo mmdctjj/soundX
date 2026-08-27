@@ -293,6 +293,10 @@ export struct PersonalTab {
     router.pushUrl({ url: 'pages/SourceManagePage' });
   }
 
+  navigateToMiSpeaker(): void {
+    router.pushUrl({ url: 'pages/MiSpeakerPage' });
+  }
+
   openMenu(): void {
     this.menuVisible = true;
   }
@@ -756,6 +760,12 @@ export struct PersonalTab {
         }
         .width(36).height(36).backgroundColor(Color.Transparent).margin({ right: 8 })
         .onClick((): void => this.navigateToSourceManage())
+
+        Button() {
+          AppIcon({ name: 'volume-high', iconSize: 22, color: this.theme.colors.text })
+        }
+        .width(36).height(36).backgroundColor(Color.Transparent).margin({ right: 8 })
+        .onClick((): void => this.navigateToMiSpeaker())
 
         Button() {
           AppIcon({ name: 'settings-outline', iconSize: 22, color: this.theme.colors.text })

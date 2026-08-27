@@ -23,6 +23,7 @@ export default defineAppConfig({
     'pages/webdav-sources/index',
     'pages/llm-config/index',
     'pages/tts-config/index',
+    'pages/mi-speaker/index',
     'pages/plugin-center/index',
     'pages/task-center/index',
     'pages/tts/tasks/index',

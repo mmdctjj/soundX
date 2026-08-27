@@ -1,21 +1,99 @@
-# 忽略依赖安装目录
-node_modules
-**/node_modules
+# ============================================================
+# AudioDock .dockerignore
+# 目的: 缩小 `COPY . .` 的构建上下文,避免 iOS Pods / Remotion
+#       视频工程 / 本地示例音乐 / venv / node_modules 等被打入镜像
+# 原则: 不排除 Dockerfile 中显式 COPY 的任何文件
+#       (package.json 系列 / nginx.conf / services/{tts,asr,mi}/)
+# ============================================================
 
-# 忽略构建产物
-**/dist
-**/build
-**/release
-
-coverage
-*.log
-.env
+# ----- 版本控制 / IDE -----
+.git/
+.gitignore
+.gitattributes
+.github/
+.gitlab-ci.yml
+.vscode/
+.idea/
 .DS_Store
-*.sqlite
-*.db
-**/dev.db
-**/data
-**/audio
-**/music
-**/covers
+Thumbs.db
+*.swp
+*.swo
 
+# ----- 文档 / License / 杂项根文件(nginx.conf 保留) -----
+*.md
+LICENSE
+README.md
+images/
+docs/
+scripts/
+.editorconfig
+
+# ----- Monorepo 通用:构建产物与依赖缓存 -----
+# (Dockerfile 显式 COPY 的 package.json 不受影响,只有 . 会被忽略)
+**/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/.turbo/
+**/.cache/
+**/coverage/
+**/.tsbuildinfo
+**/*.tsbuildinfo
+**/.pnpm-store/
+
+# ----- Python -----
+venv/
+.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.mypy_cache/
+
+# ----- 跟服务端镜像完全无关的工程目录 -----
+# Remotion 视频工程(15K 文件,几百 MB,构建产物都在 video/dist)
+video/
+
+# React Native 原生工程(iOS Pods / Android Gradle:几百 MB - GB)
+# 注意: apps/mobile/package.json 由 Dockerfile:30 显式 COPY,保留
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/.expo/
+apps/mobile/.expo-shared/
+apps/mobile/*.tgz
+
+# HarmonyOS 工程(本地 IDE 工程,无关)
+apps/harmony/
+
+# ----- 本地数据 / 示例文件(运行期通过 bind mount 覆盖) -----
+# services/api/music/* 在 docker-compose 里都被 bind mount,镜像里不该带
+services/api/music/
+
+# 鉴权 / 密钥文件:绝不能进镜像(安全)
+services/api/.jwt_secret
+services/api/.env
+services/api/.env.*
+services/mi/auth.json
+services/mi/.mi.token
+services/mi/data/
+services/api/dev.db
+services/api/dev.db-journal
+
+# 仓库根 .env(若有)
+.env
+.env.*
+!.env.example
+
+# ----- Docker 自身配置(构建镜像不需要) -----
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# ----- 日志 / 临时文件 -----
+**/*.log
+**/*.tmp
+**/*.bak
+*.tgz
+*.tar.gz
+*.zip

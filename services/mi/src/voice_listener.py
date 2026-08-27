@@ -20,6 +20,7 @@ from typing import Optional
 
 from src.config import Config
 from src.conversation_api import ConversationAPI
+from src import db
 from src.music_library import MusicLibrary
 from src.speaker_player import SpeakerPlayer
 
@@ -43,12 +44,10 @@ class VoiceCommandListener:
     ):
         self.player = player
         self.library = library
-        # 关键词按字符串长度降序排列：长关键词优先匹配（songloft 风格）
-        self.keywords = sorted(
-            keywords if keywords is not None else Config.VOICE_KEYWORDS,
-            key=len,
-            reverse=True,
-        )
+        # 关键词从 DB 读取（start 时加载，之后每 30s 热更新）
+        # keywords 参数仅用于测试注入，正常启动传 None
+        self._init_keywords = keywords
+        self.keywords: list[str] = []
         self.poll_interval = (
             poll_interval if poll_interval is not None else Config.PULL_ASK_INTERVAL_SEC
         )
@@ -58,12 +57,19 @@ class VoiceCommandListener:
         self._last_timestamps: dict[str, int] = {}
         # 默认设备（列表中的第一个）
         self._default_device_id: Optional[str] = None
+        # 唤醒词热更新计时
+        self._kw_last_reload: float = 0
+        self._kw_reload_interval: float = 30.0  # 30s
 
     async def start(self) -> None:
         """启动监听循环（非阻塞）"""
         if self._running:
             logger.warning("VoiceCommandListener already running")
             return
+
+        # 加载唤醒词（优先 DB，空则 env 兜底）
+        await self.reload_keywords()
+
         self._running = True
         self._task = asyncio.create_task(self._run_loop())
         logger.info(
@@ -77,6 +83,36 @@ class VoiceCommandListener:
         if self._task and not self._task.done():
             self._task.cancel()
         logger.info("VoiceCommandListener stopped")
+
+    async def reload_keywords(self) -> None:
+        """从 DB 加载唤醒词（DB 优先，env 兜底），按长度降序"""
+        # 测试注入的关键词直接用，不查 DB
+        if self._init_keywords is not None:
+            self.keywords = sorted(self._init_keywords, key=len, reverse=True)
+            return
+
+        try:
+            kws = await asyncio.to_thread(db.enabled_keywords)
+        except Exception as e:
+            logger.warning(f"[voice] 从 DB 加载唤醒词失败: {e}，使用 env 兜底")
+            kws = []
+
+        if kws:
+            self.keywords = kws  # db.enabled_keywords 已按长度降序
+        else:
+            # env 兜底
+            self.keywords = sorted(Config.VOICE_KEYWORDS, key=len, reverse=True)
+
+        self._kw_last_reload = time.monotonic()
+        logger.debug(f"[voice] 唤醒词已加载: {self.keywords}")
+
+    def _device_name(self, device_id: str) -> str:
+        """从 player.devices 查找设备名称"""
+        for d in self.player.devices:
+            did = d.get("deviceID") or d.get("device_id")
+            if did == device_id:
+                return d.get("name", "")
+        return ""
 
     async def _run_loop(self) -> None:
         """主循环"""
@@ -106,6 +142,9 @@ class VoiceCommandListener:
         # 主循环
         while self._running:
             try:
+                # 每 30s 热更新唤醒词
+                if time.monotonic() - self._kw_last_reload >= self._kw_reload_interval:
+                    await self.reload_keywords()
                 await self._poll_once()
             except asyncio.CancelledError:
                 break
@@ -169,7 +208,7 @@ class VoiceCommandListener:
             await self._handle_record(device_id, rec)
 
     async def _handle_record(self, device_id: str, rec: dict) -> None:
-        """处理一条对话记录：关键词匹配 → 本地查歌 → 推 URL"""
+        """处理一条对话记录：先落库，再关键词匹配 → 本地查歌 → 推 URL"""
         query = rec.get("query", "").strip()
         answer_text = rec.get("answer_text", "")
 
@@ -180,6 +219,21 @@ class VoiceCommandListener:
             f"answer='{answer_text[:80]}' "
             f"req_id={rec.get('request_id', '')}"
         )
+
+        # 落库对话历史（INSERT OR IGNORE 去重，失败不影响主流程）
+        if query:
+            try:
+                await asyncio.to_thread(
+                    db.insert_conversation,
+                    device_id,
+                    self._device_name(device_id),
+                    query,
+                    answer_text,
+                    rec.get("request_id", ""),
+                    rec["time"],
+                )
+            except Exception as e:
+                logger.warning(f"[voice] 对话落库失败: {e}")
 
         if not query:
             return
@@ -220,6 +274,20 @@ class VoiceCommandListener:
 
         # 抢答：先 stop 音箱，再推 URL
         await self.player.play_song(device_id, song)
+
+        # 投放历史埋点（语音抢答来源）
+        try:
+            await asyncio.to_thread(
+                db.insert_cast,
+                device_id,
+                self._device_name(device_id),
+                song["name"],
+                song.get("path", ""),
+                "voice",
+                1,
+            )
+        except Exception as e:
+            logger.warning(f"[voice] 投放埋点失败: {e}")
 
     def _build_auth_data(self) -> dict | None:
         """从 player.account.token + auth.json 构造 ConversationAPI 需要的 auth_data"""
