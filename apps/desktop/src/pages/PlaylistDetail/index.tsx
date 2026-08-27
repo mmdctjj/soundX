@@ -16,11 +16,13 @@ import {
   addTrackToPlaylist,
   deletePlaylist,
   getPlaylistById,
+  getPlaylistTracksPaged,
   getPlaylists,
   playMiDevicePlaylist,
   removeTrackFromPlaylist,
   updatePlaylist,
   type Playlist,
+  toPagedResult,
 } from "@soundx/services";
 import {
   Button,
@@ -39,7 +41,7 @@ import {
   Typography,
   type MenuProps,
 } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -48,6 +50,7 @@ import {
 } from "../../components/MiDeviceSelector";
 import PlayingIndicator from "../../components/PlayingIndicator";
 import { useMessage } from "../../context/MessageContext";
+import { useLoadMore } from "../../hooks/useLoadMore";
 import { type Track } from "../../models";
 import { downloadTracks } from "../../services/downloadManager";
 import { trackEvent } from "../../services/tracking";
@@ -68,7 +71,6 @@ const PlaylistDetail: React.FC = () => {
   const message = useMessage();
   const navigate = useNavigate();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [loading, setLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [form] = Form.useForm();
 
@@ -105,7 +107,6 @@ const PlaylistDetail: React.FC = () => {
 
   const fetchPlaylist = async () => {
     if (!id) return;
-    setLoading(true);
     try {
       const res = await getPlaylistById(id);
       if (res.code === 200) {
@@ -113,35 +114,51 @@ const PlaylistDetail: React.FC = () => {
       }
     } catch (error) {
       console.error("Failed to fetch playlist:", error);
-    } finally {
-      setLoading(false);
     }
   };
+
+  // tracks 用 useLoadMore 分页加载（pageSize=100），sentinel 进入视口自动 loadMore
+  const {
+    list: tracks,
+    hasMore,
+    loading: tracksLoading,
+    loadingMore,
+    sentinelRef,
+    reload: reloadTracks,
+  } = useLoadMore<Track, { playlistId: number | string }>({
+    args: { playlistId: id ?? "" },
+    deps: [id],
+    pageSize: 100,
+    fetcher: ({ playlistId: pid, skip, pageSize }) =>
+      getPlaylistTracksPaged(pid, skip, pageSize).then((res: { data: import("@soundx/services").ILoadMoreData<Track> | undefined | null }) =>
+        toPagedResult(res.data, pageSize),
+      ),
+  });
 
   useEffect(() => {
     fetchPlaylist();
   }, [id]);
 
   const handlePlayAll = () => {
-    if (playlist?.tracks && playlist.tracks.length > 0) {
+    if (tracks.length > 0) {
       trackEvent({
         feature: "personal",
         eventName: "personal_playlist_play",
         userId: user?.id ? String(user.id) : undefined,
         deviceId: device?.id ? String(device.id) : undefined,
         metadata: {
-          playlistId: playlist.id,
-          trackCount: playlist.tracks.length,
+          playlistId: playlist?.id,
+          trackCount: tracks.length,
         },
       });
-      setPlayerPlaylist(playlist.tracks);
-      play(playlist.tracks[0], playlist.id);
+      setPlayerPlaylist(tracks);
+      play(tracks[0], playlist?.id ?? "");
     }
   };
 
   const handleDownloadSelected = () => {
-    if (!playlist?.tracks) return;
-    const selectedTracks = playlist.tracks.filter((t) =>
+    if (tracks.length === 0) return;
+    const selectedTracks = tracks.filter((t) =>
       selectedRowKeys.includes(t.id),
     );
     if (selectedTracks.length === 0) {
@@ -164,13 +181,13 @@ const PlaylistDetail: React.FC = () => {
     deviceId: string,
     deviceName: string,
   ) => {
-    if (!playlist?.tracks || playlist.tracks.length === 0) {
+    if (tracks.length === 0) {
       message.warning(t("player.miCastNoTrack"));
       return;
     }
     setIsCastingToMi(true);
     try {
-      const tracks = playlist.tracks.map((track) => ({
+      const castTracks = tracks.map((track) => ({
         url: `${window.location.origin}/api/track/stream/${track.id}`,
         title: `${track.name} - ${track.artist ?? ""}`,
         duration: track.duration || 0,
@@ -178,14 +195,14 @@ const PlaylistDetail: React.FC = () => {
 
       await playMiDevicePlaylist({
         device_id: deviceId,
-        tracks,
+        tracks: castTracks,
         start_index: 0,
       });
 
       message.success(
         t("player.miCastPlaylistSuccess", {
           device: deviceName,
-          count: tracks.length,
+          count: castTracks.length,
         }),
       );
       setIsMiDeviceSelectorOpen(false);
@@ -198,8 +215,8 @@ const PlaylistDetail: React.FC = () => {
   };
 
   const handlePlayTrack = (track: Track) => {
-    if (playlist?.tracks) {
-      setPlayerPlaylist(playlist.tracks);
+    if (tracks.length > 0) {
+      setPlayerPlaylist(tracks);
       play(track, -1);
     }
   };
@@ -243,7 +260,8 @@ const PlaylistDetail: React.FC = () => {
       const res = await removeTrackFromPlaylist(id, trackId);
       if (res.code === 200) {
         message.success(t("playlistDetail.removedSuccess"));
-        fetchPlaylist();
+        // 移除后只刷新 tracks 分页（无需重新拉 playlist 头部信息）
+        reloadTracks();
       }
     } catch (error) {
       message.error(t("playlistDetail.removeFailed"));
@@ -299,12 +317,15 @@ const PlaylistDetail: React.FC = () => {
   };
 
   // Filter tracks based on keyword
-  const filteredTracks =
-    playlist?.tracks?.filter(
+  const filteredTracks = useMemo(() => {
+    if (!keyword) return tracks;
+    const k = keyword.toLowerCase();
+    return tracks.filter(
       (track) =>
-        track.name.toLowerCase().includes(keyword.toLowerCase()) ||
-        track.artist.toLowerCase().includes(keyword.toLowerCase()),
-    ) || [];
+        track.name.toLowerCase().includes(k) ||
+        (track.artist || "").toLowerCase().includes(k),
+    );
+  }, [tracks, keyword]);
 
   // Sort tracks
   const sortedTracks = [...filteredTracks].sort((_a, _b) => {
@@ -594,7 +615,7 @@ const PlaylistDetail: React.FC = () => {
               columns={columns}
               pagination={false}
               rowKey="id"
-              loading={loading}
+              loading={tracksLoading}
               rowClassName={styles.listCover}
               onRow={(record) => ({
                 onClick: () => handlePlayTrack(record),
@@ -609,6 +630,32 @@ const PlaylistDetail: React.FC = () => {
                   : undefined
               }
             />
+            {/* 分页 sentinel：进入视口时自动 loadMore（useLoadMore 内部 IntersectionObserver） */}
+            {hasMore && (
+              <div
+                ref={sentinelRef}
+                style={{
+                  padding: "12px 0",
+                  textAlign: "center",
+                  color: token.colorTextSecondary,
+                  fontSize: 12,
+                }}
+              >
+                {loadingMore ? "加载中…" : "上拉/滚动加载更多"}
+              </div>
+            )}
+            {!hasMore && tracks.length > 0 && (
+              <div
+                style={{
+                  padding: "12px 0",
+                  textAlign: "center",
+                  color: token.colorTextSecondary,
+                  fontSize: 12,
+                }}
+              >
+                — 已加载全部 {tracks.length} 首 —
+              </div>
+            )}
           </Col>
         </Row>
       </div>

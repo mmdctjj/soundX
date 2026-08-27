@@ -85,10 +85,16 @@ export class NativeTrackAdapter implements ITrackAdapter {
     });
   }
 
-  getTracksByArtist(artist: string) {
-    return request.get<any, ISuccessResponse<Track[]>>("/track/artist", {
-      params: { artist },
-    });
+  getTracksByArtist(artist: string, opts?: { skip?: number; pageSize?: number }) {
+    // 传 skip/pageSize 时后端返回 ILoadMoreData<Track>，否则保持原 Track[] 兼容老代码
+    const usePage = !!(opts && (opts.skip !== undefined || opts.pageSize !== undefined));
+    const params: Record<string, unknown> = { artist };
+    if (usePage) {
+      if (opts?.skip !== undefined) params.skip = opts.skip;
+      if (opts?.pageSize !== undefined) params.pageSize = opts.pageSize;
+      return request.get<any, ISuccessResponse<ILoadMoreData<Track>>>("/track/artist", { params });
+    }
+    return request.get<any, ISuccessResponse<Track[]>>("/track/artist", { params });
   }
 
   toggleLike(id: number | string, userId: number | string) {

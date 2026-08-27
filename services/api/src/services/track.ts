@@ -886,13 +886,21 @@ export class TrackService {
     );
   }
 
-  async getTracksByArtist(artist: string): Promise<Track[]> {
+  async getTracksByArtist(artist: string, skip?: number, pageSize?: number): Promise<{ list: Track[]; total: number; hasMore: boolean }> {
+    const where = {
+      artist: { contains: artist },
+      status: 'ACTIVE' as const,
+    };
+
+    const safePageSize = Math.min(Math.max(1, Number.isFinite(pageSize as number) ? (pageSize as number) : 100), 500);
+    const usePage = typeof skip === 'number' && Number.isFinite(skip);
+    const safeSkip = usePage ? Math.max(0, skip as number) : 0;
+
     const tracks = await this.prisma.track.findMany({
-      where: { 
-        artist: { contains: artist },
-        status: 'ACTIVE' 
-      },
+      where,
       orderBy: { id: 'desc' },
+      skip: usePage ? safeSkip : undefined,
+      take: usePage ? safePageSize : undefined,
       include: {
         artistEntity: true,
         albumEntity: true,
@@ -909,7 +917,21 @@ export class TrackService {
        return parts.includes(artist);
     });
 
-    return await this.attachProgressToTracks(filteredTracks, 1);
+    // total 需要在过滤后重新计算（contains 查询匹配范围比精确匹配更广）
+    let total: number;
+    if (usePage) {
+      // 分页路径：只在第一页算 total，避免每页都全表扫描
+      total = safeSkip === 0 ? filteredTracks.length : await this.prisma.track.count({ where });
+    } else {
+      total = filteredTracks.length;
+    }
+    const list = await this.attachProgressToTracks(filteredTracks, 1);
+
+    return {
+      list,
+      total,
+      hasMore: usePage ? safeSkip + list.length < total : false,
+    };
   }
 
   private async attachProgressToTracks(tracks: Track[], userId: number): Promise<Track[]> {

@@ -39,4 +39,6 @@ export interface ILoadMoreData<T> {
   pageSize: number;
   total: number;
   list: T;
+  /** 兼容字段：前端 useLoadMore 直接读 hasMore，缺省时用 list.length >= pageSize 兜底 */
+  hasMore?: boolean;
 }

@@ -1,4 +1,4 @@
-import { ISuccessResponse, Playlist, TrackType } from "../../models";
+import { ILoadMoreData, ISuccessResponse, Playlist, Track, TrackType } from "../../models";
 import { IPlaylistAdapter } from "../interface";
 import { EmbyClient } from "./client";
 import { mapEmbyItemToTrack } from "./mapper";
@@ -129,6 +129,39 @@ export class EmbyPlaylistAdapter implements IPlaylistAdapter {
           track.playlistEntryId = t.PlaylistItemId || t.PlaylistItemIdList?.[0] || t.EntryId || t.PlaylistEntryId;
           return track;
         }),
+      },
+    };
+  }
+
+  /**
+   * 分页加载 playlist tracks（与 native 端对齐，前端 useLoadMore 接入）。
+   * Emby 端走 Playlists/{id}/Items 的 StartIndex/Limit 实现分页；total 从 TotalRecordCount 取。
+   */
+  async getPlaylistTracksPaged(id: number | string, skip: number, pageSize: number): Promise<ISuccessResponse<ILoadMoreData<Track>>> {
+    const finalUserId = await this.ensureUserId();
+    const response = await this.client.get<EmbyItemsResponse>(`Users/${finalUserId}/Items`, {
+      ParentId: id,
+      IncludeItemTypes: "Audio",
+      Recursive: true,
+      StartIndex: Math.max(0, skip),
+      Limit: Math.max(1, pageSize),
+      Fields: "Artists,Album,AlbumId,RunTimeTicks,ProductionYear,IndexNumber,ParentIndexNumber,ImageTags,AlbumPrimaryImageTag,PrimaryImageTag,PrimaryImageItemId,ItemIds",
+    });
+    const list: Track[] = response.Items.map((t: any) => {
+      const track = mapEmbyItemToTrack(t, this.client.getImageUrl.bind(this.client), this.client.getStreamUrl.bind(this.client)) as any;
+      track.playlistEntryId = t.PlaylistItemId || t.PlaylistItemIdList?.[0] || t.EntryId || t.PlaylistEntryId;
+      return track;
+    });
+    const total = response.TotalRecordCount ?? list.length;
+    return {
+      code: 200,
+      message: "success",
+      data: {
+        pageSize,
+        loadCount: Math.floor(skip / pageSize),
+        list,
+        total,
+        hasMore: skip + list.length < total,
       },
     };
   }

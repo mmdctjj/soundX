@@ -1,4 +1,4 @@
-import { ISuccessResponse, Playlist } from "../../models";
+import { ILoadMoreData, ISuccessResponse, Playlist, Track } from "../../models";
 import request from "../../request";
 import { IPlaylistAdapter } from "../interface";
 
@@ -13,6 +13,12 @@ export class NativePlaylistAdapter implements IPlaylistAdapter {
 
   async getPlaylistById(id: number | string): Promise<ISuccessResponse<Playlist>> {
     return await request.get<any, ISuccessResponse<Playlist>>(`/playlists/${id}`);
+  }
+
+  async getPlaylistTracksPaged(id: number | string, skip: number, pageSize: number): Promise<ISuccessResponse<ILoadMoreData<Track>>> {
+    return await request.get<any, ISuccessResponse<ILoadMoreData<Track>>>(`/playlists/${id}/tracks`, {
+      params: { skip, pageSize },
+    });
   }
 
   async updatePlaylist(id: number | string, name: string): Promise<ISuccessResponse<Playlist>> {

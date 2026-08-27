@@ -22,7 +22,12 @@ export interface ITrackAdapter {
   batchDeleteTracks(ids: (number | string)[]): Promise<ISuccessResponse<boolean>>;
   getLatestTracks(type?: string, random?: boolean, pageSize?: number): Promise<ISuccessResponse<Track[]>>;
   getRecommendedTracks(type?: string, pageSize?: number, likeRatio?: number): Promise<ISuccessResponse<Track[]>>;
-  getTracksByArtist(artist: string): Promise<ISuccessResponse<Track[]>>;
+  /**
+   * 不传 skip/pageSize 时返回全量 Track[]（向后兼容）；
+   * 传了则返回 ILoadMoreData<Track>（元素类型是 Track，list: Track[]）给 useLoadMore 接入。
+   * native/emby 端实现各自处理。
+   */
+  getTracksByArtist(artist: string, opts?: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<Track[]> | ISuccessResponse<ILoadMoreData<Track>>>;
   toggleLike(id: number | string, userId: number | string): Promise<ISuccessResponse<any>>;
   toggleUnLike(id: number | string, userId: number | string): Promise<ISuccessResponse<any>>;
   getFavoriteTracks(userId: number | string, loadCount: number, pageSize: number, type?: string): Promise<ISuccessResponse<ILoadMoreData<{ track: Track, createdAt: string | Date }>>>;
@@ -68,6 +73,10 @@ export interface IPlaylistAdapter {
   createPlaylist(name: string, type: "MUSIC" | "AUDIOBOOK", userId: number | string): Promise<ISuccessResponse<Playlist>>;
   getPlaylists(type?: "MUSIC" | "AUDIOBOOK", userId?: number | string): Promise<ISuccessResponse<Playlist[]>>;
   getPlaylistById(id: number | string): Promise<ISuccessResponse<Playlist>>;
+  /**
+   * 分页加载 playlist 内的 tracks；返回 ILoadMoreData<Track>，与 useLoadMore 配套。
+   */
+  getPlaylistTracksPaged(id: number | string, skip: number, pageSize: number): Promise<ISuccessResponse<ILoadMoreData<Track>>>;
   updatePlaylist(id: number | string, name: string): Promise<ISuccessResponse<Playlist>>;
   deletePlaylist(id: number | string): Promise<ISuccessResponse<boolean>>;
   addTrackToPlaylist(playlistId: number | string, trackId: number | string): Promise<ISuccessResponse<boolean>>;

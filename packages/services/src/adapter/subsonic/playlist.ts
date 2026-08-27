@@ -1,4 +1,4 @@
-import { ISuccessResponse, Playlist, TrackType } from "../../models";
+import { ILoadMoreData, ISuccessResponse, Playlist, Track, TrackType } from "../../models";
 import { IPlaylistAdapter } from "../interface";
 import { SubsonicClient } from "./client";
 import { mapSubsonicSongToTrack } from "./mapper";
@@ -68,6 +68,24 @@ export class SubsonicPlaylistAdapter implements IPlaylistAdapter {
   async getPlaylistById(id: number | string): Promise<ISuccessResponse<Playlist>> {
     const res = await this.client.get<{ playlist: any }>("getPlaylist", { id: id.toString() });
     return this.response(await this.mapPlaylist(res.playlist));
+  }
+
+  async getPlaylistTracksPaged(id: number | string, skip: number, pageSize: number): Promise<ISuccessResponse<ILoadMoreData<Track>>> {
+    // Subsonic getPlaylist 不原生支持分页；前端要分页只能先全量拉再切片。
+    // 对于典型 Navidrome/Jellyfin 服务器单 playlist 曲目通常不会上千，先全量再分页足够。
+    const res = await this.client.get<{ playlist: any }>("getPlaylist", { id: id.toString() });
+    const entries: any[] = res.playlist?.entry || [];
+    const total = entries.length;
+    const safeSkip = Math.max(0, skip);
+    const slice = entries.slice(safeSkip, safeSkip + pageSize);
+    const tracks = await this.mapTracksWithLyrics(slice);
+    return this.response({
+      pageSize,
+      loadCount: Math.floor(safeSkip / pageSize),
+      list: tracks,
+      total,
+      hasMore: safeSkip + tracks.length < total,
+    });
   }
 
   async updatePlaylist(id: number | string, name: string): Promise<ISuccessResponse<Playlist>> {

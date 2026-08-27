@@ -151,4 +151,58 @@ export class ImageOptimizeService {
   private contentTypeFor(fmt: OutputFormat): string {
     return fmt === 'webp' ? 'image/webp' : 'image/jpeg';
   }
+
+  /**
+   * 预生成多尺寸缩略图到磁盘缓存。
+   * - 设计意图：import / 扫描完成时调用一次，把常用尺寸（列表 300 / 卡片 600 / 大图 1200）一次性落盘
+   *   避免前端首次访问触发 sharp 实时 resize。
+   * - 静默失败：单张图或某个尺寸失败不影响其他尺寸继续生成，也不抛错给 import 流程
+   *   （import 是后台任务，预生成只是 best-effort 加速）。
+   * - 默认使用 webp 格式（质量 75），覆盖常见 web 场景。
+   */
+  async preGenerate(
+    rawSrc: string,
+    widths: number[] = [300, 600, 1200],
+    format: OutputFormat = 'webp',
+    quality: number = 75,
+  ): Promise<void> {
+    let src: string;
+    try {
+      src = this.normalizeSrc(rawSrc);
+      src = this.assertAllowlisted(src);
+    } catch {
+      return; // 白名单/格式不合法的 src 静默跳过
+    }
+
+    const sourcePath = this.resolveLocalSource(src);
+    if (!sourcePath || !fs.existsSync(sourcePath)) {
+      return;
+    }
+
+    // 并行生成各尺寸；任一失败不影响其它尺寸
+    await Promise.all(
+      widths.map(async (w) => {
+        try {
+          const safeW = Math.min(Math.max(16, w | 0), 1500);
+          const cacheKey = this.makeCacheKey(src, safeW, quality, format);
+          const cachePath = this.cachePathFor(cacheKey, format);
+          if (fs.existsSync(cachePath)) return; // 已存在则跳过
+
+          const pipeline = sharp(sourcePath, { limitInputPixels: ImageOptimizeService.SHARP_INPUT_LIMIT_PIXELS })
+            .resize({ width: safeW, withoutEnlargement: true });
+
+          const buf = await (format === 'webp'
+            ? pipeline.webp({ quality })
+            : pipeline.jpeg({ quality, mozjpeg: true })
+          ).toBuffer();
+
+          const tmpPath = `${cachePath}.${process.pid}.${Date.now()}.tmp`;
+          await fs.promises.writeFile(tmpPath, buf);
+          await fs.promises.rename(tmpPath, cachePath);
+        } catch {
+          // 静默忽略单尺寸失败
+        }
+      }),
+    );
+  }
 }

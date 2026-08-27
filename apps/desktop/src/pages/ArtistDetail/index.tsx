@@ -11,6 +11,7 @@ import {
     getCollaborativeAlbumsByArtist,
     getCollections,
     getTracksByArtist,
+    toPagedResult,
     uploadArtistAvatar,
     getMvsByArtist,
     playMiDevicePlaylist,
@@ -27,6 +28,7 @@ import {
     message,
     Row,
     Skeleton,
+    theme,
     Typography
 } from "antd";
 import React, { useEffect, useRef, useState } from "react";
@@ -36,6 +38,7 @@ import AddToPlaylistModal from "../../components/AddToPlaylistModal";
 import { MiDeviceSelector, XiaoAiIcon } from "../../components/MiDeviceSelector";
 import Cover from "../../components/Cover";
 import TrackList from "../../components/TrackList";
+import { useLoadMore } from "../../hooks/useLoadMore";
 import { getBaseURL } from "../../https";
 import { type Album, type Artist, type Track, TrackType } from "../../models";
 import { downloadTracks } from "../../services/downloadManager";
@@ -45,6 +48,7 @@ import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
 const { Title } = Typography;
+const { token } = theme.useToken();
 
 const ArtistDetail: React.FC = () => {
   const { t } = useTranslation();
@@ -56,13 +60,39 @@ const ArtistDetail: React.FC = () => {
   const [artist, setArtist] = useState<Artist | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [collaborativeAlbums, setCollaborativeAlbums] = useState<Album[]>([]);
-  const [tracks, setTracks] = useState<Track[]>([]);
   const [mvs, setMvs] = useState<Mv[]>([]);
   const [relatedCollections, setRelatedCollections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { mode } = usePlayMode();
   const { user } = useAuthStore();
   const isEmbySource = (localStorage.getItem("selectedSourceType") || "").toLowerCase() === "emby";
+
+  // tracks 用 useLoadMore 分页加载；artistQueryKey 在 artist 加载完后才确定，
+  // 此处先用一个 watcher：等 artist 就绪后 enable 拉取
+  const artistQueryKey = artist ? (isEmbySource ? String(id) : artist.name) : "";
+
+  const {
+    list: tracks,
+    hasMore: tracksHasMore,
+    loadingMore: tracksLoadingMore,
+    sentinelRef: tracksSentinelRef,
+  } = useLoadMore<Track, { artistQueryKey: string }>({
+    args: { artistQueryKey },
+    deps: [artistQueryKey],
+    immediate: !!artistQueryKey,
+    pageSize: 100,
+    fetcher: ({ artistQueryKey: key, skip, pageSize }) =>
+      getTracksByArtist(key, { skip, pageSize }).then((res: { data?: unknown }) => {
+        const data = (res as { data?: unknown }).data;
+        if (Array.isArray(data)) {
+          // 兼容老路径（不传 skip/pageSize 时 native 返回 Track[]）：只取第一页当作非分页
+          // 实际不会走到这里——只要传了 skip/pageSize，native 会返回 ILoadMoreData<Track>
+          const list = data as Track[];
+          return { list, hasMore: list.length === pageSize, total: undefined };
+        }
+        return toPagedResult(data as never, pageSize);
+      }),
+  });
 
   // Selection Mode
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -86,10 +116,10 @@ const ArtistDetail: React.FC = () => {
         if (artistRes.code === 200 && artistRes.data) {
           setArtist(artistRes.data);
           const artistQueryKey = isEmbySource ? String(id) : artistRes.data.name;
-          const [albumsRes, collaborativeRes, tracksRes] = await Promise.all([
+          // tracks 已交给 useLoadMore 处理（分页），这里只拉 albums / collaborative / mvs
+          const [albumsRes, collaborativeRes] = await Promise.all([
             getAlbumsByArtist(artistQueryKey),
             getCollaborativeAlbumsByArtist(artistQueryKey),
-            getTracksByArtist(artistQueryKey),
           ]);
 
           if (albumsRes.code === 200 && albumsRes.data) {
@@ -98,10 +128,7 @@ const ArtistDetail: React.FC = () => {
           if (collaborativeRes.code === 200 && collaborativeRes.data) {
             setCollaborativeAlbums(collaborativeRes.data);
           }
-          if (tracksRes.code === 200 && tracksRes.data) {
-            setTracks(tracksRes.data);
-          }
-          
+
           if (artistQueryKey) {
             getMvsByArtist(artistQueryKey).then((res: any[]) => {
               if (res?.length) {
@@ -456,6 +483,12 @@ const ArtistDetail: React.FC = () => {
                 onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
             } : undefined}
           />
+          {/* 分页 sentinel：进入视口自动 loadMore */}
+          {(tracksHasMore || tracksLoadingMore) && (
+            <div ref={tracksSentinelRef} style={{ padding: "12px 0", textAlign: "center", color: token.colorTextSecondary, fontSize: 12 }}>
+              {tracksLoadingMore ? "加载中…" : "上拉/滚动加载更多"}
+            </div>
+          )}
         </div>
       )}
 

@@ -55,8 +55,8 @@ import type {
     return getAdapter().track.getRecommendedTracks(type, pageSize, likeRatio);
   };
   
-  export const getTracksByArtist = (artist: string) => {
-    return getAdapter().track.getTracksByArtist(artist);
+  export const getTracksByArtist = (artist: string, opts?: { skip?: number; pageSize?: number }) => {
+    return getAdapter().track.getTracksByArtist(artist, opts);
   };
   
   export const toggleTrackLike = (id: number | string, userId: number | string) => {
