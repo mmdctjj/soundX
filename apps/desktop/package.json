@@ -36,6 +36,7 @@
     "@soundx/i18e": "workspace:*",
     "@soundx/services": "workspace:*",
     "@soundx/ws": "workspace:*",
+    "@tanstack/react-virtual": "^3.14.10",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-autostart": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.0.0",

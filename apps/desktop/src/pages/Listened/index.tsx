@@ -3,8 +3,12 @@ import {
     SyncOutlined,
     UnorderedListOutlined,
 } from "@ant-design/icons";
-import { getAlbumHistory, getTrackHistory } from "@soundx/services";
-import { useInfiniteScroll } from "ahooks";
+import {
+    getAlbumHistory,
+    getTrackHistory,
+    type ILoadMoreData,
+    toPagedResult,
+} from "@soundx/services";
 import {
     Button,
     Col,
@@ -17,10 +21,11 @@ import {
     Typography,
     theme,
 } from "antd";
-import React, { useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Cover from "../../components/Cover/index";
 import TrackList from "../../components/TrackList";
 import type { Album, TimelineItem, Track } from "../../models";
+import { useLoadMore } from "../../hooks/useLoadMore";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { usePlayMode } from "../../utils/playMode";
@@ -30,15 +35,8 @@ import styles from "./index.module.less";
 
 const { Title } = Typography;
 
-interface Result {
-  list: TimelineItem[];
-  hasMore: boolean;
-  nextId?: number;
-}
-
 const Listened: React.FC = () => {
   const { t } = useTranslation();
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"album" | "track">("album");
   const { token } = theme.useToken();
@@ -48,151 +46,54 @@ const Listened: React.FC = () => {
   const { mode } = usePlayMode();
   const type = mode;
 
-  const loadMoreListened = async (d: Result | undefined): Promise<Result> => {
-    const currentLoadCount = d?.nextId || 0;
+  const PAGE_SIZE = 100;
 
-    try {
+  const { list: historyList, hasMore, loading, loadingMore, sentinelRef, reload, error } = useLoadMore<{
+    id: string;
+    time: number;
+    items: (Album | Track)[];
+  }>({
+    fetcher: async ({ pageSize, skip }) => {
+      const loadCount = Math.floor(skip / pageSize);
       if (viewMode === "album") {
-        if (d?.hasMore === false) {
-          return {
-            list: d?.list || [],
-            hasMore: false,
-          };
-        }
-        // Fetch real data from API
-        const response = await getAlbumHistory(
-          user?.id || 0,
-          currentLoadCount,
-          20
-        );
+        const res = await getAlbumHistory(user?.id || 0, loadCount, pageSize, type);
+        return toPagedResult<any>(res.data as ILoadMoreData<any>, pageSize);
+      } else {
+        const res = await getTrackHistory(user?.id || 0, loadCount, pageSize, type);
+        return toPagedResult<any>(res.data as ILoadMoreData<any>, pageSize);
+      }
+    },
+    pageSize: PAGE_SIZE,
+    deps: [viewMode, type, user?.id],
+    uniqueKey: (item) => item.id,
+  });
 
-        if (response.code === 200 && response.data) {
-          const { list } = response.data;
-
-          // Group albums by date
-          const timelineMap = new Map<string, Album[]>();
-
-          list.forEach((historyItem: any) => {
-            const dateKey = new Date(historyItem.listenedAt).toDateString();
-            if (!timelineMap.has(dateKey)) {
-              timelineMap.set(dateKey, []);
-            }
-            // Assuming historyItem has album data
-            if (historyItem.album) {
-              timelineMap.get(dateKey)!.push(historyItem.album);
-            }
-          });
-
-          // Convert map to timeline items
-          const newItems: TimelineItem[] = Array.from(
-            timelineMap.entries()
-          ).map(([date, albums]) => ({
-            id: formatTimeLabel(new Date(date).getTime()),
-            time: new Date(date).getTime(),
-            items: albums?.filter((album) => album.type === type),
-          }));
-
-          // Merge with existing items if label matches
-          let mergedList = d ? [...d.list] : [];
-          newItems.forEach((newItem) => {
-            const existingItemIndex = mergedList.findIndex(
-              (item) => item.id === newItem.id
-            );
-            if (existingItemIndex > -1) {
-              const existing = mergedList[existingItemIndex];
-              const mergedItems = [...existing.items, ...newItem.items];
-              // Remove duplicates by id
-              const uniqueMap = new Map(mergedItems.map((i: any) => [i.id, i]));
-              mergedList[existingItemIndex].items = Array.from(uniqueMap.values());
-            } else {
-              mergedList.push(newItem);
-            }
-          });
-
-          if (!d) mergedList = newItems;
-
-          // Filter out items with empty content
-          mergedList = mergedList.filter((item) => item.items.length > 0);
-
-          return {
-            list: mergedList,
-            hasMore: list.length === 20,
-            nextId: currentLoadCount + 1,
-          };
+  // 后端返回平面听歌历史，按日期聚合成 Timeline
+  const aggregatedList = useMemo(() => {
+    const merged = new Map<string, TimelineItem>();
+    for (const raw of historyList as any[]) {
+      const createdAt = raw.listenedAt ?? raw.playedAt ?? raw.createdAt ?? new Date();
+      const dateKey = new Date(createdAt).toDateString();
+      const inner = (raw.album ?? raw.track) as Album | Track;
+      if (!inner) continue;
+      if (type === "MUSIC" && (inner as any).type && (inner as any).type !== type) continue;
+      if (type === "AUDIOBOOK" && (inner as any).type && (inner as any).type !== type) continue;
+      const tlKey = formatTimeLabel(new Date(dateKey).getTime());
+      const existing = merged.get(tlKey);
+      if (existing) {
+        if (!existing.items.some((it: any) => it.id === inner.id)) {
+          existing.items.push(inner);
         }
       } else {
-        // Track mode
-        const res = await getTrackHistory(user?.id || 0, currentLoadCount, 20);
-        if (res.code === 200 && res.data) {
-          const { list, total: _total } = res.data;
-
-          const timelineMap = new Map<string, Track[]>();
-          list.forEach((item: any) => {
-            const dateKey = new Date(item.listenedAt).toDateString();
-            if (!timelineMap.has(dateKey)) {
-              timelineMap.set(dateKey, []);
-            }
-            if (item.track) {
-              timelineMap.get(dateKey)!.push(item.track);
-            }
-          });
-
-          const newItems: TimelineItem[] = Array.from(
-            timelineMap.entries()
-          ).map(([date, tracks]) => ({
-            id: formatTimeLabel(new Date(date).getTime()),
-            time: new Date(date).getTime(),
-            items: tracks?.filter((track) => track.type === type),
-          }));
-
-          // Merge with existing items if label matches
-          let mergedList = d ? [...d.list] : [];
-          newItems.forEach((newItem) => {
-            const existingItemIndex = mergedList.findIndex(
-              (item) => item.id === newItem.id
-            );
-            if (existingItemIndex > -1) {
-              const existing = mergedList[existingItemIndex];
-              const mergedItems = [...existing.items, ...newItem.items];
-              // Remove duplicates by id
-              const uniqueMap = new Map(mergedItems.map((i: any) => [i.id, i]));
-              mergedList[existingItemIndex].items = Array.from(uniqueMap.values());
-            } else {
-              mergedList.push(newItem);
-            }
-          });
-
-          if (!d) mergedList = newItems;
-
-          // Filter out items with empty content
-          mergedList = mergedList.filter((item) => item.items.length > 0);
-
-          return {
-            list: mergedList,
-            hasMore: list.length === 20,
-            nextId: currentLoadCount + 1,
-          };
-        }
+        merged.set(tlKey, {
+          id: tlKey,
+          time: new Date(dateKey).getTime(),
+          items: [inner],
+        });
       }
-    } catch (error) {
-      console.error("Failed to load history:", error);
     }
-
-    // Fallback to empty result
-    return {
-      list: d?.list || [],
-      hasMore: false,
-    };
-  };
-
-  const { data, loading, loadingMore, reload } = useInfiniteScroll(
-    loadMoreListened,
-    {
-      target: scrollRef,
-      isNoMore: (d) => !d?.hasMore,
-      reloadDeps: [viewMode, type],
-    }
-  );
+    return Array.from(merged.values()).sort((a, b) => b.time - a.time);
+  }, [historyList, type]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -200,53 +101,39 @@ const Listened: React.FC = () => {
     setRefreshing(false);
   };
 
-  const timelineItems =
-    data?.list.map((item) => ({
-      children: (
-        <div>
-          <Title level={4} className={styles.timelineTitle}>
-            {formatTimeLabel(item.time)}
-          </Title>
-          {viewMode === "album" ? (
-            <Row gutter={[24, 24]}>
-              {item.items.map((album) => (
-                <Col key={album.id}>
-                  <Cover item={album as Album} isHistory={true} />
-                </Col>
-              ))}
-            </Row>
-          ) : (
-            <TrackList
-              tracks={item.items as Track[]}
-              showIndex={false}
-              showCover={false} // Original 'play' column replaced cover? No, original first column was play icon, no cover displayed? Original code had "play" column with icon. No cover column.
-              // Wait, previous code Step 1274 columns:
-              // 1. Play icon width 50
-              // 2. Title
-              // 3. Artist
-              // 4. Album
-              // 5. Duration
-              // It DID NOT show cover.
-              // I will set showCover={false} to match.
-              // But TrackList shows Play icon over cover if showCover=true.
-              // If showCover=false, TrackList doesn't play on row click? Yes it does: onRow click handlePlayTrack.
-              // I should probably Keep showCover={true} for aesthetics?
-              // User said "Based on Album Detail list". Album Detail HAS cover.
-              // So I will enable cover. It looks better.
-              showArtist={true}
-              showAlbum={true}
-              onPlay={(track, tracks) => {
-                setPlaylist(tracks);
-                play(track, -1);
-              }}
-            />
-          )}
-        </div>
-      ),
-    })) || [];
+  const timelineItems = aggregatedList.map((item) => ({
+    children: (
+      <div>
+        <Title level={4} className={styles.timelineTitle}>
+          {formatTimeLabel(item.time)}
+        </Title>
+        {viewMode === "album" ? (
+          <Row gutter={[24, 24]}>
+            {item.items.map((album) => (
+              <Col key={album.id}>
+                <Cover item={album as Album} isHistory={true} />
+              </Col>
+            ))}
+          </Row>
+        ) : (
+          <TrackList
+            tracks={item.items as Track[]}
+            showIndex={false}
+            showCover={false}
+            showArtist={true}
+            showAlbum={true}
+            onPlay={(track, tracks) => {
+              setPlaylist(tracks);
+              play(track, -1);
+            }}
+          />
+        )}
+      </div>
+    ),
+  }));
 
   return (
-    <div ref={scrollRef} className={styles.container}>
+    <div className={styles.container}>
       <div className={styles.pageHeader}>
         <Title level={2} className={styles.title}>
           {t("listened.title")}
@@ -298,7 +185,12 @@ const Listened: React.FC = () => {
         </div>
       )}
 
-      {data && !data.hasMore && data.list.length > 0 && (
+      {/* 滚动 sentinel：进入视口自动 loadMore */}
+      {hasMore && !loading && (
+        <div ref={sentinelRef} style={{ height: 1 }} aria-hidden="true" />
+      )}
+
+      {!hasMore && aggregatedList.length > 0 && (
         <div
           className={styles.noMore}
           style={{ color: token.colorTextSecondary }}
@@ -307,7 +199,7 @@ const Listened: React.FC = () => {
         </div>
       )}
 
-      {data?.list.length === 0 && !loading && (
+      {aggregatedList.length === 0 && !loading && !error && (
         <div className={styles.noData}>
           <Empty description={t("listened.noListened")} />
         </div>

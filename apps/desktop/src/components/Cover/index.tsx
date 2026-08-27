@@ -28,9 +28,10 @@ import {
   theme,
   Typography,
 } from "antd";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import LazyImage from "../LazyImage";
 import { useMessage } from "../../context/MessageContext";
 import { TrackType, type Album, type Track, type Mv } from "../../models";
 import { resolveArtworkUri } from "../../services/trackResolver";
@@ -77,6 +78,22 @@ const Cover: CoverComponent = ({
   const { token: themeToken } = theme.useToken();
   const isAudioDockSource = !isSubsonicSource() && !isEmbySource();
   const suppressClickRef = useRef(false);
+
+  // 取实际展示尺寸：列表封面通常用 170/45，进入页面拿更大的；这里根据 size 数值推断
+  const displayWidth = useMemo(() => {
+    if (typeof size === "number") return size;
+    if (typeof size === "string") {
+      const n = parseInt(size, 10);
+      return Number.isFinite(n) ? n : 170;
+    }
+    return 170;
+  }, [size]);
+  const coverSrc = useMemo(
+    () =>
+      resolveArtworkUri(item as any, { width: displayWidth, format: "webp", quality: 75 }) ||
+      `https://picsum.photos/seed/${item.id}/${displayWidth}/${displayWidth}`,
+    [item, displayWidth],
+  );
 
   useEffect(() => {
     // Check if album is liked
@@ -365,14 +382,12 @@ const Cover: CoverComponent = ({
         onChange={handleCoverFileChange}
       />
       <div className={styles.imageWrapper} style={{ paddingBottom: `${(1 / aspectRatio) * 100}%` }}>
-        <img
-          src={
-            resolveArtworkUri(item as any) ||
-            `https://picsum.photos/seed/${item.id}/300/300`
-          }
+        <LazyImage
+          src={coverSrc}
           alt={item.name}
-          className={styles.image}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+          width={"100%"}
+          height={"100%"}
+          style={{ position: 'absolute', top: 0, left: 0 }}
         />
         {!isTrack &&
           (item as Album).progress !== undefined &&

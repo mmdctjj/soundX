@@ -10,6 +10,7 @@ export * from "./folder";
 export * from "./import";
 export * from "./llm";
 export * from "./llmConfig";
+export * from "./loadMore";
 export * from "./metadataPlugins";
 export * from "./mi";
 export * from "./models";

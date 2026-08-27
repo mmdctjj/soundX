@@ -46,10 +46,12 @@ import { MiDeviceSelector, XiaoAiIcon } from "../../components/MiDeviceSelector"
 import { useMessage } from "../../context/MessageContext";
 import { type Album, type Track } from "../../models";
 import { downloadTracks } from "../../services/downloadManager";
+import { resolveArtworkUri } from "../../services/trackResolver";
 import { useAuthStore } from "../../store/auth";
 import { useMvPlaylistStore } from "../../store/mvPlaylist";
 import { usePlayerStore } from "../../store/player";
 import { getCoverUrl } from "../../utils";
+import LazyImage from "../LazyImage";
 import TrackList from "../TrackList";
 import styles from "./index.module.less";
 
@@ -726,10 +728,12 @@ const Detail: React.FC = () => {
                       <div style={{ width: 40, textAlign: 'center', color: token.colorTextSecondary }}>
                         {index + 1}
                       </div>
-                      <img 
-                        src={getCoverUrl(mv, mv.id)} 
-                        alt={mv.name} 
-                        style={{ width: 80, height: 45, objectFit: 'cover', borderRadius: 4, marginRight: 16 }} 
+                      <LazyImage
+                        src={resolveArtworkUri(mv, { width: 160, format: "webp" })}
+                        alt={mv.name}
+                        width={80}
+                        height={45}
+                        style={{ borderRadius: 4, marginRight: 16 }}
                       />
                       <div style={{ flex: 1, overflow: 'hidden' }}>
                         <div style={{ color: token.colorText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

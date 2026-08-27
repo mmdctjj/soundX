@@ -1,4 +1,5 @@
 import type {
+  ILoadMoreData,
   ISuccessResponse,
   Track
 } from "../../models";
@@ -154,11 +155,28 @@ export class SubsonicTrackAdapter implements ITrackAdapter {
       return this.getLatestTracks(type, true, pageSize);
   }
 
-  async getTracksByArtist(artist: string) {
+  async getTracksByArtist(artist: string): Promise<ISuccessResponse<Track[]>>;
+  async getTracksByArtist(artist: string, opts: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<ILoadMoreData<Track>>>;
+  async getTracksByArtist(artist: string, opts?: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<Track[]> | ISuccessResponse<ILoadMoreData<Track>>> {
     // search3
     const res = await this.client.get<{searchResult3: { song: SubsonicChild[] }}>("search3", { query: artist, songCount: 50 });
-    const tracks = await this.mapTracksWithLyrics(res.searchResult3?.song || []);
-    return this.response(tracks);
+    const all = res.searchResult3?.song || [];
+    const usePage = !!(opts && (opts.skip !== undefined || opts.pageSize !== undefined));
+    const safeSkip = Math.max(0, opts?.skip ?? 0);
+    const pageSize = Math.max(1, opts?.pageSize ?? 100);
+    const slice = usePage ? all.slice(safeSkip, safeSkip + pageSize) : all;
+    const tracks = await this.mapTracksWithLyrics(slice);
+    if (!usePage) {
+      return this.response(tracks);
+    }
+    const total = all.length;
+    return this.response({
+      pageSize,
+      loadCount: Math.floor(safeSkip / pageSize),
+      list: tracks,
+      total,
+      hasMore: safeSkip + tracks.length < total,
+    });
   }
 
   async toggleLike(id: number | string, userId: number | string) {

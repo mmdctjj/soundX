@@ -37,6 +37,7 @@ import { LogMethod } from '../common/log-method.decorator';
 import { resolvePathList } from '../common/path-list';
 import { AlbumService } from './album';
 import { ArtistService } from './artist';
+import { ImageOptimizeService } from './image-optimize.service';
 import { MetadataPluginService } from './metadata-plugin.service';
 import { TrackService } from './track';
 import { WebDavConfigService, WebDavPathKind, WebDavSource } from './webdav-config.service';
@@ -105,8 +106,24 @@ export class ImportService implements OnModuleInit {
     private readonly artistService: ArtistService,
     private readonly webDavConfig: WebDavConfigService,
     private readonly metadataPluginService: MetadataPluginService,
+    private readonly imageOptimizeService: ImageOptimizeService,
   ) {
     this.prisma = new PrismaClient();
+  }
+
+  /**
+   * 扫描/上传过程中把刚写入磁盘的封面 URL 投递给 ImageOptimizeService，
+   * 让其后台预生成 300/600/1200 三档 webp 缩略图到磁盘缓存。
+   * - fire-and-forget：不阻塞 import 主流程，单张图失败不影响其它
+   * - 仅对 /covers/ 前缀的本地封面生效（远程 URL 会由 service 内部静默忽略）
+   */
+  private preGenerateCover(coverUrl: string | null | undefined): void {
+    if (!coverUrl || typeof coverUrl !== 'string') return;
+    if (!coverUrl.startsWith('/covers/')) return;
+    // 不 await，让 sharp 后台跑；import 流程不会因为缩略图慢而卡
+    this.imageOptimizeService.preGenerate(coverUrl).catch(() => {
+      // 静默吞错；缩略图失败不影响扫描结果
+    });
   }
 
   async onModuleInit() {
@@ -1283,6 +1300,7 @@ export class ImportService implements OnModuleInit {
 
         if (targetTrack) {
           const coverUrl = enriched.coverPath ? this.convertToHttpUrl(enriched.coverPath, 'cover', cachePath) : null;
+          this.preGenerateCover(coverUrl);
           const sortFields = this.getTrackSortFields(enriched.originalPath || filePath, basePath);
 
           this.logger.log(`[Watcher] Updating track ${targetTrack.id} - cover: ${coverUrl}, lyrics: ${!!enriched.lyrics}`);
@@ -1420,6 +1438,7 @@ export class ImportService implements OnModuleInit {
     if (!this.scanner) this.scanner = new LocalMusicScanner(cachePath);
     const cachedCoverPath = await this.scanner.findCoverInDirectory(dirPath);
     const coverUrl = cachedCoverPath ? this.convertToHttpUrl(cachedCoverPath, 'cover', cachePath) : null;
+    this.preGenerateCover(coverUrl);
 
     const albumIds = new Set<number>();
     for (const track of tracks) {
@@ -2022,6 +2041,7 @@ export class ImportService implements OnModuleInit {
 
     // 1. Meta data cover
     let finalCoverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
+    this.preGenerateCover(finalCoverUrl);
 
     // 2. Track cover / metadata (prefer matching by parsed MV title, then fallback to current metadata)
     let trackId: number | null = null;
@@ -2062,6 +2082,7 @@ export class ImportService implements OnModuleInit {
       const thumbnailPath = await this.extractVideoThumbnail(videoSourcePath || item.originalPath || item.path, cachePath);
       if (thumbnailPath) {
         finalCoverUrl = this.convertToHttpUrl(thumbnailPath, 'cover', cachePath);
+        this.preGenerateCover(finalCoverUrl);
       }
     }
 
@@ -2194,6 +2215,7 @@ export class ImportService implements OnModuleInit {
     const artistName = item.artist || '未知';
     const albumName = item.album || '未知';
     const coverUrl = item.coverPath ? this.convertToHttpUrl(item.coverPath, 'cover', cachePath) : null;
+    this.preGenerateCover(coverUrl);
     const albumGroupArtist = this.isUnknownMetadata(item.albumArtist) ? artistName : item.albumArtist!;
 
     // 1. Resolve Track Artist (Required for Track.artistId)
@@ -2340,6 +2362,7 @@ export class ImportService implements OnModuleInit {
       if (metadataSource === MetadataSource.PLUGIN) {
         if (coverUrl && album.cover !== coverUrl) {
           albumUpdate.cover = coverUrl;
+          this.preGenerateCover(coverUrl);
         }
         if (pluginAlbumDescription && !album.description) {
           albumUpdate.description = pluginAlbumDescription;
@@ -2392,6 +2415,7 @@ export class ImportService implements OnModuleInit {
           albumId: album.id,
           // album: albumName,   // Optional: Update denormalized album name
           cover: this.resolveCoverForUpdate(metadataSource, coverUrl, existingTrack.cover),
+          // 缩略图已在前面 coverUrl 计算时 preGenerate；这里无需再触发
           transcodedPath: transcodedPath || existingTrack.transcodedPath,
           metadataSource,
           metadataProvider,

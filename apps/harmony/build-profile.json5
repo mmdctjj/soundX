@@ -18,13 +18,13 @@
         "name": "release",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "/Users/ctjj/.ohos/config/release_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001A44D5583D6BAC073DBA756C8F7325F747220B6EE86FE35AD76905A87BEC09171F0830051531DC",
-          "profile": "/Users/ctjj/.ohos/config/release_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.p7b",
+          "storeFile": "/Users/ctjj/Documents/资料/ad/ad.p12",
+          "storePassword": "0000001AD246B721692A93EFDBA6953EDA3A82F06873DAAAF7C282E1C48DC477D3249AF58946CD85B1F8",
+          "keyAlias": "ad",
+          "keyPassword": "0000001A1BB5C27F219377D9B503797EDD4C5FE8E5DDC8DD2294950A139668F652F0A3102160F99FC30F",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "/Users/ctjj/.ohos/config/release_harmony_NV3V8x-E4_AbWdtqRju7G6ikAmDjLPtGWSsai8mLOLI=.p12",
-          "storePassword": "0000001AFF11EA1F12A178ADF4A937A3541E6A824C8071C44927F73DA064C8AF48D943B159EB5AD1E90C"
+          "profile": "/Users/ctjj/Documents/资料/ad/adRelease.p7b",
+          "certpath": "/Users/ctjj/Documents/资料/ad/ad.cer"
         }
       }
     ],

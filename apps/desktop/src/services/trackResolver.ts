@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Album, Track } from "@soundx/services";
+import type { Album, Mv, Track } from "@soundx/services";
 import { getBaseURL } from "../https";
 import { useAuthStore } from "../store/auth";
 import { useSettingsStore } from "../store/settings";
@@ -126,18 +126,49 @@ export const resolveTrackUri = async (
 
 /**
  * Resolves artwork URI
+ *
+ * 当传入 width 时，自动走 /image/optimize 让后端 resize 到目标尺寸并返回 webp；
+ * 这样 30x30 的列表封面只下载 1-3 KB 而不是 1.5 MB 原图。
+ *
+ * 不传 width 或 cover 是 http(s) 外链时，回退到原 URI（Tauri 桌面端外链封面不需要走代理）。
  */
-export const resolveArtworkUri = (item: Track | Album | string): string | undefined => {
+export interface ResolveArtworkOptions {
+  /** 目标显示宽度（px）。常见档位：30/45/80/170/300 */
+  width?: number;
+  /** webp 质量 1-100（默认 75） */
+  quality?: number;
+  /** 输出格式：默认 webp */
+  format?: "webp" | "jpeg";
+}
+
+export const resolveArtworkUri = (
+  item: Track | Album | Mv | string,
+  options: ResolveArtworkOptions = {},
+): string | undefined => {
   const cover = typeof item === "string" ? item : item?.cover;
   if (!cover) return undefined;
-  
-  let uri: string;
+
+  // media:// 是 Tauri 自定义协议，原样返回
   if (cover.startsWith("media://")) {
-    uri = cover;
-  } else {
-    uri = cover.startsWith("http")
-      ? cover
-      : `${getBaseURL()}${cover.split('/').map(encodeURIComponent).join('/')}`;
+    return cover;
   }
-  return uri;
+
+  // http(s) 外链直接返回（不走代理）
+  if (cover.startsWith("http://") || cover.startsWith("https://")) {
+    return cover;
+  }
+
+  // 本地 /covers/... 走缩略图代理
+  const isCoversPath = cover.startsWith("/covers/") || cover.startsWith("covers/");
+  const isMusicPath = cover.startsWith("/music/") || cover.startsWith("music/");
+  if ((isCoversPath || isMusicPath) && options.width && options.width >= 16) {
+    const src = "/" + cover.replace(/^\/+/, "");
+    const w = Math.min(Math.max(Math.round(options.width), 16), 1500);
+    const q = options.quality ?? 75;
+    const fmt = options.format ?? "webp";
+    return `${getBaseURL()}/image/optimize?src=${encodeURIComponent(src)}&w=${w}&q=${q}&fmt=${fmt}`;
+  }
+
+  // 兜底：原 URI
+  return `${getBaseURL()}${cover.split('/').map(encodeURIComponent).join('/')}`;
 };

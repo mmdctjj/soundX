@@ -14,6 +14,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
+import LazyImage from "../LazyImage";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { getCoverUrl } from "../../utils";
@@ -135,7 +136,13 @@ const SearchResults: React.FC<SearchResultsProps> = ({
             icon={!data.avatar && data.name[0]}
           />
         ) : (
-          <img src={cover} alt={title} className={styles.cover} />
+          <LazyImage
+            src={cover}
+            alt={title}
+            width={"100%"}
+            height={"100%"}
+            className={styles.cover}
+          />
         )}
 
         <div className={styles.info}>

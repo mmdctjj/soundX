@@ -12,6 +12,13 @@ export const getPlaylistById = async (id: number | string) => {
   return await getAdapter().playlist.getPlaylistById(id);
 };
 
+/**
+ * 分页加载 playlist 内的 tracks；返回 ILoadMoreData<Track>，与 useLoadMore 配套。
+ */
+export const getPlaylistTracksPaged = async (id: number | string, skip: number, pageSize: number) => {
+  return await getAdapter().playlist.getPlaylistTracksPaged(id, skip, pageSize);
+};
+
 export const updatePlaylist = async (id: number | string, name: string) => {
   return await getAdapter().playlist.updatePlaylist(id, name);
 };

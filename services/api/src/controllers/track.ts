@@ -334,13 +334,34 @@ export class TrackController {
   @Get('/track/artist')
   async getTracksByArtist(
     @Query('artist') artist: string,
-  ): Promise<ISuccessResponse<Track[]> | IErrorResponse> {
+    @Query('skip') skip?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('loadCount') loadCount?: string,
+  ): Promise<ISuccessResponse<Track[] | { list: Track[]; total: number; hasMore: boolean; pageSize: number; loadCount: number }> | IErrorResponse> {
     try {
-      const tracks = await this.trackService.getTracksByArtist(artist);
+      const ps = Math.min(Math.max(1, Number(pageSize) || 100), 500);
+      const skRaw = skip !== undefined ? Number(skip) : (Number(loadCount) || 0) * ps;
+      const sk = Math.max(0, Number.isFinite(skRaw) ? skRaw : 0);
+      const usePage = skip !== undefined || loadCount !== undefined;
+      const result = await this.trackService.getTracksByArtist(artist, usePage ? sk : undefined, usePage ? ps : undefined);
+      if (usePage) {
+        const paged = result as { list: Track[]; total: number; hasMore: boolean };
+        return {
+          code: 200,
+          message: 'success',
+          data: {
+            pageSize: ps,
+            loadCount: Math.floor(sk / ps),
+            list: paged.list,
+            total: paged.total,
+            hasMore: paged.hasMore,
+          },
+        };
+      }
       return {
         code: 200,
         message: 'success',
-        data: tracks,
+        data: (result as { list: Track[] }).list,
       };
     } catch (error) {
       return {

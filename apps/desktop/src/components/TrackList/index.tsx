@@ -9,6 +9,7 @@ import {
   PlayCircleOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   addTrackToPlaylist,
   deleteTrack,
@@ -16,18 +17,18 @@ import {
   getPlaylists,
   type Playlist,
 } from "@soundx/services";
-import { Dropdown, List, type MenuProps, Modal, Table, Typography } from "antd";
-import type { ColumnProps } from "antd/es/table";
-import React, { useState } from "react";
+import { Checkbox, Dropdown, type MenuProps, Modal, Typography } from "antd";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMessage } from "../../context/MessageContext";
 import { type Track, TrackSource, TrackType } from "../../models";
 import { downloadTrack } from "../../services/downloadManager";
+import { resolveArtworkUri } from "../../services/trackResolver";
 import { useAuthStore } from "../../store/auth";
 import { type PlaylistSource, usePlayerStore } from "../../store/player";
-import { getCoverUrl } from "../../utils";
 import { formatDuration } from "../../utils/formatDuration";
 import { usePlayMode } from "../../utils/playMode";
+import LazyImage from "../LazyImage";
 import PlayingIndicator from "../PlayingIndicator";
 import styles from "./index.module.less";
 
@@ -36,7 +37,7 @@ const { Text } = Typography;
 export interface TrackListProps {
   tracks: Track[];
   loading?: boolean;
-  type?: TrackType; // Context type (e.g. if we are in an audiobook album)
+  type?: TrackType;
   showIndex?: boolean;
   showCover?: boolean;
   showArtist?: boolean;
@@ -45,10 +46,43 @@ export interface TrackListProps {
   showActions?: boolean;
   showDuration?: boolean;
   onPlay?: (track: Track, tracks: Track[]) => void;
-  onRefresh?: () => void; // Called after delete/like etc if needed
-  rowSelection?: any; // Ant Design Table rowSelection
+  onRefresh?: () => void;
+  /** 由调用方控制的已选 track id 列表（自己实现 rowSelection 时使用） */
+  selectedIds?: Array<number | string>;
+  onSelectChange?: (ids: Array<number | string>) => void;
+  /** 兼容 antd rowSelection（fallback：未传 selectedIds 时使用） */
+  rowSelection?: any;
   albumId?: number | string;
   playlistSource?: PlaylistSource;
+}
+
+const ROW_HEIGHT = 56;
+const COVER_WIDTH = 30;
+const COVER_HEIGHT = 30;
+
+function buildGridTemplate(opts: {
+  showIndex: boolean;
+  showCover: boolean;
+  showSelect: boolean;
+  showArtist: boolean;
+  showAlbum: boolean;
+  showSource: boolean;
+  isAudiobook: boolean;
+  showDuration: boolean;
+  showActions: boolean;
+}): string {
+  const cols: string[] = [];
+  if (opts.showSelect) cols.push("36px");
+  if (opts.showIndex) cols.push("50px");
+  if (opts.showCover) cols.push("70px");
+  cols.push("1fr"); // title 弹性
+  if (opts.showArtist) cols.push("minmax(120px, 1fr)");
+  if (opts.showAlbum) cols.push("minmax(120px, 1fr)");
+  if (opts.showSource) cols.push("90px");
+  if (opts.isAudiobook) cols.push("70px"); // progress
+  if (opts.showDuration) cols.push("80px");
+  if (opts.showActions) cols.push("44px");
+  return cols.join(" ");
 }
 
 const TrackList: React.FC<TrackListProps> = ({
@@ -64,6 +98,8 @@ const TrackList: React.FC<TrackListProps> = ({
   showDuration = true,
   onPlay,
   onRefresh,
+  selectedIds,
+  onSelectChange,
   rowSelection,
   albumId,
   playlistSource,
@@ -82,32 +118,49 @@ const TrackList: React.FC<TrackListProps> = ({
   } = usePlayerStore();
   const { mode } = usePlayMode();
 
-  // Modal states
   const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] =
     useState(false);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [modalApi, contextHolder] = Modal.useModal();
 
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // 内部受控选择态（若未传 selectedIds / onSelectChange）
+  const [internalSelected, setInternalSelected] = useState<Array<
+    number | string
+  >>([]);
+  const isSelectionControlled =
+    Array.isArray(selectedIds) && typeof onSelectChange === "function";
+  const effectiveSelected = isSelectionControlled
+    ? (selectedIds as Array<number | string>)
+    : internalSelected;
+
+  const toggleSelect = (id: number | string) => {
+    const next = effectiveSelected.includes(id)
+      ? effectiveSelected.filter((x) => x !== id)
+      : [...effectiveSelected, id];
+    if (isSelectionControlled) {
+      onSelectChange?.(next);
+    } else {
+      setInternalSelected(next);
+    }
+  };
+
   const handlePlayTrack = (track: Track) => {
     if (onPlay) {
       onPlay(track, tracks);
       return;
     }
-
     if (track.id === currentTrack?.id && isPlaying) {
       pause();
       return;
     }
-
     setPlaylist(tracks, playlistSource);
     const shouldResume =
       (type === TrackType.AUDIOBOOK || track.type === TrackType.AUDIOBOOK) &&
       track.progress &&
       track.progress > 0;
-
-    // Attempt to use albumId from track if available, though Detail component passed the context albumId.
-    // Ideally tracks in the list have albumId populated.
     play(track, albumId, shouldResume ? track.progress : 0);
   };
 
@@ -119,17 +172,7 @@ const TrackList: React.FC<TrackListProps> = ({
     e.stopPropagation();
     try {
       await toggleLike(track.id, actionType);
-      // Optimistic update or refresh?
-      // For now, we rely on parent to refresh or we just update local state if we had it.
-      // But tracks are props. We can call onRefresh.
       if (onRefresh) onRefresh();
-
-      // Since we can't easily mutate the props 'tracks', we rely on the component using this to re-fetch
-      // OR we could update a local state, but keeping it simple for now.
-      // NOTE: Detail page re-fetches or updates state. toggleLike is a promise.
-      // We might need a way to update the track 'likedByUsers' in the UI immediately.
-      // Modifying the track object in place is dirty but works for display if valid React update triggers.
-      // Better: The parent handles data.
     } catch (error) {
       message.error(t("common.error"));
     }
@@ -141,9 +184,7 @@ const TrackList: React.FC<TrackListProps> = ({
     setIsAddToPlaylistModalOpen(true);
     try {
       const res = await getPlaylists(mode, user?.id);
-      if (res.code === 200) {
-        setPlaylists(res.data);
-      }
+      if (res.code === 200) setPlaylists(res.data);
     } catch (error) {
       message.error(t("trackList.getPlaylistsFailed"));
     }
@@ -167,7 +208,6 @@ const TrackList: React.FC<TrackListProps> = ({
   const handleDeleteSubTrack = async (track: Track) => {
     try {
       const { data: impact } = await getDeletionImpact(track.id);
-
       modalApi.confirm({
         title: t("trackList.confirmDelete"),
         content: impact?.isLastTrackInAlbum
@@ -196,276 +236,319 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   };
 
-  const columns: ColumnProps<Track>[] = [
-    ...(showIndex
-      ? [
-          {
-            title: "#",
-            key: "index",
-            width: 70,
-            render: (_: any, __: Track, index: number) => (
-              <Text>{index + 1}</Text>
-            ),
-          } as ColumnProps<Track>,
-        ]
-      : []),
-    ...(showCover
-      ? [
-          {
-            title: t("trackList.cover"),
-            key: "cover",
-            width: 80,
-            render: (_: any, record: Track) => (
-              <div
-                style={{ position: "relative" }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePlayTrack(record);
-                }}
-              >
-                <img
-                  src={getCoverUrl(record.cover, record.id)}
-                  alt={record.name}
-                  style={{
-                    width: "30px",
-                    height: "30px",
-                    objectFit: "cover",
-                  }}
-                />
-                {currentTrack?.id === record.id && isPlaying && (
-                  <div className={styles.playIconStatus}>
-                    <PlayingIndicator />
-                  </div>
-                )}
-                {currentTrack?.id === record.id && isPlaying ? (
-                  <PauseCircleFilled className={styles.listPlayIcon} />
-                ) : (
-                  <PlayCircleFilled className={styles.listPlayIcon} />
-                )}
-              </div>
-            ),
-          } as ColumnProps<Track>,
-        ]
-      : []),
-    {
-      title: t("trackList.title"),
-      dataIndex: "name",
-      key: "name",
-      ellipsis: true,
-      render: (text: string, record: Track) => (
-        <Text
-          type={
-            // If it's audiobook context OR track itself says it is audiobook
-            (type === TrackType.AUDIOBOOK ||
-              record.type === TrackType.AUDIOBOOK) &&
-            Number(record?.progress) > 0
-              ? "secondary"
-              : undefined
-          }
-          strong={currentTrack?.id === record.id}
-        >
-          {text}
-        </Text>
-      ),
-    },
-    ...(showArtist
-      ? [
-          {
-            title: t("trackList.artist"),
-            dataIndex: "artist",
-            key: "artist",
-            ellipsis: true,
-            render: (text: string) => <Text type="secondary">{text}</Text>,
-          } as ColumnProps<Track>,
-        ]
-      : []),
-    ...(showAlbum
-      ? [
-          {
-            title: t("trackList.album"),
-            dataIndex: ["album", "name"] as any, // Handle object or string based on backend?
-            key: "album",
-            ellipsis: true,
-            render: (_: string, record: any) => {
-              const albumName =
-                typeof record.album === "object"
-                  ? record.album?.name
-                  : record.album;
-              return <Text type="secondary">{albumName}</Text>;
-            },
-          } as ColumnProps<Track>,
-        ]
-      : []),
-    ...(showSource
-      ? [
-          {
-            title: t("trackList.source"),
-            dataIndex: "source",
-            key: "source",
-            width: 90,
-            render: (source: TrackSource | undefined) => (
-              <Text type="secondary">
-                {source === TrackSource.WEBDAV
-                  ? t("trackList.sourceWebdav")
-                  : t("trackList.sourceFile")}
-              </Text>
-            ),
-          } as ColumnProps<Track>,
-        ]
-      : []),
-    // Progress column for audiobook
-    ...(type === TrackType.AUDIOBOOK
-      ? [
-          {
-            title: t("trackList.progress"),
-            dataIndex: "progress",
-            key: "progress",
-            width: 70,
-            render: (progress: number | undefined, record: Track) => {
-              if (!progress) return <Text type="secondary">-</Text>;
-              const percentage =
-                record.duration && record.duration > 0
-                  ? Math.round((progress / record.duration) * 100)
-                  : 0;
-              return (
-                <Text type="secondary" style={{ fontSize: "10px" }}>
-                  {percentage}%
-                </Text>
-              );
-            },
-          } as ColumnProps<Track>,
-        ]
-      : []),
-    ...(showDuration
-      ? [
-          {
-            title: t("trackList.duration"),
-            dataIndex: "duration",
-            key: "duration",
-            width: 80,
-            render: (duration: number) => (
-              <Text type="secondary">{formatDuration(duration)}</Text>
-            ),
-          } as ColumnProps<Track>,
-        ]
-      : []),
-    ...(showActions
-      ? [
-          {
-            title: <MoreOutlined />,
-            key: "actions",
-            width: 30,
-            render: (_: any, record: Track) => {
-              const items: MenuProps["items"] = [
-                {
-                  key: "play",
-                  label: t("player.play"),
-                  icon: <PlayCircleOutlined />,
-                  onClick: (info) => {
-                    info.domEvent.stopPropagation();
-                    handlePlayTrack(record);
-                  },
-                },
-                {
-                  key: "like",
-                  label: (record as any).likedByUsers?.some(
-                    (like: any) => like.userId === user?.id,
-                  )
-                    ? t("player.unlike")
-                    : t("player.like"),
-                  icon: (record as any).likedByUsers?.some(
-                    (like: any) => like.userId === user?.id,
-                  ) ? (
-                    <HeartFilled style={{ color: "#ff4d4f" }} />
-                  ) : (
-                    <HeartOutlined />
-                  ),
-                  onClick: (info) => {
-                    info.domEvent.stopPropagation();
-                    handleToggleLike(
-                      info.domEvent as any,
-                      record,
-                      (record as any).likedByUsers?.some(
-                        (like: any) => like.userId === user?.id,
-                      )
-                        ? "unlike"
-                        : "like",
-                    );
-                  },
-                },
-                {
-                  key: "add",
-                  label: t("player.addToPlaylist"),
-                  icon: <PlusOutlined />,
-                  onClick: (info) => {
-                    info.domEvent.stopPropagation();
-                    openAddToPlaylistModal(info.domEvent as any, record);
-                  },
-                },
-                {
-                  key: "download",
-                  label: t("common.download"),
-                  icon: <CloudDownloadOutlined />,
-                  onClick: (info) => {
-                    info.domEvent.stopPropagation();
-                    message.info(
-                      t("common.downloading", { name: record.name }),
-                    );
-                    downloadTrack(record).then((success) => {
-                      if (success)
-                        message.success(
-                          t("common.downloadSuccess", { name: record.name }),
-                        );
-                      else
-                        message.error(
-                          t("common.downloadFailed", { name: record.name }),
-                        );
-                    });
-                  },
-                },
-                {
-                  key: "delete",
-                  label: t("common.delete"),
-                  icon: <DeleteOutlined />,
-                  danger: true,
-                  onClick: (info) => {
-                    info.domEvent.stopPropagation();
-                    handleDeleteSubTrack(record);
-                  },
-                },
-              ];
+  const isAudiobook =
+    type === TrackType.AUDIOBOOK || tracks.some((t) => t.type === TrackType.AUDIOBOOK);
 
-              return (
-                <Dropdown menu={{ items }} trigger={["click"]}>
-                  <MoreOutlined
-                    style={{ cursor: "pointer", fontSize: "20px" }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </Dropdown>
-              );
-            },
-          } as ColumnProps<Track>,
-        ]
-      : []),
-  ];
+  const showSelect = isSelectionControlled || !!rowSelection;
+
+  // 列模板（按 props 决定列宽）
+  const gridTemplate = useMemo(
+    () =>
+      buildGridTemplate({
+        showIndex,
+        showCover,
+        showSelect,
+        showArtist,
+        showAlbum,
+        showSource,
+        isAudiobook,
+        showDuration,
+        showActions,
+      }),
+    [
+      showIndex,
+      showCover,
+      showSelect,
+      showArtist,
+      showAlbum,
+      showSource,
+      isAudiobook,
+      showDuration,
+      showActions,
+    ],
+  );
+
+  // 虚拟列表
+  const virtualizer = useVirtualizer({
+    count: tracks.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 8,
+  });
+
+  // 当前播放曲目变更时，滚到对应行
+  useEffect(() => {
+    if (!currentTrack) return;
+    const idx = tracks.findIndex((t) => t.id === currentTrack.id);
+    if (idx >= 0) {
+      virtualizer.scrollToIndex(idx, { align: "auto" });
+    }
+    // 仅当 currentTrack.id 变化时触发
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTrack?.id]);
+
+  const renderCell = (track: Track, idx: number) => {
+    const liked = (track as any).likedByUsers?.some(
+      (like: any) => like.userId === user?.id,
+    );
+    const isCurrent = currentTrack?.id === track.id;
+    return (
+      <>
+        {showSelect && (
+          <div
+            className={styles.cellCheckbox}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSelect(track.id);
+            }}
+          >
+            <Checkbox checked={effectiveSelected.includes(track.id)} />
+          </div>
+        )}
+        {showIndex && (
+          <div className={styles.cellIndex}>
+            <Text type="secondary">{idx + 1}</Text>
+          </div>
+        )}
+        {showCover && (
+          <div
+            className={styles.cellCover}
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePlayTrack(track);
+            }}
+          >
+            <LazyImage
+              src={resolveArtworkUri(track, { width: 60, format: "webp" })}
+              alt={track.name}
+              width={COVER_WIDTH}
+              height={COVER_HEIGHT}
+              style={{ borderRadius: 4, objectFit: "cover" }}
+            />
+            {isCurrent && isPlaying && (
+              <div className={styles.playIconStatus}>
+                <PlayingIndicator />
+              </div>
+            )}
+            {isCurrent && isPlaying ? (
+              <PauseCircleFilled className={styles.listPlayIcon} />
+            ) : (
+              <PlayCircleFilled className={styles.listPlayIcon} />
+            )}
+          </div>
+        )}
+        <div className={styles.cellTitle}>
+          <Text
+            type={
+              isAudiobook && Number(track.progress) > 0 ? "secondary" : undefined
+            }
+            strong={isCurrent}
+          >
+            {track.name}
+          </Text>
+        </div>
+        {showArtist && (
+          <div className={styles.cellArtist}>
+            <Text type="secondary">{track.artist}</Text>
+          </div>
+        )}
+        {showAlbum && (
+          <div className={styles.cellAlbum}>
+            <Text type="secondary">
+              {typeof track.album === "object"
+                ? (track.album as any)?.name
+                : (track.album as any)}
+            </Text>
+          </div>
+        )}
+        {showSource && (
+          <div className={styles.cellSource}>
+            <Text type="secondary">
+              {track.source === TrackSource.WEBDAV
+                ? t("trackList.sourceWebdav")
+                : t("trackList.sourceFile")}
+            </Text>
+          </div>
+        )}
+        {isAudiobook && (
+          <div className={styles.cellProgress}>
+            <Text type="secondary" style={{ fontSize: 10 }}>
+              {track.progress && track.duration && track.duration > 0
+                ? `${Math.round((track.progress / track.duration) * 100)}%`
+                : "-"}
+            </Text>
+          </div>
+        )}
+        {showDuration && (
+          <div className={styles.cellDuration}>
+            <Text type="secondary">{formatDuration(track.duration ?? 0)}</Text>
+          </div>
+        )}
+        {showActions && (
+          <div className={styles.cellActions} onClick={(e) => e.stopPropagation()}>
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "play",
+                    label: t("player.play"),
+                    icon: <PlayCircleOutlined />,
+                    onClick: () => handlePlayTrack(track),
+                  },
+                  {
+                    key: "like",
+                    label: liked ? t("player.unlike") : t("player.like"),
+                    icon: liked ? (
+                      <HeartFilled style={{ color: "#ff4d4f" }} />
+                    ) : (
+                      <HeartOutlined />
+                    ),
+                    onClick: () =>
+                      handleToggleLike(
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        {} as any,
+                        track,
+                        liked ? "unlike" : "like",
+                      ),
+                  },
+                  {
+                    key: "add",
+                    label: t("player.addToPlaylist"),
+                    icon: <PlusOutlined />,
+                    onClick: () =>
+                      openAddToPlaylistModal(
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        {} as any,
+                        track,
+                      ),
+                  },
+                  {
+                    key: "download",
+                    label: t("common.download"),
+                    icon: <CloudDownloadOutlined />,
+                    onClick: () => {
+                      message.info(
+                        t("common.downloading", { name: track.name }),
+                      );
+                      downloadTrack(track).then((success) => {
+                        if (success)
+                          message.success(
+                            t("common.downloadSuccess", { name: track.name }),
+                          );
+                        else
+                          message.error(
+                            t("common.downloadFailed", { name: track.name }),
+                          );
+                      });
+                    },
+                  },
+                  {
+                    key: "delete",
+                    label: t("common.delete"),
+                    icon: <DeleteOutlined />,
+                    danger: true,
+                    onClick: () => handleDeleteSubTrack(track),
+                  },
+                ] as MenuProps["items"],
+              }}
+              trigger={["click"]}
+              // 防止 dropdown 被虚拟列表容器裁剪
+              getPopupContainer={() => parentRef.current || document.body}
+            >
+              <MoreOutlined
+                style={{ cursor: "pointer", fontSize: 20 }}
+              />
+            </Dropdown>
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className={styles.trackListContainer}>
       {contextHolder}
-      <Table
-        dataSource={tracks}
-        columns={columns}
-        pagination={false}
-        rowKey="id"
-        loading={loading}
-        rowSelection={rowSelection}
-        rowClassName={styles.listCover}
-        onRow={(record) => ({
-          onClick: () => handlePlayTrack(record),
-          style: { cursor: "pointer" },
-          id: `track-${record.id}`,
-        })}
-      />
+      <div
+        ref={parentRef}
+        className={styles.virtualViewport}
+        style={{ minHeight: ROW_HEIGHT }}
+      >
+        {/* 表头（不参与虚拟化） */}
+        <div
+          className={styles.headerRow}
+          style={{ gridTemplateColumns: gridTemplate, height: ROW_HEIGHT }}
+        >
+          {showSelect && <div className={styles.headerCell}></div>}
+          {showIndex && <div className={styles.headerCell}>#</div>}
+          {showCover && (
+            <div className={styles.headerCell}>{t("trackList.cover")}</div>
+          )}
+          <div className={styles.headerCell}>{t("trackList.title")}</div>
+          {showArtist && (
+            <div className={styles.headerCell}>{t("trackList.artist")}</div>
+          )}
+          {showAlbum && (
+            <div className={styles.headerCell}>{t("trackList.album")}</div>
+          )}
+          {showSource && (
+            <div className={styles.headerCell}>{t("trackList.source")}</div>
+          )}
+          {isAudiobook && (
+            <div className={styles.headerCell}>{t("trackList.progress")}</div>
+          )}
+          {showDuration && (
+            <div className={styles.headerCell}>{t("trackList.duration")}</div>
+          )}
+          {showActions && (
+            <div className={styles.headerCell}>
+              <MoreOutlined />
+            </div>
+          )}
+        </div>
+
+        {/* 虚拟滚动容器 */}
+        <div
+          className={styles.virtualInner}
+          style={{ height: virtualizer.getTotalSize() }}
+        >
+          {virtualizer.getVirtualItems().map((vItem) => {
+            const track = tracks[vItem.index];
+            if (!track) return null;
+            return (
+              <div
+                key={vItem.key}
+                data-index={vItem.index}
+                ref={virtualizer.measureElement}
+                className={`${styles.row} ${
+                  currentTrack?.id === track.id ? styles.rowActive : ""
+                } ${effectiveSelected.includes(track.id) ? styles.rowSelected : ""}`}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  transform: `translateY(${vItem.start}px)`,
+                  height: ROW_HEIGHT,
+                  gridTemplateColumns: gridTemplate,
+                  cursor: "pointer",
+                }}
+                id={`track-${track.id}`}
+                onClick={() => handlePlayTrack(track)}
+              >
+                {renderCell(track, vItem.index)}
+              </div>
+            );
+          })}
+        </div>
+
+        {loading && (
+          <div className={styles.loadingOverlay}>{t("common.loading")}</div>
+        )}
+
+        {tracks.length === 0 && !loading && (
+          <div className={styles.emptyHint}>{t("trackList.empty")}</div>
+        )}
+      </div>
 
       <Modal
         title={t("addToPlaylistModal.title")}
@@ -473,21 +556,20 @@ const TrackList: React.FC<TrackListProps> = ({
         onCancel={() => setIsAddToPlaylistModalOpen(false)}
         footer={null}
       >
-        <List
-          dataSource={playlists}
-          renderItem={(item) => (
-            <List.Item
-              onClick={() => handleAddToPlaylist(item.id)}
-              style={{ cursor: "pointer" }}
+        <div className={styles.playlistList}>
+          {playlists.map((p) => (
+            <div
+              key={p.id}
+              onClick={() => handleAddToPlaylist(p.id)}
               className={styles.playlistItem}
             >
-              <Text>{item.name}</Text>
+              <Text>{p.name}</Text>
               <Text type="secondary">
-                {item._count?.tracks || 0} {t("trackList.tracks")}
+                {p._count?.tracks || 0} {t("trackList.tracks")}
               </Text>
-            </List.Item>
-          )}
-        />
+            </div>
+          ))}
+        </div>
       </Modal>
     </div>
   );

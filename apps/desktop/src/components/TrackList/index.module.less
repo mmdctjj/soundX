@@ -1,68 +1,183 @@
-.listCover {
-  .listPlayIcon {
-    font-size: 18px;
-    opacity: 0;
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    transform: translate(-50%, -50%);
-    color: aliceblue;
-  }
-  .playIconStatus {
-    opacity: 0;
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    transform: translate(-50%, -50%);
-    background: aliceblue;
-    padding: 8px;
-    border-radius: 50%;
-    opacity: 0.8;
-  }
+.trackListContainer {
+  width: 100%;
+}
+
+.virtualViewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: auto;
+  // 让 scrollbar 在 mac 上更紧凑
+  scrollbar-gutter: stable;
+}
+
+.headerRow {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--header-bg, transparent);
+}
+
+.headerCell {
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.virtualInner {
+  position: relative;
+  width: 100%;
+}
+
+.row {
+  display: grid;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--text-primary, inherit);
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+
   &:hover {
-    .listPlayIcon {
-      opacity: 0.8;
-    }
-    .playIconStatus {
-      opacity: 0;
-    }
+    background-color: rgba(255, 255, 255, 0.04);
   }
+}
+
+.rowActive {
+  background-color: rgba(64, 169, 255, 0.08);
+
+  &:hover {
+    background-color: rgba(64, 169, 255, 0.12);
+  }
+}
+
+.rowSelected {
+  background-color: rgba(64, 169, 255, 0.12);
+}
+
+// Cell common
+[class*="cell"] {
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cellCheckbox {
+  justify-content: center;
+}
+
+.cellIndex {
+  justify-content: flex-start;
+}
+
+.cellCover {
+  position: relative;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.cellTitle {
+  flex: 1;
+  min-width: 0;
+}
+
+.cellArtist,
+.cellAlbum,
+.cellSource,
+.cellProgress,
+.cellDuration {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+}
+
+.cellActions {
+  justify-content: center;
+}
+
+.listPlayIcon {
+  font-size: 18px;
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: aliceblue;
+  pointer-events: none;
+}
+
+.playIconStatus {
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: aliceblue;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.cellCover:hover .listPlayIcon {
+  opacity: 0.85;
+}
+
+.cellCover:hover .playIconStatus {
+  opacity: 0;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 56px;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+}
+
+.emptyHint {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+}
+
+.playlistList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 50vh;
+  overflow: auto;
 }
 
 .playlistItem {
   cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.15s ease;
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);
-  }
-}
-
-// Global table overrides to match the transparent/glassmorphic look
-// This might need to be scoped if we want it only for this component, 
-// but Detail used :global so we might want to be careful. 
-// I'll scope it to a container class to be safe.
-
-.trackListContainer {
-  :global {
-    .ant-table {
-      background: transparent !important;
-    }
-    .ant-table-thead > tr > th {
-      background: transparent !important;
-      color: inherit !important;
-      border: none !important;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-
-      &::before {
-        background-color: currentColor !important;
-        opacity: 1;
-      }
-    }
-    .ant-table-tbody > tr > td {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }
-    .ant-table-tbody > tr:hover > td {
-      background-color: rgba(255, 255, 255, 0.05) !important;
-    }
-    // Remove the explicit episode-row class dependency if strictly using local class
   }
 }

@@ -197,10 +197,15 @@ export class EmbyTrackAdapter implements ITrackAdapter {
     return this.getLatestTracks(type, true, pageSize);
   }
 
-  async getTracksByArtist(artist: string): Promise<ISuccessResponse<Track[]>> {
+  async getTracksByArtist(artist: string): Promise<ISuccessResponse<Track[]>>;
+  async getTracksByArtist(artist: string, opts: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<ILoadMoreData<Track>>>;
+  async getTracksByArtist(artist: string, opts?: { skip?: number; pageSize?: number }): Promise<ISuccessResponse<Track[]> | ISuccessResponse<ILoadMoreData<Track>>> {
     const trackType = mediaModeToTrackType();
     const userId = await this.ensureUserId();
     const collectionType = trackType === "AUDIOBOOK" ? "audiobooks" : "music";
+    const usePage = !!(opts && (opts.skip !== undefined || opts.pageSize !== undefined));
+    const skip = Math.max(0, opts?.skip ?? 0);
+    const pageSize = Math.max(1, opts?.pageSize ?? 100);
     const response = await this.client.get<EmbyItemsResponse>(`Users/${userId}/Items`, {
       Recursive: true,
       IncludeItemTypes: "Audio",
@@ -210,19 +215,30 @@ export class EmbyTrackAdapter implements ITrackAdapter {
       SortOrder: "Descending,Ascending",
       ImageTypeLimit: 1,
       Fields: "BasicSyncInfo,CanDelete,CanDownload,PrimaryImageAspectRatio,Artists,Album,AlbumId,RunTimeTicks,ProductionYear,IndexNumber,ParentIndexNumber,ImageTags,AlbumPrimaryImageTag,PrimaryImageTag,PrimaryImageItemId,ItemIds",
-      Limit: 1000,
+      ...(usePage ? { StartIndex: skip, Limit: pageSize } : { Limit: 1000 }),
     });
+    const list = response.Items.map((item) =>
+      mapEmbyItemToTrack(
+        item,
+        this.client.getImageUrl.bind(this.client),
+        this.client.getStreamUrl.bind(this.client),
+        trackType
+      )
+    );
+    if (!usePage) {
+      return { code: 200, message: "success", data: list };
+    }
+    const total = response.TotalRecordCount ?? list.length;
     return {
       code: 200,
       message: "success",
-      data: response.Items.map((item) =>
-        mapEmbyItemToTrack(
-          item,
-          this.client.getImageUrl.bind(this.client),
-          this.client.getStreamUrl.bind(this.client),
-          trackType
-        )
-      ),
+      data: {
+        pageSize,
+        loadCount: Math.floor(skip / pageSize),
+        list,
+        total,
+        hasMore: skip + list.length < total,
+      },
     };
   }
 

@@ -76,10 +76,14 @@ const Recommended: React.FC = () => {
   // Get current play mode from localStorage
   const { mode: playMode } = usePlayMode();
 
-  // Load initial data whenever playMode changes
-  useEffect(() => {
-    loadSections();
-  }, [playMode, recommendationLikeRatio]);
+  // 车机模式：内容区会被封面/歌词媒体栏压缩，需要把车机栏宽从可用宽度里扣除
+  const carModeEnabled = useSettingsStore((s) => s.carMode?.enabled ?? false);
+  const carModeMerge = useSettingsStore(
+    (s) => s.carMode?.mergeCoverLyrics ?? false,
+  );
+  const carModeColumnWidths = useSettingsStore(
+    (s) => s.carMode?.columnWidths ?? {},
+  );
 
   // Debounce resize to re-fetch data based on new width
   const { run: debouncedRefresh } = useDebounceFn(
@@ -88,6 +92,22 @@ const Recommended: React.FC = () => {
     },
     { wait: 500 },
   );
+
+  // 车机模式下拖动栏宽不会触发 window resize，需要监听变化后重新拉取合适的数量
+  const { run: debouncedRefreshForCarMode } = useDebounceFn(
+    () => {
+      loadSections(true);
+    },
+    { wait: 500 },
+  );
+  useEffect(() => {
+    if (carModeEnabled) debouncedRefreshForCarMode();
+  }, [carModeEnabled, carModeMerge, carModeColumnWidths]);
+
+  // Load initial data whenever playMode changes
+  useEffect(() => {
+    loadSections();
+  }, [playMode, recommendationLikeRatio]);
 
   useEffect(() => {
     window.addEventListener("resize", debouncedRefresh);
@@ -126,10 +146,30 @@ const Recommended: React.FC = () => {
   const getPageSize = (type: "album" | "artist" | "track") => {
     const width = window.innerWidth;
     // Sidebar 200 + Padding 60 (30*2)
-    const availableWidth = width - 200 - 60;
+    let availableWidth = width - 200 - 60;
+
+    // 车机模式：扣除封面/歌词媒体栏 + 分隔把手宽度（与 CarMode 组件布局保持一致）
+    if (carModeEnabled) {
+      const MEDIA_PADDING = 40; // .mediaColumn padding 20*2
+      const HANDLE = 3; // .resizeHandle
+      if (carModeMerge) {
+        // 合并模式：封面+歌词合一栏，两侧各一个把手
+        availableWidth -=
+          (carModeColumnWidths.cover ?? 360) + MEDIA_PADDING + HANDLE * 2;
+      } else {
+        // 分列模式：封面栏 + 歌词栏 + 两个把手
+        availableWidth -=
+          (carModeColumnWidths.cover ?? 360) +
+          MEDIA_PADDING +
+          HANDLE +
+          (carModeColumnWidths.lyrics ?? 360) +
+          MEDIA_PADDING +
+          HANDLE;
+      }
+    }
 
     if (type === "track") {
-      // Track cards: 250px width + 12px gap
+      // Track cards: 240px width + 12px gap
       const itemWidth = 240 + 12;
       const itemsPerRow = Math.floor(availableWidth / itemWidth);
       // 2 rows, so multiply by 2
@@ -137,8 +177,8 @@ const Recommended: React.FC = () => {
     }
 
     // Album: 170 + 24 (gap) = 194
-    // Artist: 110 + 24 (gap) = 134
-    const itemWidth = type === "artist" ? 134 : 194;
+    // Artist: Avatar 120 + name 一行 + Row gutter 24 → 实际占用 ~144
+    const itemWidth = type === "artist" ? 144 : 194;
     return Math.max(4, Math.floor(availableWidth / itemWidth));
   };
 

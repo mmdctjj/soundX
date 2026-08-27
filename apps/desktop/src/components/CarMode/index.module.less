@@ -120,8 +120,10 @@
 
 .coverImage {
   // 方形 + 大圆角 + 重阴影
-  // 响应式：栏宽小于 220px 时取栏宽，否则封顶 220px 居中
-  width: min(100%, 220px);
+  // 栏宽小于 220px 时取栏宽，否则封顶 220px 居中
+  // 注意：LazyImage 会把传入的 width/height 写到内联 style 里，必须用 !important 压过它
+  width: min(100%, 220px) !important;
+  height: auto !important;
   aspect-ratio: 1 / 1;
   border-radius: 20px;
   object-fit: cover;
@@ -187,7 +189,9 @@
 }
 
 .bothCoverImage {
-  width: min(60%, 160px);
+  // LazyImage 内联 width/height: 100% 需要 !important 才能压住
+  width: min(60%, 160px) !important;
+  height: auto !important;
   aspect-ratio: 1 / 1;
   border-radius: 16px;
   object-fit: cover;
