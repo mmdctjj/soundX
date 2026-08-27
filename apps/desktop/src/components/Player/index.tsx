@@ -78,6 +78,7 @@ import {
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import { useSettingsStore } from "../../store/settings";
+import LazyImage from "../LazyImage";
 import { useSyncStore } from "../../store/sync";
 import { formatDuration } from "../../utils/formatDuration";
 import { isTauri, tauriGetDeviceName } from "../../utils/platform";
@@ -469,15 +470,12 @@ const Player: React.FC<PlayerProps> = ({ hideMiniPlayer, seekBridge }) => {
                       }}
                     >
                       {history.track.cover && (
-                        <img
-                          src={`${getCoverUrl(history.track)}`}
+                        <LazyImage
+                          src={resolveArtworkUri(history.track, { width: 80, format: "webp" })}
                           alt="cover"
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 4,
-                            objectFit: "cover",
-                          }}
+                          width={40}
+                          height={40}
+                          style={{ borderRadius: 4 }}
                         />
                       )}
                       <div style={{ overflow: "hidden" }}>
@@ -1181,6 +1179,8 @@ const Player: React.FC<PlayerProps> = ({ hideMiniPlayer, seekBridge }) => {
       resolveArtworkUri(item) || `https://picsum.photos/seed/${item.id}/300/300`
     );
   };
+  // keep local helper for legacy call sites; suppress unused warning when migrated
+  void getCoverUrl;
 
   const renderMiniPlayer = (expandable: boolean) => (
     <>
@@ -1190,16 +1190,12 @@ const Player: React.FC<PlayerProps> = ({ hideMiniPlayer, seekBridge }) => {
       >
         <div className={styles.coverWrapper}>
           {currentTrack && (
-            <img
-              src={getCoverUrl(currentTrack)}
+            <LazyImage
+              src={resolveArtworkUri(currentTrack, { width: 240, format: "webp" })}
               alt="cover"
+              width={"100%"}
+              height={"100%"}
               className={styles.coverImage}
-              onError={(e) =>
-                console.error(
-                  `[Player] Mini Cover Load Error: ${currentTrack?.cover}`,
-                  e,
-                )
-              }
             />
           )}
         </div>
@@ -2136,16 +2132,12 @@ const Player: React.FC<PlayerProps> = ({ hideMiniPlayer, seekBridge }) => {
                     : styles.fullPlayerCoverSquare
                 }
               >
-                <img
-                  src={getCoverUrl(currentTrack)}
+                <LazyImage
+                  src={resolveArtworkUri(currentTrack, { width: 600, format: "webp", quality: 80 })}
                   alt="Current Cover"
+                  width={"100%"}
+                  height={"100%"}
                   className={styles.fullPlayerCover}
-                  onError={(e) =>
-                    console.error(
-                      `[Player] Full Cover Load Error: ${currentTrack?.cover}`,
-                      e,
-                    )
-                  }
                 />
                 {coverStyle === "vinyl" && tonearm === "basic" && (
                   <div
@@ -2210,18 +2202,19 @@ const Player: React.FC<PlayerProps> = ({ hideMiniPlayer, seekBridge }) => {
                       navigator(`/artist/${currentTrack?.artistEntity?.id}`);
                     }}
                   >
-                    <img
-                      src={getCoverUrl({
-                        cover: currentTrack?.artistEntity?.avatar,
-                        id: currentTrack?.id,
-                        name: currentTrack?.artist,
-                      } as any)}
+                    <LazyImage
+                      src={resolveArtworkUri(
+                        {
+                          cover: currentTrack?.artistEntity?.avatar,
+                          id: currentTrack?.id,
+                          name: currentTrack?.artist,
+                        } as any,
+                        { width: 30, format: "webp" },
+                      )}
                       alt="Current Cover"
-                      style={{
-                        width: "15px",
-                        height: "15px",
-                        borderRadius: "50%",
-                      }}
+                      width={15}
+                      height={15}
+                      style={{ borderRadius: "50%" }}
                     />
                     <Text ellipsis className={styles.artistText}>
                       {currentTrack?.artist || "Unknown Artist"}
@@ -2263,18 +2256,19 @@ const Player: React.FC<PlayerProps> = ({ hideMiniPlayer, seekBridge }) => {
                       navigator(`/detail?id=${currentTrack?.albumEntity?.id}`);
                     }}
                   >
-                    <img
-                      src={getCoverUrl({
-                        cover: currentTrack?.albumEntity?.cover,
-                        id: currentTrack?.id,
-                        name: currentTrack?.album,
-                      } as any)}
+                    <LazyImage
+                      src={resolveArtworkUri(
+                        {
+                          cover: currentTrack?.albumEntity?.cover,
+                          id: currentTrack?.id,
+                          name: currentTrack?.album,
+                        } as any,
+                        { width: 30, format: "webp" },
+                      )}
                       alt="Current Cover"
-                      style={{
-                        width: "15px",
-                        height: "15px",
-                        borderRadius: "1px",
-                      }}
+                      width={15}
+                      height={15}
+                      style={{ borderRadius: "1px" }}
                     />
                     <Text ellipsis>
                       {currentTrack?.album || "Unknown Album"}

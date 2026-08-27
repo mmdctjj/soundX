@@ -17,6 +17,7 @@ import RandomOutlined from "../../assets/random.svg?react";
 import SinglecycleOutlined from "../../assets/singlecycle.svg?react";
 import { TrackType, type Track } from "../../models";
 import { resolveArtworkUri } from "../../services/trackResolver";
+import LazyImage from "../LazyImage";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
 import {
@@ -168,7 +169,7 @@ const CarMode: React.FC<CarModeProps> = ({ children, seekBridge }) => {
   };
 
   const coverUrl = currentTrack
-    ? resolveArtworkUri(currentTrack) ||
+    ? resolveArtworkUri(currentTrack, { width: 360, format: "webp", quality: 80 }) ||
       `https://picsum.photos/seed/${currentTrack.id}/600/600`
     : null;
 
@@ -345,7 +346,13 @@ const CarMode: React.FC<CarModeProps> = ({ children, seekBridge }) => {
       onClick={clickToSwitch ? cycleMergedView : undefined}
     >
       {coverUrl ? (
-        <img src={coverUrl} alt="cover" className={styles.coverImage} />
+        <LazyImage
+          src={coverUrl}
+          alt="cover"
+          width={"100%"}
+          height={"100%"}
+          className={styles.coverImage}
+        />
       ) : (
         <div
           className={styles.coverPlaceholder}
@@ -390,7 +397,13 @@ const CarMode: React.FC<CarModeProps> = ({ children, seekBridge }) => {
         onClick={cycleMergedView}
       >
         {coverUrl ? (
-          <img src={coverUrl} alt="cover" className={styles.bothCoverImage} />
+          <LazyImage
+            src={coverUrl}
+            alt="cover"
+            width={"100%"}
+            height={"100%"}
+            className={styles.bothCoverImage}
+          />
         ) : (
           <div
             className={styles.bothCoverPlaceholder}

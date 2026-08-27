@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import type { Track } from "../../models";
 import { socketService } from "../../services/socket";
 import { trackEvent } from "../../services/tracking";
+import { resolveArtworkUri } from "../../services/trackResolver";
 import { usePlayerStore } from "../../store/player";
 import { useSettingsStore } from "../../store/settings";
 import { useAuthStore } from "../../store/auth";
-import { getCoverUrl } from "../../utils";
+import LazyImage from "../LazyImage";
 
 const { Text } = Typography;
 
@@ -48,15 +49,12 @@ const InviteContent: React.FC<InviteContentProps> = ({
           }}
         >
           {currentTrack.cover && (
-            <img
-              src={`${getCoverUrl(currentTrack.cover)}`}
+            <LazyImage
+              src={resolveArtworkUri(currentTrack, { width: 80, format: "webp" })}
               alt="cover"
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 4,
-                objectFit: "cover",
-              }}
+              width={40}
+              height={40}
+              style={{ borderRadius: 4 }}
             />
           )}
           <div style={{ overflow: "hidden" }}>

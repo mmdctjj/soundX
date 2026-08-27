@@ -14,6 +14,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Slider, Tooltip, Typography, theme } from "antd";
 import React, { useEffect, useState } from "react";
+import LazyImage from "../LazyImage";
 import { useTranslation } from "react-i18next";
 import type { Track } from "../../models";
 import { resolveArtworkUri } from "../../services/trackResolver";
@@ -168,7 +169,13 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
 
       {/* Info Section */}
       <div className={styles.infoSection}>
-        <img src={getCoverUrl(currentTrack)} className={styles.cover} />
+        <LazyImage
+          src={getCoverUrl(currentTrack)}
+          alt={currentTrack?.name}
+          width={"100%"}
+          height={"100%"}
+          className={styles.cover}
+        />
         <div className={styles.infoText}>
           <div className={styles.titleRow}>
             <Text ellipsis className={styles.title}>

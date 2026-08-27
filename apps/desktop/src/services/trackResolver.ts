@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Album, Track } from "@soundx/services";
+import type { Album, Mv, Track } from "@soundx/services";
 import { getBaseURL } from "../https";
 import { useAuthStore } from "../store/auth";
 import { useSettingsStore } from "../store/settings";
@@ -142,7 +142,7 @@ export interface ResolveArtworkOptions {
 }
 
 export const resolveArtworkUri = (
-  item: Track | Album | string,
+  item: Track | Album | Mv | string,
   options: ResolveArtworkOptions = {},
 ): string | undefined => {
   const cover = typeof item === "string" ? item : item?.cover;
