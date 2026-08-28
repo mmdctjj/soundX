@@ -54,7 +54,13 @@ async def startup_event():
     global library, player, listener
 
     # 初始化 SQLite 存储
-    db.init_db()
+    # 防御：如果 data/ 被挂载到 SMB/NFS 或权限异常，PRAGMA WAL 卡死会让 uvicorn
+    # 进程一直停在 startup_event 里 listen → 端口没起 → NestJS 代理 504。
+    # 这里捕获后打日志继续，让管理 API (/api/keywords 等) 仍可访问。
+    try:
+        db.init_db()
+    except Exception as e:
+        logger.error(f"[startup] init_db failed (will continue without DB): {e}", exc_info=True)
 
     # 初始化音乐库（不依赖登录）
     library = MusicLibrary()

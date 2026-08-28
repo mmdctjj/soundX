@@ -343,6 +343,7 @@
     "tabLlm": "LLM settings",
     "tabTts": "TTS settings",
     "tabPlugins": "Plugin Center",
+    "tabMiSpeaker": "Mi Speaker",
     "pluginTypeHttp": "HTTP endpoint",
     "pluginIdFixedHint": "Plugin ID is used for internal identification and cannot be modified",
     "pluginTypeFixedHint": "Only HTTP plugins are supported for now",

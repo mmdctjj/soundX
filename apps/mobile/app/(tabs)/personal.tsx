@@ -28,6 +28,7 @@ import {
   FlatList,
   Image,
   Platform,
+  useColorScheme,
   StyleSheet,
   Text,
   TextInput,
@@ -66,6 +67,8 @@ const logo = require("../../assets/images/logo.webp");
 const subsonicLogo = require("../../assets/images/subsonic.webp");
 const embyLogo = require("../../assets/images/emby.webp");
 const ctjjLogo = require("../../assets/images/ctjj.webp");
+const xiaoaiLight = require("../../assets/images/xiaoai_light.png");
+const xiaoaiDark = require("../../assets/images/xiaoai_dark.png");
 
 type TabType = "playlists" | "favorites" | "history" | "downloads";
 type SubTabType = "track" | "album";
@@ -189,6 +192,8 @@ export default function PersonalScreen() {
   const { playTrackList } = usePlayer();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const xiaoaiIconSource = colorScheme === "dark" ? xiaoaiDark : xiaoaiLight;
   const [permission, setPermission] = useState<any>(null);
 
   const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
@@ -1006,7 +1011,11 @@ export default function PersonalScreen() {
             onPress={() => router.push("/mi-speaker")}
             style={[styles.iconBtn, { marginRight: 10 }]}
           >
-            <Ionicons name="volume-medium-outline" size={22} color={colors.text} />
+            <Image
+              source={xiaoaiIconSource}
+              style={{ width: 22, height: 22 }}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/settings")}

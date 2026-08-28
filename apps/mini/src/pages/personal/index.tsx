@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
 import SkeletonBlock from '../../components/SkeletonBlock';
 import StackedCover from '../../components/StackedCover';
+import XiaoAiIcon from '../../components/XiaoAiIcon';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
@@ -441,7 +442,7 @@ export default function Personal() {
             <Text className='header-icon icon icon-server' />
           </View>
           <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/mi-speaker/index' })}>
-            <Text className='header-icon icon icon-speaker' />
+            <XiaoAiIcon size={22} />
           </View>
           <View className='action-btn' onClick={() => Taro.navigateTo({ url: '/pages/settings/index' })}>
             <Text className='icon icon-settings' />

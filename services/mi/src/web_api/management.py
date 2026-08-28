@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -22,8 +23,8 @@ class KeywordCreate(BaseModel):
 
 
 class KeywordUpdate(BaseModel):
-    keyword: str | None = None
-    enabled: bool | None = None
+    keyword: Optional[str] = None
+    enabled: Optional[bool] = None
 
 
 @router.get("/keywords")
@@ -67,9 +68,9 @@ async def delete_keyword(kw_id: int):
 async def list_conversations(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
-    device_id: str | None = Query(None),
-    start_ms: int | None = Query(None),
-    end_ms: int | None = Query(None),
+    device_id: Optional[str] = Query(None),
+    start_ms: Optional[int] = Query(None),
+    end_ms: Optional[int] = Query(None),
 ):
     """分页查询对话历史"""
     items, total = await asyncio.to_thread(
@@ -85,9 +86,9 @@ async def list_conversations(
 async def list_casts(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
-    device_id: str | None = Query(None),
-    start_ms: int | None = Query(None),
-    end_ms: int | None = Query(None),
+    device_id: Optional[str] = Query(None),
+    start_ms: Optional[int] = Query(None),
+    end_ms: Optional[int] = Query(None),
 ):
     """分页查询投放历史"""
     items, total = await asyncio.to_thread(

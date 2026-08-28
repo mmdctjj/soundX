@@ -703,7 +703,7 @@ const Settings: React.FC = () => {
           },
           {
             key: "miSpeaker",
-            label: t("miManage.title"),
+            label: t("settings.tabMiSpeaker"),
             children: (
               <TabLayout
                 getContainer={getAnchorContainer}

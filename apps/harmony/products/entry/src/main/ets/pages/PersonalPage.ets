@@ -7,6 +7,7 @@ import { Logger } from 'audiodock_common';
 import { playlistApi, userDataApi, plusApi, setPlusAuthToken, userApi, taskApi } from 'features_network';
 import type { PlaylistDto, TrackDto, AlbumDto, ImportTask, ImportTaskMode } from 'features_network';
 import { AppIcon, AppIconName } from '../components/AppIcon';
+import { XiaoAiIcon } from '../components/XiaoAiIcon';
 import { CoverImage } from '../components/CoverImage';
 import { authStore } from '../context/AuthStore';
 import { resolveTrackToPlayer } from '../services/trackResolver';
@@ -762,7 +763,7 @@ export struct PersonalTab {
         .onClick((): void => this.navigateToSourceManage())
 
         Button() {
-          AppIcon({ name: 'volume-high', iconSize: 22, color: this.theme.colors.text })
+          XiaoAiIcon({ iconSize: 22, color: this.theme.colors.text })
         }
         .width(36).height(36).backgroundColor(Color.Transparent).margin({ right: 8 })
         .onClick((): void => this.navigateToMiSpeaker())

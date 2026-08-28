@@ -351,6 +351,7 @@
     "tabLlm": "LLM 设置",
     "tabTts": "TTS 设置",
     "tabPlugins": "插件中心",
+    "tabMiSpeaker": "小爱音箱管理",
     "pluginTypeHttp": "HTTP 接口",
     "pluginIdFixedHint": "插件 ID 用于内部识别，不可修改",
     "pluginTypeFixedHint": "当前仅支持 HTTP 类型",

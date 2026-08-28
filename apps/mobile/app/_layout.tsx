@@ -99,7 +99,8 @@ function RootLayoutNav() {
       segmentName === "llm-config" ||
       segmentName === "tts-config" ||
       segmentName === "plugin-center" ||
-      segmentName === "task-center";
+      segmentName === "task-center" ||
+      segmentName === "mi-speaker";
 
     if (!token && inAuthGroup) {
       router.replace("/login");
@@ -441,6 +442,7 @@ function RootLayoutNav() {
       <Stack.Screen name="tts-config" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="plugin-center" options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="task-center" options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="mi-speaker" options={{ headerShown: false, animation: 'slide_from_right' }} />
     </Stack>
   );
 
@@ -458,6 +460,7 @@ function RootLayoutNav() {
     rootSegment === "tts-config" ||
     rootSegment === "plugin-center" ||
     rootSegment === "task-center" ||
+    rootSegment === "mi-speaker" ||
     rootSegment === "player" ||
     rootSegment === "product-updates" ||
     rootSegment === "member-detail" ||
