@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Body, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 import logging
 
+from src import db
 from src.speaker_player import SpeakerPlayer
 from src.music_library import MusicLibrary
 
@@ -81,6 +84,19 @@ async def play_by_url(
     success = await player.play_by_url(device_id, url, title or url)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to play by url")
+
+    # 投放历史埋点（失败只记 warning，不影响响应）
+    try:
+        device_name = next(
+            (d.get("name", "") for d in (player.devices or []) if d.get("deviceID") == device_id or d.get("device_id") == device_id),
+            "",
+        )
+        await asyncio.to_thread(
+            db.insert_cast, device_id, device_name, title or url, url, "play_by_url", 1
+        )
+    except Exception as e:
+        logger.warning(f"[player] 投放埋点失败: {e}")
+
     return JSONResponse(content={"success": True, "title": title or url})
 
 
@@ -105,6 +121,20 @@ async def play_playlist(
     success = await player.play_playlist(device_id, tracks, start_index)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to play playlist")
+
+    # 投放历史埋点（失败只记 warning，不影响响应）
+    try:
+        device_name = next(
+            (d.get("name", "") for d in (player.devices or []) if d.get("deviceID") == device_id or d.get("device_id") == device_id),
+            "",
+        )
+        first_title = tracks[start_index].get("title", "") if start_index < len(tracks) else ""
+        await asyncio.to_thread(
+            db.insert_cast, device_id, device_name, first_title, "", "play_playlist", len(tracks)
+        )
+    except Exception as e:
+        logger.warning(f"[player] 投放埋点失败: {e}")
+
     return JSONResponse(content={"success": True, "tracks_count": len(tracks)})
 
 

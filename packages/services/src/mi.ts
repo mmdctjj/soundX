@@ -130,3 +130,104 @@ export const playMiDeviceByUrl = async (
     { params: payload },
   );
 };
+
+// ===================== 唤醒关键字管理 =====================
+
+export interface MiKeyword {
+  id: number;
+  keyword: string;
+  enabled: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface MiKeywordsResponse {
+  keywords: MiKeyword[];
+}
+
+export const getMiKeywords = async (): Promise<MiKeywordsResponse> => {
+  return request.get<MiKeywordsResponse>(`${MI_BASE_URL}/api/keywords`);
+};
+
+export const addMiKeyword = async (
+  keyword: string,
+): Promise<{ keyword: MiKeyword }> => {
+  return request.post<{ keyword: MiKeyword }>(`${MI_BASE_URL}/api/keywords`, {
+    keyword,
+  });
+};
+
+export const updateMiKeyword = async (
+  id: number,
+  patch: { keyword?: string; enabled?: boolean },
+): Promise<{ success: boolean }> => {
+  return request.put<{ success: boolean }>(
+    `${MI_BASE_URL}/api/keywords/${id}`,
+    patch,
+  );
+};
+
+export const deleteMiKeyword = async (
+  id: number,
+): Promise<{ success: boolean }> => {
+  return request.delete<{ success: boolean }>(
+    `${MI_BASE_URL}/api/keywords/${id}`,
+  );
+};
+
+// ===================== 历史记录（分页） =====================
+
+export interface MiPageQuery {
+  page?: number;
+  size?: number;
+  device_id?: string;
+  start_ms?: number;
+  end_ms?: number;
+}
+
+export interface MiConversation {
+  id: number;
+  device_id: string;
+  device_name: string;
+  query: string;
+  answer: string;
+  request_id: string;
+  timestamp_ms: number;
+  created_at: number;
+}
+
+export interface MiCastRecord {
+  id: number;
+  device_id: string;
+  device_name: string;
+  title: string;
+  url: string;
+  source: "play_by_url" | "play_playlist" | "voice";
+  tracks_count: number;
+  created_at: number;
+}
+
+export interface MiPagedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export const getMiConversations = async (
+  q: MiPageQuery = {},
+): Promise<MiPagedResponse<MiConversation>> => {
+  return request.get<MiPagedResponse<MiConversation>>(
+    `${MI_BASE_URL}/api/conversations`,
+    { params: q },
+  );
+};
+
+export const getMiCasts = async (
+  q: MiPageQuery = {},
+): Promise<MiPagedResponse<MiCastRecord>> => {
+  return request.get<MiPagedResponse<MiCastRecord>>(
+    `${MI_BASE_URL}/api/casts`,
+    { params: q },
+  );
+};

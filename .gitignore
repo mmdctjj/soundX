@@ -18,3 +18,4 @@ dist/
 **/__pycache__/*.pyc
 *.pyc
 auth.json
+.mi.token

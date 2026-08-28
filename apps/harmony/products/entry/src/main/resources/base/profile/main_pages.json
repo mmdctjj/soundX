@@ -18,6 +18,7 @@
     "pages/TtsTaskListPage",
     "pages/TtsCreateTaskPage",
     "pages/TtsConfigPage",
+    "pages/MiSpeakerPage",
     "pages/ScanPage",
     "pages/ScanConfirmPage",
     "pages/ProductUpdatesPage"

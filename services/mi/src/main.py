@@ -19,10 +19,11 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.config import Config
+from src import db
 from src.music_library import MusicLibrary
 from src.speaker_player import SpeakerPlayer
 from src.voice_listener import VoiceCommandListener
-from src.web_api import music, player as player_api, auth
+from src.web_api import music, player as player_api, auth, management
 
 # 全局共享实例
 library: MusicLibrary | None = None
@@ -51,6 +52,15 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     global library, player, listener
+
+    # 初始化 SQLite 存储
+    # 防御：如果 data/ 被挂载到 SMB/NFS 或权限异常，PRAGMA WAL 卡死会让 uvicorn
+    # 进程一直停在 startup_event 里 listen → 端口没起 → NestJS 代理 504。
+    # 这里捕获后打日志继续，让管理 API (/api/keywords 等) 仍可访问。
+    try:
+        db.init_db()
+    except Exception as e:
+        logger.error(f"[startup] init_db failed (will continue without DB): {e}", exc_info=True)
 
     # 初始化音乐库（不依赖登录）
     library = MusicLibrary()
@@ -95,6 +105,7 @@ async def shutdown_event():
 app.include_router(music.router, prefix="/api")
 app.include_router(player_api.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
+app.include_router(management.router, prefix="/api")
 
 
 # 音乐文件静态服务

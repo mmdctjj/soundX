@@ -299,6 +299,12 @@ class MiQRAuth:
             logger.warning("[MiQRAuth] 没有有效的认证数据，无法写入 .mi.token")
             return False
 
+        # 防御：docker 挂载源是目录而非文件时（如 .mi.token 路径被错误挂成目录），
+        # 直接跳过写文件，避免把启动流程炸掉。
+        if os.path.isdir(token_path):
+            logger.warning(f"[MiQRAuth] token_path 是目录而非文件，跳过写入: {token_path}")
+            return False
+
         try:
             os.makedirs(os.path.dirname(token_path) or ".", exist_ok=True)
             with open(token_path, "w", encoding="utf-8") as f:
