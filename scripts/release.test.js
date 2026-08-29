@@ -210,6 +210,78 @@ test('updateVersionsWithRollback: dryRun does not write', () => {
   }
 });
 
+const { renderUpdatedContent, stripPrerelease } = require('./release');
+
+test('stripPrerelease: strips -beta suffix', () => {
+  assert.equal(stripPrerelease('1.2.2-beta.3'), '1.2.2');
+  assert.equal(stripPrerelease('1.2.2'), '1.2.2');
+});
+
+test('renderUpdatedContent: Cargo.toml only touches [package] version', () => {
+  const toml = [
+    '[package]',
+    'name = "sound-x"',
+    'version = "1.1.22"',
+    'edition = "2021"',
+    '',
+    '[dependencies]',
+    'tauri = { version = "2", features = [] }',
+    'serde = { version = "1" }',
+    '',
+  ].join('\n');
+  const out = renderUpdatedContent('apps/desktop/src-tauri/Cargo.toml', toml, '1.2.2');
+  assert.match(out, /\[package\][\s\S]*?^version = "1\.2\.2"/m);
+  // 依赖段 version 不被误伤
+  assert.match(out, /tauri = \{ version = "2"/);
+  assert.match(out, /serde = \{ version = "1" \}/);
+});
+
+test('renderUpdatedContent: Cargo.toml strips beta suffix', () => {
+  const toml = '[package]\nversion = "1.2.1"\n';
+  const out = renderUpdatedContent('Cargo.toml', toml, '1.2.2-beta.1');
+  assert.match(out, /^version = "1\.2\.2"$/m);
+  assert.ok(!out.includes('beta'));
+});
+
+test('renderUpdatedContent: Cargo.toml missing [package] version throws', () => {
+  assert.throws(
+    () => renderUpdatedContent('Cargo.toml', '[dependencies]\nfoo = "1"\n', '1.2.2'),
+    /未找到 \[package\] 段的 version/
+  );
+});
+
+test('renderUpdatedContent: harmony app.json5 bumps versionName and versionCode', () => {
+  const json5 = JSON.stringify({ app: { bundleName: 'x', versionCode: 5, versionName: '1.2.1' } }, null, 2) + '\n';
+  const out = JSON.parse(renderUpdatedContent('apps/harmony/AppScope/app.json5', json5, '1.2.2'));
+  assert.equal(out.app.versionName, '1.2.2');
+  assert.equal(out.app.versionCode, 6);
+});
+
+test('renderUpdatedContent: harmony app.json5 strips beta suffix from versionName', () => {
+  const json5 = JSON.stringify({ app: { versionCode: 5, versionName: '1.2.1' } }) + '\n';
+  const out = JSON.parse(renderUpdatedContent('app.json5', json5, '1.2.2-beta.1'));
+  assert.equal(out.app.versionName, '1.2.2');
+  assert.equal(out.app.versionCode, 6);
+});
+
+test('renderUpdatedContent: harmony app.json5 throws when versionCode is not a number', () => {
+  const json5 = JSON.stringify({ app: { versionCode: '5', versionName: '1.2.1' } }) + '\n';
+  assert.throws(() => renderUpdatedContent('app.json5', json5, '1.2.2'), /versionCode 不是数字/);
+});
+
+test('renderUpdatedContent: tauri.conf.json strips beta suffix', () => {
+  const conf = JSON.stringify({ productName: 'AudioDock', version: '1.1.22' }, null, 2) + '\n';
+  const out = JSON.parse(renderUpdatedContent('apps/desktop/src-tauri/tauri.conf.json', conf, '1.2.2-beta.1'));
+  assert.equal(out.version, '1.2.2');
+  assert.equal(out.productName, 'AudioDock');
+});
+
+test('renderUpdatedContent: package.json keeps beta suffix', () => {
+  const pkg = JSON.stringify({ name: 'x', version: '1.2.1' }) + '\n';
+  const out = JSON.parse(renderUpdatedContent('packages/utils/package.json', pkg, '1.2.2-beta.1'));
+  assert.equal(out.version, '1.2.2-beta.1');
+});
+
 test('updateVersionsWithRollback: write failure triggers rollback and rethrows', () => {
   const dir = setupFixtures();
   const originalBytes = fs.readFileSync(path.join(dir, 'a.json'));
@@ -218,7 +290,7 @@ test('updateVersionsWithRollback: write failure triggers rollback and rethrows',
   try {
     assert.throws(
       () => updateVersionsWithRollback('2.0.0', [path.join(dir, 'a.json'), path.join(dir, 'b.json')], { dryRun: false }),
-      /更新 EACCES.*已回滚所有 package.json 到原版本/
+      /更新 EACCES.*已回滚所有版本文件到原版本/
     );
     // a.json 应被回滚
     const after = fs.readFileSync(path.join(dir, 'a.json'));
