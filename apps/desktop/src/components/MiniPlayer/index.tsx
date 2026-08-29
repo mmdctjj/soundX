@@ -124,9 +124,9 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
     if (onRestore) onRestore();
   };
 
-  const getCoverUrl = (item?: Track | null) => {
+  const getCoverUrl = (item?: Track | null, width = 300) => {
     if (!item) return "https://picsum.photos/200/200";
-    return resolveArtworkUri(item) || "https://picsum.photos/200/200";
+    return resolveArtworkUri(item, { width }) || "https://picsum.photos/200/200";
   };
 
   const formatTime = (time: number) => {
@@ -170,7 +170,7 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onRestore }) => {
       {/* Info Section */}
       <div className={styles.infoSection}>
         <LazyImage
-          src={getCoverUrl(currentTrack)}
+          src={getCoverUrl(currentTrack, 128)}
           alt={currentTrack?.name}
           width={"100%"}
           height={"100%"}

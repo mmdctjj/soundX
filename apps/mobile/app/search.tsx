@@ -265,9 +265,9 @@ export default function SearchScreen() {
   const renderItem = ({ item, type }: { item: any; type: string }) => {
     const coverUrl =
       type === "track" || type === "album"
-        ? getImageUrl(item.cover, "https://picsum.photos/100")
+        ? getImageUrl(item.cover, "https://picsum.photos/100", 96)
         : type === "artist"
-          ? getImageUrl(item.avatar, "https://picsum.photos/100")
+          ? getImageUrl(item.avatar, "https://picsum.photos/100", 96)
           : "https://picsum.photos/100";
 
     const isLiked = user && (

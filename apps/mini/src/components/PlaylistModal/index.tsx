@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
-import { getBaseURL } from '../../utils/request';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import PlayingIndicator from '../PlayingIndicator';
 import './index.scss';
 
@@ -81,12 +81,9 @@ const PlaylistModal = () => {
     }
   };
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return `https://picsum.photos/100`;
-    if (url.startsWith('http')) return url;
-    return `${getBaseURL()}${url}`;
-  };
-
+  // 占位图各文件不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/100", width);
   const handleItemClick = (item: any, index: number) => {
     const isCurrent = activeTab === 'current';
     const isAlbum = !isCurrent && (activeSubTab === 'album' || mode === 'AUDIOBOOK');
@@ -113,9 +110,9 @@ const PlaylistModal = () => {
       >
         <View className='item-row'>
           <Image
-            src={getImageUrl(item.cover)}
+            src={getImageUrl(item.cover, 96)}
             className={isAlbum ? 'item-cover-large' : 'item-cover-small'}
-            mode='aspectFill'
+            mode='aspectFill' webp
           />
           <Text className={`item-text ${isActive ? 'active' : ''}`} numberOfLines={1}>
             {item.name}

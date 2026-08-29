@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { type Track } from "../models";
-import { getCoverUrl } from "../utils";
+import { resolveArtworkUri } from "../services/trackResolver";
 
 interface UseMediaSessionProps {
   currentTrack: Track | null;
@@ -37,7 +37,11 @@ export const useMediaSession = ({
         album: currentTrack.album,
         artwork: [
           {
-            src: getCoverUrl(currentTrack) || "https://picsum.photos/seed/music/300/300",
+            // 声明的是 image/jpeg，所以显式指定 jpeg 格式，避免拿到 webp 后
+            // 系统播控（OS 层，不是 webview）解码失败。
+            src:
+              resolveArtworkUri(currentTrack, { width: 600, format: "jpeg" }) ||
+              "https://picsum.photos/seed/music/300/300",
             sizes: "512x512",
             type: "image/jpeg",
           },

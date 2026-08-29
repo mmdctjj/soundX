@@ -300,6 +300,7 @@ export default function CollectionDetailScreen() {
             uri: getImageUrl(
               cover,
               `https://picsum.photos/seed/collection-${collection.id}/400/400`,
+              600,
             ),
           }}
           style={styles.coverImage}

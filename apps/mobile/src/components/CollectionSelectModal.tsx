@@ -172,6 +172,7 @@ export const CollectionSelectModal: React.FC<CollectionSelectModalProps> = ({
                                 uri: getImageUrl(
                                   previewCover,
                                   `https://picsum.photos/seed/collection-${item.id}/200/200`,
+                                  128,
                                 ),
                               }}
                               style={styles.cover}

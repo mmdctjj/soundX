@@ -7,7 +7,7 @@ import MiniPlayer from '../../components/MiniPlayer'
 import { useAuth } from '../../context/AuthContext'
 import { usePlayer } from '../../context/PlayerContext'
 import { usePlayMode } from '../../utils/playMode'
-import { getBaseURL } from '../../utils/request'
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import './index.scss'
 
 export default function Index() {
@@ -165,12 +165,9 @@ export default function Index() {
     }
   };
 
-  const getImageUrl = (url: string | null) => {
-      if (!url) return `https://picsum.photos/200/200`;
-      if (url.startsWith('http')) return url;
-      return `${getBaseURL()}${url}`;
-  }
-
+  // 占位图各文件不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/200/200", width);
   const chunkTracks = (tracks = [], size = 2) => {
     const chunks: any[][] = [];
     for (let i = 0; i < tracks.length; i += size) {
@@ -230,7 +227,7 @@ export default function Index() {
                            const actualIndex = groupIndex * 2 + trackIndex;
                            return (
                              <View key={track.id} className='track-card' onClick={() => handleTrackPlay(section.data, actualIndex)}>
-                                <Image src={getImageUrl(track.cover)} className='track-image' mode='aspectFill'/>
+                                <Image src={getImageUrl(track.cover, 96)} className='track-image' mode='aspectFill' webp/>
                                 <View className='track-info'>
                                    <Text className='track-title' numberOfLines={1}>{track.name}</Text>
                                    <Text className='track-artist' numberOfLines={1}>{track.artist}</Text>
@@ -282,9 +279,9 @@ export default function Index() {
                             {section.type === 'artist' ? (
                               <>
                                 <Image 
-                                    src={getImageUrl(item.avatar)} 
+                                    src={getImageUrl(item.avatar, 128)} 
                                     className='artist-image' 
-                                    mode='aspectFill'
+                                    mode='aspectFill' webp
                                 />
                                 <Text className='item-name' numberOfLines={1}>{item.name}</Text>
                               </>
@@ -294,7 +291,7 @@ export default function Index() {
                                   <Image 
                                       src={getImageUrl(item.cover)} 
                                       className='album-image' 
-                                      mode='aspectFill'
+                                      mode='aspectFill' webp
                                   />
                                   {mode === 'AUDIOBOOK' && item.progress > 0 && (
                                     <View className='album-progress'>

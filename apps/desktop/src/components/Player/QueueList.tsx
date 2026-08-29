@@ -43,9 +43,11 @@ export interface QueueListRef {
     scrollToActive: () => void;
 }
 
-const getCoverUrl = (item?: Track | Album | null) => {
+const getCoverUrl = (item?: Track | Album | null, width = 300) => {
     if (!item) return `https://picsum.photos/seed/0/300/300`;
-    return resolveArtworkUri(item) || `https://picsum.photos/seed/${item.id}/300/300`;
+    return (
+      resolveArtworkUri(item, { width }) || `https://picsum.photos/seed/${item.id}/300/300`
+    );
   };
 
 export const QueueList = forwardRef<QueueListRef, QueueListProps>(({
@@ -199,7 +201,7 @@ export const QueueList = forwardRef<QueueListRef, QueueListProps>(({
               avatar={
                 <div style={{ position: "relative" }}>
                   <img
-                    src={getCoverUrl(item)}
+                    src={getCoverUrl(item, 128)}
                     alt={item.name}
                     style={{
                       width: "50px",

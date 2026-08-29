@@ -13,6 +13,7 @@ import { installPlaybackService } from '../services/playbackService';
 import { installAVSessionService, releaseAVSessionService } from '../services/avSessionService';
 import { setSystemBarWindow, applySystemBar } from '../services/systemBar';
 import { themeAutoStore } from '../context/ThemeAutoStore';
+import { refreshNetworkMode } from '../utils/networkMode';
 import { installWechatRespHandler, registerWechatApp, handleWechatWant } from '../services/WechatPayService';
 
 /** Bundle信息摘要接口 */
@@ -126,6 +127,9 @@ export default class EntryAbility extends UIAbility {
     if (stored) httpClient.setBaseURL(stored);
     const token = await kvStore.get(`token_${stored ?? ''}`);
     if (token) httpClient.setAuthToken(token);
+
+    // 服务器地址确定后才能判定内网/外网，封面与头像的分级加载依赖它
+    await refreshNetworkMode();
 
     const langSetting = await kvStore.get('app_language');
     if (langSetting === 'zh-CN' || langSetting === 'en') applySetting(langSetting);

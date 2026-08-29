@@ -4,7 +4,7 @@ import Taro, { useRouter } from '@tarojs/taro';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../components/MiniPlayer';
-import { getBaseURL } from '../../utils/request';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import './index.scss';
 import BottomTabBar from '../../components/BottomTabBar';
 
@@ -45,11 +45,9 @@ export default function CollectionPage() {
     loadData();
   }, [id]);
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return 'https://picsum.photos/300/300';
-    if (url.startsWith('http')) return url;
-    return `${getBaseURL()}${url}`;
-  };
+  // 占位图各页不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/300/300", width);
 
   if (loading) return <View className='loading'><Text>Loading...</Text></View>;
   if (!collection) return <View className='error'><Text>{t('collection.notExist')}</Text></View>;
@@ -65,9 +63,9 @@ export default function CollectionPage() {
       <ScrollView scrollY className='content-scroll'>
         <View className='header'>
           <Image
-            src={getImageUrl(collection.cover || albums[0]?.cover || null)}
+            src={getImageUrl(collection.cover || albums[0]?.cover || null, 600)}
             className='cover'
-            mode='aspectFill'
+            mode='aspectFill' webp
           />
           <Text className='title'>{collection.name}</Text>
           <Text className='meta'>{`${albums.length} ${t('collection.albumsCount')}`}</Text>
@@ -80,7 +78,7 @@ export default function CollectionPage() {
               className='album-card'
               onClick={() => Taro.navigateTo({ url: `/pages/album/index?id=${album.id}` })}
             >
-              <Image src={getImageUrl(album.cover)} className='album-cover' mode='aspectFill' />
+              <Image src={getImageUrl(album.cover, 220)} className='album-cover' mode='aspectFill' webp />
               <Text className='album-name' numberOfLines={1}>{album.name}</Text>
               <Text className='album-artist' numberOfLines={1}>{album.artist}</Text>
             </View>

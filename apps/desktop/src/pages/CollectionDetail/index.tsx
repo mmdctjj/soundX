@@ -177,7 +177,7 @@ const CollectionDetail: React.FC = () => {
 
   const cover = collection.cover || albums[0]?.cover;
   const getAlbumCoverSrc = (album: Album) =>
-    resolveArtworkUri(album) ||
+    resolveArtworkUri(album, { width: 300 }) ||
     `https://picsum.photos/seed/${album.id}/300/300`;
 
   const menuItems = [
@@ -224,7 +224,7 @@ const CollectionDetail: React.FC = () => {
       {contextHolder}
       <div className={styles.header}>
         <div className={styles.coverWrap}>
-          <img className={styles.cover} src={resolveArtworkUri(cover)} />
+          <img className={styles.cover} src={resolveArtworkUri(cover, { width: 600 })} />
           <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
             <button className={styles.moreBtn}>
               <MoreOutlined />

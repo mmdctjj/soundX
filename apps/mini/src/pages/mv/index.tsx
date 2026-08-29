@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { getMvById, getMvByTrackId, type Mv } from '@soundx/services'
 import { usePlayer } from '../../context/PlayerContext'
 import { useTheme } from '../../context/ThemeContext'
-import { getBaseURL } from '../../utils/request'
+import { getImageUrl as buildImageUrl } from '../../utils/image';
+import { getBaseURL } from '../../utils/request';
 import { mvPlaylistStore } from '../../store/mvPlaylist'
 import './index.scss'
 
@@ -32,11 +33,9 @@ export default function MvPlayer() {
       : []
   const displayCurrentIndex = playlistState.list.length > 0 ? playlistState.currentIndex : 0
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return ''
-    if (url.startsWith('http')) return url
-    return `${getBaseURL()}${url}`
-  }
+  // 占位图各页不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "", width);
 
   useLoad((options) => {
     pause() // pause audio player when entering MV
@@ -140,7 +139,8 @@ export default function MvPlayer() {
     )
   }
 
-  const videoUrl = getImageUrl(mv.path)
+  // 这是视频地址不是图片，不要走 getImageUrl（那个是封面/头像专用的分级加载工具）
+  const videoUrl = mv.path ? `${getBaseURL()}${mv.path}` : ''
 
   return (
     <View className='mv-container' style={{ backgroundColor: colors.background }}>
@@ -150,7 +150,7 @@ export default function MvPlayer() {
           id={MV_VIDEO_ID}
           className='mv-video'
           src={videoUrl}
-          poster={mv.cover ? getImageUrl(mv.cover) : ''}
+          poster={mv.cover ? getImageUrl(mv.cover, 600) : ''}
           autoplay
           controls
           objectFit='contain'
@@ -202,7 +202,7 @@ export default function MvPlayer() {
                   >
                     {index + 1}
                   </Text>
-                  <Image src={getImageUrl(item.cover)} className='mv-playlist-item-cover' mode='aspectFill' />
+                  <Image src={getImageUrl(item.cover, 120)} className='mv-playlist-item-cover' mode='aspectFill' webp />
                   <View className='mv-playlist-item-info'>
                     <Text
                       className={`mv-playlist-item-name ${item.id === mv?.id ? 'active' : ''}`}

@@ -30,6 +30,19 @@ export default defineConfig(async (merge, { command, mode }) => {
     cache: {
       enable: false // Webpack5 cache can be problematic in some monorepos
     },
+    webpackChain: (chain: any) => {
+      const path = require('path')
+      // Taro webpack5 默认未解析 package.json `exports` 字段，导致 monorepo workspace
+      // 包（@soundx/i18e / @soundx/services）的子路径无法解析。alias 到 cjs entry 兜底。
+      chain.resolve.alias.set(
+        '@soundx/i18e',
+        path.resolve(__dirname, '../../packages/i18e/dist/cjs/index.js'),
+      )
+      chain.resolve.alias.set(
+        '@soundx/services',
+        path.resolve(__dirname, '../../packages/services/dist/cjs/index.js'),
+      )
+    },
     mini: {
       postcss: {
         pxtransform: {

@@ -4,6 +4,7 @@ import type { Track } from "../models";
 import { useAuthStore } from "../store/auth";
 import { useSettingsStore } from "../store/settings";
 import { isTauri } from "../utils/platform";
+import { resolveArtworkUri } from "./trackResolver";
 
 interface TrackMetadata {
   id: number | string;
@@ -45,7 +46,9 @@ export const downloadTrack = async (track: Track): Promise<boolean> => {
     albumId: track.albumEntity?.id || (track as any).albumId,
     duration: track.duration,
     type: track.type,
-    cover: track.cover ? (track.cover.startsWith('http') ? track.cover : `${getBaseURL()}${track.cover}`) : null,
+    // 这张封面会被下载并嵌入离线文件的 ID3 标签，所以强制走缩略图档（≤300），
+    // 否则内网下载时会把 5MB 原图塞进音频文件里。
+    cover: track.cover ? resolveArtworkUri(track.cover, { width: 300 }) ?? null : null,
     lyrics: track.lyrics
   };
 

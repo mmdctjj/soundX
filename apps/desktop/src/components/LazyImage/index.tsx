@@ -24,7 +24,8 @@ interface LazyImageProps {
  * 视口懒加载的 <img> 包装
  *
  * 用法：
- *   <LazyImage src={getCoverUrl(track.cover, 80)} width={80} height={80} alt={track.name} />
+ *   <LazyImage src={getCoverUrl(track.cover, track.id, 128)} width={80} height={80} alt={track.name} />
+ *                                              ^^^^^^^^ 目标设备像素宽度（按显示尺寸 ×2 估算）
  *
  * 关键点：
  *  - width / height 强制约束（消除 CLS / 布局抖动）

@@ -10,6 +10,7 @@ import XiaoAiIcon from '../../components/XiaoAiIcon';
 import { useAuth } from '../../context/AuthContext';
 import { PlayMode, usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import { getBaseURL } from '../../utils/request';
 import { trackEvent } from '../../utils/tracking';
 import './index.scss';
@@ -247,11 +248,9 @@ export default function Player() {
     handleSpeedChange(nextRate);
   };
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return `https://picsum.photos/400/400`;
-    if (url.startsWith('http')) return url;
-    return `${getBaseURL()}${url}`;
-  };
+  // 占位图各页不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/400/400", width);
 
   const formatTime = (seconds: number) => {
     if (!seconds) return '0:00';
@@ -385,9 +384,9 @@ const handleOpenMore = () => {
                 {!showLyrics ? (
                     <View className='player-artwork-container'>
                         <Image 
-                            src={getImageUrl(currentTrack.cover)} 
+                            src={getImageUrl(currentTrack.cover, 600)} 
                             className='player-artwork' 
-                            mode='aspectFill'
+                            mode='aspectFill' webp
                         />
                     </View>
                 ) : (

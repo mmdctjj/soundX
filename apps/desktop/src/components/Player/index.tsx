@@ -61,7 +61,7 @@ import XiaoAiOutlined from "../../assets/xiaoai.svg?react";
 import { useMessage } from "../../context/MessageContext";
 import { useMediaSession } from "../../hooks/useMediaSession";
 import { getBaseURL } from "../../https";
-import { type Album, type Track, TrackType } from "../../models";
+import { type Track, TrackType } from "../../models";
 import { socketService } from "../../services/socket";
 import { trackEvent } from "../../services/tracking";
 import {
@@ -1172,15 +1172,6 @@ const Player: React.FC<PlayerProps> = ({ hideMiniPlayer, seekBridge }) => {
       play();
     }
   };
-
-  const getCoverUrl = (item?: Track | Album | null) => {
-    if (!item) return `https://picsum.photos/seed/0/300/300`;
-    return (
-      resolveArtworkUri(item) || `https://picsum.photos/seed/${item.id}/300/300`
-    );
-  };
-  // keep local helper for legacy call sites; suppress unused warning when migrated
-  void getCoverUrl;
 
   const renderMiniPlayer = (expandable: boolean) => (
     <>

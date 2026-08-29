@@ -23,6 +23,72 @@ import { AppIcon } from '../components/AppIcon';
 
 const PAGE_SIZE = 20;
 
+// 关键词开关行：独立子组件，刻意不用 @Builder。
+// 对齐 SettingsPage 的 SettingSwitchRow —— @Builder 按值内联展开后，
+// Toggle 在手势注册与状态回读上不稳定（鬼影 onChange(false)、进入页面始终显示关闭）。
+// 独立 @Component 拥有稳定的组件实例：@Link 双向绑定父 @State 数组元素，
+// 自绘开关轨道 + 滑块，点击即反转，不注册 Toggle 的 onChange。
+@Component
+struct KeywordSwitchRow {
+  keyword: string = '';
+  @Prop isOn: boolean;
+  onToggle: (val: boolean) => void = () => {};
+  onDelete: () => void = () => {};
+
+  @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  @State theme: Theme = buildTheme('light');
+
+  aboutToAppear() {
+    this.theme = buildTheme(this.themeMode);
+  }
+
+  onThemeModeChange(): void {
+    this.theme = buildTheme(this.themeMode);
+  }
+
+  build() {
+    Row() {
+      Text(this.keyword)
+        .fontSize(15)
+        .fontWeight(this.isOn ? FontWeight.Medium : FontWeight.Normal)
+        .fontColor(this.theme.colors.text)
+        .decoration({ type: this.isOn ? TextDecorationType.None : TextDecorationType.LineThrough })
+        .opacity(this.isOn ? 1 : 0.5)
+        .layoutWeight(1)
+
+      // 自绘 iOS 风格开关（轨道 + 滑块），点击即反转
+      Column() {
+        Column()
+          .width(24)
+          .height(24)
+          .borderRadius(12)
+          .backgroundColor('#f4f3f4')
+          .translate({ x: this.isOn ? 12 : -12 })
+          .animation({ duration: 200, curve: Curve.EaseInOut })
+      }
+      .width(48)
+      .height(28)
+      .borderRadius(14)
+      .backgroundColor(this.isOn ? this.theme.colors.primary : 'rgba(120,120,128,0.32)')
+      .justifyContent(FlexAlign.Center)
+      .onClick((): void => {
+        this.onToggle(!this.isOn);
+      })
+
+      Button() {
+        Text(t('common.delete')).fontSize(12).fontColor('#F5222D')
+      }
+      .height(32)
+      .backgroundColor(Color.Transparent)
+      .margin({ left: 8 })
+      .onClick((): void => this.onDelete())
+    }
+    .width('100%')
+    .padding({ top: 12, bottom: 12 })
+    .alignItems(VerticalAlign.Center)
+  }
+}
+
 @Entry
 @Component
 struct MiSpeakerPage {
@@ -201,12 +267,37 @@ struct MiSpeakerPage {
     }
   }
 
-  async handleToggleKeyword(kw: MiKeywordType): Promise<void> {
+  async handleToggleKeyword(kw: MiKeywordType, isOn: boolean): Promise<void> {
+    // 乐观更新本地状态，避免连续点击 + loadKeywords 异步竞态导致 UI 卡在旧值。
+    // 后端失败时回滚。
+    // ArkTS 不支持对象 spread，逐字段显式构造新对象。
+    this.keywords = this.keywords.map((k): MiKeywordType => {
+      if (k.id !== kw.id) return k;
+      const next: MiKeywordType = {
+        id: k.id,
+        keyword: k.keyword,
+        enabled: isOn,
+        created_at: k.created_at,
+        updated_at: k.updated_at,
+      };
+      return next;
+    });
     try {
-      const patch: MiKeywordPatch = { enabled: !kw.enabled };
+      const patch: MiKeywordPatch = { enabled: isOn };
       await miApi.updateKeyword(kw.id, patch);
-      await this.loadKeywords();
     } catch (e) {
+      // 失败回滚到原值
+      this.keywords = this.keywords.map((k): MiKeywordType => {
+        if (k.id !== kw.id) return k;
+        const next: MiKeywordType = {
+          id: k.id,
+          keyword: k.keyword,
+          enabled: !isOn,
+          created_at: k.created_at,
+          updated_at: k.updated_at,
+        };
+        return next;
+      });
       const msg = e instanceof Error ? e.message : String(e);
       promptAction.showToast({ message: msg });
     }
@@ -337,7 +428,7 @@ struct MiSpeakerPage {
           .padding({ left: 40, right: 40 })
           .borderRadius(12)
           .backgroundColor(this.theme.colors.primary)
-          .fontColor('#FFFFFF')
+          .fontColor(this.theme.colors.onPrimary)
           .fontSize(15)
           .onClick((): void => {
             this.handleGetQRCode();
@@ -379,7 +470,7 @@ struct MiSpeakerPage {
           .padding({ left: 16, right: 16 })
           .borderRadius(10)
           .backgroundColor(this.theme.colors.primary)
-          .fontColor('#FFFFFF')
+          .fontColor(this.theme.colors.onPrimary)
           .fontSize(14)
           .margin({ left: 10 })
           .enabled(!this.addingKeyword)
@@ -391,7 +482,12 @@ struct MiSpeakerPage {
       .margin({ bottom: 12 })
 
       if (this.keywordsLoading) {
-        LoadingProgress().width(36).height(36).color(this.theme.colors.primary).margin({ top: 24 })
+        Column() {
+          LoadingProgress().width(36).height(36).color(this.theme.colors.primary)
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
       } else if (this.keywords.length === 0) {
         Text(t('miManage.keywordEmpty'))
           .fontSize(14)
@@ -401,32 +497,16 @@ struct MiSpeakerPage {
           .textAlign(TextAlign.Center)
       } else {
         List({ space: 0 }) {
-          ForEach(this.keywords, (kw: MiKeywordType) => {
+          ForEach(this.keywords, (kw: MiKeywordType, index: number) => {
             ListItem() {
-              Row() {
-                Text(kw.keyword)
-                  .fontSize(15)
-                  .fontWeight(kw.enabled ? FontWeight.Medium : FontWeight.Normal)
-                  .fontColor(this.theme.colors.text)
-                  .decoration({ type: kw.enabled ? TextDecorationType.None : TextDecorationType.LineThrough })
-                  .opacity(kw.enabled ? 1 : 0.5)
-                  .layoutWeight(1)
-                Toggle({ type: ToggleType.Switch, isOn: kw.enabled })
-                  .selectedColor(this.theme.colors.primary)
-                  .onChange(() => {
-                    this.handleToggleKeyword(kw);
-                  })
-                Button() {
-                  Text(t('common.delete')).fontSize(12).fontColor('#F5222D')
-                }
-                .height(32)
-                .backgroundColor(Color.Transparent)
-                .margin({ left: 8 })
-                .onClick((): void => this.handleDeleteKeyword(kw))
-              }
-              .width('100%')
-              .padding({ top: 12, bottom: 12 })
-              .alignItems(VerticalAlign.Center)
+              KeywordSwitchRow({
+                keyword: kw.keyword,
+                isOn: this.keywords[index].enabled,
+                onToggle: (val: boolean): void => {
+                  this.handleToggleKeyword(kw, val);
+                },
+                onDelete: (): void => this.handleDeleteKeyword(kw),
+              })
             }
           }, (kw: MiKeywordType): string => `${kw.id}`)
         }
@@ -599,48 +679,77 @@ struct MiSpeakerPage {
           .layoutWeight(1)
           .textAlign(TextAlign.Center)
 
-        Row().width(40).height(40)
+        if (this.loggedIn) {
+          Button() {
+            Text('⏻')
+              .fontSize(22)
+              .fontColor(this.theme.colors.text)
+          }
+          .width(40)
+          .height(40)
+          .backgroundColor(Color.Transparent)
+          .onClick((): void => this.handleLogout())
+        } else {
+          Row().width(40).height(40)
+        }
       }
       .width('100%')
       .padding({ left: 15, right: 15, top: 16, bottom: 15 })
 
-      // Tabs
-      Tabs({ barPosition: BarPosition.Start }) {
-        TabContent() {
+      if (this.authChecked && !this.loggedIn) {
+        // 未登录：整个页面只展示 LoginTab，不显示 tabBar
+        Column() {
           this.LoginTab()
         }
-        .tabBar(t('miManage.tabLogin'))
+        .width('100%')
+        .layoutWeight(1)
+      } else {
+        // 登录后展示 keywords/conversations/casts 三个 tab
+        Tabs({ barPosition: BarPosition.Start, index: this.activeTab }) {
+          TabContent() {
+            this.KeywordsTab()
+          }
+          .tabBar(this.MiTabBar(t('miManage.tabKeywords'), 0))
 
-        TabContent() {
-          this.KeywordsTab()
-        }
-        .tabBar(t('miManage.tabKeywords'))
+          TabContent() {
+            this.HistoryTab('conversations')
+          }
+          .tabBar(this.MiTabBar(t('miManage.tabConversations'), 1))
 
-        TabContent() {
-          this.HistoryTab('conversations')
+          TabContent() {
+            this.HistoryTab('casts')
+          }
+          .tabBar(this.MiTabBar(t('miManage.tabCasts'), 2))
         }
-        .tabBar(t('miManage.tabConversations'))
-
-        TabContent() {
-          this.HistoryTab('casts')
-        }
-        .tabBar(t('miManage.tabCasts'))
+        .width('100%')
+        .layoutWeight(1)
+        .barMode(BarMode.Fixed)
+        .barBackgroundColor(this.theme.colors.card)
+        .divider({ strokeWidth: 0.5, color: this.theme.colors.border })
+        .onChange((index: number): void => {
+          this.activeTab = index;
+          if (index === 0) this.loadKeywords();
+          if (index === 1) this.loadConversations(1, false);
+          if (index === 2) this.loadCasts(1, false);
+        })
       }
-      .width('100%')
-      .layoutWeight(1)
-      .barMode(BarMode.Fixed)
-      .barBackgroundColor(this.theme.colors.card)
-      .divider({ strokeWidth: 0.5, color: this.theme.colors.border })
-      .onChange((index: number): void => {
-        this.activeTab = index;
-        if (index === 1) this.loadKeywords();
-        if (index === 2) this.loadConversations(1, false);
-        if (index === 3) this.loadCasts(1, false);
-      })
     }
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme.colors.background)
+  }
+
+  @Builder
+  MiTabBar(label: string, index: number) {
+    Column() {
+      Text(label)
+        .fontSize(14)
+        .fontWeight(this.activeTab === index ? FontWeight.Medium : FontWeight.Normal)
+        .fontColor(this.activeTab === index ? this.theme.colors.tabBarActive : this.theme.colors.tabBarInactive)
+    }
+    .width('100%')
+    .height(48)
+    .justifyContent(FlexAlign.Center)
   }
 
   build() {

@@ -1,5 +1,6 @@
 import { getBaseURL } from "../https";
 import { Track } from "../models";
+import { getImageUrl } from "../utils/image";
 import {
   cacheCover,
   downloadTrack,
@@ -57,13 +58,16 @@ export const resolveTrackUri = async (
 
 /**
  * Resolves artwork URI
+ *
+ * 分级加载同 `utils/image.ts`：width 量化到固定档位后，缩略图档位恒压缩，
+ * 大图档位才按网络环境区分。
+ *
+ * @param width 目标设备像素宽度，默认 300
  */
-export const resolveArtworkUri = (track: Track): string | undefined => {
+export const resolveArtworkUri = (track: Track, width = 300): string | undefined => {
   if (!track.cover) return undefined;
-  
-  return track.cover.startsWith("http")
-    ? track.cover
-    : `${getBaseURL()}${track.cover.split('/').map(encodeURIComponent).join('/')}`;
+
+  return getImageUrl(track.cover, undefined, width);
 };
 
 interface ArtworkResolveOptions {
@@ -71,11 +75,21 @@ interface ArtworkResolveOptions {
   fast?: boolean;
 }
 
+/**
+ * 解析给原生播控（通知栏 / 锁屏）用的封面。
+ *
+ * 默认走 300 档（恒压缩）：
+ *  - 通知栏封面本身很小，300px 绰绰有余；
+ *  - 关键是它会 `cacheCover` 落盘，若用大图档位，内网时会把 5MB 原图缓存下来。
+ *
+ * @param width 目标设备像素宽度，默认 300
+ */
 export const resolveArtworkUriForPlayer = async (
   track: Track,
-  options: ArtworkResolveOptions = {}
+  options: ArtworkResolveOptions = {},
+  width = 300
 ): Promise<string | undefined> => {
-  const remoteArtwork = resolveArtworkUri(track);
+  const remoteArtwork = resolveArtworkUri(track, width);
   if (!remoteArtwork) return undefined;
 
   if (options.fast) return remoteArtwork;

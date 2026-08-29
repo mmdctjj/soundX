@@ -46,3 +46,10 @@
 - **`activate` 时机**：启动时 activate 的会话系统不认（空激活），必须在**首次真正播放**时 activate。activate 后立刻补发 `setAVMetadata`（未激活时发的可能被丢弃）+ `setBackgroundPlayMode(ENABLE_BACKGROUND_PLAY)`（API 24+，实况胶囊/锁屏大卡片听命于此标志位）。
 - **抓日志命令**：`hdc shell "hilog | grep -iE 'avsession|AVSession'"`（设备需先 `hdc list targets` 确认连接）。
 - **官方 AudioCast 实战经验**（`gitcode.com/HarmonyOS_Samples/AudioCast` 抓取）：每个 `play()` / `setPlaying()` 入口都要再调一次 `startBackgroundRunning`（不只是首次启动时申请一次）。后台长时任务超过系统回收阈值后会失效，需要每次进入播放再申请一次。官方 `wantAgent` 用 `context.abilityInfo.bundleName/name` 而不是 `applicationInfo.name` + 硬编码 abilityName，更稳。
+
+## 封面/头像分级加载（2026-08-29 落地）
+
+- **后端**：`GET /image/optimize?src=&w=&q=&fmt=`（`services/api`，`@Public`，sharp resize + 磁盘缓存 `${CACHE_DIR}/.optimized/<sha256>`）。**只放行 `/covers/`**——`/music/` 虽在白名单但 `resolveLocalSource` 返回 null 会 404。`preGenerate` 档位 `[300,600,900,1200]`。
+- **统一规则（四端一致）**：档位 `[96,128,300,600,900,1200]`，`width` = **目标设备像素宽**（非 CSS，按显示尺寸×2）；`q=72`、`fmt=webp`。**≤300 恒压缩不分内外网**（列表瓶颈是解码内存：50 张 3000×3000 原图=1.8GB 位图必 OOM）；**>300 才分内外网**（内网原图直连/外网 optimize）。
+- **同步约束**：`getImageUrl` 必须保持同步纯函数（mobile 40+/harmony 30+ 调用点）。网络判定走「模块级内存变量 + 异步刷新」：desktop `localStorage`/mini `getStorageSync` 同步读，mobile/harmony 用模块变量，在「服务器切换」钩子（AuthContext/AuthStore/EntryAbility）异步 `refreshNetworkMode()`。初始值 `false`（按外网=压缩，安全方向）。
+- **关键坑**：① mv 页 `getImageUrl(path)` 拼**视频地址**是历史误用（mini/harmony/mobile 均已改回 `${baseURL}${path}`）；② `resolveArtworkUriForPlayer`/`downloadManager` 等会**落盘缓存**的路径必须限 ≤300 档，否则内网会把 5MB 原图写进缓存/ID3；③ 小程序 iOS<14 需 `<Image webp>` 属性；④ 不要用 `git stash` 做基线对比（会误 pop 旧 stash，用 git worktree）。

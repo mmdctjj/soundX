@@ -67,8 +67,7 @@ const logo = require("../../assets/images/logo.webp");
 const subsonicLogo = require("../../assets/images/subsonic.webp");
 const embyLogo = require("../../assets/images/emby.webp");
 const ctjjLogo = require("../../assets/images/ctjj.webp");
-const xiaoaiLight = require("../../assets/images/xiaoai_light.png");
-const xiaoaiDark = require("../../assets/images/xiaoai_dark.png");
+const xiaoaiIcon = require("../../assets/images/xiaoai_light.png");
 
 type TabType = "playlists" | "favorites" | "history" | "downloads";
 type SubTabType = "track" | "album";
@@ -80,7 +79,7 @@ const StackedCover = ({ tracks }: { tracks: any[] }) => {
   return (
     <View style={styles.stackedCoverContainer}>
       {covers.map((track, index) => {
-        const coverUrl = getImageUrl(track.cover, "https://picsum.photos/100");
+        const coverUrl = getImageUrl(track.cover, "https://picsum.photos/100", 96);
 
         return (
           <CachedImage
@@ -755,7 +754,7 @@ export default function PersonalScreen() {
       // Wait, FlatList data source is controlled.
 
       const data = item;
-      const coverUrl = getImageUrl(item.cover, "https://picsum.photos/100");
+      const coverUrl = getImageUrl(item.cover, "https://picsum.photos/100", 96);
 
       return (
         <TouchableOpacity
@@ -1012,7 +1011,8 @@ export default function PersonalScreen() {
             style={[styles.iconBtn, { marginRight: 10 }]}
           >
             <Image
-              source={xiaoaiIconSource}
+              source={xiaoaiIcon}
+              tintColor={colors.text}
               style={{ width: 22, height: 22 }}
               resizeMode="contain"
             />
@@ -1031,7 +1031,7 @@ export default function PersonalScreen() {
         <TouchableOpacity onPress={handleChangeAvatar} activeOpacity={0.8}>
           <CachedImage
             source={{
-              uri: getImageUrl(avatarOverride, "https://picsum.photos/200"),
+              uri: getImageUrl(avatarOverride, "https://picsum.photos/200", 128),
             }} // Placeholder for avatar
             style={styles.avatar}
           />

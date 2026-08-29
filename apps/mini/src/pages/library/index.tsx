@@ -10,7 +10,7 @@ import SkeletonBlock from '../../components/SkeletonBlock';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
-import { getBaseURL } from '../../utils/request';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import './index.scss';
 
 const SONG_SKELETON_COUNT = 9;
@@ -246,12 +246,9 @@ export default function Library() {
     };
   }, [mode, user]);
 
-  const getImageUrl = (url: string | null) => {
-      if (!url) return `https://picsum.photos/200/200`;
-      if (url.startsWith('http')) return url;
-      return `${getBaseURL()}${url}`;
-  };
-
+  // 占位图各文件不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/200/200", width);
   const scrollToAnchor = (anchorId: string) => {
     setScrollIntoView('');
     setTimeout(() => setScrollIntoView(anchorId), 0);
@@ -459,7 +456,7 @@ export default function Library() {
                        }
                      }}
                    >
-                     <Image src={getImageUrl(item.cover || null)} className='track-cover' mode='aspectFill' />
+                     <Image src={getImageUrl(item.cover || null, 96)} className='track-cover' mode='aspectFill' webp />
                      <View className='track-info'>
                        <Text className={`track-name ${currentTrack?.id === item.id ? 'active' : ''}`} numberOfLines={1}>
                          {item.name}
@@ -500,7 +497,7 @@ export default function Library() {
                              : item.cover,
                        )}
                        className={`item-image ${activeTab === 'artists' ? 'circle' : 'rounded'}`}
-                       mode='aspectFill'
+                       mode='aspectFill' webp
                      />
                      {activeTab === 'albums' && mode === 'AUDIOBOOK' && (item as Album).progress > 0 ? (
                        <View className='item-progress'>

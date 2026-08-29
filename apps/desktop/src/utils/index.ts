@@ -1,13 +1,25 @@
 import { SOURCEMAP } from "@soundx/services";
 import { resolveArtworkUri } from "../services/trackResolver";
 
-export const getCoverUrl = (path?: string | null | any, id?: number | string) => {
+/**
+ * 封面 / 头像 URL。
+ *
+ * @param width 目标设备像素宽度（非 CSS 尺寸，按显示尺寸 ×2 估算），默认 300。
+ *   默认 300 落在「恒压缩」档，即未显式标注尺寸的调用点一律拿到缩略图 —— 这是安全默认值。
+ *   详见 `./imageBucket.ts`。
+ */
+export const getCoverUrl = (
+  path?: string | null | any,
+  id?: number | string,
+  width = 300,
+) => {
   if (typeof path === "object" && path !== null) {
     return (
-      resolveArtworkUri(path) || `https://picsum.photos/seed/${path.id || id}/300/300`
+      resolveArtworkUri(path, { width }) ||
+      `https://picsum.photos/seed/${path.id || id}/300/300`
     );
   }
-  return resolveArtworkUri(path) || `https://picsum.photos/seed/${id}/300/300`;
+  return resolveArtworkUri(path, { width }) || `https://picsum.photos/seed/${id}/300/300`;
 };
 
 export const isSubsonicSource = () => {

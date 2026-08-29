@@ -17,6 +17,7 @@ import { addNetworkStateListener } from 'expo-network';
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { getBaseURL, initBaseURL, setBaseURL } from "../https";
+import { refreshNetworkMode } from "../utils/networkMode";
 import { User } from "../models";
 import { selectBestServer } from "../utils/networkUtils";
 
@@ -143,6 +144,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setBaseURL(bestAddress);
       await AsyncStorage.setItem("serverAddress", bestAddress);
       await AsyncStorage.setItem(`serverAddress_${savedType}`, bestAddress);
+      // 切了服务器就重新判定内网/外网，否则封面会继续用旧网络环境下的 URL
+      await refreshNetworkMode();
     } catch (e) {
       console.warn("[AutoSwitch] Failed:", e);
     }
@@ -193,6 +196,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await autoSwitchServer();
       savedAddress = getBaseURL();
       // --------------------------------------------------------------
+
+      // 启动即判定一次内网/外网（autoSwitchServer 可能没发生切换，但地址已由 initBaseURL 确定）
+      await refreshNetworkMode();
 
       const savedToken = await AsyncStorage.getItem(`token_${savedAddress}`);
       const savedUser = await AsyncStorage.getItem(`user_${savedAddress}`);
@@ -348,6 +354,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await AsyncStorage.setItem(`serverAddress_${targetType}`, url);
       await AsyncStorage.setItem("selectedSourceType", targetType);
       setSourceTypeDirectly(targetType);
+      // 手动切换服务器也要重新判定内网/外网
+      await refreshNetworkMode();
 
       // Configure adapter for the new server
       const credsKey = `creds_${targetType}_${url}`;

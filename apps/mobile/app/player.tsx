@@ -791,7 +791,7 @@ export function PlayerDetailView({
             </View>
             <Image
               source={{
-                uri: getImageUrl(item.cover, `https://picsum.photos/seed/${item.id}/20/20`),
+                uri: getImageUrl(item.cover, `https://picsum.photos/seed/${item.id}/20/20`, 96),
               }}
               style={styles.playlistItemCover}
             />
@@ -1201,7 +1201,7 @@ export function PlayerDetailView({
             >
               <Image
                 source={{
-                  uri: getImageUrl(currentTrack.cover, "https://picsum.photos/400"),
+                  uri: getImageUrl(currentTrack.cover, "https://picsum.photos/400", 900),
                 }}
                 onLayout={(e) => setArtworkHeight(e.nativeEvent.layout.height)}
                 style={[styles.artwork, { marginBottom: 0 }]}
@@ -1394,7 +1394,7 @@ export function PlayerDetailView({
               >
                 <Image
                   source={{
-                    uri: getImageUrl(currentTrack.cover, "https://picsum.photos/400"),
+                    uri: getImageUrl(currentTrack.cover, "https://picsum.photos/400", 900),
                   }}
                   style={styles.artwork}
                 />

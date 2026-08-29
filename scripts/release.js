@@ -8,8 +8,11 @@ const semver$ = require('semver');
 const PACKAGES = [
   'package.json',
   'apps/desktop/package.json',
+  'apps/desktop/src-tauri/tauri.conf.json',
+  'apps/desktop/src-tauri/Cargo.toml',
   'apps/mobile/package.json',
   'apps/mobile/app.json',
+  'apps/harmony/AppScope/app.json5',
   'packages/i18e/package.json',
   'services/api/package.json',
   'packages/db/package.json',
@@ -133,7 +136,7 @@ function computeCommitMessage(mode, subArg, version) {
   return `chore(release): bump to ${version}`;
 }
 
-module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion, updateVersionsWithRollback, parseCliArgs, runRelease };
+module.exports = { computeNextVersion, computeCommitMessage, checkWorkingTreeDirty, checkExistingTag, parseVersion, updateVersionsWithRollback, renderUpdatedContent, stripPrerelease, parseCliArgs, runRelease };
 
 function parseCliArgs(argv) {
   if (argv.length === 0) {
@@ -168,6 +171,56 @@ function parseCliArgs(argv) {
   throw new Error(`未知的发布模式：${first}。可用模式：beta（运行 release:beta）或留空（运行 release）。`);
 }
 
+/**
+ * 剥离 pre-release 后缀：'1.2.2-beta.3' → '1.2.2'
+ * 用于 Tauri / Cargo / HarmonyOS 等不支持 pre-release 版本号的载体。
+ */
+function stripPrerelease(version) {
+  return version.split('-')[0];
+}
+
+/**
+ * 按文件类型生成更新后的内容（纯文本层面，不写盘）。
+ * - Cargo.toml：只替换 [package] 段的 version（正则限定段内，避开依赖段）
+ * - app.json5（HarmonyOS AppScope）：改 app.versionName + app.versionCode 自动 +1
+ * - app.json（expo）：改 expo.version
+ * - 其余 JSON：改 version
+ */
+function renderUpdatedContent(filePath, content, newVersion) {
+  const baseVersion = stripPrerelease(newVersion);
+
+  if (filePath.endsWith('.toml')) {
+    // 仅匹配 [package] 段内行首的 version = "..."（到下一个段头为止）
+    const pkgSectionRe = /(\[package\][\s\S]*?^version\s*=\s*")([^"]+)(")/m;
+    if (!pkgSectionRe.test(content)) {
+      throw new Error(`${filePath} 中未找到 [package] 段的 version 字段`);
+    }
+    return content.replace(pkgSectionRe, `$1${baseVersion}$3`);
+  }
+
+  const pkg = JSON.parse(content);
+
+  if (filePath.endsWith('app.json5')) {
+    if (!pkg.app) throw new Error(`${filePath} 缺少 app 字段`);
+    pkg.app.versionName = baseVersion;
+    if (typeof pkg.app.versionCode === 'number') {
+      pkg.app.versionCode += 1;
+    } else {
+      throw new Error(`${filePath} 的 app.versionCode 不是数字`);
+    }
+    return JSON.stringify(pkg, null, 2) + '\n';
+  }
+
+  if (filePath.endsWith('app.json') && pkg.expo) {
+    pkg.expo.version = newVersion;
+    return JSON.stringify(pkg, null, 2) + '\n';
+  }
+
+  // tauri.conf.json 及各 package.json：tauri/Cargo 语义版本不支持 -beta 后缀
+  pkg.version = filePath.includes('src-tauri') ? baseVersion : newVersion;
+  return JSON.stringify(pkg, null, 2) + '\n';
+}
+
 function updateVersionsWithRollback(newVersion, filePaths, options = {}) {
   const { dryRun = false } = options;
   const originals = new Map();
@@ -180,17 +233,12 @@ function updateVersionsWithRollback(newVersion, filePaths, options = {}) {
         continue;
       }
       originals.set(filePath, fs.readFileSync(filePath));
-      const pkg = JSON.parse(originals.get(filePath).toString('utf8'));
-      if (filePath.endsWith('app.json') && pkg.expo) {
-        pkg.expo.version = newVersion;
-      } else {
-        pkg.version = newVersion;
-      }
+      const newContent = renderUpdatedContent(filePath, originals.get(filePath).toString('utf8'), newVersion);
       if (dryRun) {
         console.log(`[dry-run] would update ${filePath} to version ${newVersion}`);
         continue;
       }
-      fs.writeFileSync(filePath, JSON.stringify(pkg, null, 2) + '\n');
+      fs.writeFileSync(filePath, newContent);
       updated.push(filePath);
       console.log(`Updated ${filePath} to ${newVersion}`);
     }
@@ -203,7 +251,7 @@ function updateVersionsWithRollback(newVersion, filePaths, options = {}) {
         console.error(`❌ 回滚 ${filePath} 失败：${rollbackError.message}`);
       }
     }
-    throw new Error(`更新 ${error.message} 失败。已回滚所有 package.json 到原版本。`);
+    throw new Error(`更新 ${error.message} 失败。已回滚所有版本文件到原版本。`);
   }
 
   return {
@@ -258,7 +306,7 @@ async function runRelease(opts) {
   // 步骤 1: 同步更新版本号（带回滚）
   let syncResult;
   try {
-    console.log(`\n📝 步骤 1/4：同步更新 ${packages.length} 个 package.json 到 ${targetVersion}…`);
+    console.log(`\n📝 步骤 1/4：同步更新 ${packages.length} 个版本文件到 ${targetVersion}…`);
     syncResult = updateVersionsWithRollback(targetVersion, packages, { dryRun });
   } catch (error) {
     throw error;

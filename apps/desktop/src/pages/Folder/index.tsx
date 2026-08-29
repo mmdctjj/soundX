@@ -460,7 +460,7 @@ const FolderPage: React.FC = () => {
                 <b>{t("folder.coverLabel")}</b>
               </p>
               <img
-                src={getCoverUrl(track, track.id)}
+                src={getCoverUrl(track, track.id, 300)}
                 alt={t("folder.coverLabel")}
                 style={{
                   width: 120,
@@ -708,7 +708,7 @@ const FolderPage: React.FC = () => {
                     >
                       {track.cover ? (
                         <img
-                          src={getCoverUrl(track, track.id)}
+                          src={getCoverUrl(track, track.id, 96)}
                           alt={track.name}
                           className={styles.cover}
                         />

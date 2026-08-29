@@ -145,7 +145,7 @@ export const updateWidgetCollections = async (params: {
     ? await Promise.all(
       params.playlists.slice(0, 3).map(async (playlist) => {
       const firstTrack = (playlist as any).tracks?.[0] as Track | undefined;
-      const coverUrl = firstTrack?.cover ? getImageUrl(firstTrack.cover) : null;
+      const coverUrl = firstTrack?.cover ? getImageUrl(firstTrack.cover, undefined, 128) : null;
       let coverPath: string | null = null;
       if (coverUrl) {
         const cached = await cacheCover(coverUrl);
@@ -168,7 +168,7 @@ export const updateWidgetCollections = async (params: {
       const title = (track as any).name || (track as any).title || "未命名";
       const artist = (track as any).artist || "";
       const album = (track as any).album || "";
-      const coverUrl = (track as any).cover ? getImageUrl((track as any).cover) : null;
+      const coverUrl = (track as any).cover ? getImageUrl((track as any).cover, undefined, 128) : null;
       let coverPath: string | null = null;
       if (coverUrl) {
         const cached = await cacheCover(coverUrl);
@@ -191,7 +191,7 @@ export const updateWidgetCollections = async (params: {
   const latestItems: WidgetLatestItem[] | undefined = params.latest
     ? await Promise.all(
       params.latest.slice(0, 7).map(async (track) => {
-      const coverUrl = track.cover ? getImageUrl(track.cover) : null;
+      const coverUrl = track.cover ? getImageUrl(track.cover, undefined, 128) : null;
       let coverPath: string | null = null;
       if (coverUrl) {
         const cached = await cacheCover(coverUrl);
@@ -213,7 +213,7 @@ export const updateWidgetCollections = async (params: {
   const recommendationItems: WidgetRecommendationItem[] | undefined = params.recommendations
     ? await Promise.all(
       params.recommendations.slice(0, 4).map(async (album) => {
-      const coverUrl = album.cover ? getImageUrl(album.cover) : null;
+      const coverUrl = album.cover ? getImageUrl(album.cover, undefined, 128) : null;
       let coverPath: string | null = null;
       if (coverUrl) {
         const cached = await cacheCover(coverUrl);

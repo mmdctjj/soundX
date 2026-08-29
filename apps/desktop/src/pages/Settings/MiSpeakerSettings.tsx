@@ -38,13 +38,18 @@ import {
   type MiPagedResponse,
 } from "@soundx/services";
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 // ===================== 登录状态 Tab =====================
 
-const LoginTab: React.FC = () => {
+interface LoginTabProps {
+  onAuthChange: (loggedIn: boolean) => void;
+}
+
+const LoginTab: React.FC<LoginTabProps> = ({ onAuthChange }) => {
   const { t } = useTranslation();
-  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  // 父组件已检查登录态才传入；这里不再重复请求，仅维护自身扫码状态 + 同步登录结果给父组件。
+  const [loggedIn, setLoggedIn] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -60,22 +65,10 @@ const LoginTab: React.FC = () => {
     return stopPolling;
   }, [stopPolling]);
 
-  const checkStatus = useCallback(async () => {
-    try {
-      const res = await getMiAuthStatus();
-      setLoggedIn(res.logged_in);
-      if (res.logged_in) {
-        setQrCodeUrl(null);
-        stopPolling();
-      }
-    } catch {
-      setLoggedIn(false);
-    }
-  }, [stopPolling]);
-
+  // 扫码成功 → 父组件切到 3-tab 视图并卸载本组件
   useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
+    if (loggedIn) onAuthChange(true);
+  }, [loggedIn, onAuthChange]);
 
   const handleGetQRCode = async () => {
     setLoading(true);
@@ -476,13 +469,44 @@ const CastsTab: React.FC = () => {
 
 const MiSpeakerSettings: React.FC = () => {
   const { t } = useTranslation();
+  // 未登录时整个页面只展示 LoginTab（不显示 tabBar）；登录后展示 keywords/conversations/casts 三个 tab。
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+
+  // 父组件主动发起登录态检查 —— 否则 `loggedIn` 永远停留在 `null`，Spin 一直转。
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await getMiAuthStatus();
+      setLoggedIn(res.logged_in);
+    } catch {
+      setLoggedIn(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const handleAuthChange = useCallback((v: boolean) => setLoggedIn(v), []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await logoutMiAccount();
+      message.success(t("miManage.logout"));
+      setLoggedIn(false);
+    } catch (e: any) {
+      message.error(e?.message || t("common.error"));
+    }
+  }, [t]);
+
+  if (loggedIn === null) {
+    return <Spin />;
+  }
+
+  if (!loggedIn) {
+    return <LoginTab onAuthChange={handleAuthChange} />;
+  }
 
   const tabItems = [
-    {
-      key: "login",
-      label: t("miManage.tabLogin"),
-      children: <LoginTab />,
-    },
     {
       key: "keywords",
       label: t("miManage.tabKeywords"),
@@ -502,10 +526,19 @@ const MiSpeakerSettings: React.FC = () => {
 
   return (
     <>
-      <Paragraph type="secondary" style={{ marginBottom: 12 }}>
-        {t("miManage.title")}
-      </Paragraph>
       <Tabs items={tabItems} destroyInactiveTabPane={false} />
+      <div style={{ marginTop: 12, textAlign: "right" }}>
+        <Popconfirm
+          title={t("miManage.logoutConfirm")}
+          onConfirm={handleLogout}
+          okText={t("common.confirm")}
+          cancelText={t("common.cancel")}
+        >
+          <Button size="small" type="link">
+            {t("miManage.logout")}
+          </Button>
+        </Popconfirm>
+      </div>
     </>
   );
 };

@@ -21,10 +21,15 @@ export class AVPlayerBackend implements IAudioPlayer {
    * 通知栏/锁屏只显示长时任务普通通知，不出现系统媒体播控卡片。
    */
   private currentContentType: string = 'MUSIC';
+  /** audioRendererInfo 是否已在当前 initialized 态设置成功（用于失败后重试）。 */
+  private rendererInfoApplied: boolean = false;
+  /** 当前数据源描述，audioRendererInfo 设置失败后重试时需要重建数据源。 */
+  private pendingSourceIsNetwork: boolean = false;
 
   private async ensure(): Promise<media.AVPlayer> {
     if (this.player) return this.player;
     this.player = await media.createAVPlayer();
+    Logger.i('AVPlayer', 'createAVPlayer ok');
     this.bindInternal();
     return this.player;
   }
@@ -41,11 +46,14 @@ export class AVPlayerBackend implements IAudioPlayer {
     this.currentContentType = contentType === 'AUDIOBOOK' ? 'AUDIOBOOK' : 'MUSIC';
     // AVPlayer.url 只接受 http(s) 网络地址；本地缓存文件必须走 fdSrc
     const isNetwork = url.startsWith('http://') || url.startsWith('https://');
+    this.pendingSourceIsNetwork = isNetwork;
     // 同一来源已加载则直接复用，避免重复 prepare（error 态不复用，允许重试）
     if (this.currentUrl === url && p.state !== 'error' &&
       (isNetwork ? p.url === url : this.currentFd >= 0)) {
       return;
     }
+    // 新数据源：audioRendererInfo 必须在下一次 initialized 态重新写入
+    this.rendererInfoApplied = false;
     // 切歌时必须先回到 idle 态，否则 AVPlayer 状态机不允许直接设置 url
     const st = p.state;
     if (st !== 'idle') {
@@ -134,18 +142,27 @@ export class AVPlayerBackend implements IAudioPlayer {
         // audioRendererInfo 只能在 initialized 态、首次 prepare 前设置（API 12+）。
         // 声明正确的 StreamUsage（MUSIC / AUDIOBOOK），系统才会把这条音频流
         // 识别为媒体流并和 AVSession 关联，通知栏/锁屏才展示媒体播控卡片。
-        try {
-          const usage = this.currentContentType === 'AUDIOBOOK'
-            ? audio.StreamUsage.STREAM_USAGE_AUDIOBOOK
-            : audio.StreamUsage.STREAM_USAGE_MUSIC;
-          const rendererInfo: audio.AudioRendererInfo = {
-            usage: usage,
-            rendererFlags: 0,
-          };
-          p.audioRendererInfo = rendererInfo;
-          Logger.i('AVPlayer', `audioRendererInfo set: usage=${this.currentContentType}`);
-        } catch (e) {
-          Logger.w('AVPlayer', `set audioRendererInfo: ${String(e)}`);
+        // 注意：这一步若被静默吞掉，系统侧会报 "not audio broker"，整条播控链路断掉，
+        // 所以成功/失败都必须打日志，失败时 reset 重建数据源重试一次。
+        const usage = this.currentContentType === 'AUDIOBOOK'
+          ? audio.StreamUsage.STREAM_USAGE_AUDIOBOOK
+          : audio.StreamUsage.STREAM_USAGE_MUSIC;
+        if (!this.rendererInfoApplied) {
+          try {
+            const rendererInfo: audio.AudioRendererInfo = {
+              usage: usage,
+              rendererFlags: 0,
+            };
+            p.audioRendererInfo = rendererInfo;
+            this.rendererInfoApplied = true;
+            Logger.i('AVPlayer', `audioRendererInfo set: usage=${this.currentContentType} state=${p.state}`);
+          } catch (e) {
+            const err = e as BusinessError;
+            Logger.e('AVPlayer', `set audioRendererInfo failed: code=${err.code} msg=${err.message} state=${p.state}`);
+            // 失败重试：回 idle 重建数据源，下一个 initialized 再设一次（只重试一次，避免死循环）
+            this.retryWithRendererInfo(p);
+            return;
+          }
         }
         p.prepare().catch((e: BusinessError) => {
           Logger.e('AVPlayer', `prepare error: ${e.message}`);
@@ -184,6 +201,34 @@ export class AVPlayerBackend implements IAudioPlayer {
     const set = this.listeners.get(event);
     if (set) for (const cb of set) cb(payload);
     Logger.d('AVPlayer', `${event}`);
+  }
+
+  /**
+   * audioRendererInfo 设置失败后的重试：reset 回 idle → 按当前数据源类型重新设置
+   * url/fdSrc → 播放器再次进入 initialized 态时重试写入 usage。
+   * rendererInfoApplied 仍为 false，所以重试只会发生一次（下次成功即置 true）。
+   */
+  private retryWithRendererInfo(p: media.AVPlayer): void {
+    const url = this.currentUrl;
+    if (!url) return;
+    Logger.w('AVPlayer', 'retry audioRendererInfo: reset + restore source');
+    (async (): Promise<void> => {
+      try {
+        try { await p.reset(); } catch (_e) { /* ignore */ }
+        if (this.pendingSourceIsNetwork) {
+          p.url = url;
+        } else {
+          this.closeFd();
+          const file = fs.openSync(url, fs.OpenMode.READ_ONLY);
+          this.currentFd = file.fd;
+          const size = fs.statSync(url).size;
+          p.fdSrc = { fd: file.fd, offset: 0, length: size };
+        }
+      } catch (e) {
+        const err = e as BusinessError;
+        Logger.e('AVPlayer', `retry audioRendererInfo restore source failed: code=${err.code} msg=${err.message}`);
+      }
+    })().catch((): void => undefined);
   }
 }
 

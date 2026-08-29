@@ -4,7 +4,7 @@ import { buildTheme, CommonNavBar, EmptyView, SkeletonBlock, CommonButton } from
 import type { Theme, ThemeMode } from 'features_ui';
 import { t, getLang } from 'features_i18n';
 import { formatDuration, Logger } from 'audiodock_common';
-import { mvApi } from 'features_network';
+import { httpClient, mvApi } from 'features_network';
 import type { MVDto } from 'features_network';
 import { MvVideoPlayer } from '../components/MvVideoPlayer';
 import { mvPlaylistStore } from '../store/MvPlaylistStore';
@@ -130,8 +130,14 @@ struct MVDetailPage {
 
   private resolveVideoUrl(dto: MVDto): string {
     if (!dto.path) return '';
-    // path 是后端返回的相对路径，复用图片拼装工具（同 mobile app/mv/[id].tsx:117）。
-    return getImageUrl(dto.path);
+    // 注意：这里是视频地址不是图片，不能用 getImageUrl —— 那个是封面/头像专用的
+    // 分级加载工具（会拼 /image/optimize）。这里只需把相对路径拼成绝对地址。
+    if (dto.path.startsWith('http://') || dto.path.startsWith('https://')) {
+      return dto.path;
+    }
+    const base = httpClient.getBaseURL();
+    const cleanPath = dto.path.startsWith('/') ? dto.path.substring(1) : dto.path;
+    return `${base}/${cleanPath.split('/').map(encodeURIComponent).join('/')}`;
   }
 
   private togglePlay(next: boolean): void {
@@ -291,7 +297,7 @@ struct MVDetailPage {
         .width(24)
         .textAlign(TextAlign.Center);
 
-      Image(getImageUrl(mv.cover))
+      Image(getImageUrl(mv.cover, 128))
         .width(64)
         .height(36)
         .borderRadius(4)

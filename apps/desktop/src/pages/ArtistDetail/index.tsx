@@ -39,7 +39,6 @@ import { MiDeviceSelector, XiaoAiIcon } from "../../components/MiDeviceSelector"
 import Cover from "../../components/Cover";
 import TrackList from "../../components/TrackList";
 import { useLoadMore } from "../../hooks/useLoadMore";
-import { getBaseURL } from "../../https";
 import { type Album, type Artist, type Track, TrackType } from "../../models";
 import { downloadTracks } from "../../services/downloadManager";
 import { resolveArtworkUri } from "../../services/trackResolver";
@@ -315,9 +314,7 @@ const ArtistDetail: React.FC = () => {
           <Avatar
             src={
               artist?.avatar
-                ? artist.avatar.startsWith("http")
-                  ? artist.avatar
-                  : `${getBaseURL()}${artist.avatar}`
+                ? resolveArtworkUri(artist.avatar, { width: 600 })
                 : undefined
             }
             size={200}
@@ -408,7 +405,7 @@ const ArtistDetail: React.FC = () => {
                       <img
                         className={styles.collectionCover}
                         src={
-                          resolveArtworkUri(cover) ||
+                          resolveArtworkUri(cover, { width: 300 }) ||
                           `https://picsum.photos/seed/${col.id}/300/300`
                         }
                         alt={col.name}

@@ -1,4 +1,4 @@
 export default definePageConfig({
   navigationStyle: 'custom',
-  navigationBarTitleText: '小爱音箱管理'
+  navigationBarTitleText: '小爱音箱'
 })

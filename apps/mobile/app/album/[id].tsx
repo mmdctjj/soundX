@@ -380,7 +380,7 @@ export default function AlbumDetailScreen() {
             <View style={styles.coverContainer}>
               <Image
                 source={{
-                  uri: getImageUrl(album.cover, `https://picsum.photos/seed/${album.id}/300/300`),
+                  uri: getImageUrl(album.cover, `https://picsum.photos/seed/${album.id}/300/300`, 600),
                 }}
                 style={styles.cover}
               />
@@ -547,7 +547,7 @@ export default function AlbumDetailScreen() {
                   <Text style={[styles.trackIndex, { color: colors.secondary }]}>{index + 1}</Text>
                 </View>
                 <Image
-                  source={{ uri: getImageUrl(item.cover, `https://picsum.photos/seed/mv-${item.id}/40/30`) }}
+                  source={{ uri: getImageUrl(item.cover, `https://picsum.photos/seed/mv-${item.id}/40/30`, 96) }}
                   style={{ width: 40, height: 30, borderRadius: 2 }}
                 />
                 <View style={styles.trackInfo}>
@@ -630,7 +630,7 @@ export default function AlbumDetailScreen() {
               </View>
               <Image
                 source={{
-                  uri: getImageUrl(item.cover, `https://picsum.photos/seed/${item.id}/20/20`),
+                  uri: getImageUrl(item.cover, `https://picsum.photos/seed/${item.id}/20/20`, 96),
                 }}
                 alt=""
                 style={{ width: 20, height: 20, borderRadius: 2 }}

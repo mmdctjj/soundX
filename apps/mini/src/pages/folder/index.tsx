@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import MiniPlayer from "../../components/MiniPlayer";
 import { usePlayer } from "../../context/PlayerContext";
 import { usePlayMode } from "../../utils/playMode";
-import { getBaseURL } from "../../utils/request";
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import "./index.scss";
 import BottomTabBar from '../../components/BottomTabBar';
 
@@ -76,11 +76,9 @@ export default function FolderPage() {
     if (!folderId) loadRoots();
   });
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return `https://picsum.photos/120/120`;
-    if (url.startsWith("http")) return url;
-    return `${getBaseURL()}${url}`;
-  };
+  // 占位图各页不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/120/120", width);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return "--:--";
@@ -134,7 +132,7 @@ export default function FolderPage() {
             className="track-row"
             onClick={() => playTrackList(tracks as any, index)}
           >
-            <Image src={getImageUrl(track.cover || null)} className="track-cover" mode="aspectFill" />
+            <Image src={getImageUrl(track.cover || null, 80)} className="track-cover" mode="aspectFill" webp />
             <View className="track-info">
               <Text className={`track-name ${currentTrack?.id === track.id ? "active" : ""}`} numberOfLines={1}>
                 {track.name}

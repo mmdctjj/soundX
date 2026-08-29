@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { speechToText } from '../../services/asr';
 import { usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
-import { getBaseURL } from '../../utils/request';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import './index.scss';
 
 export default function Search() {
@@ -203,14 +203,12 @@ export default function Search() {
     }
   };
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return 'https://picsum.photos/100';
-    if (url.startsWith('http')) return url;
-    return `${getBaseURL()}${url}`;
-  };
+  // 占位图各页不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/100", width);
 
   const renderItem = (item: Track | Artist | Album, type: string) => {
-    const coverUrl = getImageUrl(type === 'artist' ? (item as Artist).avatar : (item as Track | Album).cover);
+    const coverUrl = getImageUrl(type === 'artist' ? (item as Artist).avatar : (item as Track | Album).cover, 96);
 
     return (
       <View
@@ -229,6 +227,7 @@ export default function Search() {
           src={coverUrl}
           className={`item-image ${type === 'artist' ? 'circle' : 'rounded'}`}
           mode='aspectFill'
+          webp
         />
         <View className='item-info'>
           <Text className='item-title' numberOfLines={1}>{item.name}</Text>

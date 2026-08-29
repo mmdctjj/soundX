@@ -7,7 +7,8 @@ import MiDeviceSelector from "../../components/MiDeviceSelector";
 import MiniPlayer from "../../components/MiniPlayer";
 import XiaoAiIcon from "../../components/XiaoAiIcon";
 import { usePlayer } from "../../context/PlayerContext";
-import { getBaseURL } from "../../utils/request";
+import { getImageUrl as buildImageUrl } from '../../utils/image';
+import { getBaseURL } from '../../utils/request';
 import "./index.scss";
 import BottomTabBar from '../../components/BottomTabBar';
 
@@ -43,11 +44,9 @@ export default function PlaylistDetail() {
     }
   };
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return `https://picsum.photos/200/200`;
-    if (url.startsWith("http")) return url;
-    return `${getBaseURL()}${url}`;
-  };
+  // 占位图各页不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/200/200", width);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return "--:--";
@@ -131,9 +130,9 @@ export default function PlaylistDetail() {
                 style={itemStyle}
               >
                 <Image
-                  src={getImageUrl(album.cover)}
+                  src={getImageUrl(album.cover, 300)}
                   className="photo-wall-image"
-                  mode="aspectFill"
+                  mode="aspectFill" webp
                 />
               </View>
             );
@@ -174,7 +173,7 @@ export default function PlaylistDetail() {
                   className="track-item"
                   onClick={() => playTrackList(tracks as any, index)}
                 >
-                  <Image src={getImageUrl(item.cover || null)} className="cover" mode="aspectFill" />
+                  <Image src={getImageUrl(item.cover || null, 84)} className="cover" mode="aspectFill" webp />
                   <View className="info">
                     <Text className={`name ${currentTrack?.id === item.id ? "active" : ""}`} numberOfLines={1}>
                       {item.name}

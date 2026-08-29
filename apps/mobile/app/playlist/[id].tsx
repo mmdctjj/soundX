@@ -388,7 +388,7 @@ export default function PlaylistDetailScreen() {
             </View>
             <ExpoImage
               source={{
-                uri: getImageUrl(track.cover, `https://picsum.photos/seed/${track.id}/40/40`),
+                uri: getImageUrl(track.cover, `https://picsum.photos/seed/${track.id}/40/40`, 96),
               }}
               style={{ width: 40, height: 40, borderRadius: 4 }}
               contentFit="cover"
