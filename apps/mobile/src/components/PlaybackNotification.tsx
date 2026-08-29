@@ -5,7 +5,7 @@ import { Animated, Image, StyleSheet, Text, Modal, TouchableOpacity, View } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
-import { getBaseURL } from '../https';
+import { getImageUrl } from '../utils/image';
 
 const PlaybackNotification: React.FC = () => {
   const { notification, hideNotification } = useNotification();
@@ -54,8 +54,9 @@ const PlaybackNotification: React.FC = () => {
 
   if (!notification || !shouldShowNotification) return null;
 
-  const artwork = notification.track.cover 
-    ? (notification.track.cover.startsWith('http') ? notification.track.cover : `${getBaseURL()}${notification.track.cover}`) 
+  // 通知中心封面走 128 档（恒压缩）——见 utils/image.ts 分级规则
+  const artwork = notification.track.cover
+    ? getImageUrl(notification.track.cover, undefined, 128)
     : null;
 
   return (

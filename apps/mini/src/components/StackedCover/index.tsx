@@ -1,6 +1,6 @@
 import { Image, View } from '@tarojs/components';
 import React from 'react';
-import { getBaseURL } from '../../utils/request';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import './index.scss';
 
 interface StackedCoverProps {
@@ -10,19 +10,16 @@ interface StackedCoverProps {
 const StackedCover: React.FC<StackedCoverProps> = ({ tracks }) => {
   const covers = (tracks || []).slice(0, 4);
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return `https://picsum.photos/100/100`;
-    if (url.startsWith('http')) return url;
-    return `${getBaseURL()}${url}`;
-  };
-
+  // 占位图各文件不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/100/100", width);
   return (
     <View className='stacked-cover-container'>
       {covers.length > 0 ? (
         covers.map((track, index) => (
           <Image
             key={track.id || index}
-            src={getImageUrl(track.cover)}
+            src={getImageUrl(track.cover, 96)}
             className='stacked-item'
             style={{
               zIndex: 4 - index,
@@ -32,14 +29,14 @@ const StackedCover: React.FC<StackedCoverProps> = ({ tracks }) => {
               opacity: 1 - index * 0.15,
               transform: `scale(${1 - index * 0.05})`,
             }}
-            mode='aspectFill'
+            mode='aspectFill' webp
           />
         ))
       ) : (
         <Image
           src='https://picsum.photos/100/100'
           className='stacked-item'
-          mode='aspectFill'
+          mode='aspectFill' webp
         />
       )}
     </View>

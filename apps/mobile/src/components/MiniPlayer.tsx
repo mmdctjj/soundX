@@ -4,8 +4,8 @@ import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { usePlayer } from "../context/PlayerContext";
 import { useTheme } from "../context/ThemeContext";
-import { getBaseURL } from "../https";
 import { TrackType } from "../models";
+import { getImageUrl } from "../utils/image";
 
 export const MiniPlayer = () => {
   const { colors } = useTheme();
@@ -49,12 +49,8 @@ export const MiniPlayer = () => {
       <View style={styles.infoContaer}>
         <Image
           source={{
-            uri: currentTrack.cover
-              ? typeof currentTrack.cover === "string" &&
-                currentTrack.cover.startsWith("http")
-                ? currentTrack.cover
-                : `${getBaseURL()}${currentTrack.cover}`
-              : "https://picsum.photos/100",
+            // 迷你播放条封面，走 96 档（恒压缩）——见 utils/image.ts 分级规则
+            uri: getImageUrl(currentTrack.cover, "https://picsum.photos/100", 96),
           }}
           style={styles.artwork}
         />

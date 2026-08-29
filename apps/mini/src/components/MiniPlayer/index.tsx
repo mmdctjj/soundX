@@ -2,7 +2,7 @@ import { Image, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import React from 'react';
 import { usePlayer } from '../../context/PlayerContext';
-import { getBaseURL } from '../../utils/request';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import PlaylistModal from '../PlaylistModal';
 import './index.scss';
 
@@ -45,12 +45,9 @@ const MiniPlayer: React.FC = () => {
     }
   };
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return `https://picsum.photos/100`;
-    if (url.startsWith('http')) return url;
-    return `${getBaseURL()}${url}`;
-  };
-
+  // 占位图各文件不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/100", width);
   return (
     <>
       <View
@@ -60,9 +57,9 @@ const MiniPlayer: React.FC = () => {
         <View className='mini-content'>
           <View className='mini-info-container'>
             <Image
-              src={getImageUrl(currentTrack.cover)}
+              src={getImageUrl(currentTrack.cover, 128)}
               className='mini-cover'
-              mode='aspectFill'
+              mode='aspectFill' webp
             />
             <View className='mini-info'>
               <Text className='mini-title' numberOfLines={1}>{currentTrack.name}</Text>

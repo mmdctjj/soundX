@@ -2,6 +2,7 @@ import { Album, Artist, Playlist, TrackType, UserAudiobookHistory, UserAudiobook
 import Taro from '@tarojs/taro';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getBaseURL } from '../utils/request';
+import { getImageUrl } from '../utils/image';
 import { useSettings } from './SettingsContext';
 import { getCurrentPlaybackQualityPreference } from '../utils/playbackQuality';
 import {
@@ -420,9 +421,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           ? (track.path.startsWith('http') ? track.path : `${baseUrl}${track.path}`)
           : buildTrackPlaybackUrl(track, initialQuality);
       if (requestId !== playRequestIdRef.current) return;
-      const cover = track.cover
-        ? (track.cover.startsWith('http') ? track.cover : `${baseUrl}${track.cover}`)
-        : undefined;
+      // 通知栏/后台播控封面，走小图档（128 恒压缩）——避免加载 5MB 原图
+      const cover = track.cover ? getImageUrl(track.cover, undefined, 128) : undefined;
 
       const manager = bgAudioManager.current;
       if (manager) {
