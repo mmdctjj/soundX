@@ -39,9 +39,14 @@ const PAGE_SIZE = 20;
 
 // ===================== 登录状态 Tab =====================
 
-const LoginTab: React.FC = () => {
+interface LoginTabProps {
+  onAuthChange: (loggedIn: boolean) => void;
+}
+
+const LoginTab: React.FC<LoginTabProps> = ({ onAuthChange }) => {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { theme, colors } = useTheme();
+  const onPrimaryColor = theme === "dark" ? "#000" : "#fff";
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -57,6 +62,13 @@ const LoginTab: React.FC = () => {
   useEffect(() => {
     return stopPolling;
   }, [stopPolling]);
+
+  // 把登录态同步给父组件 MiSpeakerScreen 以决定是否展示 tabBar
+  useEffect(() => {
+    if (loggedIn !== null) {
+      onAuthChange(loggedIn);
+    }
+  }, [loggedIn, onAuthChange]);
 
   const checkStatus = useCallback(async () => {
     try {
@@ -114,25 +126,6 @@ const LoginTab: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(t("miManage.logoutConfirm"), undefined, [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("miManage.logout"),
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await logoutMiAccount();
-            setLoggedIn(false);
-            setQrCodeUrl(null);
-          } catch (e: any) {
-            Alert.alert(t("common.error"), e?.message || String(e));
-          }
-        },
-      },
-    ]);
-  };
-
   if (loggedIn === null) {
     return (
       <View style={styles.centerBox}>
@@ -141,20 +134,8 @@ const LoginTab: React.FC = () => {
     );
   }
 
-  if (loggedIn) {
-    return (
-      <View style={styles.centerBox}>
-        <Ionicons name="checkmark-circle" size={48} color={colors.primary} />
-        <Text style={[styles.bigText, { color: colors.text }]}>{t("miManage.loggedIn")}</Text>
-        <TouchableOpacity
-          style={[styles.primaryBtn, { backgroundColor: "#f5222d" }]}
-          onPress={handleLogout}
-        >
-          <Text style={styles.primaryBtnText}>{t("miManage.logout")}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // 登录态下整个 LoginTab 会被父组件卸载（父组件根据 loggedIn 切换展示 3-tab 视图），
+  // 这里只渲染"未登录 + 扫码登录"内容。
 
   return (
     <View style={styles.centerBox}>
@@ -178,9 +159,9 @@ const LoginTab: React.FC = () => {
           onPress={handleGetQRCode}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={onPrimaryColor} />
           ) : (
-            <Text style={styles.primaryBtnText}>{t("miManage.getQRCode")}</Text>
+            <Text style={[styles.primaryBtnText, { color: onPrimaryColor }]}>{t("miManage.getQRCode")}</Text>
           )}
         </TouchableOpacity>
       )}
@@ -192,7 +173,8 @@ const LoginTab: React.FC = () => {
 
 const KeywordsTab: React.FC = () => {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { theme, colors } = useTheme();
+  const onPrimaryColor = theme === "dark" ? "#000" : "#fff";
   const [keywords, setKeywords] = useState<MiKeyword[]>([]);
   const [loading, setLoading] = useState(true);
   const [newKeyword, setNewKeyword] = useState("");
@@ -292,9 +274,9 @@ const KeywordsTab: React.FC = () => {
           onPress={handleAdd}
         >
           {adding ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={onPrimaryColor} size="small" />
           ) : (
-            <Text style={styles.primaryBtnText}>{t("miManage.keywordAdd")}</Text>
+            <Text style={[styles.primaryBtnText, { color: onPrimaryColor }]}>{t("miManage.keywordAdd")}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -490,17 +472,70 @@ const CastsTab: React.FC = () => {
 
 // ===================== 主页面 =====================
 
-type MiTab = "login" | "keywords" | "conversations" | "casts";
+type MiTab = "keywords" | "conversations" | "casts";
 
 const MiSpeakerScreen: React.FC = () => {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState<MiTab>("login");
+  // 未登录时整个页面只展示 LoginTab（不显示 tabBar）；登录后展示 keywords/conversations/casts 三个 tab。
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState<MiTab>("keywords");
+  const handleAuthChange = useCallback((v: boolean) => {
+    setLoggedIn(v);
+    if (v) setActiveTab("keywords");
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    Alert.alert(t("miManage.logoutConfirm"), undefined, [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("miManage.logout"),
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await logoutMiAccount();
+            setLoggedIn(false);
+          } catch (e: any) {
+            Alert.alert(t("common.error"), e?.message || String(e));
+          }
+        },
+      },
+    ]);
+  }, [t]);
+
+  if (loggedIn === null) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!loggedIn) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity
+            onPress={() => goBackOrReplace(router, "/(tabs)/personal")}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={28} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            {t("miManage.title")}
+          </Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <LoginTab onAuthChange={handleAuthChange} />
+        </ScrollView>
+      </View>
+    );
+  }
 
   const tabs: { key: MiTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { key: "login", label: t("miManage.tabLogin"), icon: "key-outline" },
     { key: "keywords", label: t("miManage.tabKeywords"), icon: "mic-outline" },
     { key: "conversations", label: t("miManage.tabConversations"), icon: "chatbubbles-outline" },
     { key: "casts", label: t("miManage.tabCasts"), icon: "radio-outline" },
@@ -518,7 +553,9 @@ const MiSpeakerScreen: React.FC = () => {
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           {t("miManage.title")}
         </Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={handleLogout} style={{ padding: 5 }}>
+          <Ionicons name="log-out-outline" size={24} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
       {/* Tab 栏 */}
@@ -543,11 +580,6 @@ const MiSpeakerScreen: React.FC = () => {
       </View>
 
       <View style={{ flex: 1 }}>
-        {activeTab === "login" && (
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-            <LoginTab />
-          </ScrollView>
-        )}
         {activeTab === "keywords" && (
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
             <KeywordsTab />
@@ -596,7 +628,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minWidth: 120,
   },
-  primaryBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  primaryBtnText: { fontSize: 15, fontWeight: "600" },
   addRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -21,13 +21,50 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import './index.scss';
 
-type MiTab = 'login' | 'keywords' | 'conversations' | 'casts';
+type MiTab = 'keywords' | 'conversations' | 'casts';
 const PAGE_SIZE = 20;
 
 export default function MiSpeaker() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState<MiTab>('login');
+  // 未登录时整个页面只展示 LoginTab（不显示 tabBar）；登录后展示 keywords/conversations/casts 三个 tab。
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState<MiTab>('keywords');
+
+  // 父组件主动发起登录态检查 —— 否则 `loggedIn` 永远停留在 `null`，页面一直显示 loading。
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await getMiAuthStatus();
+      setLoggedIn(res.logged_in);
+    } catch {
+      setLoggedIn(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const handleAuthChange = useCallback((v: boolean) => {
+    setLoggedIn(v);
+    if (v) setActiveTab('keywords');
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    Taro.showModal({
+      title: t('miManage.logoutConfirm'),
+      confirmColor: '#f5222d',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await logoutMiAccount();
+          setLoggedIn(false);
+        } catch (e: any) {
+          Taro.showToast({ title: e?.message || t('common.error'), icon: 'none' });
+        }
+      },
+    });
+  }, [t]);
 
   useLoad(() => {
     Taro.setNavigationBarTitle({ title: t('miManage.title') });
@@ -37,8 +74,43 @@ export default function MiSpeaker() {
     });
   });
 
+  if (loggedIn === null) {
+    return (
+      <View className="mi-speaker">
+        <View className="header">
+          <View className="back-btn" onClick={() => Taro.navigateBack()}>
+            <Text className="back-icon" style={{ color: colors.text }}>‹</Text>
+          </View>
+          <Text className="header-title" style={{ color: colors.text }}>
+            {t('miManage.title')}
+          </Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View className="center-box">
+          <Text style={{ color: colors.secondary }}>{t('common.loading')}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!loggedIn) {
+    return (
+      <View className="mi-speaker">
+        <View className="header">
+          <View className="back-btn" onClick={() => Taro.navigateBack()}>
+            <Text className="back-icon" style={{ color: colors.text }}>‹</Text>
+          </View>
+          <Text className="header-title" style={{ color: colors.text }}>
+            {t('miManage.title')}
+          </Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <LoginTab onAuthChange={handleAuthChange} />
+      </View>
+    );
+  }
+
   const tabs: { key: MiTab; label: string }[] = [
-    { key: 'login', label: t('miManage.tabLogin') },
     { key: 'keywords', label: t('miManage.tabKeywords') },
     { key: 'conversations', label: t('miManage.tabConversations') },
     { key: 'casts', label: t('miManage.tabCasts') },
@@ -53,7 +125,9 @@ export default function MiSpeaker() {
         <Text className="header-title" style={{ color: colors.text }}>
           {t('miManage.title')}
         </Text>
-        <View style={{ width: 40 }} />
+        <View className="logout-btn" onClick={handleLogout}>
+          <Text className="back-icon" style={{ color: colors.text }}>⏻</Text>
+        </View>
       </View>
 
       <View className="tab-bar" style={{ backgroundColor: colors.card }}>
@@ -79,7 +153,6 @@ export default function MiSpeaker() {
         ))}
       </View>
 
-      {activeTab === 'login' && <LoginTab />}
       {activeTab === 'keywords' && <KeywordsTab />}
       {activeTab === 'conversations' && (
         <HistoryList
@@ -132,10 +205,15 @@ function sourceLabel(t: (k: string) => string, source: string): string {
 
 // ===================== 登录状态 Tab =====================
 
-const LoginTab: React.FC = () => {
+interface LoginTabProps {
+  onAuthChange: (loggedIn: boolean) => void;
+}
+
+const LoginTab: React.FC<LoginTabProps> = ({ onAuthChange }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  // 父组件已检查登录态才传入；这里不再重复请求，仅维护自身扫码状态 + 同步登录结果给父组件。
+  const [loggedIn, setLoggedIn] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -151,22 +229,10 @@ const LoginTab: React.FC = () => {
     return () => stopPolling();
   }, [stopPolling]);
 
-  const checkStatus = useCallback(async () => {
-    try {
-      const res = await getMiAuthStatus();
-      setLoggedIn(res.logged_in);
-      if (res.logged_in) {
-        setQrCodeUrl(null);
-        stopPolling();
-      }
-    } catch {
-      setLoggedIn(false);
-    }
-  }, [stopPolling]);
-
+  // 扫码成功 → 父组件切到 3-tab 视图并卸载本组件
   useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
+    if (loggedIn) onAuthChange(true);
+  }, [loggedIn, onAuthChange]);
 
   const handleGetQRCode = async () => {
     setLoading(true);
@@ -206,38 +272,6 @@ const LoginTab: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const handleLogout = () => {
-    Taro.showModal({
-      title: t('miManage.logoutConfirm'),
-      confirmColor: '#f5222d',
-      success: async (res) => {
-        if (!res.confirm) return;
-        try {
-          await logoutMiAccount();
-          setLoggedIn(false);
-          setQrCodeUrl(null);
-        } catch (e: any) {
-          Taro.showToast({ title: e?.message || t('common.error'), icon: 'none' });
-        }
-      },
-    });
-  };
-
-  if (loggedIn === null) {
-    return <View className="center-box"><Text style={{ color: colors.secondary }}>{t('common.loading')}</Text></View>;
-  }
-
-  if (loggedIn) {
-    return (
-      <View className="center-box">
-        <Text className="big-text" style={{ color: colors.text }}>✅ {t('miManage.loggedIn')}</Text>
-        <View className="danger-btn" onClick={handleLogout}>
-          <Text className="primary-btn-text">{t('miManage.logout')}</Text>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View className="center-box">

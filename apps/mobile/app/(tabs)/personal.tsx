@@ -28,7 +28,6 @@ import {
   FlatList,
   Image,
   Platform,
-  useColorScheme,
   StyleSheet,
   Text,
   TextInput,
@@ -67,8 +66,7 @@ const logo = require("../../assets/images/logo.webp");
 const subsonicLogo = require("../../assets/images/subsonic.webp");
 const embyLogo = require("../../assets/images/emby.webp");
 const ctjjLogo = require("../../assets/images/ctjj.webp");
-const xiaoaiLight = require("../../assets/images/xiaoai_light.png");
-const xiaoaiDark = require("../../assets/images/xiaoai_dark.png");
+const xiaoaiIcon = require("../../assets/images/xiaoai_light.png");
 
 type TabType = "playlists" | "favorites" | "history" | "downloads";
 type SubTabType = "track" | "album";
@@ -192,8 +190,6 @@ export default function PersonalScreen() {
   const { playTrackList } = usePlayer();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const xiaoaiIconSource = colorScheme === "dark" ? xiaoaiDark : xiaoaiLight;
   const [permission, setPermission] = useState<any>(null);
 
   const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
@@ -1012,7 +1008,8 @@ export default function PersonalScreen() {
             style={[styles.iconBtn, { marginRight: 10 }]}
           >
             <Image
-              source={xiaoaiIconSource}
+              source={xiaoaiIcon}
+              tintColor={colors.text}
               style={{ width: 22, height: 22 }}
               resizeMode="contain"
             />

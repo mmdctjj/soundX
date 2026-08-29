@@ -704,24 +704,7 @@ const Settings: React.FC = () => {
           {
             key: "miSpeaker",
             label: t("settings.tabMiSpeaker"),
-            children: (
-              <TabLayout
-                getContainer={getAnchorContainer}
-                nav={[
-                  {
-                    key: "miSpeaker--miManage",
-                    title: t("miManage.title"),
-                  },
-                ]}
-              >
-                <section id="miSpeaker--miManage" className={styles.section}>
-                  <Title level={4} className={styles.sectionTitle}>
-                    {t("miManage.title")}
-                  </Title>
-                  <MiSpeakerSettings />
-                </section>
-              </TabLayout>
-            ),
+            children: <MiSpeakerSettings />,
           },
         ]
       : []),
