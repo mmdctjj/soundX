@@ -356,7 +356,7 @@ const PlaylistDetail: React.FC = () => {
             }}
           >
             <img
-              src={getCoverUrl(record.cover, record.id)}
+              src={getCoverUrl(record.cover, record.id, 96)}
               alt={record.name}
               style={{
                 width: "30px",
@@ -444,7 +444,7 @@ const PlaylistDetail: React.FC = () => {
   ];
 
   const coverUrl = playlist?.tracks?.[0]
-    ? getCoverUrl(playlist.tracks[0].cover, playlist.tracks[0].id)
+    ? getCoverUrl(playlist.tracks[0].cover, playlist.tracks[0].id, 600)
     : `https://picsum.photos/seed/${playlist?.id}/1200/400`;
 
   return (

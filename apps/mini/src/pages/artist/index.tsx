@@ -9,6 +9,7 @@ import MiniPlayer from '../../components/MiniPlayer';
 import QuickLocate from '../../components/QuickLocate';
 import XiaoAiIcon from '../../components/XiaoAiIcon';
 import { usePlayer } from '../../context/PlayerContext';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
 import BottomTabBar from '../../components/BottomTabBar';
@@ -63,11 +64,9 @@ export default function ArtistDetail() {
     }
   };
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return `https://picsum.photos/300/300`;
-    if (url.startsWith('http')) return url;
-    return `${getBaseURL()}${url}`;
-  };
+  // 占位图各页不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, 'https://picsum.photos/300/300', width);
 
   const formatDuration = (seconds?: number) => {
       if (!seconds) return '--:--';
@@ -133,7 +132,8 @@ export default function ArtistDetail() {
          <ScrollView scrollY className='content-scroll' scrollWithAnimation scrollIntoView={scrollIntoView}>
              <View id='top-anchor' />
              <View className='header'>
-                 <Image src={getImageUrl(artist.avatar)} className='avatar' mode='aspectFill' />
+                 {/* 详情页大头像：单张 Hero，走内外网分支（内网原图 / 外网 600） */}
+                 <Image src={getImageUrl(artist.avatar, 600)} className='avatar' mode='aspectFill' webp />
                  <Text className='name'>{artist.name}</Text>
              </View>
 
@@ -147,7 +147,7 @@ export default function ArtistDetail() {
                                 className='album-card'
                                 onClick={() => Taro.navigateTo({ url: `/pages/album/index?id=${album.id}` })}
                              >
-                                 <Image src={getImageUrl(album.cover)} className='album-cover' mode='aspectFill' />
+                                 <Image src={getImageUrl(album.cover, 240)} className='album-cover' mode='aspectFill' webp />
                                  <Text className='album-name' numberOfLines={1}>{album.name}</Text>
                              </View>
                          ))}
@@ -165,7 +165,7 @@ export default function ArtistDetail() {
                                 className='album-card'
                                 onClick={() => Taro.navigateTo({ url: `/pages/album/index?id=${album.id}` })}
                              >
-                                 <Image src={getImageUrl(album.cover)} className='album-cover' mode='aspectFill' />
+                                 <Image src={getImageUrl(album.cover, 240)} className='album-cover' mode='aspectFill' webp />
                                  <Text className='album-name' numberOfLines={1}>{album.name}</Text>
                              </View>
                          ))}
@@ -186,7 +186,7 @@ export default function ArtistDetail() {
                                   Taro.navigateTo({ url: `/pages/mv/index?id=${mv.id}` });
                                 }}
                              >
-                                 <Image src={getImageUrl(mv.cover)} className='album-cover mv-cover' mode='aspectFill' />
+                                 <Image src={getImageUrl(mv.cover, 240)} className='album-cover mv-cover' mode='aspectFill' webp />
                                  <Text className='album-name' numberOfLines={1}>{mv.name}</Text>
                              </View>
                          ))}
@@ -226,7 +226,7 @@ export default function ArtistDetail() {
                                     <Text className={`track-index ${currentTrack?.id === track.id ? 'active' : ''}`}>{index + 1}</Text>
                                 )}
                              </View>
-                             <Image src={getImageUrl(track.cover)} className='track-cover' mode='aspectFill' />
+                             <Image src={getImageUrl(track.cover, 40)} className='track-cover' mode='aspectFill' webp />
                              <View className='track-info'>
                                  <View className='track-name-row'>
                                    <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>

@@ -25,7 +25,7 @@ import XiaoAiIcon from '../../components/XiaoAiIcon';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { usePlayMode } from '../../utils/playMode';
-import { getBaseURL } from '../../utils/request';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import { trackEvent } from '../../utils/tracking';
 import './index.scss';
 
@@ -285,11 +285,9 @@ export default function Personal() {
     );
   };
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return 'https://picsum.photos/100/100';
-    if (url.startsWith('http')) return url;
-    return `${getBaseURL()}${url}`;
-  };
+  // 占位图各页不同，这里绑死；调用点传显示尺寸（rpx 值 ≈ 目标设备像素，见 utils/image.ts）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, "https://picsum.photos/100/100", width);
 
   const getListData = () => {
     if (activeTab === 'playlists') return playlists;
@@ -356,7 +354,7 @@ export default function Personal() {
             <StackedCover tracks={item.tracks || []} />
           ) : (
             <View className='cover-wrapper'>
-              <Image src={getImageUrl(item.cover)} className='item-cover' mode='aspectFill' />
+              <Image src={getImageUrl(item.cover, 100)} className='item-cover' mode='aspectFill' webp />
               {isAlbum && activeTab === 'history' && mode === 'AUDIOBOOK' && item.progress > 0 && (
                 <View className='progress-bar-mini'>
                   <View className='progress-fill' style={{ width: `${item.progress}%` }} />
@@ -451,7 +449,7 @@ export default function Personal() {
       </View>
 
       <View className='user-profile'>
-        <Image src={getImageUrl((user as any)?.avatar || null)} className='avatar' mode='aspectFill' />
+        <Image src={getImageUrl((user as any)?.avatar || null, 128)} className='avatar' mode='aspectFill' webp />
         <View className='username-row'>
           <Text className='username'>
             {user?.username || t('common.notLoggedIn')}

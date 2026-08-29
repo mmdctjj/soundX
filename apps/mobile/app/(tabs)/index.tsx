@@ -527,6 +527,7 @@ export default function HomeScreen() {
                             uri: getImageUrl(
                               track.cover,
                               `https://picsum.photos/seed/${track.id}/200/200`,
+                              128,
                             ),
                           }}
                           style={styles.trackImage}
@@ -697,6 +698,7 @@ export default function HomeScreen() {
                             uri: getImageUrl(
                               item.avatar || item.cover,
                               `https://picsum.photos/seed/${item.id}/200/200`,
+                              128,
                             ),
                           }}
                           style={styles.artistImage}

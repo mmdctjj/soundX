@@ -80,7 +80,7 @@ const StackedCover = ({ tracks }: { tracks: any[] }) => {
   return (
     <View style={styles.stackedCoverContainer}>
       {covers.map((track, index) => {
-        const coverUrl = getImageUrl(track.cover, "https://picsum.photos/100");
+        const coverUrl = getImageUrl(track.cover, "https://picsum.photos/100", 96);
 
         return (
           <CachedImage
@@ -755,7 +755,7 @@ export default function PersonalScreen() {
       // Wait, FlatList data source is controlled.
 
       const data = item;
-      const coverUrl = getImageUrl(item.cover, "https://picsum.photos/100");
+      const coverUrl = getImageUrl(item.cover, "https://picsum.photos/100", 96);
 
       return (
         <TouchableOpacity
@@ -1031,7 +1031,7 @@ export default function PersonalScreen() {
         <TouchableOpacity onPress={handleChangeAvatar} activeOpacity={0.8}>
           <CachedImage
             source={{
-              uri: getImageUrl(avatarOverride, "https://picsum.photos/200"),
+              uri: getImageUrl(avatarOverride, "https://picsum.photos/200", 128),
             }} // Placeholder for avatar
             style={styles.avatar}
           />

@@ -162,7 +162,7 @@ export class ImageOptimizeService {
 
   /**
    * 预生成多尺寸缩略图到磁盘缓存。
-   * - 设计意图：import / 扫描完成时调用一次，把常用尺寸（列表 300 / 卡片 600 / 大图 1200）一次性落盘
+   * - 设计意图：import / 扫描完成时调用一次，把常用尺寸（列表 300 / 卡片 600 / 全屏封面 900 / 大图 1200）一次性落盘
    *   避免前端首次访问触发 sharp 实时 resize。
    * - 静默失败：单张图或某个尺寸失败不影响其他尺寸继续生成，也不抛错给 import 流程
    *   （import 是后台任务，预生成只是 best-effort 加速）。
@@ -170,7 +170,7 @@ export class ImageOptimizeService {
    */
   async preGenerate(
     rawSrc: string,
-    widths: number[] = [300, 600, 1200],
+    widths: number[] = [300, 600, 900, 1200],
     format: OutputFormat = 'webp',
     quality: number = 75,
   ): Promise<void> {

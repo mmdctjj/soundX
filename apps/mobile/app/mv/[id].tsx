@@ -18,6 +18,7 @@ import SkeletonBlock from "@/src/components/SkeletonBlock";
 import { useTheme } from "../../src/context/ThemeContext";
 import { getMvById, getMvByTrackId, type Mv } from "@soundx/services";
 import { getImageUrl } from "../../src/utils/image";
+import { getBaseURL } from "../../src/https";
 import { usePlayer } from "../../src/context/PlayerContext";
 import { mvPlaylistStore } from "../../src/store/mvPlaylist";
 
@@ -114,7 +115,12 @@ export default function MvScreen() {
     }
   };
 
-  const videoSource = mv?.path ? getImageUrl(mv.path) : null;
+  // 注意：这是视频地址不是图片，不能用 getImageUrl —— 那个是封面/头像专用的分级加载工具
+  const videoSource = mv?.path
+    ? mv.path.startsWith("http")
+      ? mv.path
+      : `${getBaseURL()}${mv.path.split("/").map(encodeURIComponent).join("/")}`
+    : null;
   const player = useVideoPlayer(videoSource, (player) => {
     player.loop = !inPlaylist;
     player.timeUpdateEventInterval = 1;
@@ -420,6 +426,7 @@ export default function MvScreen() {
                         uri: getImageUrl(
                           item.cover,
                           `https://picsum.photos/seed/mv-${item.id}/80/45`,
+                          96,
                         ),
                       }}
                       style={styles.playlistItemCover}

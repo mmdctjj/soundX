@@ -504,14 +504,15 @@ const Detail: React.FC = () => {
         <div
           className={styles.banner}
           style={{
-            backgroundImage: `url(${getCoverUrl(album, album?.id)})`,
+            // 全屏模糊背景：模糊会抹掉细节，用最小档即可，视觉无损
+            backgroundImage: `url(${getCoverUrl(album, album?.id, 128)})`,
           }}
         >
           <div className={styles.bannerOverlay}></div>
 
           <Flex align="center" gap={16} className={styles.bannerContent}>
             <div className={styles.coverWrapper}>
-              <Avatar size={50} src={getCoverUrl(album, album?.id)} />
+              <Avatar size={50} src={getCoverUrl(album, album?.id, 128)} />
               <Dropdown menu={{ items: coverMenuItems }} trigger={["click"]}>
                 <div className={styles.coverMenuButton}>
                   <EllipsisOutlined />

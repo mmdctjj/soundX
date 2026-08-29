@@ -3,7 +3,9 @@ import type { Album, Mv, Track } from "@soundx/services";
 import { getBaseURL } from "../https";
 import { useAuthStore } from "../store/auth";
 import { useSettingsStore } from "../store/settings";
+import { bucketWidth, isThumbnailBucket } from "../utils/imageBucket";
 import { isTauri } from "../utils/platform";
+import { isCurrentInternalAddress } from "../utils/playbackQuality";
 
 interface ResolveOptions {
   cacheEnabled: boolean;
@@ -127,15 +129,23 @@ export const resolveTrackUri = async (
 /**
  * Resolves artwork URI
  *
- * 当传入 width 时，自动走 /image/optimize 让后端 resize 到目标尺寸并返回 webp；
- * 这样 30x30 的列表封面只下载 1-3 KB 而不是 1.5 MB 原图。
+ * 分级加载策略（详见 `../utils/imageBucket.ts`）：
  *
- * 不传 width 或 cover 是 http(s) 外链时，回退到原 URI（Tauri 桌面端外链封面不需要走代理）。
+ * 1. 传入的 width 会先量化到固定档位 [96,128,300,600,900,1200]，避免后端
+ *    `.optimized/` 缓存碎片化（后端按 w 逐个落盘）。
+ * 2. 缩略图档位（≤300，即列表行 / MiniPlayer / 网格小卡）**恒走 /image/optimize**，
+ *    不区分内外网 —— 列表一屏 N 张图，瓶颈是解码内存而非网速（50 张 3000×3000
+ *    原图 = 1.8GB 位图，必然 OOM）。
+ * 3. 大图档位（>300，即详情页 Hero / 全屏封面 / 艺术家大头像）才看网络环境：
+ *    内网直连原图（零 CPU 开销、零画质损失），外网走 optimize。
+ *
+ * 不传 width，或 cover 是 http(s) 外链、Tauri `media://` 协议、`/music/` 路径时，
+ * 一律回退到原 URI。
  */
 export interface ResolveArtworkOptions {
-  /** 目标显示宽度（px）。常见档位：30/45/80/170/300 */
+  /** 目标设备像素宽度（非 CSS 尺寸，按显示尺寸 ×2 估算）。常见档位：96/128/300/600/900 */
   width?: number;
-  /** webp 质量 1-100（默认 75） */
+  /** webp 质量 1-100（默认 72） */
   quality?: number;
   /** 输出格式：默认 webp */
   format?: "webp" | "jpeg";
@@ -153,22 +163,30 @@ export const resolveArtworkUri = (
     return cover;
   }
 
-  // http(s) 外链直接返回（不走代理）
+  // http(s) 外链直接返回（外部源 Subsonic/Emby 的封面不走本服务代理）
   if (cover.startsWith("http://") || cover.startsWith("https://")) {
     return cover;
   }
 
-  // 本地 /covers/... 走缩略图代理
+  const originalUri = `${getBaseURL()}${cover.split('/').map(encodeURIComponent).join('/')}`;
+
+  // 只有 /covers/ 能走缩略图代理。
+  // /music/ 虽然在后端白名单里，但 `resolveLocalSource` 对它返回 null
+  // （image-optimize.service.ts:142-149），请求必 404。
   const isCoversPath = cover.startsWith("/covers/") || cover.startsWith("covers/");
-  const isMusicPath = cover.startsWith("/music/") || cover.startsWith("music/");
-  if ((isCoversPath || isMusicPath) && options.width && options.width >= 16) {
-    const src = "/" + cover.replace(/^\/+/, "");
-    const w = Math.min(Math.max(Math.round(options.width), 16), 1500);
-    const q = options.quality ?? 75;
-    const fmt = options.format ?? "webp";
-    return `${getBaseURL()}/image/optimize?src=${encodeURIComponent(src)}&w=${w}&q=${q}&fmt=${fmt}`;
+  if (!isCoversPath || !options.width || options.width < 16) {
+    return originalUri;
   }
 
-  // 兜底：原 URI
-  return `${getBaseURL()}${cover.split('/').map(encodeURIComponent).join('/')}`;
+  const bucket = bucketWidth(options.width);
+
+  // 大图档位才按网络环境区分；缩略图档位恒压缩（理由见文件头注释）。
+  if (!isThumbnailBucket(bucket) && isCurrentInternalAddress()) {
+    return originalUri;
+  }
+
+  const src = "/" + cover.replace(/^\/+/, "");
+  const q = options.quality ?? 72;
+  const fmt = options.format ?? "webp";
+  return `${getBaseURL()}/image/optimize?src=${encodeURIComponent(src)}&w=${bucket}&q=${q}&fmt=${fmt}`;
 };

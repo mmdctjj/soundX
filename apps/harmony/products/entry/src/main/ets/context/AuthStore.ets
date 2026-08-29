@@ -4,6 +4,7 @@ import { authApi } from 'features_network';
 import { socketService } from 'features_socket';
 import deviceInfo from '@ohos.deviceInfo';
 import type { AuthMe, LoginResponse, LoginDto, RegisterDto } from 'features_network';
+import { refreshNetworkMode } from '../utils/networkMode';
 
 type Listener = () => void;
 
@@ -72,6 +73,8 @@ export class AuthStore {
       };
       httpClient.setAuthToken(token);
     }
+    // 服务器地址恢复后重新判定内网/外网（封面分级加载依赖它）
+    await refreshNetworkMode();
   }
 
   async login(dto: LoginDto): Promise<void> {
@@ -110,6 +113,8 @@ export class AuthStore {
     };
     httpClient.setAuthToken(token);
     await kvStore.set('serverAddress', normalized);
+    // 切了服务器就要重新判定内网/外网，否则封面会继续用旧网络环境下的 URL
+    await refreshNetworkMode();
     this.notify();
   }
 

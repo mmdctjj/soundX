@@ -15,10 +15,10 @@ import {
 import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { getBaseURL } from "../../https";
 import { type Artist } from "../../models";
 import { useArtistListCache } from "../../store/artist";
 import { useLibraryStore } from "../../store/library";
+import { getCoverUrl } from "../../utils";
 import { usePlayMode } from "../../utils/playMode";
 import styles from "./index.module.less";
 
@@ -164,13 +164,7 @@ const ArtistList: React.FC = () => {
               >
                 <div className={styles.coverContainer}>
                   <Avatar
-                    src={
-                      artist.avatar
-                        ? artist.avatar.startsWith("http")
-                          ? artist.avatar
-                          : `${getBaseURL()}${artist.avatar}`
-                        : `https://picsum.photos/seed/${artist.id}/300/300`
-                    }
+                    src={getCoverUrl(artist.avatar, artist.id, 300)}
                     size={120}
                     shape="circle"
                     className={styles.avatar}

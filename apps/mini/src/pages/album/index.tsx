@@ -9,6 +9,7 @@ import QuickLocate from '../../components/QuickLocate';
 import XiaoAiIcon from '../../components/XiaoAiIcon';
 import { useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
+import { getImageUrl as buildImageUrl } from '../../utils/image';
 import { getBaseURL } from '../../utils/request';
 import './index.scss';
 import BottomTabBar from '../../components/BottomTabBar';
@@ -62,11 +63,9 @@ export default function AlbumDetail() {
     }
   };
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return `https://picsum.photos/300/300`;
-    if (url.startsWith('http')) return url;
-    return `${getBaseURL()}${url}`;
-  };
+  // 占位图各页不同，这里绑死；调用点只需关心显示尺寸（目标设备像素宽，默认 300）
+  const getImageUrl = (url: string | null, width = 300) =>
+    buildImageUrl(url, 'https://picsum.photos/300/300', width);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '--:--';
@@ -138,7 +137,8 @@ export default function AlbumDetail() {
          <ScrollView scrollY className='content-scroll' scrollWithAnimation scrollIntoView={scrollIntoView}>
              <View id='top-anchor' />
              <View className='header'>
-                 <Image src={getImageUrl(album.cover)} className='cover' mode='aspectFill' />
+                 {/* 400rpx ≈ 200px CSS → 目标设备像素 400 → 600 档 */}
+                 <Image src={getImageUrl(album.cover, 600)} className='cover' mode='aspectFill' webp />
                  <Text className='title'>{album.name}</Text>
                  <Text className='artist'>{album.artist}</Text>
                  
@@ -190,7 +190,7 @@ export default function AlbumDetail() {
                         <View className='track-idx-container'>
                             <Text className='track-index'>{index + 1}</Text>
                         </View>
-                        <Image src={getImageUrl(mv.cover)} className='track-cover mv-cover' mode='aspectFill' style={{ width: '80rpx', height: '60rpx', borderRadius: '8rpx' }} />
+                        <Image src={getImageUrl(mv.cover, 96)} className='track-cover mv-cover' mode='aspectFill' webp style={{ width: '80rpx', height: '60rpx', borderRadius: '8rpx' }} />
                         <View className='track-info' style={{ marginLeft: '20rpx' }}>
                             <Text className='track-name' numberOfLines={1}>{mv.name}</Text>
                         </View>
@@ -212,7 +212,7 @@ export default function AlbumDetail() {
                                   <Text className={`track-index ${currentTrack?.id === track.id ? 'active' : ''}`}>{index + 1}</Text>
                               )}
                           </View>
-                           <Image src={getImageUrl(track.cover)} className='track-cover' mode='aspectFill' />
+                           <Image src={getImageUrl(track.cover, 96)} className='track-cover' mode='aspectFill' webp />
                            <View className='track-info'>
                                <View className='track-name-row'>
                                  <Text className={`track-name ${currentTrack?.id === track.id ? 'active' : ''}`} numberOfLines={1}>{track.name}</Text>

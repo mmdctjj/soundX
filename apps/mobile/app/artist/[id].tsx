@@ -335,6 +335,7 @@ export default function ArtistDetailScreen() {
               uri: getImageUrl(
                 artist.avatar,
                 `https://picsum.photos/seed/${artist.id}/300/300`,
+                600,
               ),
             }}
             style={styles.avatar}
@@ -546,6 +547,7 @@ export default function ArtistDetailScreen() {
                         uri: getImageUrl(
                           mv.cover,
                           `https://picsum.photos/seed/mv-${mv.id}/200/200`,
+                          96,
                         ),
                       }}
                       style={styles.albumCover}
@@ -698,6 +700,7 @@ export default function ArtistDetailScreen() {
                       uri: getImageUrl(
                         track.cover,
                         `https://picsum.photos/seed/${track.id}/20/20`,
+                        96,
                       ),
                     }}
                     alt=""

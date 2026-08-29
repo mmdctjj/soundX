@@ -65,7 +65,7 @@ const Collections: React.FC = () => {
                   <div className={styles.coverWrap}>
                     <img
                       className={styles.cover}
-                      src={resolveArtworkUri(cover)}
+                      src={resolveArtworkUri(cover, { width: 300 })}
                       alt={item.name}
                     />
                   </div>

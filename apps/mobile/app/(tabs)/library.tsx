@@ -285,6 +285,7 @@ const SongList = ({
                     uri: getImageUrl(
                       item.cover,
                       `https://picsum.photos/seed/${item.id}/100/100`,
+                      96,
                     ),
                   }}
                   style={styles.songImage}
@@ -479,6 +480,7 @@ const ArtistList = ({
                 uri: getImageUrl(
                   item.avatar,
                   `https://picsum.photos/seed/${item.id}/200/200`,
+                  128,
                 ),
               }}
               style={[

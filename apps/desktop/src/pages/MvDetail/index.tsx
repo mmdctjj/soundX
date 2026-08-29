@@ -111,11 +111,7 @@ const MvDetail: React.FC = () => {
   const videoUrl = mv.path?.startsWith('http')
     ? mv.path
     : `${getBaseURL()}${mv.path.split('/').map(encodeURIComponent).join('/')}`;
-  const posterUrl = mv.cover
-    ? (mv.cover.startsWith('http')
-        ? mv.cover
-        : `${getBaseURL()}${mv.cover.split('/').map(encodeURIComponent).join('/')}`)
-    : undefined;
+  const posterUrl = mv.cover ? resolveArtworkUri(mv.cover, { width: 600 }) : undefined;
 
   return (
     <div className={styles.container}>
@@ -228,7 +224,11 @@ const MvDetail: React.FC = () => {
                   {index + 1}
                 </div>
                 <img
-                  src={item.cover ? resolveArtworkUri(item.cover) : undefined}
+                  src={
+                    item.cover
+                      ? resolveArtworkUri(item.cover, { width: 128 })
+                      : undefined
+                  }
                   alt={item.name}
                   style={{ width: 64, height: 36, objectFit: 'cover', borderRadius: 4 }}
                 />

@@ -74,9 +74,9 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMessage } from "../../context/MessageContext";
 import { useTheme } from "../../context/ThemeContext";
-import { getBaseURL } from "../../https";
 import { TrackType } from "../../models";
 import { trackEvent } from "../../services/tracking";
+import { resolveArtworkUri } from "../../services/trackResolver";
 import { invoke } from "@tauri-apps/api/core";
 import { useAuthStore } from "../../store/auth";
 import { usePlayerStore } from "../../store/player";
@@ -352,21 +352,13 @@ const ServerSwitcherModal: React.FC<{
 };
 
 const getAvatarUrl = (path?: string | null, fallbackSeed?: string) => {
+  const dicebear = `https://api.dicebear.com/7.x/avataaars/svg?seed=${fallbackSeed || "Felix"}`;
   if (!path) {
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${fallbackSeed || "Felix"}`;
+    return dicebear;
   }
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  const baseURL = getBaseURL();
-  const cleanBaseURL = baseURL.endsWith("/")
-    ? baseURL.substring(0, baseURL.length - 1)
-    : baseURL;
-  const cleanPath = path.startsWith("/") ? path.substring(1) : path;
-  return `${cleanBaseURL}/${cleanPath
-    .split("/")
-    .map(encodeURIComponent)
-    .join("/")}`;
+  // 头像恒走缩略图档（128 ≤ THUMBNAIL_MAX_WIDTH），不区分内外网。
+  // http(s) 外链、/music/ 等非 /covers/ 路径由 resolveArtworkUri 原样返回。
+  return resolveArtworkUri(path, { width: 128 }) || dicebear;
 };
 
 const Header: React.FC = () => {

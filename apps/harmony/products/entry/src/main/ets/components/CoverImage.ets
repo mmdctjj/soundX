@@ -1,22 +1,27 @@
-import { getImageUrl } from '../utils/image';
+import { bucketWidth, getImageUrl } from '../utils/image';
+import { IS_INTERNAL_KEY } from '../utils/networkMode';
 import { buildTheme } from 'features_ui';
 import type { Theme, ThemeMode } from 'features_ui';
 
 @Component
 export struct CoverImage {
   @Prop @Watch('onPathChange') path: string | null = null;
+  /** 显示宽度（vp）。直接作为目标设备像素宽度参与档位量化，见 utils/image.ts */
   @Prop imgWidth: number = 60;
   @Prop imgHeight: number = 60;
   @Prop radius: number | string = 8;
   @Prop fallbackText: string = '?';
   @StorageLink('themeMode') @Watch('onThemeModeChange') themeMode: ThemeMode = 'light';
+  // 内外网切换时 AppStorage 会更新，这里必须 @Watch 主动重算 URL：
+  // currentUrl 是 @State，只在 aboutToAppear / onPathChange 里算，不会自动跟着变。
+  @StorageLink(IS_INTERNAL_KEY) @Watch('onNetworkModeChange') isInternal: boolean = false;
   @State theme: Theme = buildTheme('light');
   @State failed: boolean = false;
   @State currentUrl: string = '';
 
   aboutToAppear() {
     this.theme = buildTheme(this.themeMode);
-    this.currentUrl = getImageUrl(this.path);
+    this.currentUrl = this.buildUrl();
   }
 
   onThemeModeChange(): void {
@@ -25,8 +30,19 @@ export struct CoverImage {
 
   // path 变化时刷新 URL 并清掉失败态（切歌换封面依赖这个）
   onPathChange() {
-    this.currentUrl = getImageUrl(this.path);
+    this.currentUrl = this.buildUrl();
     this.failed = false;
+  }
+
+  // 切内外网后重算 URL（大图档位才会真的变化，缩略图档 URL 不变不会触发重建）
+  onNetworkModeChange(): void {
+    this.currentUrl = this.buildUrl();
+    this.failed = false;
+  }
+
+  /** imgWidth 是 vp，按 2 倍估算目标设备像素宽度 */
+  private buildUrl(): string {
+    return getImageUrl(this.path, bucketWidth(this.imgWidth * 2));
   }
 
   @Builder

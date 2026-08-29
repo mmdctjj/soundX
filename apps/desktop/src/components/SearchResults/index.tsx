@@ -274,23 +274,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
               data={track}
               type="track"
               onClick={() => handleTrackClick(track)}
-              cover={getCoverUrl(track.cover, track.id)} // Assuming this is correct util usage from old code? Wait, getCoverUrl signature check?
-              // Wait, old code was: getCoverUrl(album, album.id) for album, and track didn't have cover displayed in old code?
-              // Re-checking old code: Track list didn't show cover?
-              // Old code:
-              // <div className={styles.resultItem}...> <div className={styles.info}>... </div> </div>
-              // It seems Tracks DID NOT show cover in dropdown initially.
-              // But let's add it if available, or just use rendering logic from before but with actions.
-              // Actually, standard search result usually has cover.
-              // Let's stick to old visual style if possible: Tracks text only?
-              // Let's check old code again:
-              // results.tracks.map... <div className={styles.resultItem}> <div className={styles.info}>...</div> </div>
-              // So no cover for tracks.
-              // I should respect that to avoid layout shift, OR improve it?
-              // User request: "add like and add-to-playlist buttons".
-              // I will keep it text-only for tracks if that was the design, but wait...
-              // Album had cover. Artist had avatar.
-              // Let's adapt Item to support no-cover.
+              cover={getCoverUrl(track.cover, track.id, 96)}
               title={track.name}
               subtitle={`${track.artist} · ${track.album}`}
             />
@@ -307,7 +291,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
               data={artist}
               type="artist"
               onClick={() => handleArtistClick(artist.id)}
-              cover={getCoverUrl(artist, artist.id)}
+              cover={getCoverUrl(artist, artist.id, 96)}
               title={artist.name}
               subtitle={artist.type === "MUSIC" ? t('searchResults.musician') : t('searchResults.voiceActor')}
               isArtist={true}
@@ -325,7 +309,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
               data={album}
               type="album"
               onClick={() => handleAlbumClick(album.id)}
-              cover={getCoverUrl(album, album.id)}
+              cover={getCoverUrl(album, album.id, 96)}
               title={album.name}
               subtitle={`${album.artist} · ${album.year}`}
             />
