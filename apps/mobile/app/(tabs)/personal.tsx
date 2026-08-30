@@ -28,7 +28,6 @@ import {
   FlatList,
   Image,
   Platform,
-  useColorScheme,
   StyleSheet,
   Text,
   TextInput,
@@ -191,8 +190,6 @@ export default function PersonalScreen() {
   const { playTrackList } = usePlayer();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const xiaoaiIconSource = colorScheme === "dark" ? xiaoaiDark : xiaoaiLight;
   const [permission, setPermission] = useState<any>(null);
 
   const [avatarOverride, setAvatarOverride] = useState<string | null>(null);
