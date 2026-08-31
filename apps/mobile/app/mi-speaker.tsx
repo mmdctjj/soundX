@@ -15,6 +15,7 @@ import {
   type MiCastRecord,
   type MiPagedResponse,
 } from "@soundx/services";
+import { initBaseURL } from "../src/https";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -72,6 +73,8 @@ const LoginTab: React.FC<LoginTabProps> = ({ onAuthChange }) => {
 
   const checkStatus = useCallback(async () => {
     try {
+      // 等待 baseURL 初始化完成（从 AsyncStorage 读取服务器地址）
+      await initBaseURL();
       const res = await getMiAuthStatus();
       setLoggedIn(res.logged_in);
       if (res.logged_in) {
@@ -182,6 +185,8 @@ const KeywordsTab: React.FC = () => {
 
   const loadKeywords = useCallback(async () => {
     try {
+      // 确保 baseURL 已初始化
+      await initBaseURL();
       const res = await getMiKeywords();
       setKeywords(res.keywords ?? []);
     } catch (e: any) {
@@ -337,6 +342,8 @@ const HistoryList: React.FC<HistoryListProps> = ({ fetcher, renderItem }) => {
     async (p: number, append: boolean) => {
       if (p > 1) setLoadingMore(true);
       try {
+        // 确保 baseURL 已初始化
+        await initBaseURL();
         const res = await fetcher({ page: p, size: PAGE_SIZE });
         setTotal(res.total ?? 0);
         setItems((prev) => (append ? [...prev, ...(res.items ?? [])] : res.items ?? []));

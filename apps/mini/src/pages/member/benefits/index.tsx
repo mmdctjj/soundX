@@ -1,12 +1,18 @@
-import { plusCreatePayment, setPlusToken } from '@soundx/services';
-import { Text, View } from '@tarojs/components';
+import { plusCreatePayment, plusGetVipCurrentLowestPrice, setPlusToken, VipCurrentLowestPriceData, VipCurrentLowestPricePlan } from '@soundx/services';
+import { Image, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MiniPlayer from '../../../components/MiniPlayer';
+import wechatIcon from '../../../assets/images/wechat.png';
 import './index.scss';
 
 type PaymentPlan = 'annual' | 'lifetime';
+
+const DEFAULT_PRICES: Record<PaymentPlan, number> = {
+  annual: 20,
+  lifetime: 60,
+};
 
 const comparisonData = [
   { feature: 'memberFeature.basicFeatures', free: true, member: true },
@@ -21,8 +27,41 @@ export default function MemberBenefits() {
   const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<PaymentPlan>('lifetime');
   const [loading, setLoading] = useState(false);
+  const [pricing, setPricing] = useState<VipCurrentLowestPriceData | null>(null);
 
-  const handlePayment = async (method: 'WECHAT' | 'ALIPAY') => {
+  useEffect(() => {
+    let mounted = true;
+    const loadPricing = async () => {
+      try {
+        const res = await plusGetVipCurrentLowestPrice();
+        if (!mounted) return;
+        if (res.data.code === 200) {
+          setPricing(res.data.data ?? null);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch VIP pricing', e);
+      }
+    };
+    void loadPricing();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const formatPrice = (price: number | null | undefined) => {
+    if (typeof price !== 'number' || Number.isNaN(price)) return '--';
+    return Number.isInteger(price) ? String(price) : price.toFixed(2);
+  };
+
+  const hasDiscount = (plan: VipCurrentLowestPricePlan | null | undefined) =>
+    !!plan && plan.discountPercent > 0 && plan.originalPrice > plan.currentPrice;
+
+  const getPrice = (plan: PaymentPlan) =>
+    pricing?.[plan]?.currentPrice ?? DEFAULT_PRICES[plan];
+
+  const getOriginalPrice = (plan: PaymentPlan) => pricing?.[plan]?.originalPrice;
+
+  const handlePayment = async () => {
     const userIdStr = Taro.getStorageSync('plus_user_id');
     if (!userIdStr) {
       Taro.showModal({
@@ -43,9 +82,9 @@ export default function MemberBenefits() {
     try {
       const res = await plusCreatePayment({
         userId: userIdStr,
-        amount: selectedPlan === 'annual' ? 20 : 60,
+        amount: getPrice(selectedPlan),
         currency: 'CNY',
-        method,
+        method: 'WECHAT',
         forVip: true,
         vipTier: selectedPlan === 'annual' ? 'BASIC' : 'LIFETIME',
         forPoints: false,
@@ -53,29 +92,15 @@ export default function MemberBenefits() {
       });
 
       if (res.data.code === 201 || res.data.code === 200) {
-        const { paymentUrl, wechatPay, alipayPay, orderId } = res.data.data || {};
+        const { paymentUrl, wechatPay } = res.data.data || {};
 
-        if (method === 'WECHAT') {
-          if (wechatPay) {
-            // WeChat payment - in mini program would use wx.requestPayment
-            Taro.showToast({ title: t('member.wechatPay') + ' ' + t('common.vipOnly'), icon: 'none' });
-          } else if (paymentUrl) {
-            Taro.showToast({ title: t('memberSuccess.paymentSuccess') + ', ' + t('member.paymentWebDesc'), icon: 'none' });
-          } else {
-            Taro.showToast({ title: t('common.error'), icon: 'none' });
-          }
-          return;
-        }
-
-        if (method === 'ALIPAY') {
-          if (alipayPay?.orderString) {
-            Taro.showToast({ title: t('member.alipay') + ' ' + t('common.vipOnly'), icon: 'none' });
-          } else if (paymentUrl) {
-            Taro.showToast({ title: t('memberSuccess.paymentSuccess') + ', ' + t('member.paymentWebDesc'), icon: 'none' });
-          } else {
-            Taro.showToast({ title: t('common.error'), icon: 'none' });
-          }
-          return;
+        if (wechatPay) {
+          // WeChat payment - in mini program would use wx.requestPayment
+          Taro.showToast({ title: t('member.wechatPay') + ' ' + t('common.vipOnly'), icon: 'none' });
+        } else if (paymentUrl) {
+          Taro.showToast({ title: t('memberSuccess.paymentSuccess') + ', ' + t('member.paymentWebDesc'), icon: 'none' });
+        } else {
+          Taro.showToast({ title: t('common.error'), icon: 'none' });
         }
       } else {
         Taro.showToast({ title: res.data.message || t('common.error'), icon: 'none' });
@@ -101,6 +126,40 @@ export default function MemberBenefits() {
         }
       },
     });
+  };
+
+  const renderPlanCard = (plan: PaymentPlan) => {
+    const planPricing = pricing?.[plan];
+    const discounted = hasDiscount(planPricing);
+    return (
+      <View
+        className={`plan-card ${selectedPlan === plan ? 'active' : ''}`}
+        onClick={() => setSelectedPlan(plan)}
+      >
+        {selectedPlan === plan && plan === 'lifetime' && (
+          <View className='recommend-badge'>
+            <Text className='recommend-text'>{t('member.recommend')}</Text>
+          </View>
+        )}
+        <Text className='plan-name'>
+          {plan === 'annual' ? t('member.annual') : t('member.permanent')}
+        </Text>
+        <View className='price-container'>
+          <Text className='currency'>¥</Text>
+          <Text className='price-amount'>{formatPrice(getPrice(plan))}</Text>
+          <Text className='unit'>
+            /{plan === 'annual' ? t('member.annualMember') : t('member.permanentValid')}
+          </Text>
+        </View>
+        {discounted && (
+          <View className='original-price-container'>
+            <Text className='original-price-text'>
+              ¥{formatPrice(getOriginalPrice(plan))}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
   };
 
   return (
@@ -145,34 +204,8 @@ export default function MemberBenefits() {
         </View>
 
         <View className='plans-container'>
-          <View
-            className={`plan-card ${selectedPlan === 'annual' ? 'active' : ''}`}
-            onClick={() => setSelectedPlan('annual')}
-          >
-            <Text className='plan-name'>{t('member.annual')}</Text>
-            <View className='price-container'>
-              <Text className='currency'>¥</Text>
-              <Text className='price-amount'>20</Text>
-              <Text className='unit'>/{t('member.annualMember')}</Text>
-            </View>
-          </View>
-
-          <View
-            className={`plan-card ${selectedPlan === 'lifetime' ? 'active' : ''}`}
-            onClick={() => setSelectedPlan('lifetime')}
-          >
-            {selectedPlan === 'lifetime' && (
-              <View className='recommend-badge'>
-                <Text className='recommend-text'>{t('member.recommend')}</Text>
-              </View>
-            )}
-            <Text className='plan-name'>{t('member.permanent')}</Text>
-            <View className='price-container'>
-              <Text className='currency'>¥</Text>
-              <Text className='price-amount'>60</Text>
-              <Text className='unit'>/{t('member.permanentValid')}</Text>
-            </View>
-          </View>
+          {renderPlanCard('annual')}
+          {renderPlanCard('lifetime')}
         </View>
 
         {/* Payment Methods */}
@@ -183,17 +216,10 @@ export default function MemberBenefits() {
         <View className='payment-methods'>
           <View
             className={`payment-item ${loading ? 'disabled' : ''}`}
-            onClick={() => handlePayment('WECHAT')}
+            onClick={handlePayment}
           >
-            <Text className='payment-icon'>💳</Text>
+            <Image className='payment-icon-img' src={wechatIcon} />
             <Text className='payment-text'>{t('member.wechatPay')}</Text>
-          </View>
-          <View
-            className={`payment-item ${loading ? 'disabled' : ''}`}
-            onClick={() => handlePayment('ALIPAY')}
-          >
-            <Text className='payment-icon'>💰</Text>
-            <Text className='payment-text'>{t('member.alipay')}</Text>
           </View>
         </View>
 
