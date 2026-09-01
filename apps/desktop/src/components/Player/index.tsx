@@ -2126,8 +2126,10 @@ const Player: React.FC<PlayerProps> = ({ hideMiniPlayer, seekBridge }) => {
                 <LazyImage
                   src={resolveArtworkUri(currentTrack, { width: 600, format: "webp", quality: 80 })}
                   alt="Current Cover"
-                  width={"100%"}
-                  height={"100%"}
+                  // 方形封面固定最大 220px；黑胶模式由 .fullPlayerCoverVinyl 容器(320px)控制尺寸，保持 100%
+                  width={coverStyle === "vinyl" ? "100%" : 220}
+                  height={coverStyle === "vinyl" ? "100%" : 220}
+                  style={coverStyle === "vinyl" ? undefined : { maxWidth: "100%" }}
                   className={styles.fullPlayerCover}
                 />
                 {coverStyle === "vinyl" && tonearm === "basic" && (

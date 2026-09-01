@@ -486,7 +486,7 @@ const CarMode: React.FC<CarModeProps> = ({ children, seekBridge }) => {
 
   // 合并模式下，无论顺序如何，媒体栏只渲染一次（取 cover/lyrics 中先出现的那个位置）
   const mergeEnabled = carMode?.mergeCoverLyrics ?? false;
-  const columnOrder = carMode?.columnOrder ?? ["cover", "content", "lyrics"];
+  const columnOrder = carMode?.columnOrder ?? ["cover", "lyrics", "content"];
   const orderedColumns: CarModeColumn[] = mergeEnabled
     ? (() => {
         const order = [...columnOrder];

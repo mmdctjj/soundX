@@ -53,3 +53,8 @@
 - **统一规则（四端一致）**：档位 `[96,128,300,600,900,1200]`，`width` = **目标设备像素宽**（非 CSS，按显示尺寸×2）；`q=72`、`fmt=webp`。**≤300 恒压缩不分内外网**（列表瓶颈是解码内存：50 张 3000×3000 原图=1.8GB 位图必 OOM）；**>300 才分内外网**（内网原图直连/外网 optimize）。
 - **同步约束**：`getImageUrl` 必须保持同步纯函数（mobile 40+/harmony 30+ 调用点）。网络判定走「模块级内存变量 + 异步刷新」：desktop `localStorage`/mini `getStorageSync` 同步读，mobile/harmony 用模块变量，在「服务器切换」钩子（AuthContext/AuthStore/EntryAbility）异步 `refreshNetworkMode()`。初始值 `false`（按外网=压缩，安全方向）。
 - **关键坑**：① mv 页 `getImageUrl(path)` 拼**视频地址**是历史误用（mini/harmony/mobile 均已改回 `${baseURL}${path}`）；② `resolveArtworkUriForPlayer`/`downloadManager` 等会**落盘缓存**的路径必须限 ≤300 档，否则内网会把 5MB 原图写进缓存/ID3；③ 小程序 iOS<14 需 `<Image webp>` 属性；④ 不要用 `git stash` 做基线对比（会误 pop 旧 stash，用 git worktree）。
+
+## @soundx/services workspace 包（2026-09-01 新增）
+
+- **构建机制**：father 构建，入口指向 `dist/cjs/index.js`（main）/ `dist/esm/index.js`（module），**改 `src/` 后必须 `cd packages/services && pnpm build`**，否则引用端（mini/mobile/desktop）拿到的还是旧 dist，报 `xxx is not a function`。
+- **mini 会员支付**：`plusWechatMpSession(code)` → `POST /auth/wechat-mp/session` 换 openid（缓存 `plus_open_id`）；下单 `clientType: 'miniprogram'` + `openId`，返回 `wechatPay` 直接喂给 `Taro.requestPayment`（timeStamp/nonceStr/package/signType=RSA/paySign=sign）。VIP 价格用 `plusGetVipCurrentLowestPrice()`（`GET /vip/current-lowest-price`），失败回落写死值。

@@ -16,11 +16,10 @@ export default function MemberPaymentSuccess() {
 
   const paidAt = useMemo(() => {
     if (!paidAtRaw) return '';
-    try {
-      return new Date(paidAtRaw).toLocaleString();
-    } catch {
-      return paidAtRaw;
-    }
+    const date = new Date(paidAtRaw);
+    if (Number.isNaN(date.getTime())) return '';
+    const pad = (v: number) => String(v).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
   }, [paidAtRaw]);
 
   useEffect(() => {
@@ -60,14 +59,6 @@ export default function MemberPaymentSuccess() {
 
   return (
     <View className='payment-success-container'>
-      <View className='header'>
-        <View className='back-btn' onClick={() => Taro.navigateBack()}>
-          <Text className='back-icon'>←</Text>
-        </View>
-        <Text className='header-title'>{t('memberSuccess.paymentSuccess')}</Text>
-        <View style={{ width: '80rpx' }} />
-      </View>
-
       <View className='card'>
         <Text className='success-icon'>✓</Text>
         <Text className='success-text'>{t('memberSuccess.paymentSuccess')}</Text>

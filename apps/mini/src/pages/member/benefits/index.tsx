@@ -1,4 +1,4 @@
-import { plusCreatePayment, plusGetVipCurrentLowestPrice, setPlusToken, VipCurrentLowestPriceData, VipCurrentLowestPricePlan } from '@soundx/services';
+import { plusCreatePayment, plusGetVipCurrentLowestPrice, plusWechatMpSession, setPlusToken, VipCurrentLowestPriceData, VipCurrentLowestPricePlan } from '@soundx/services';
 import { Image, Text, View } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { useEffect, useState } from 'react';
@@ -61,8 +61,31 @@ export default function MemberBenefits() {
 
   const getOriginalPrice = (plan: PaymentPlan) => pricing?.[plan]?.originalPrice;
 
+  const getMiniProgramOpenId = async (): Promise<string | null> => {
+    const cached = Taro.getStorageSync('plus_open_id');
+    if (cached) return cached;
+    try {
+      const loginRes = await Taro.login();
+      if (!loginRes.code) return null;
+      const res = await plusWechatMpSession(loginRes.code);
+      const openId = res.data.data?.openId;
+      if (res.data.code === 200 && openId) {
+        Taro.setStorageSync('plus_open_id', openId);
+        return openId;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Failed to get mini program openId', e);
+      return null;
+    }
+  };
+
   const handlePayment = async () => {
-    const userIdStr = Taro.getStorageSync('plus_user_id');
+    const userIdRaw = Taro.getStorageSync('plus_user_id');
+    let userIdStr: string = userIdRaw;
+    try {
+      userIdStr = JSON.parse(userIdRaw);
+    } catch {}
     if (!userIdStr) {
       Taro.showModal({
         title: t('member.tip'),
@@ -80,11 +103,19 @@ export default function MemberBenefits() {
 
     setLoading(true);
     try {
+      const openId = await getMiniProgramOpenId();
+      if (!openId) {
+        Taro.showToast({ title: t('common.error'), icon: 'none' });
+        return;
+      }
+
       const res = await plusCreatePayment({
         userId: userIdStr,
         amount: getPrice(selectedPlan),
         currency: 'CNY',
         method: 'WECHAT',
+        clientType: 'miniprogram',
+        openId,
         forVip: true,
         vipTier: selectedPlan === 'annual' ? 'BASIC' : 'LIFETIME',
         forPoints: false,
@@ -92,13 +123,36 @@ export default function MemberBenefits() {
       });
 
       if (res.data.code === 201 || res.data.code === 200) {
-        const { paymentUrl, wechatPay } = res.data.data || {};
+        const { wechatPay, orderId } = res.data.data || {};
+        console.log('[member] create payment resp data:', JSON.stringify(res.data.data));
 
         if (wechatPay) {
-          // WeChat payment - in mini program would use wx.requestPayment
-          Taro.showToast({ title: t('member.wechatPay') + ' ' + t('common.vipOnly'), icon: 'none' });
-        } else if (paymentUrl) {
-          Taro.showToast({ title: t('memberSuccess.paymentSuccess') + ', ' + t('member.paymentWebDesc'), icon: 'none' });
+          // 小程序 JSAPI 支付：直接调起 wx.requestPayment
+          const payParams = {
+            timeStamp: wechatPay.timeStamp,
+            nonceStr: wechatPay.nonceStr,
+            package: wechatPay.package || `prepay_id=${wechatPay.prepayId}`,
+            signType: (wechatPay.signType as 'RSA' | 'MD5') || 'RSA',
+            paySign: wechatPay.paySign || wechatPay.sign,
+          };
+          console.log('[member] requestPayment params:', JSON.stringify(payParams));
+          try {
+            await Taro.requestPayment(payParams);
+            const tradeNo = encodeURIComponent(orderId || '');
+            Taro.redirectTo({
+              url: `/pages/member/success/index?tradeNo=${tradeNo}&paidAt=${Date.now()}`,
+            });
+          } catch (payErr: any) {
+            console.warn('[member] requestPayment fail:', payErr);
+            if (payErr?.errMsg?.includes('cancel')) {
+              Taro.showToast({ title: t('member.cancelBtn'), icon: 'none' });
+            } else {
+              Taro.showToast({
+                title: payErr?.errMsg || t('common.error'),
+                icon: 'none',
+              });
+            }
+          }
         } else {
           Taro.showToast({ title: t('common.error'), icon: 'none' });
         }

@@ -10,7 +10,7 @@ import styles from "./index.module.less";
 
 const { Text } = Typography;
 
-const DEFAULT_COLUMN_ORDER: CarModeColumn[] = ["cover", "content", "lyrics"];
+const DEFAULT_COLUMN_ORDER: CarModeColumn[] = ["cover", "lyrics", "content"];
 
 const CarModeSettings: React.FC = () => {
   const { t } = useTranslation();
