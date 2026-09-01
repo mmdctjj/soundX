@@ -112,7 +112,7 @@ export interface LoginDto {
 
 export type PaymentMethod = "WECHAT" | "ALIPAY" | "STRIPE" | "PAYPAL" | "OTHER";
 export type VipTier = "NONE" | "BASIC" | "PREMIUM" | "LIFETIME";
-export type PaymentClientType = "app" | "web" | "desktop" | "mobile" | "mini";
+export type PaymentClientType = "app" | "web" | "desktop" | "mobile" | "mini" | "miniprogram";
 
 export interface CreatePaymentDto {
   userId: string;
@@ -125,6 +125,8 @@ export interface CreatePaymentDto {
   vipTier: VipTier;
   forPoints: boolean;
   pointsAmount: number;
+  /** clientType=miniprogram 时必填：用户在微信小程序下的 openid */
+  openId?: string;
 }
 
 export interface WechatPayPayload {
@@ -133,7 +135,10 @@ export interface WechatPayPayload {
   prepayId: string;
   nonceStr: string;
   timeStamp: string;
+  /** App 支付的签名字段 */
   sign: string;
+  /** 小程序 JSAPI 支付的签名字段（与 sign 同值，字段名不同） */
+  paySign?: string;
   package?: string;
   signType?: string;
 }
@@ -259,6 +264,13 @@ export const plusSendCode = async (data: SendCodeDto) => {
  */
 export const plusLogin = async (data: LoginDto) => {
   return plusRequest.post<ISuccessResponse<{ token: string; userId: string }>>("/auth/login", data);
+};
+
+/**
+ * AuthController_wechatMpSession: Exchange wx.login code for mini program openid
+ */
+export const plusWechatMpSession = async (code: string) => {
+  return plusRequest.post<ISuccessResponse<{ openId: string }>>("/auth/wechat-mp/session", { code });
 };
 
 /**

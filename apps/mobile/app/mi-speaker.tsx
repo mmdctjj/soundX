@@ -15,6 +15,7 @@ import {
   type MiCastRecord,
   type MiPagedResponse,
 } from "@soundx/services";
+import { initBaseURL } from "../src/https";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -72,6 +73,8 @@ const LoginTab: React.FC<LoginTabProps> = ({ onAuthChange }) => {
 
   const checkStatus = useCallback(async () => {
     try {
+      // 等待 baseURL 初始化完成（从 AsyncStorage 读取服务器地址）
+      await initBaseURL();
       const res = await getMiAuthStatus();
       setLoggedIn(res.logged_in);
       if (res.logged_in) {
@@ -182,6 +185,8 @@ const KeywordsTab: React.FC = () => {
 
   const loadKeywords = useCallback(async () => {
     try {
+      // 确保 baseURL 已初始化
+      await initBaseURL();
       const res = await getMiKeywords();
       setKeywords(res.keywords ?? []);
     } catch (e: any) {
@@ -215,10 +220,18 @@ const KeywordsTab: React.FC = () => {
   };
 
   const handleToggle = async (kw: MiKeyword) => {
+    const next = !kw.enabled;
+    // 乐观更新：先切 UI，接口失败再回滚
+    setKeywords((prev) =>
+      prev.map((k) => (k.id === kw.id ? { ...k, enabled: next } : k)),
+    );
     try {
-      await updateMiKeyword(kw.id, { enabled: !kw.enabled });
-      await loadKeywords();
+      await updateMiKeyword(kw.id, { enabled: next });
     } catch (e: any) {
+      // 回滚
+      setKeywords((prev) =>
+        prev.map((k) => (k.id === kw.id ? { ...k, enabled: !next } : k)),
+      );
       Alert.alert(t("common.error"), e?.message || String(e));
     }
   };
@@ -302,7 +315,8 @@ const KeywordsTab: React.FC = () => {
             <Switch
               value={kw.enabled}
               onValueChange={() => handleToggle(kw)}
-              trackColor={{ true: colors.primary }}
+              trackColor={{ false: "#767577", true: colors.primary }}
+              thumbColor={"#f4f3f4"}
             />
             <TouchableOpacity
               onPress={() => handleDelete(kw)}
@@ -337,6 +351,8 @@ const HistoryList: React.FC<HistoryListProps> = ({ fetcher, renderItem }) => {
     async (p: number, append: boolean) => {
       if (p > 1) setLoadingMore(true);
       try {
+        // 确保 baseURL 已初始化
+        await initBaseURL();
         const res = await fetcher({ page: p, size: PAGE_SIZE });
         setTotal(res.total ?? 0);
         setItems((prev) => (append ? [...prev, ...(res.items ?? [])] : res.items ?? []));
@@ -482,6 +498,23 @@ const MiSpeakerScreen: React.FC = () => {
   // 未登录时整个页面只展示 LoginTab（不显示 tabBar）；登录后展示 keywords/conversations/casts 三个 tab。
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState<MiTab>("keywords");
+
+  // 父组件主动发起首次登录态检查 —— 否则 loggedIn 永远停留在 null，
+  // LoginTab 不会挂载（它只在 loggedIn === false 时渲染），页面一直 loading。
+  const checkAuth = useCallback(async () => {
+    try {
+      await initBaseURL();
+      const res = await getMiAuthStatus();
+      setLoggedIn(res.logged_in);
+    } catch {
+      setLoggedIn(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
   const handleAuthChange = useCallback((v: boolean) => {
     setLoggedIn(v);
     if (v) setActiveTab("keywords");
@@ -615,7 +648,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 40 },
   centerBox: { alignItems: "center", justifyContent: "center", paddingVertical: 60, gap: 14 },
   bigText: { fontSize: 17, fontWeight: "700" },
   secondaryText: { fontSize: 14 },

@@ -77,14 +77,6 @@ export default function MemberDetail() {
 
   return (
     <View className='member-detail-container'>
-      <View className='header'>
-        <View className='back-btn' onClick={() => Taro.navigateBack()}>
-          <Text className='back-icon'>←</Text>
-        </View>
-        <Text className='header-title'>{t('member.detailTitle')}</Text>
-        <View style={{ width: '80rpx' }} />
-      </View>
-
       {loading ? (
         <View className='loading-container'>
           <Text className='loading-text'>{t('common.loading')}</Text>

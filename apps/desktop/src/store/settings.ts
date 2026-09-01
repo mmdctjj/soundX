@@ -89,7 +89,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
       carMode: {
         enabled: false,
-        columnOrder: ['cover', 'content', 'lyrics'],
+        columnOrder: ['cover', 'lyrics', 'content'],
         mergeCoverLyrics: false,
         mergedDefaultView: 'cover',
         columnWidths: { cover: 360, lyrics: 360 },
@@ -149,7 +149,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'soundx-settings',
-      version: 7,
+      version: 8,
       migrate: (persistedState: any, version: number) => {
         if (version === 0) {
           // Migration from version 0 to 1
@@ -191,7 +191,7 @@ export const useSettingsStore = create<SettingsState>()(
           if (!persistedState.carMode) {
             persistedState.carMode = {
               enabled: false,
-              columnOrder: ['cover', 'content', 'lyrics'],
+              columnOrder: ['cover', 'lyrics', 'content'],
               mergeCoverLyrics: false,
               mergedDefaultView: 'cover',
             };
@@ -201,6 +201,18 @@ export const useSettingsStore = create<SettingsState>()(
           // version 5 -> 6: backfill columnWidths (early v5 builds lacked it)
           if (persistedState.carMode.columnWidths === undefined) {
             persistedState.carMode.columnWidths = { cover: 360, lyrics: 360 };
+          }
+        }
+        if (version <= 7) {
+          // Migration to version 8: default columnOrder 封面/歌词/内容。
+          // 仍停留在旧默认 ['cover','content','lyrics'] 的用户视为未自定义过，一并跟随新默认；
+          // 手动调整过顺序的用户保留其自定义。
+          if (
+            persistedState.carMode &&
+            Array.isArray(persistedState.carMode.columnOrder) &&
+            persistedState.carMode.columnOrder.join(',') === 'cover,content,lyrics'
+          ) {
+            persistedState.carMode.columnOrder = ['cover', 'lyrics', 'content'];
           }
         }
         return persistedState;

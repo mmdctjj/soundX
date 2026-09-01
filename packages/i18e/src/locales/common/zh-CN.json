@@ -1958,7 +1958,7 @@
     "generated": "已转换"
   },
   "miManage": {
-    "title": "小爱音箱",
+    "title": "小爱音箱管理",
     "tabLogin": "登录状态",
     "tabKeywords": "唤醒关键字",
     "tabConversations": "对话历史",
@@ -1986,7 +1986,6 @@
     "castSource_voice": "语音抢答",
     "device": "设备",
     "time": "时间",
-    "title": "标题",
     "source": "来源",
     "query": "指令",
     "answer": "回复",

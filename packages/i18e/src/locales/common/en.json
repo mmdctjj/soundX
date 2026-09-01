@@ -1951,7 +1951,7 @@
     "generated": "Generated"
   },
   "miManage": {
-    "title": "XiaoAi Speaker",
+    "title": "XiaoAi Speaker Manager",
     "tabLogin": "Login",
     "tabKeywords": "Wake Keywords",
     "tabConversations": "Conversations",
@@ -1979,7 +1979,6 @@
     "castSource_voice": "Voice Command",
     "device": "Device",
     "time": "Time",
-    "title": "Title",
     "source": "Source",
     "query": "Query",
     "answer": "Answer",

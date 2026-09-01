@@ -11,7 +11,7 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 20px 15px;
+  padding: 80rpx 20rpx 10rpx;
   background-color: #fff;
 }
 
@@ -167,6 +167,16 @@
   color: #999;
 }
 
+.original-price-container {
+  margin-top: 8rpx;
+}
+
+.original-price-text {
+  font-size: 22rpx;
+  color: #bbb;
+  text-decoration: line-through;
+}
+
 .recommend-badge {
   position: absolute;
   top: 0;
@@ -206,6 +216,11 @@
 
 .payment-icon {
   font-size: 40rpx;
+}
+
+.payment-icon-img {
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .payment-text {

@@ -309,7 +309,10 @@ export default function PlaylistDetailScreen() {
         windowSize={5}
         initialNumToRender={20}
         maxToRenderPerBatch={20}
-        removeClippedSubviews
+        // iOS 新架构(Fabric)下 removeClippedSubviews 会触发 EXC_BAD_ACCESS：
+        // updateClippedSubviewsWithClipRect -> convertRect:toView: 野指针崩溃。
+        // RN 0.81 在 iOS 默认即为 false，这里显式关闭以免崩溃。
+        removeClippedSubviews={false}
         ListHeaderComponent={
           <View style={styles.photoWall}>
             {uniqueAlbums.map((album, index) => {

@@ -49,22 +49,22 @@ importers:
         specifier: ^2.0.0
         version: 2.11.1
       '@tauri-apps/plugin-autostart':
-        specifier: ^2.0.0
+        specifier: 2.5.1
         version: 2.5.1
       '@tauri-apps/plugin-dialog':
-        specifier: ^2.0.0
+        specifier: 2.7.1
         version: 2.7.1
       '@tauri-apps/plugin-fs':
-        specifier: ^2.0.0
+        specifier: 2.5.1
         version: 2.5.1
       '@tauri-apps/plugin-http':
-        specifier: ^2.0.0
+        specifier: 2.5.9
         version: 2.5.9
       '@tauri-apps/plugin-os':
-        specifier: ^2.0.0
+        specifier: 2.3.2
         version: 2.3.2
       '@tauri-apps/plugin-shell':
-        specifier: ^2.0.0
+        specifier: 2.3.5
         version: 2.3.5
       ahooks:
         specifier: ^3.9.6
