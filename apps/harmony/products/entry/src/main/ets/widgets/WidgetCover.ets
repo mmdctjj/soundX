@@ -18,6 +18,7 @@ export interface CoverSize {
 }
 
 export class COVER_PRESETS {
+  static readonly xlarge: CoverSize = { width: 198, height: 198, radius: 14 };
   static readonly large: CoverSize = { width: 96, height: 96, radius: 14 };
   static readonly medium: CoverSize = { width: 64, height: 64, radius: 12 };
   static readonly small: CoverSize = { width: 40, height: 40, radius: 8 };
@@ -26,7 +27,7 @@ export class COVER_PRESETS {
 @Component
 export struct WidgetCover {
   @Prop cover: string = '';
-  @Prop preset: 'large' | 'medium' | 'small' = 'medium';
+  @Prop preset: 'xlarge' | 'large' | 'medium' | 'small' = 'medium';
 
   build() {
     Stack({ alignContent: Alignment.Center }) {
@@ -63,6 +64,7 @@ export struct WidgetCover {
   }
 
   private getSize(): CoverSize {
+    if (this.preset === 'xlarge') return COVER_PRESETS.xlarge;
     if (this.preset === 'large') return COVER_PRESETS.large;
     if (this.preset === 'small') return COVER_PRESETS.small;
     return COVER_PRESETS.medium;

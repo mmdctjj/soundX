@@ -47,6 +47,8 @@ export interface PlaylistSnapshotItem {
 
 export interface PlaylistsSnapshot {
   items: PlaylistSnapshotItem[];
+  /** Header play/pause control mirrors the shared now-playing state. */
+  isPlaying: boolean;
   updatedAt: number;
 }
 
@@ -75,6 +77,8 @@ export interface LatestTrackDto {
 
 export interface LatestSnapshot {
   items: LatestTrackDto[];
+  /** Header play/pause control mirrors the shared now-playing state. */
+  isPlaying: boolean;
   updatedAt: number;
 }
 

@@ -307,8 +307,9 @@ export default class EntryFormAbility extends FormExtensionAbility {
       }
       case WidgetKind.PLAYLIST: {
         const pl = await kvStore.getJSON<PlaylistsSnapshot>(WIDGET_KV_KEYS.playlists);
-        const v = pl ?? { items: [], updatedAt: 0 };
+        const v = pl ?? { items: [], isPlaying: false, updatedAt: 0 };
         out['items'] = v.items;
+        out['isPlaying'] = v.isPlaying;
         out['updatedAt'] = v.updatedAt;
         break;
       }
@@ -322,8 +323,9 @@ export default class EntryFormAbility extends FormExtensionAbility {
       }
       case WidgetKind.LATEST: {
         const lt = await kvStore.getJSON<LatestSnapshot>(WIDGET_KV_KEYS.latest);
-        const v = lt ?? { items: [], updatedAt: 0 };
+        const v = lt ?? { items: [], isPlaying: false, updatedAt: 0 };
         out['items'] = v.items;
+        out['isPlaying'] = v.isPlaying;
         out['updatedAt'] = v.updatedAt;
         break;
       }
