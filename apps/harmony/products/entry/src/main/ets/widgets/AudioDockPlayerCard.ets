@@ -8,9 +8,9 @@ import { WIDGET_COLOR, WIDGET_FONT, WIDGET_PADDING, WIDGET_RADIUS } from './Widg
  * 正在播放控制卡片（对齐 iOS AudioDockWidget）。
  *
  * 三种尺寸自适应（EntryFormAbility 在 FormBindingData 里加 formDimension 字段）：
- * - 2x2 (158x158)：封面 + 标题 + 单一播放按钮
- * - 4x2 (326x158)：封面左 + 标题/歌手右 + 三键播控
- * - 4x4 (326x326)：封面顶部 + 标题/歌手 + 三键播控 + 模式 + 点赞
+ * - 2x2：封面 + 标题 + 上一首/播放/下一首（与 iOS small 一致）
+ * - 2x4：封面左 + 标题/歌手右 + 三键播控
+ * - 4x4：居中封面 + 标题/歌手 + 模式/三键/点赞（与 iOS large 一致）
  *
  * 数据字段直接通过 @LocalStorageProp 读取主 App 推送的 NowPlayingSnapshot。
  */
@@ -48,7 +48,7 @@ struct AudioDockPlayerCard {
           this.placeholderView();
         } else if (this.formDimension === '4*4') {
           this.largeView();
-        } else if (this.formDimension === '4*2') {
+        } else if (this.formDimension === '2*4') {
           this.mediumView();
         } else {
           this.smallView();
@@ -100,8 +100,7 @@ struct AudioDockPlayerCard {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%');
 
-      // 单个播放按钮
-      this.playButton(32, false);
+      this.transportRow(16);
     }
     .width('100%')
     .height('100%')
@@ -147,34 +146,27 @@ struct AudioDockPlayerCard {
   @Builder
   largeView() {
     Column({ space: 10 }) {
-      Row({ space: 10 }) {
-        WidgetCover({ cover: this.cover, preset: 'large' });
-        Column({ space: 4 }) {
-          Text(this.title || '—')
-            .fontSize(WIDGET_FONT.titleLarge)
-            .fontColor(WIDGET_COLOR.fg)
-            .fontWeight(FontWeight.Bold)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .width('100%');
-          Text(this.artist || ' ')
-            .fontSize(WIDGET_FONT.artistLarge)
-            .fontColor(WIDGET_COLOR.fgSecondary)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .width('100%');
-        }
-        .layoutWeight(1)
-        .height('100%')
-        .alignItems(HorizontalAlign.Start)
-        .justifyContent(FlexAlign.Start);
-      }
-      .width('100%');
-
-      this.transportRow(28);
-
-      Row({ space: 16 }) {
+      WidgetCover({ cover: this.cover, preset: 'xlarge' });
+      Text(this.title || '—')
+        .fontSize(WIDGET_FONT.titleLarge)
+        .fontColor(WIDGET_COLOR.fg)
+        .fontWeight(FontWeight.Bold)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+        .textAlign(TextAlign.Center);
+      Text(this.artist || ' ')
+        .fontSize(WIDGET_FONT.artistLarge)
+        .fontColor(WIDGET_COLOR.fgSecondary)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+        .textAlign(TextAlign.Center);
+      Row({ space: 8 }) {
         this.modeButton();
+        this.iconButton('prev', 'prev', 18);
+        this.playButton(22, false);
+        this.iconButton('next', 'next', 18);
         this.likeButton();
       }
       .width('100%')
@@ -183,7 +175,7 @@ struct AudioDockPlayerCard {
     .width('100%')
     .height('100%')
     .padding(WIDGET_PADDING.card)
-    .alignItems(HorizontalAlign.Start);
+    .alignItems(HorizontalAlign.Center);
   }
 
   // ─── 公共控件 ───────────────────────────────────────────────────────────

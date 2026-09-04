@@ -211,6 +211,8 @@ class WidgetBridgeImpl {
         updatedAt: Date.now(),
       };
       await this.writeAndPushNowPlaying(empty);
+      await this.syncHistoryNowPlaying(empty);
+      await this.syncListCardPlaybackState(false);
       return;
     }
     const isLiked = cur.id ? await likesHistory.isTrackLiked(cur.id) : false;
@@ -226,6 +228,8 @@ class WidgetBridgeImpl {
       updatedAt: Date.now(),
     };
     await this.writeAndPushNowPlaying(snap);
+    await this.syncHistoryNowPlaying(snap);
+    await this.syncListCardPlaybackState(snap.isPlaying);
   }
 
   // ─── 启动时拉取：VIP、歌单、历史、上新 ────────────────────────────────
@@ -268,8 +272,14 @@ class WidgetBridgeImpl {
           trackCount: typeof it.trackCount === 'number' ? it.trackCount : 0,
         });
       }
-      const snap: PlaylistsSnapshot = { items, updatedAt: Date.now() };
+      const store = await this.getPlayerStore();
+      const snap: PlaylistsSnapshot = {
+        items,
+        isPlaying: store ? store.view().isPlaying : false,
+        updatedAt: Date.now(),
+      };
       await kvStore.setJSON<PlaylistsSnapshot>(WIDGET_KV_KEYS.playlists, snap);
+      await this.updateForms(WidgetKind.PLAYLIST, snap);
       Logger.i(TAG, `syncPlaylists count=${items.length}`);
     } catch (e) {
       Logger.w(TAG, `syncPlaylists: ${String(e)}`);
@@ -308,6 +318,7 @@ class WidgetBridgeImpl {
       } : null;
       const snap: HistorySnapshot = { nowPlaying: np, items, updatedAt: Date.now() };
       await kvStore.setJSON<HistorySnapshot>(WIDGET_KV_KEYS.history, snap);
+      await this.updateForms(WidgetKind.HISTORY, snap);
       Logger.i(TAG, `syncHistory count=${items.length}`);
     } catch (e) {
       Logger.w(TAG, `syncHistory: ${String(e)}`);
@@ -332,8 +343,14 @@ class WidgetBridgeImpl {
           cover: it.cover ? String(it.cover) : '',
         });
       }
-      const snap: LatestSnapshot = { items, updatedAt: Date.now() };
+      const store = await this.getPlayerStore();
+      const snap: LatestSnapshot = {
+        items,
+        isPlaying: store ? store.view().isPlaying : false,
+        updatedAt: Date.now(),
+      };
       await kvStore.setJSON<LatestSnapshot>(WIDGET_KV_KEYS.latest, snap);
+      await this.updateForms(WidgetKind.LATEST, snap);
       Logger.i(TAG, `syncLatest count=${items.length}`);
     } catch (e) {
       Logger.w(TAG, `syncLatest: ${String(e)}`);
@@ -429,6 +446,42 @@ class WidgetBridgeImpl {
   private async writeAndPushNowPlaying(value: NowPlayingSnapshot): Promise<void> {
     await kvStore.setJSON<NowPlayingSnapshot>(WIDGET_KV_KEYS.nowPlaying, value);
     await this.updateForms(WidgetKind.PLAYER, value);
+  }
+
+  /**
+   * The history card contains a copy of the current-player header.  Keep that
+   * copy in the same write cycle as the player card so pause/next/like updates
+   * cannot leave one card displaying stale playback state.
+   */
+  private async syncHistoryNowPlaying(nowPlaying: NowPlayingSnapshot): Promise<void> {
+    const previous = await kvStore.getJSON<HistorySnapshot>(WIDGET_KV_KEYS.history);
+    const snapshot: HistorySnapshot = {
+      nowPlaying,
+      items: previous?.items ?? [],
+      updatedAt: Date.now(),
+    };
+    await kvStore.setJSON<HistorySnapshot>(WIDGET_KV_KEYS.history, snapshot);
+    await this.updateForms(WidgetKind.HISTORY, snapshot);
+  }
+
+  /**
+   * Playlist and latest cards expose the same global play/pause control as
+   * iOS. Update their small state-only snapshots whenever playback changes
+   * instead of waiting for the next network refresh.
+   */
+  private async syncListCardPlaybackState(isPlaying: boolean): Promise<void> {
+    const playlists = await kvStore.getJSON<PlaylistsSnapshot>(WIDGET_KV_KEYS.playlists);
+    if (playlists) {
+      const snapshot: PlaylistsSnapshot = { ...playlists, isPlaying, updatedAt: Date.now() };
+      await kvStore.setJSON<PlaylistsSnapshot>(WIDGET_KV_KEYS.playlists, snapshot);
+      await this.updateForms(WidgetKind.PLAYLIST, snapshot);
+    }
+    const latest = await kvStore.getJSON<LatestSnapshot>(WIDGET_KV_KEYS.latest);
+    if (latest) {
+      const snapshot: LatestSnapshot = { ...latest, isPlaying, updatedAt: Date.now() };
+      await kvStore.setJSON<LatestSnapshot>(WIDGET_KV_KEYS.latest, snapshot);
+      await this.updateForms(WidgetKind.LATEST, snapshot);
+    }
   }
 
   /**
