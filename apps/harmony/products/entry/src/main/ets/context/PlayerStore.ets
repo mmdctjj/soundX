@@ -752,7 +752,28 @@ export class PlayerStore {
     syncStore.leaveSession();
   }
 
-  private notify(): void { for (const l of this.listeners) l(); }
+  private notify(): void {
+    for (const l of this.listeners) l();
+    // 状态变化时主动推卡片（不依赖 widgetBridge.install 的订阅时机，
+    // 对齐 iOS 的 commit() 三连：写 Preferences → 批量 updateForm）
+    // 注意：loadPersistedState 恢复状态时也会调 notify()，但此时 isPlaying=false，
+    // 推空状态会覆盖 restoreNowPlayingFromPersistedState 恢复的卡片数据。
+    // 所以只在「真正播放状态变化」时才推（isPlaying 或 queue 有值）。
+    if (this.isPlaying || this.queue.length > 0) {
+      // 走 WidgetBridge.scheduleSyncNowPlaying 的 300ms 节流，避免进度 tick（~50ms 一次）
+      // 高频 notify() 把 formProvider.updateForm 打爆（系统 hilog: isReportOverSize,checkFail）。
+      this.schedulePushToWidget();
+    }
+  }
+
+  private schedulePushToWidget(): void {
+    // 动态 import 避免循环依赖（PlayerStore → WidgetBridge → PlayerStore）
+    import('../services/WidgetBridge').then((mod): void => {
+      mod.widgetBridge.scheduleSyncNowPlaying();
+    }).catch((e: Error): void => {
+      Logger.w('PlayerStore', `schedulePushToWidget import: ${e.message}`);
+    });
+  }
 }
 
 export const playerStore: PlayerStore = new PlayerStore();

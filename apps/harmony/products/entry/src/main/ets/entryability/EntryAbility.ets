@@ -3,6 +3,7 @@ import AbilityConstant from '@ohos.app.ability.AbilityConstant';
 import hilog from '@ohos.hilog';
 import Want from '@ohos.app.ability.Want';
 import { window } from '@kit.ArkUI';
+import router from '@ohos.router';
 import { bundleManager, ConfigurationConstant, Configuration } from '@kit.AbilityKit';
 import { Logger, getSelfBundleInfo, getSelfAppVersion } from 'audiodock_common';
 import { kvStore, fileCache, rdbStore } from 'features_storage';
@@ -13,8 +14,11 @@ import { installPlaybackService } from '../services/playbackService';
 import { installAVSessionService, releaseAVSessionService } from '../services/avSessionService';
 import { setSystemBarWindow, applySystemBar } from '../services/systemBar';
 import { themeAutoStore } from '../context/ThemeAutoStore';
+import { authStore } from '../context/AuthStore';
 import { refreshNetworkMode } from '../utils/networkMode';
 import { installWechatRespHandler, registerWechatApp, handleWechatWant } from '../services/WechatPayService';
+import { widgetBridge } from '../services/WidgetBridge';
+import { widgetCommandHandler } from '../services/WidgetCommandHandler';
 
 /** Bundle信息摘要接口 */
 interface BundleInfoSummary {
@@ -55,10 +59,21 @@ export default class EntryAbility extends UIAbility {
       Logger.w(TAG, `install AVSession: ${String(e)}`);
     }
 
+    // ===== 桌面小部件数据推送 =====
+    // 订阅 playerStore / likesHistory 变化 → 写 kvStore + formProvider.updateForm
+    widgetBridge.install();
+    // 拉一次 VIP / 歌单 / 历史 / 上新（不阻塞主流程，失败仅 warn）
+    widgetBridge.refreshAll().catch((e: Error): void => {
+      Logger.w(TAG, `widgetBridge.refreshAll: ${e.message}`);
+    });
+
     // ===== 接口落点探测（debug only）=====
     // 通过 bundleManager.getBundleInfoForSelf 验证 common/audiodock_common 工具函数链路通到 entry。
     // fire-and-forget，不阻塞冷启动；失败仅打日志，不影响业务流程。
     this.dumpSelfBundleInfo();
+
+    // 处理桌面小部件拉起的深链（audiodock://widget/...）
+    this.handleWidgetDeepLink(want);
 
     this.loadPage('pages/Index');
   }
@@ -70,6 +85,7 @@ export default class EntryAbility extends UIAbility {
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     Logger.i(TAG, `onNewWant uri=${want.uri}`);
     handleWechatWant(want);
+    this.handleWidgetDeepLink(want);
   }
 
   /**
@@ -168,6 +184,10 @@ export default class EntryAbility extends UIAbility {
     themeAutoStore.init(ctx);
     themeAutoStore.restore();
 
+    // 恢复登录态（user/token），桌面小部件 syncVip 依赖 authStore.state_.user?.id，
+    // 没这一步 syncVip 会因为 user=null 把 KV 写成 isVip=false，导致卡片被误锁定。
+    await authStore.loadFromStorage();
+
     Logger.i(TAG, 'initialize complete');
   }
 
@@ -202,5 +222,39 @@ export default class EntryAbility extends UIAbility {
         Logger.i(TAG, `[bundleInfo] signFingerprint=${JSON.stringify(info.signatureInfo?.fingerprint ?? 'NONE')}`);
       })
       .catch((e: Error) => Logger.w(TAG, `[bundleInfo] full failed: ${e.message}`));
+  }
+
+  /**
+   * 处理桌面小部件拉起的深链：audiodock://widget/<path>
+   * - member-benefits → MemberBenefitsPage
+   * - player → MainPage（播放页路由由 RootShellPage 处理）
+   * - method=<action>&id=<id> → widgetCommandHandler.handle 转发到 playerStore/likesHistory
+   */
+  private handleWidgetDeepLink(want: Want): void {
+    const uri = want.uri;
+    if (!uri) return;
+    if (!uri.startsWith('audiodock://')) return;
+    Logger.i(TAG, `widget deepLink: ${uri}`);
+    // card 点击 url 是 audiodock://widget?method=play 这种带 params 的形式（postCardAction router+params）
+    const params = (want.parameters as Record<string, Object>) ?? {};
+    const methodVal = String(params['method'] ?? '');
+    if (methodVal !== '') {
+      const payload: Record<string, string> = {};
+      payload['id'] = String(params['id'] ?? '');
+      widgetCommandHandler.handle({
+        action: methodVal,
+        payload,
+      }).catch((e: Error): void => {
+        Logger.w(TAG, `widget command: ${e.message}`);
+      });
+      return;
+    }
+    // 直接 URL 形式：audiodock://widget/member-benefits（暂只用来跳会员页）
+    const path = uri.replace('audiodock://', '');
+    if (path.includes('member-benefits')) {
+      try {
+        router.pushUrl({ url: 'pages/MemberBenefitsPage' }).catch((): void => undefined);
+      } catch (e) { /* swallow */ }
+    }
   }
 }
