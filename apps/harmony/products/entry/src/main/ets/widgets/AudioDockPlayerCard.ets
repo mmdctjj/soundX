@@ -89,7 +89,7 @@ struct AudioDockPlayerCard {
 
   @Builder
   smallView() {
-    Column({ space: 6 }) {
+    Column({ space: 4 }) {
       WidgetCover({ cover: this.cover, preset: 'medium' });
 
       Text(this.title || '—')
@@ -98,14 +98,15 @@ struct AudioDockPlayerCard {
         .fontWeight(FontWeight.Medium)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .textAlign(TextAlign.Center)
         .width('100%');
 
-      this.transportRow(16);
+      this.transportRow(24, 12);
     }
     .width('100%')
     .height('100%')
     .padding(WIDGET_PADDING.cardSmall)
-    .alignItems(HorizontalAlign.Start);
+    .alignItems(HorizontalAlign.Center);
   }
 
   // ─── 4x2 medium ─────────────────────────────────────────────────────────
@@ -130,7 +131,7 @@ struct AudioDockPlayerCard {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .width('100%');
         Blank();
-        this.transportRow(20);
+        this.transportRow(34);
       }
       .layoutWeight(1)
       .height('100%')
@@ -164,9 +165,9 @@ struct AudioDockPlayerCard {
         .textAlign(TextAlign.Center);
       Row({ space: 8 }) {
         this.modeButton();
-        this.iconButton('prev', 'prev', 18);
-        this.playButton(22, false);
-        this.iconButton('next', 'next', 18);
+        this.iconButton('prev', 'prev', 34);
+        this.playButton(44, false);
+        this.iconButton('next', 'next', 34);
         this.likeButton();
       }
       .width('100%')
@@ -181,89 +182,91 @@ struct AudioDockPlayerCard {
   // ─── 公共控件 ───────────────────────────────────────────────────────────
 
   @Builder
-  transportRow(iconSize: number) {
-    Row({ space: 16 }) {
-      this.iconButton('prev', 'prev', iconSize);
-      this.playButton(iconSize + 8, true);
-      this.iconButton('next', 'next', iconSize);
+  transportRow(iconSize: number, hitPad: number = 20) {
+    Row({ space: 8 }) {
+      this.iconButton('prev', 'prev', iconSize, hitPad);
+      this.playButton(iconSize + 8, true, hitPad);
+      this.iconButton('next', 'next', iconSize, hitPad);
     }
     .width('100%')
     .justifyContent(FlexAlign.Center);
   }
 
   @Builder
-  playButton(size: number, showBg: boolean) {
+  playButton(size: number, showBg: boolean, hitPad: number = 20) {
     Stack({ alignContent: Alignment.Center }) {
       if (showBg) {
-        Circle({ width: size + 16, height: size + 16 })
+        Circle({ width: size + hitPad, height: size + hitPad })
           .fill(WIDGET_COLOR.btnActiveBg);
       }
       WidgetIcon(this.isPlaying ? 'pause' : 'play', size, WIDGET_COLOR.fg);
     }
-    .width(size + 16)
-    .height(size + 16)
+    .width(size + hitPad)
+    .height(size + hitPad)
     .onClick((): void => {
-      try {
-        postCardAction(this, {
-          action: 'message',
-          params: { message: this.isPlaying ? 'pause' : 'play' },
-        });
-      } catch (e) { /* swallow */ }
+      this.sendCommand(this.isPlaying ? 'pause' : 'play');
     });
   }
 
   @Builder
-  iconButton(icon: string, method: string, iconSize: number) {
+  iconButton(icon: string, method: string, iconSize: number, hitPad: number = 20) {
     Stack({ alignContent: Alignment.Center }) {
       WidgetIcon(icon, iconSize, WIDGET_COLOR.fg);
     }
-    .width(iconSize + 16)
-    .height(iconSize + 16)
+    .width(iconSize + hitPad)
+    .height(iconSize + hitPad)
     .borderRadius(WIDGET_RADIUS.button)
     .onClick((): void => {
-      try {
-        postCardAction(this, {
-          action: 'message',
-          params: { message: method },
-        });
-      } catch (e) { /* swallow */ }
+      this.sendCommand(method);
     });
   }
 
   @Builder
   modeButton() {
     Stack({ alignContent: Alignment.Center }) {
-      WidgetIcon(this.modeIcon(this.playMode), 22, WIDGET_COLOR.fg);
+      WidgetIcon(this.modeIcon(this.playMode), 32, WIDGET_COLOR.fg);
     }
-    .width(40)
-    .height(40)
+    .width(56)
+    .height(56)
     .borderRadius(WIDGET_RADIUS.button)
     .onClick((): void => {
-      try {
-        postCardAction(this, {
-          action: 'message',
-          params: { message: 'mode' },
-        });
-      } catch (e) { /* swallow */ }
+      this.sendCommand('mode');
     });
   }
 
   @Builder
   likeButton() {
     Stack({ alignContent: Alignment.Center }) {
-      WidgetIcon(this.isLiked ? 'heart.fill' : 'heart', 22, this.isLiked ? '#FF6B6B' : WIDGET_COLOR.fg);
+      WidgetIcon(this.isLiked ? 'heart.fill' : 'heart', 32, this.isLiked ? '#FF6B6B' : WIDGET_COLOR.fg);
     }
-    .width(40)
-    .height(40)
+    .width(56)
+    .height(56)
     .borderRadius(WIDGET_RADIUS.button)
     .onClick((): void => {
-      try {
-        postCardAction(this, {
-          action: 'message',
-          params: { message: this.isLiked ? 'unlike' : 'like' },
-        });
-      } catch (e) { /* swallow */ }
+      this.sendCommand(this.isLiked ? 'unlike' : 'like');
     });
+  }
+
+  /**
+   * 播控指令统一直达主 App（对齐官方 CardInfoRefresh 示例的 call 事件）。
+   *
+   * 为什么不用 message 事件：message 会落到 EntryFormAbility（FormExtensionAbility
+   * 进程），那里没有正在播放的 playerStore 单例，指令执行无效或启动第二个播放实例。
+   * call 事件由系统直接拉起 EntryAbility 并回调 this.callee.on('widgetCommand')，
+   * 指令作用在主 App 的 playerStore 上，执行完后由 PlayerStore.notify →
+   * WidgetBridge.scheduleSyncNowPlaying 自动把最新状态回推到本卡片。
+   */
+  private sendCommand(method: string): void {
+    try {
+      const params: Record<string, string> = {};
+      params['method'] = 'widgetCommand';
+      params['widgetAction'] = method;
+      postCardAction(this, {
+        action: 'call',
+        abilityName: 'EntryAbility',
+        params,
+      });
+    } catch (e) { /* swallow */ }
   }
 
   private modeIcon(mode: string): string {

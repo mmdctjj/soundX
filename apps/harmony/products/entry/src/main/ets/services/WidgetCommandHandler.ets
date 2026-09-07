@@ -1,5 +1,8 @@
 import { Logger } from 'audiodock_common';
-import { httpClient } from 'features_network';
+import { userDataApi } from 'features_network';
+import { trackApi } from 'features_network';
+import { playlistApi } from 'features_network';
+import type { TrackDto, TrackHistoryItem, PlaylistDetailResp } from 'features_network';
 import { playerStore, type Track } from '../context/PlayerStore';
 import { likesHistory } from './LikesHistoryService';
 import { widgetBridge } from './WidgetBridge';
@@ -19,62 +22,16 @@ import { WidgetCommandAction } from '../models/WidgetData';
 
 const TAG = 'WidgetCommandHandler';
 
-/** 单条历史项/上新单曲 DTO（用于 play_history / play_latest，先 fetch 一遍 track 详情） */
-interface TrackDetailDto {
-  id?: string;
-  name?: string;
-  artist?: string;
-  album?: string;
-  duration?: number;
-  url?: string;
-  ext?: string;
-  cover?: string;
-  lyrics?: string;
-  type?: string;
-}
-
-/** 单条歌单详情 DTO（用于 play_playlist，先 fetch 一遍 tracks） */
-interface PlaylistDetailDto {
-  tracks?: Array<TrackDetailDto>;
-  items?: Array<TrackDetailDto>;
-}
-
-/** 历史/上新单曲列表响应：data.list[] → item.track.id */
-interface TrackHistoryListResponse {
-  list?: Array<HistoryItem>;
-}
-interface HistoryItem {
-  track?: TrackDetailDto;
-  trackId?: number | string;
-}
-interface LatestListResponse {
-  list?: Array<TrackDetailDto>;
-  items?: Array<TrackDetailDto>;
-}
-
-/** 提取 Track 字段（ArkTS 严格模式拒绝对象字面量返回类型，必须显式 interface） */
-interface ResolvedTrack {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  duration: number;
-  url: string;
-  ext: string;
-  coverUrl: string;
-  lyrics: string;
-  contentType: string;
-}
-
-/** dto → PlayerStore.Track 的转换 */
-function toPlayerTrack(dto: TrackDetailDto): Track {
+/** dto → PlayerStore.Track 的转换（字段名对齐后端 Prisma model Track:
+ * id / name / artist / cover / duration / type；后端不返回 title / coverUrl / trackNumber） */
+function toPlayerTrack(dto: TrackDto): Track {
   return {
     id: String(dto.id ?? ''),
     title: String(dto.name ?? ''),
     artist: dto.artist ? String(dto.artist) : undefined,
     album: dto.album ? String(dto.album) : undefined,
     duration: typeof dto.duration === 'number' ? dto.duration : undefined,
-    url: dto.url ? String(dto.url) : '',
+    url: dto.path ? String(dto.path) : '',
     ext: dto.ext ? String(dto.ext) : undefined,
     coverUrl: dto.cover ? String(dto.cover) : undefined,
     lyrics: dto.lyrics ? String(dto.lyrics) : undefined,
@@ -142,12 +99,12 @@ class WidgetCommandHandlerImpl {
   }
 
   /**
-   * 播放指定歌单：先拉歌单详情得到 tracks 列表，调用 playTrackList。
+   * 播放指定歌单：playlistApi.getById 返回 PlaylistDetailResp（含 tracks?: TrackDto[]）。
    */
   private async handlePlayPlaylist(id: string): Promise<void> {
     if (!id) return;
-    const resp = await httpClient.get<PlaylistDetailDto>(`/playlists/${id}`);
-    const tracks = resp.tracks ?? resp.items ?? [];
+    const resp: PlaylistDetailResp = await playlistApi.getById(id);
+    const tracks: TrackDto[] = resp.tracks ?? [];
     if (tracks.length === 0) return;
     const playerTracks: Track[] = [];
     for (let i = 0; i < tracks.length; i++) {
@@ -158,18 +115,14 @@ class WidgetCommandHandlerImpl {
   }
 
   /**
-   * 播放历史中的指定曲目：拉 /user/track-history 拿完整列表，定位目标曲目索引，
-   * playTrackList(list, index) —— 这样 next/prev 能继续上下滚动历史，**对齐 mobile**。
+   * 播放历史中的指定曲目：userDataApi.trackHistory 返回 LoadMoreResp<TrackHistoryItem>，
+   * 定位目标曲目索引，playTrackList(list, index) —— 这样 next/prev 能继续上下滚动历史，**对齐 mobile**。
    */
   private async handlePlayHistory(id: string): Promise<void> {
     if (!id) return;
-    const params: Record<string, string | number | boolean> = {};
-    params['pageSize'] = 50;
-    params['loadCount'] = 0;
-    params['type'] = 'MUSIC';
-    const resp = await httpClient.get<TrackHistoryListResponse>('/user/track-history', params);
-    const list = resp.list ?? [];
-    const tracks: TrackDetailDto[] = [];
+    const resp = await userDataApi.trackHistory({ pageSize: 50, loadCount: 0, type: 'MUSIC' });
+    const list: TrackHistoryItem[] = resp.list ?? [];
+    const tracks: TrackDto[] = [];
     const targetIndex: number = list.findIndex((it): boolean => {
       const tid = String(it.track?.id ?? it.trackId ?? '');
       return tid === id;
@@ -190,16 +143,12 @@ class WidgetCommandHandlerImpl {
   }
 
   /**
-   * 播放上新单曲中的指定曲目：拉 /tracks/latest 拿完整列表，定位目标曲目索引，
-   * playTrackList(list, index) —— 对齐 mobile _layout.tsx play_latest 分支。
+   * 播放上新单曲中的指定曲目：trackApi.latest 返回 TrackDto[]，
+   * 定位目标曲目索引，playTrackList(list, index) —— 对齐 mobile _layout.tsx play_latest 分支。
    */
   private async handlePlayLatest(id: string): Promise<void> {
     if (!id) return;
-    const params: Record<string, string | number | boolean> = {};
-    params['type'] = 'MUSIC';
-    params['pageSize'] = 50;
-    const resp = await httpClient.get<LatestListResponse>('/tracks/latest', params);
-    const list = resp.list ?? resp.items ?? [];
+    const list: TrackDto[] = await trackApi.latest({ type: 'MUSIC', pageSize: 50 });
     if (list.length === 0) return;
     const targetIndex: number = list.findIndex((t): boolean => String(t.id ?? '') === id);
     const playerTracks: Track[] = [];

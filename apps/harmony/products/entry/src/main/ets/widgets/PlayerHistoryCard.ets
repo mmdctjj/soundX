@@ -113,18 +113,13 @@ struct PlayerHistoryCard {
   @Builder
   iconBtn(icon: string, method: string) {
     Stack({ alignContent: Alignment.Center }) {
-      WidgetIcon(icon, 18, WIDGET_COLOR.fg);
+      WidgetIcon(icon, 34, WIDGET_COLOR.fg);
     }
-    .width(36)
-    .height(36)
+    .width(56)
+    .height(56)
     .borderRadius(WIDGET_RADIUS.button)
     .onClick((): void => {
-      try {
-        postCardAction(this, {
-          action: 'message',
-          params: { message: method },
-        });
-      } catch (e) { /* swallow */ }
+      this.sendCommand(method);
     });
   }
 
@@ -156,16 +151,29 @@ struct PlayerHistoryCard {
       .width(22)
       .height(22)
       .onClick((): void => {
-        try {
-          postCardAction(this, {
-            action: 'message',
-            params: { message: 'play_history:' + item.id },
-          });
-        } catch (e) { /* swallow */ }
+        this.sendCommand('play_history', item.id);
       });
     }
     .width('100%')
     .height(44);
+  }
+
+  /**
+   * 播控指令统一直达主 App（对齐官方 CardInfoRefresh 示例的 call 事件）。
+   * 详见 AudioDockPlayerCard.sendCommand。
+   */
+  private sendCommand(method: string, id: string = ''): void {
+    try {
+      const params: Record<string, string> = {};
+      params['method'] = 'widgetCommand';
+      params['widgetAction'] = method;
+      if (id !== '') params['id'] = id;
+      postCardAction(this, {
+        action: 'call',
+        abilityName: 'EntryAbility',
+        params,
+      });
+    } catch (e) { /* swallow */ }
   }
 
   private toNowPlaying(): NowPlayingLite | null {

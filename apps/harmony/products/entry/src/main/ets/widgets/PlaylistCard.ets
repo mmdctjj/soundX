@@ -75,19 +75,14 @@ struct PlaylistCard {
   @Builder
   headerPlayButton() {
     Stack({ alignContent: Alignment.Center }) {
-      Circle({ width: 32, height: 32 })
+      Circle({ width: 40, height: 40 })
         .fill('#26FFFFFF');
-      WidgetIcon(this.isPlaying ? 'pause' : 'play', 14, WIDGET_COLOR.fg);
+      WidgetIcon(this.isPlaying ? 'pause' : 'play', 20, WIDGET_COLOR.fg);
     }
-    .width(32)
-    .height(32)
+    .width(40)
+    .height(40)
     .onClick((): void => {
-      try {
-        postCardAction(this, {
-          action: 'message',
-          params: { message: this.isPlaying ? 'pause' : 'play' },
-        });
-      } catch (e) { /* swallow */ }
+      this.sendCommand(this.isPlaying ? 'pause' : 'play');
     });
   }
 
@@ -118,16 +113,29 @@ struct PlaylistCard {
       .width(24)
       .height(24)
       .onClick((): void => {
-        try {
-          postCardAction(this, {
-            action: 'message',
-            params: { message: 'play_playlist:' + item.id },
-          });
-        } catch (e) { /* swallow */ }
+        this.sendCommand('play_playlist', item.id);
       });
     }
     .width('100%')
     .height(48);
+  }
+
+  /**
+   * 播控指令统一直达主 App（对齐官方 CardInfoRefresh 示例的 call 事件）。
+   * 详见 AudioDockPlayerCard.sendCommand。
+   */
+  private sendCommand(method: string, id: string = ''): void {
+    try {
+      const params: Record<string, string> = {};
+      params['method'] = 'widgetCommand';
+      params['widgetAction'] = method;
+      if (id !== '') params['id'] = id;
+      postCardAction(this, {
+        action: 'call',
+        abilityName: 'EntryAbility',
+        params,
+      });
+    } catch (e) { /* swallow */ }
   }
 
   /**

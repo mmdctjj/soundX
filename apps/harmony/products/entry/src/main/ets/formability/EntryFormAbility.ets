@@ -3,12 +3,15 @@ import formBindingData from '@ohos.app.form.formBindingData';
 import formProvider from '@ohos.app.form.formProvider';
 import formInfo from '@ohos.app.form.formInfo';
 import Want from '@ohos.app.ability.Want';
+import fs from '@ohos.file.fs';
+import { util } from '@kit.ArkTS';
 import { Logger } from 'audiodock_common';
 import { kvStore } from 'features_storage';
 import { httpClient, plusApi, setPlusAuthToken } from 'features_network';
 import { authStore } from '../context/AuthStore';
 import { widgetBridge } from '../services/WidgetBridge';
 import { widgetCommandHandler } from '../services/WidgetCommandHandler';
+import { WidgetCoverResolver } from '../widgets/WidgetCover';
 import {
   HistorySnapshot, LatestSnapshot, NowPlayingSnapshot, PlaylistsSnapshot,
   VipSnapshot, WidgetCommandAction, WidgetKind, WIDGET_KV_KEYS,
@@ -204,6 +207,10 @@ export default class EntryFormAbility extends FormExtensionAbility {
     try {
       const stored = await kvStore.get('serverAddress');
       if (stored) httpClient.setBaseURL(stored);
+      // 卡片进程是独立 process，WidgetCoverResolver.baseUrl 是模块级变量，
+      // 主 App 进程的赋值在这里看不到，必须自己从 kvStore 读 serverAddress 初始化，
+      // 否则列表卡片的相对路径封面（/covers/xxx）解析不出来，全显示占位音符。
+      if (stored) WidgetCoverResolver.baseUrl = stored;
       const token = await kvStore.get(`token_${stored ?? ''}`);
       if (token) httpClient.setAuthToken(token);
       // 同步 plus token（卡片进程读 VIP 需要）
@@ -355,6 +362,76 @@ export default class EntryFormAbility extends FormExtensionAbility {
    * isPlaying 恒为 false（因为主 App 没在跑），但 title/artist/cover 有值，
    * 卡片会显示歌曲信息 + 播放按钮（而不是「未在播放」占位）。
    */
+  /**
+   * 冷启动恢复时的封面。
+   *
+   * ⚠️ 卡片渲染跑在 **com.ohos.formrenderservice 进程**（不是本 App 进程），
+   * `/data/storage/el2/base` 是按进程映射的沙箱视图，在 formrender 里指向它自己的目录，
+   * 所以 file:// 本地路径卡片一律 accessSync 失败（日志 `resolve file miss`）。
+   * 同理网络 URL 在卡片里也加载不了。
+   * → **唯一可靠通道是 data: URI 内联 base64**（随 FormBindingData 一起跨进程传过去）。
+   */
+  private async resolveCoverForRestore(cachedCover: string, rawCover: string): Promise<string> {
+    if (cachedCover !== '' && cachedCover.startsWith('data:')) return cachedCover;
+    if (rawCover === '') return '';
+    if (rawCover.startsWith('data:')) return rawCover;
+    if (rawCover.startsWith('file://')) return rawCover;
+    if (rawCover.startsWith('http')) return rawCover;
+    if (WidgetCoverResolver.baseUrl !== '') {
+      return `${WidgetCoverResolver.baseUrl.replace(/\/$/, '')}${rawCover.startsWith('/') ? '' : '/'}${rawCover}`;
+    }
+    return rawCover;
+  }
+
+  /** 目录是否存在（fs.accessSync 失败即不存在/无权限） */
+  private dirExists(dir: string): boolean {
+    try {
+      return fs.accessSync(dir);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** 把 data:image/...;base64,... 转成 file:// 本地文件 */
+  private async dataImageToFile(dataImage: string): Promise<string> {
+    try {
+      const commaIdx = dataImage.indexOf(',');
+      if (commaIdx < 0) return '';
+      const base64Str = dataImage.substring(commaIdx + 1);
+      const helper = new util.Base64Helper();
+      const bytes = helper.decodeSync(base64Str);
+      if (bytes.length === 0) return '';
+      const mime = dataImage.substring(5, commaIdx);
+      const ext = mime.includes('webp') ? 'webp' : mime.includes('png') ? 'png' : 'jpg';
+      const dir = `${this.context.filesDir}/widget_covers`;
+      // ⚠️ fs.mkdirSync(dir, true) 在目录已存在时同样抛 "File exists"，必须先判断
+      if (!this.dirExists(dir)) {
+        try {
+          fs.mkdirSync(dir, true);
+        } catch (e) {
+          if (!this.dirExists(dir)) {
+            Logger.w(TAG, `dataImageToFile mkdir failed: ${String(e)}`);
+            return '';
+          }
+        }
+      }
+      const path = `${dir}/restore_${Date.now()}.${ext}`;
+      try {
+        fs.unlinkSync(path);
+      } catch (e) {
+        // 文件不存在时忽略
+      }
+      const file = fs.openSync(path, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+      const clean = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      fs.writeSync(file.fd, clean);
+      fs.closeSync(file);
+      return `file://${path}`;
+    } catch (e) {
+      Logger.w(TAG, `dataImageToFile: ${String(e)}`);
+      return '';
+    }
+  }
+
   private async restoreNowPlayingFromPersistedState(): Promise<NowPlayingSnapshot> {
     try {
       const raw = await kvStore.get('playbackState_MUSIC');
@@ -364,10 +441,15 @@ export default class EntryFormAbility extends FormExtensionAbility {
       const idx = parsed.currentIndex ?? -1;
       if (queue.length === 0 || idx < 0 || idx >= queue.length) return this.emptyNowPlaying();
       const cur = queue[idx];
+      // 封面优先读 WidgetBridge 缓存的 dataImage，转成 file:// 本地文件
+      // （FormBindingData 对超长字符串有截断风险，file:// 路径只有几十个字符最可靠）
+      const cachedCover = await kvStore.get('widget_now_playing_cover_cache');
+      const rawCover = String(cur.coverUrl ?? '');
+      const resolvedCover = await this.resolveCoverForRestore(cachedCover ?? '', rawCover);
       return {
         title: String(cur.title ?? ''),
         artist: String(cur.artist ?? ''),
-        cover: String(cur.coverUrl ?? ''),
+        cover: resolvedCover,
         colorPrimary: '#3a3a5e',
         colorSecondary: '#222246',
         isPlaying: false, // 主 App 没在跑，不可能正在播放
