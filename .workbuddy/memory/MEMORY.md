@@ -23,6 +23,7 @@
 - `t(key, params)` 插值参数是 `Array<[string, string|number]>` 元组；@Entry build() 需 if/else 包 builder 调用。
 - `formBindingData` 用 default import 不带花括号。
 - **ArkUI 8 位 hex 颜色是 `#AARRGGBB`（透明度在前）**，不是 CSS 的 RRGGBBAA——写反了会出现"黄色背景"之类的诡异渲染（`#FFFFFF14` 按 AARRGGBB 解析是纯黄）。
+- **⚠️ 每个组件只能绑定一个 bindSheet**：同组件挂第二个会顶掉第一个（点了没反应、无报错）。修复模式：每个 sheet 一个 `Column().width(0).height(0)` 不可见锚点分散绑定（对齐 PlayerPage）。ArtistDetail/AlbumDetail/PlaylistDetail 三个详情页都踩过。
 
 ## AVSession 通知栏播控
 
@@ -51,8 +52,12 @@
 - 脏 formId 注册表：`WidgetBridge.getFormIdsForKind` 自动检测空 formId 并重写。
 - 卡片按钮图标：HarmonyOS 无 SF Symbols，用 SVG 资源 + Image 组件（不要用 emoji 字符）。
 - **⚠️ WidgetIcon 必须用 Material Icons 标准 path**（fill 填充，不是 stroke 描边）；手绘 path 容易畸形（prev/next/heart/refresh 都踩过坑）。直接抄 Material 的 24x24 path 数据最稳。
+- **⚠️ 卡片里「会随状态变化的图标」禁止走带参 @Builder / WidgetIcon(name) 按值传参**——带参 @Builder 是按值快照，不订阅 `this.isPlaying` 等状态：变量更新了（onClick 读到新值）但图标永不重绘（真机实测）。修复模式：**无参 @Builder + 双 Image + `.visibility(三元)` 互斥切换**（卡片 @Builder 体内不允许写 if；visibility/属性绑定在无参 builder 里有响应式，`Text(this.title)` 能更新同理）。静态图标（prev/next/refresh）可以保留带参 builder。排查口诀：onClick 发出的 action 能区分「变量没更新」（查 updateForm/KV 推送链）vs「变量更新但 UI 冻结」（查带参 @Builder）。
 - **⚠️ WidgetIcon 已改用 SVG 资源 + Image 组件**（Path 三种方案——`.width/.height`、`.scale()`、坐标预缩放——在卡片渲染管线全部不生效，图标永远 24vp）。实现方式：13 个 SVG 放在 `resources/base/media/`（ic_play/ic_pause/ic_prev/ic_next/ic_heart/ic_heart_fill/ic_shuffle/ic_repeat/ic_repeat_1/ic_list/ic_music/ic_crown/ic_refresh），Image($r('app.media.xxx')) + `.width/.height/.fillColor(color)`，SVG 里 fill 写 #FFFFFF 占位、fillColor 覆盖。空心 heart 用 Material `favorite_border` 的填充式轮廓路径（不是 stroke 描边）。
+- **⚠️ `PlayerStore.togglePlay` pause 分支必须显式同步 `this.state = 'paused'`**：旧代码只设 `isPlaying=false` 不设 `state`，如果 `onStateChange('paused')` 回调延迟或丢失，`state` 卡在 `'playing'`，下次 togglePlay 永远走 pause 分支，isPlaying 永远是 false，卡片按钮永远不变。修复：用 `this.isPlaying` 判断（不用 `this.state`），并在两个分支里都显式同步 `this.state = 'paused' / 'playing'`。验证：临时硬编码推 `isPlaying=true` → 卡片按钮正确变 ⏸ pause（推送链路全通）。
 - **⚠️ 卡片列表数据必须用 features_network 的封装 API，不要手拼路径**：歌单 `playlistApi.list('MUSIC')` 返回 `PlaylistDto[]`；历史 `userDataApi.trackHistory()` 返回 `LoadMoreResp<TrackHistoryItem>`（`.list` 不是 `.items`）；上新 `trackApi.latest()` 返回 `TrackDto[]`。后端 Track 模型字段是 `id/name/artist/cover/duration/type/path`，**没有 `title/coverUrl/url`**。
+- **⚠️ 后端 GET /playlists（findAll）不返回顶层 cover/trackCount**，返回 `tracks: [{id, cover}]`（前 4 首）+ `_count: {tracks}`；歌单封面用 `tracks[0].cover` 自构（对齐 mobile StackedCover），计数用 `_count.tracks`。PlaylistDto 已补这两个字段。
+- **⚠️ 详情页跳转门控用 `carModeEnabled`，不能用 `carNavCallback` 是否存在**：MainPage 给 HomeTab/LibraryTab/PersonalTab 无条件注入 carNavCallback，若只判 callback 非空，手机端点击会走车机右栏分支（只设 carDetailName，手机布局不渲染）→ 点击无反应。正确：`if (this.carModeEnabled && this.carNavCallback)`（PersonalTab 已补 `@StorageLink('carModeEnabled')`）。
 - **⚠️ 播控必须用 call 事件（对齐官方 CardInfoRefresh 示例）**：message 事件落到 EntryFormAbility 进程（另一个 playerStore 实例，无法控制主 App 播放）；call 事件直达 EntryAbility 的 `this.callee.on('widgetCommand', handler)`，回包必须 `implements rpc.Parcelable`。卡片侧 `postCardAction({action:'call', abilityName:'EntryAbility', params:{method:'widgetCommand', widgetAction:'play'|..., id?}})`。冷启动时序：EntryAbility.onCreate 先 `restorePromise = playerStore.restoreState()`，call 回调 await 它再执行指令（否则 queue 空，play 落空）。
 - **⚠️ 卡片封面三级兜底**（WidgetCoverResolver）：data:base64 内联（WidgetBridge 预取后塞进 FormBindingData，最稳定）→ file:// 本地缓存（同 UID 可读）→ 绝对 URL（相对路径用模块级 baseUrl 补全，**卡片进程不能 import features_network**，会拉起整张网络栈）。WidgetBridge.prefetchCover 用 http.createHttp 拉 ARRAY_BUFFER → 写 filesDir/widget_covers → 生成 data:image/webp;base64（≤80KB，300px webp 基本 <20KB）。
 - **⚠️ 列表封面（歌单/历史/上新）必须统一下载转 file:// 本地文件路径**：FormExtensionAbility 渲染进程对 Image 加载网络 URL 不可靠（官方文档原话"对于网络图片的加载存在较大性能开销，部分场景可能存在加载失败"），dataImage 走 FormBindingData 有截断风险。resolveCoverToFile(cover) 用 getImageUrl(cover, 96) → http.createHttp 拉 ARRAY_BUFFER → 写 filesDir/widget_covers/ → 返回 file:// 路径，卡片零网络请求直接读本地文件。外链封面（Subsonic/Emby 等 http(s)）也统一下载转本地。EntryFormAbility.restoreNowPlayingFromPersistedState 的封面优先读 widget_now_playing_cover_cache（dataImage → 转 file://），缓存没有才手动拼 URL 兜底。

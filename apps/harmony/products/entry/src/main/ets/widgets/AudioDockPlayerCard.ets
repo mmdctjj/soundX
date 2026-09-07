@@ -101,7 +101,7 @@ struct AudioDockPlayerCard {
         .textAlign(TextAlign.Center)
         .width('100%');
 
-      this.transportRow(24, 12);
+      this.transportRowSmall();
     }
     .width('100%')
     .height('100%')
@@ -131,7 +131,7 @@ struct AudioDockPlayerCard {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .width('100%');
         Blank();
-        this.transportRow(34);
+        this.transportRowMedium();
       }
       .layoutWeight(1)
       .height('100%')
@@ -166,7 +166,7 @@ struct AudioDockPlayerCard {
       Row({ space: 8 }) {
         this.modeButton();
         this.iconButton('prev', 'prev', 34);
-        this.playButton(44, false);
+        this.playButtonLarge();
         this.iconButton('next', 'next', 34);
         this.likeButton();
       }
@@ -180,29 +180,99 @@ struct AudioDockPlayerCard {
   }
 
   // ─── 公共控件 ───────────────────────────────────────────────────────────
+  //
+  // ⚠️ 播放/暂停、模式、点赞图标必须放在「无参 @Builder」里、并用 visibility
+  // 绑定切换，不能走带参 @Builder + WidgetIcon(name) 按值传参：
+  // 卡片渲染管线里带参 @Builder 的参数是按值快照，不会对 this.isPlaying 建立
+  // 订阅——真机实测：updateForm 推送成功、onClick 里读到的值也是新的，
+  // 唯独带参 builder 体内的图标永不重绘。无参 builder 的属性/visibility 绑定
+  // 才有响应式（同文件 Text(this.title) 一直正常更新可证）。
+  // 另外卡片 @Builder 体内不允许写 if，所以用双 Image + visibility 互斥切换。
 
   @Builder
-  transportRow(iconSize: number, hitPad: number = 20) {
+  transportRowSmall() {
     Row({ space: 8 }) {
-      this.iconButton('prev', 'prev', iconSize, hitPad);
-      this.playButton(iconSize + 8, true, hitPad);
-      this.iconButton('next', 'next', iconSize, hitPad);
+      this.iconButton('prev', 'prev', 24, 12);
+      this.playButtonSmall();
+      this.iconButton('next', 'next', 24, 12);
     }
     .width('100%')
     .justifyContent(FlexAlign.Center);
   }
 
   @Builder
-  playButton(size: number, showBg: boolean, hitPad: number = 20) {
-    Stack({ alignContent: Alignment.Center }) {
-      if (showBg) {
-        Circle({ width: size + hitPad, height: size + hitPad })
-          .fill(WIDGET_COLOR.btnActiveBg);
-      }
-      WidgetIcon(this.isPlaying ? 'pause' : 'play', size, WIDGET_COLOR.fg);
+  transportRowMedium() {
+    Row({ space: 8 }) {
+      this.iconButton('prev', 'prev', 34);
+      this.playButtonMedium();
+      this.iconButton('next', 'next', 34);
     }
-    .width(size + hitPad)
-    .height(size + hitPad)
+    .width('100%')
+    .justifyContent(FlexAlign.Center);
+  }
+
+  @Builder
+  playButtonSmall() {
+    Stack({ alignContent: Alignment.Center }) {
+      Circle({ width: 44, height: 44 })
+        .fill(WIDGET_COLOR.btnActiveBg);
+      Image($r('app.media.ic_pause'))
+        .width(32)
+        .height(32)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_play'))
+        .width(32)
+        .height(32)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.None : Visibility.Visible);
+    }
+    .width(44)
+    .height(44)
+    .onClick((): void => {
+      this.sendCommand(this.isPlaying ? 'pause' : 'play');
+    });
+  }
+
+  @Builder
+  playButtonMedium() {
+    Stack({ alignContent: Alignment.Center }) {
+      Circle({ width: 62, height: 62 })
+        .fill(WIDGET_COLOR.btnActiveBg);
+      Image($r('app.media.ic_pause'))
+        .width(42)
+        .height(42)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_play'))
+        .width(42)
+        .height(42)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.None : Visibility.Visible);
+    }
+    .width(62)
+    .height(62)
+    .onClick((): void => {
+      this.sendCommand(this.isPlaying ? 'pause' : 'play');
+    });
+  }
+
+  @Builder
+  playButtonLarge() {
+    Stack({ alignContent: Alignment.Center }) {
+      Image($r('app.media.ic_pause'))
+        .width(44)
+        .height(44)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_play'))
+        .width(44)
+        .height(44)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.None : Visibility.Visible);
+    }
+    .width(64)
+    .height(64)
     .onClick((): void => {
       this.sendCommand(this.isPlaying ? 'pause' : 'play');
     });
@@ -224,7 +294,27 @@ struct AudioDockPlayerCard {
   @Builder
   modeButton() {
     Stack({ alignContent: Alignment.Center }) {
-      WidgetIcon(this.modeIcon(this.playMode), 32, WIDGET_COLOR.fg);
+      Image($r('app.media.ic_shuffle'))
+        .width(32)
+        .height(32)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.playMode === 'SHUFFLE' ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_repeat'))
+        .width(32)
+        .height(32)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.playMode === 'LOOP_LIST' ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_repeat_1'))
+        .width(32)
+        .height(32)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.playMode === 'LOOP_SINGLE' ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_list'))
+        .width(32)
+        .height(32)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.playMode !== 'SHUFFLE' && this.playMode !== 'LOOP_LIST' &&
+          this.playMode !== 'LOOP_SINGLE' ? Visibility.Visible : Visibility.None);
     }
     .width(56)
     .height(56)
@@ -237,7 +327,16 @@ struct AudioDockPlayerCard {
   @Builder
   likeButton() {
     Stack({ alignContent: Alignment.Center }) {
-      WidgetIcon(this.isLiked ? 'heart.fill' : 'heart', 32, this.isLiked ? '#FF6B6B' : WIDGET_COLOR.fg);
+      Image($r('app.media.ic_heart_fill'))
+        .width(32)
+        .height(32)
+        .fillColor('#FF6B6B')
+        .visibility(this.isLiked ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_heart'))
+        .width(32)
+        .height(32)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isLiked ? Visibility.None : Visibility.Visible);
     }
     .width(56)
     .height(56)
@@ -267,14 +366,5 @@ struct AudioDockPlayerCard {
         params,
       });
     } catch (e) { /* swallow */ }
-  }
-
-  private modeIcon(mode: string): string {
-    switch (mode) {
-      case 'SHUFFLE': return 'shuffle';
-      case 'LOOP_LIST': return 'repeat';
-      case 'LOOP_SINGLE': return 'repeat.1';
-      default: return 'list';
-    }
   }
 }

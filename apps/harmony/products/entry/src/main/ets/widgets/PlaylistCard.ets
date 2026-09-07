@@ -74,10 +74,21 @@ struct PlaylistCard {
 
   @Builder
   headerPlayButton() {
+    // 不用 WidgetIcon(name) 按值传参：图标名不会随状态刷新（真机实测冻结），
+    // 双 Image + visibility 绑定才有响应式。
     Stack({ alignContent: Alignment.Center }) {
       Circle({ width: 40, height: 40 })
         .fill('#26FFFFFF');
-      WidgetIcon(this.isPlaying ? 'pause' : 'play', 20, WIDGET_COLOR.fg);
+      Image($r('app.media.ic_pause'))
+        .width(20)
+        .height(20)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_play'))
+        .width(20)
+        .height(20)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.None : Visibility.Visible);
     }
     .width(40)
     .height(40)

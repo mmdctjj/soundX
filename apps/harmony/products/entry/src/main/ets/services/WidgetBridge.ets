@@ -510,13 +510,19 @@ class WidgetBridgeImpl {
       const limit = Math.min(list.length, PLAYLIST_LIMIT);
       for (let i = 0; i < limit; i++) {
         const it = list[i];
+        // 后端 list 不返回顶层 cover/trackCount：
+        // 封面取前 4 首曲目（tracks[].cover）的第一首，计数取 _count.tracks
+        const ts = it.tracks ?? [];
+        const firstCover = ts.length > 0 ? String(ts[0].cover ?? '') : '';
+        const rawCover = it.cover ? String(it.cover) : firstCover;
+        const cnt = it._count?.tracks ?? 0;
         // 列表封面也走 prefetchCover 转 dataImage（对齐正在播放封面的路径），
         // 网络 URL 在卡片渲染进程不可靠
         items.push({
           id: String(it.id ?? ''),
           name: String(it.name ?? ''),
-          cover: await this.resolveCoverToFile(it.cover ? String(it.cover) : ''),
-          trackCount: typeof it.trackCount === 'number' ? it.trackCount : 0,
+          cover: await this.resolveCoverToFile(rawCover),
+          trackCount: typeof cnt === 'number' ? cnt : 0,
         });
       }
       const store = await this.getPlayerStore();

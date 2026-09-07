@@ -103,11 +103,34 @@ struct PlayerHistoryCard {
   transportRow() {
     Row({ space: 12 }) {
       this.iconBtn('prev', 'prev');
-      this.iconBtn(this.toNowPlaying()?.isPlaying ? 'pause' : 'play',
-        this.toNowPlaying()?.isPlaying ? 'pause' : 'play');
+      this.playPauseBtn();
       this.iconBtn('next', 'next');
     }
     .width('100%');
+  }
+
+  @Builder
+  playPauseBtn() {
+    // 不用 iconBtn(name, method) 按值传参：图标名不会随状态刷新（真机实测冻结），
+    // 双 Image + visibility 绑定才有响应式。
+    Stack({ alignContent: Alignment.Center }) {
+      Image($r('app.media.ic_pause'))
+        .width(34)
+        .height(34)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.toNowPlaying()?.isPlaying ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_play'))
+        .width(34)
+        .height(34)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.toNowPlaying()?.isPlaying ? Visibility.None : Visibility.Visible);
+    }
+    .width(56)
+    .height(56)
+    .borderRadius(WIDGET_RADIUS.button)
+    .onClick((): void => {
+      this.sendCommand(this.toNowPlaying()?.isPlaying ? 'pause' : 'play');
+    });
   }
 
   @Builder

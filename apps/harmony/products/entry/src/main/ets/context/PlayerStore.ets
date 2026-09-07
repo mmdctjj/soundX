@@ -293,8 +293,18 @@ export class PlayerStore {
       await this.loadCurrent(this.currentMs);
       return;
     }
-    if (this.state === 'playing') { await audioBackend.pause(); this.isPlaying = false; }
-    else { await audioBackend.play(); this.isPlaying = true; }
+    // 用 isPlaying 判断而不是 state —— state 由 AVPlayer 异步回调设置，
+    // 在 await audioBackend.play/pause 返回时可能还没同步；isPlaying 才是用户感知的真实状态。
+    // 同时显式同步 state，避免下次 togglePlay 判断时 state 与 isPlaying 不一致
+    if (this.isPlaying) {
+      await audioBackend.pause();
+      this.isPlaying = false;
+      this.state = 'paused';
+    } else {
+      await audioBackend.play();
+      this.isPlaying = true;
+      this.state = 'playing';
+    }
     this.notify();
     this.broadcastSync(this.isPlaying ? 'play' : 'pause');
   }

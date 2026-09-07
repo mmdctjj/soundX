@@ -74,10 +74,21 @@ struct LatestCard {
 
   @Builder
   headerPlayButton() {
+    // 不用 WidgetIcon(name) 按值传参：图标名不会随状态刷新（真机实测冻结），
+    // 双 Image + visibility 绑定才有响应式。
     Stack({ alignContent: Alignment.Center }) {
       Circle({ width: 36, height: 36 })
         .fill('#26FFFFFF');
-      WidgetIcon(this.isPlaying ? 'pause' : 'play', 18, WIDGET_COLOR.fg);
+      Image($r('app.media.ic_pause'))
+        .width(18)
+        .height(18)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.Visible : Visibility.None);
+      Image($r('app.media.ic_play'))
+        .width(18)
+        .height(18)
+        .fillColor(WIDGET_COLOR.fg)
+        .visibility(this.isPlaying ? Visibility.None : Visibility.Visible);
     }
     .width(36)
     .height(36)
